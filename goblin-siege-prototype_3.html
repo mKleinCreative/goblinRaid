@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GOBLIN SIEGE — Browser Prototype v3 (Combat Pass)</title>
+<style>
+  :root{
+    --ink:#0d0b0a;
+    --stone:#2b2621;
+    --stone-light:#453d34;
+    --ember:#e8672c;
+    --ember-dim:#8a3d18;
+    --blood:#a11d1d;
+    --sick-green:#4c6b3a;
+    --shadow-purple:#6b3fa0;
+    --parchment:#d8c9a3;
+    --gold:#e0b23c;
+  }
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--ink);
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    overflow:hidden;
+    color:var(--parchment);
+  }
+  #wrap{
+    position:relative; width:1000px; height:650px; margin:20px auto;
+    box-shadow: 0 0 0 6px var(--stone), 0 0 40px 10px rgba(0,0,0,0.8);
+    border-radius:4px; overflow:hidden;
+  }
+  canvas{ display:block; background:#1a1712; }
+
+  #hud{ position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  .bar-label{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--parchment); opacity:0.85; }
+
+  #topleft{ position:absolute; top:14px; left:14px; width:220px; }
+  .bar-bg{ width:100%; height:14px; background:rgba(0,0,0,0.55); border:1px solid #000; border-radius:3px; margin:3px 0 8px 0; overflow:hidden;}
+  .bar-fill{ height:100%; transition:width 0.12s linear; }
+  #hpfill{ background:linear-gradient(90deg,#7a1414,var(--blood)); }
+  #stafill{ background:linear-gradient(90deg,#8a7a1e,#d8c14a); }
+  #livesRow{ font-size:12px; margin:-2px 0 8px 0; letter-spacing:1px; }
+  #livesRow span.lost{ opacity:0.25; }
+
+  #topcenter{ position:absolute; top:14px; left:50%; transform:translateX(-50%); width:280px; text-align:center;}
+  #alarmfill{ background:linear-gradient(90deg,#6b1010,var(--ember)); }
+  #alarmwrap .bar-bg{ height:16px; }
+
+  #topright{ position:absolute; top:14px; right:14px; width:230px; text-align:right; }
+  #objectiveText{ font-size:13px; line-height:1.5; }
+  #goldText{ font-size:13px; color:var(--gold); margin-top:4px;}
+
+  #bottomleft{ position:absolute; bottom:14px; left:14px; font-size:12px; line-height:1.6; }
+  #abilityBox{
+    display:inline-block; padding:6px 10px; border:1px solid var(--stone-light);
+    background:rgba(0,0,0,0.5); border-radius:4px; margin-top:4px;
+  }
+
+  #bottomright{ position:absolute; bottom:14px; right:14px; font-size:11px; text-align:right; opacity:0.75; line-height:1.5; }
+
+  #overlay{
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    background:radial-gradient(ellipse at center, rgba(20,15,10,0.92), rgba(5,3,2,0.98));
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    pointer-events:all; text-align:center;
+  }
+  #overlay h1{
+    font-size:42px; margin:0 0 6px 0; color:var(--ember);
+    text-shadow:0 0 18px rgba(232,103,44,0.6);
+    letter-spacing:3px;
+  }
+  #overlay h2{ font-size:18px; color:var(--parchment); margin:0 0 26px 0; font-weight:normal; opacity:0.85;}
+  .classRow{ display:flex; gap:18px; margin-bottom:18px; }
+  .classCard{
+    width:170px; padding:16px 12px; background:rgba(40,34,28,0.85);
+    border:2px solid var(--stone-light); border-radius:6px; cursor:pointer;
+    transition:all 0.15s ease;
+  }
+  .classCard:hover{ border-color:var(--ember); background:rgba(60,45,30,0.9); transform:translateY(-3px); }
+  .classCard.selected{ border-color:var(--gold); box-shadow:0 0 14px rgba(224,178,60,0.4); }
+  .classCard h3{ margin:0 0 8px 0; color:var(--gold); font-size:16px; letter-spacing:1px;}
+  .classCard p{ margin:0; font-size:12px; line-height:1.5; opacity:0.85; }
+  .pathRow{ display:none; gap:14px; margin-bottom:18px; }
+  .pathCard{
+    width:150px; padding:12px; background:rgba(30,25,20,0.85);
+    border:2px solid var(--stone-light); border-radius:6px; cursor:pointer;
+  }
+  .pathCard.shadow:hover, .pathCard.shadow.selected{ border-color:var(--shadow-purple); }
+  .pathCard.blood:hover, .pathCard.blood.selected{ border-color:var(--blood); }
+  #missionRow .pathCard:hover, #missionRow .pathCard.selected{ border-color:var(--gold); box-shadow:0 0 14px rgba(224,178,60,0.35); }
+  .pathCard h4{ margin:0 0 6px 0; font-size:13px; }
+  .pathCard p{ margin:0; font-size:11px; opacity:0.85; line-height:1.4;}
+  #beginBtn{
+    padding:12px 34px; font-size:16px; letter-spacing:2px; text-transform:uppercase;
+    background:linear-gradient(180deg,var(--ember),var(--ember-dim)); color:#1a1200;
+    border:none; border-radius:4px; cursor:pointer; font-weight:bold;
+    box-shadow:0 3px 0 #5c260c;
+  }
+  #beginBtn:disabled{ background:#3a342c; color:#66604f; cursor:not-allowed; box-shadow:none;}
+  #beginBtn:active:not(:disabled){ transform:translateY(2px); box-shadow:none; }
+  #controlsHint{ margin-top:20px; font-size:11px; opacity:0.6; max-width:560px; line-height:1.6;}
+  #restartBtn{
+    margin-top:18px; padding:10px 26px; font-size:14px; letter-spacing:1px;
+    background:var(--stone-light); color:var(--parchment); border:1px solid var(--ember);
+    border-radius:4px; cursor:pointer;
+  }
+  .hidden{ display:none !important; }
+  #scoreSummary{ font-size:14px; margin:8px 0 4px 0; color:var(--parchment); opacity:0.9;}
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <canvas id="game" width="1000" height="650"></canvas>
+
+  <div id="hud">
+    <div id="topleft">
+      <div class="bar-label">Health</div>
+      <div class="bar-bg"><div class="bar-fill" id="hpfill" style="width:100%"></div></div>
+      <div class="bar-label">Stamina</div>
+      <div class="bar-bg"><div class="bar-fill" id="stafill" style="width:100%"></div></div>
+      <div id="livesRow">Lives: <span id="livesIcons">●●●●●</span></div>
+    </div>
+
+    <div id="topcenter">
+      <div class="bar-label">Alarm</div>
+      <div id="alarmwrap" class="bar-bg"><div class="bar-fill" id="alarmfill" style="width:0%"></div></div>
+    </div>
+
+    <div id="topright">
+      <div id="objectiveText">Objective: Burn 3 Granaries</div>
+      <div id="goldText">Gold: 0</div>
+    </div>
+
+    <div id="bottomleft">
+      <div id="abilityBox">Class: — &nbsp; | &nbsp; Torches: 5 &nbsp; | &nbsp; Ability: Ready</div>
+    </div>
+
+    <div id="bottomright">
+      WASD move · Mouse aim · Click light atk · Right-click heavy atk<br>
+      Shift dodge · Q throw torch · E class ability · F swap weapon (Slasher)
+    </div>
+  </div>
+
+  <div id="overlay">
+    <h1>GOBLIN SIEGE</h1>
+    <h2 id="overlaySub">Choose your raid</h2>
+
+    <div style="font-size:12px;letter-spacing:1px;opacity:0.8;margin-bottom:6px;text-transform:uppercase;">Mission</div>
+    <div class="pathRow" id="missionRow" style="display:flex;">
+      <div class="pathCard" data-mission="granary">
+        <h4>Burn the Granaries</h4>
+        <p>Torch all 3 granaries, then extract. A spread-out arson job.</p>
+      </div>
+      <div class="pathCard" data-mission="landlord">
+        <h4>Kill the Landlord</h4>
+        <p>Hunt the landlord. He flees to his manor when alarmed — burn it down to flush him out, then run him down.</p>
+      </div>
+    </div>
+
+    <div style="font-size:12px;letter-spacing:1px;opacity:0.8;margin:6px 0;text-transform:uppercase;">Weapon</div>
+    <div class="classRow" id="classRow">
+      <div class="classCard" data-class="slasher">
+        <h3>Daggers &amp; Bow</h3>
+        <p>One weapon, two modes. Dagger combo with a lunging finisher; press F to swap to the bow. Ability: Dash Strike.</p>
+      </div>
+      <div class="classCard" data-class="brute">
+        <h3>Great-club</h3>
+        <p>A hulking goblin — bigger body, longer reach, wider swings, slow to turn. Heavy hits crumple and launch. Ability: Ground Slam.</p>
+      </div>
+      <div class="classCard" data-class="shaman">
+        <h3>Shaman Staff</h3>
+        <p>Ranged &amp; support caster. Choose a staff below. Every goblin still carries torches to burn the city down.</p>
+      </div>
+    </div>
+
+    <div class="pathRow" id="pathRow">
+      <div class="pathCard shadow" data-path="shadow">
+        <h4>Shadow Staff</h4>
+        <p>LMB shadow dagger · RMB piercing bolt · E: Shadow Grasp — summon hands that root &amp; stun a group.</p>
+      </div>
+      <div class="pathCard blood" data-path="blood">
+        <h4>Blood Staff</h4>
+        <p>Draw blood orbs (kills + Siphon F). Spend them: dagger 1 · piercing spear 2 · Blood Lance 4 (E).</p>
+      </div>
+    </div>
+
+    <button id="beginBtn" disabled>Begin Raid</button>
+    <div id="controlsHint">
+      You only see what's in line of sight — the map is dark until you explore it. Guards can't see through walls: move quietly and they stay unaware, but attacking, casting, or exploding barrels makes noise that draws them, and being spotted rings the alarm for the whole district.
+      Enemies telegraph their strikes — dodge through melee, step out of archer aim-lines. Torches stick where they land and fire spreads; friendly fire is on (reduced). Once razed, the district's barracks fall silent but outside patrols march in and escalate. 5 lives each.
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================================
+   GOBLIN SIEGE — browser prototype v3 (combat feel pass)
+   ---------------------------------------------------------------------------------
+   NOTE FOR THE EVENTUAL UNREAL ENGINE PORT (target: end of week 7):
+   Each JS "system" maps to a clear UE5 equivalent. New in this pass:
+
+     Torch stick-on-impact  -> projectile sweep/hit result; attach FX at ImpactPoint,
+                               spawn fire volume at the surface, not past it
+     Hitstop                -> brief global time dilation (SetGlobalTimeDilation ~0.05s)
+                               or per-actor CustomTimeDilation on attacker+victim
+     Screen shake           -> UCameraShakeBase, scaled by hit weight
+     Enemy telegraphs       -> AnimMontage windup sections + a "danger flash" material
+                               pulse; windup duration is the dodge-timing window
+     Archer aim line        -> a beam/decal telegraph locked at windup start (the lane
+                               is committed, not tracking) — dodge OUT of it, not through
+     Brute size/reach       -> a per-class capsule radius + melee trace length scalar;
+                               keep visuals and hitbox scaled by the same value
+     Turn rate (aim weight) -> clamp character yaw interpolation toward the aim target
+                               (RInterpConstantTo at a per-class rate) rather than setting
+                               control rotation directly — heavier classes turn slower, so
+                               repositioning matters and you can't instantly cover all angles
+     Per-class attack timing-> attack cooldowns/windups live on the class's GAS ability set;
+                               the Brute trades reach+damage for slower recovery (a real
+                               commitment window), so he can't passively wall off a swarm
+     Stagger / flinch       -> GAS GameplayEffect applying a "Stunned" tag that cancels
+                               the enemy's active montage
+     Damage numbers         -> UMG widget component, world-space, pooled
+     Combo chain (Slasher)  -> montage sections chained by input buffering in GAS
+     Knockback              -> LaunchCharacter impulse scaled by attack weight
+     Enemy perception       -> AIPerceptionComponent (Sight sense w/ real LOS trace +
+                               vision cone/radius, Hearing sense for noise). No stimulus
+                               = enemy stays in an idle/patrol Behavior Tree branch and
+                               genuinely cannot see through walls
+     Noise events           -> ReportNoiseEvent (or UAISense_Hearing::ReportNoiseEvent) on
+                               attacks/casts/explosions; movement stays silent so stealth
+                               is possible. Getting spotted = the "bell": spike alarm and
+                               propagate a hearing event to nearby allies
+     Fog of war             -> render-target/decal reveal driven by the player's LOS + sight
+                               radius; "explored" persists dimmed, "visible" is live. In 3D
+                               this is a soft height-fog / post-process reveal mask. Cull
+                               unseen dynamic actors from the player's view, not from the sim
+
+   Everything else (lives, barracks, alarm, classes) unchanged from v2 — see the race
+   design docs for the combat-balance matrix these numbers come from.
+   ===================================================================================== */
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ---------- utility ----------
+const rand = (a,b)=> a + Math.random()*(b-a);
+const dist = (a,b)=> Math.hypot(a.x-b.x, a.y-b.y);
+const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
+const angleTo = (a,b)=> Math.atan2(b.y-a.y, b.x-a.x);
+function normalizeAngleDiff(a){ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; }
+
+// ---------- combat feel: hitstop, shake, damage numbers ----------
+let hitstop = 0;          // seconds of frozen time remaining
+let shake = {t:0, mag:0}; // screen shake timer + magnitude
+let dmgNumbers = [];      // floating damage popups
+
+function addHitstop(sec){ hitstop = Math.max(hitstop, sec); }
+function addShake(mag, dur){ shake.mag = Math.max(shake.mag, mag); shake.t = Math.max(shake.t, dur); }
+function addDmgNumber(x,y,amount,color){
+  dmgNumbers.push({x:x+rand(-6,6), y:y-10, vy:-42, life:0.7, maxLife:0.7, text:Math.round(amount), color:color||'#f0e0c0'});
+}
+function updateDmgNumbers(dt){
+  for(const d of dmgNumbers){ d.y += d.vy*dt; d.vy *= 0.92; d.life -= dt; }
+  dmgNumbers = dmgNumbers.filter(d=>d.life>0);
+}
+function drawDmgNumbers(){
+  for(const d of dmgNumbers){
+    ctx.globalAlpha = clamp(d.life/d.maxLife,0,1);
+    ctx.fillStyle = d.color;
+    ctx.font = 'bold 13px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.text, d.x, d.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- input ----------
+const keys = {};
+let keyPressedOnce = {};
+let mouse = {x:500,y:325,down:false,rdown:false};
+window.addEventListener('keydown', e=>{
+  const k = e.key.toLowerCase();
+  if(!keys[k]) keyPressedOnce[k] = true;
+  keys[k] = true;
+  if(['q','e','f',' '].includes(k)) e.preventDefault();
+});
+window.addEventListener('keyup', e=> keys[e.key.toLowerCase()] = false);
+canvas.addEventListener('mousemove', e=>{
+  const r = canvas.getBoundingClientRect();
+  mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
+});
+canvas.addEventListener('mousedown', e=>{
+  if(e.button===0) mouse.down = true;
+  if(e.button===2) mouse.rdown = true;
+});
+canvas.addEventListener('mouseup', e=>{
+  if(e.button===0) mouse.down = false;
+  if(e.button===2) mouse.rdown = false;
+});
+canvas.addEventListener('contextmenu', e=> e.preventDefault());
+
+// ---------- global game state ----------
+let state = 'classSelect';
+let chosenClass = null, chosenPath = null;
+let chosenMission = null; // 'granary' | 'landlord' — must be chosen before Begin
+let alarm = 0;
+let alarmTier = 0;
+let gold = 0;
+let granariesLeft = 3;
+let extractionActive = false;
+let objectiveComplete = false;
+let elapsed = 0;
+let landlord = null;
+let landlordDown = false;
+let postObjTimer = 0;      // time spent lingering after the objective is done
+let patrolTimer = 0;       // countdown to next external relief patrol
+let cityRazed = false;     // true once the district is spent -> internal spawns stop
+
+let player, companions = [], enemies = [], props = [], torches = [], arrows = [], fireZones = [], particles = [], pickups = [], graspZones = [];
+
+const STARTING_LIVES = 5;
+const RESPAWN_DELAY = 2.0;
+const PLAYER_SPAWN = {x:500,y:95};
+const FRIENDLY_FIRE_SCALE = 0.35; // allies take reduced damage from goblin fire/barrels
+
+// ---------- map layout ----------
+const WALL = 20;
+const EXTRACTION = {x:430, y:600, w:140, h:34};
+const GRANARY_SPOTS = [ {x:140,y:130},{x:830,y:130},{x:485,y:430} ];
+const BARRACKS_SPOTS = [ {x:130,y:480}, {x:870,y:480} ];
+const MANOR_SPOT = {x:500, y:330};   // landlord's shelter (landlord mission only)
+const BARRACKS_INTERVAL = 9;
+const MAX_ENEMIES = 16;
+
+// ---------- fog of war / vision ----------
+const FOG_CELL = 24;
+const GRID_W = Math.ceil(W/FOG_CELL), GRID_H = Math.ceil(H/FOG_CELL);
+let fogExplored = new Uint8Array(GRID_W*GRID_H); // ever seen (remembered, dimmed)
+let fogVisible  = new Uint8Array(GRID_W*GRID_H); // in sight right now
+const PLAYER_VISION = 220;
+
+function buildMap(){
+  props = [];
+  props.push({x:W/2,y:WALL/2, rw:W/2, rh:WALL/2, hp:99999, maxHp:99999, type:'wall', flammable:false, solid:true, destroyed:false});
+  props.push({x:W/2,y:H-WALL/2, rw:W/2, rh:WALL/2, hp:99999, maxHp:99999, type:'wall', flammable:false, solid:true, destroyed:false});
+  props.push({x:WALL/2,y:H/2, rw:WALL/2, rh:H/2, hp:99999, maxHp:99999, type:'wall', flammable:false, solid:true, destroyed:false});
+  props.push({x:W-WALL/2,y:H/2, rw:WALL/2, rh:H/2, hp:99999, maxHp:99999, type:'wall', flammable:false, solid:true, destroyed:false});
+
+  GRANARY_SPOTS.forEach(spot=>{
+    props.push({x:spot.x, y:spot.y, rw:40, rh:40, hp:150, maxHp:150, type:'granary', flammable:true, solid:true, destroyed:false, burning:false});
+  });
+
+  BARRACKS_SPOTS.forEach(spot=>{
+    props.push({x:spot.x, y:spot.y, rw:34, rh:34, hp:220, maxHp:220, type:'barracks', flammable:false, solid:true, destroyed:false, spawnTimer:rand(3,BARRACKS_INTERVAL)});
+  });
+
+  // Manor — the landlord's shelter. Flammable and destructible; burning/breaking it
+  // flushes the landlord out. Only present in the landlord mission.
+  if(chosenMission==='landlord'){
+    props.push({x:MANOR_SPOT.x, y:MANOR_SPOT.y, rw:52, rh:44, hp:260, maxHp:260,
+      type:'manor', flammable:true, solid:true, destroyed:false, burning:false});
+  }
+
+  [[300,150,60,30],[700,150,60,30],[300,470,50,50],[700,470,50,50]].forEach(b=>{
+    props.push({x:b[0],y:b[1],rw:b[2]/2,rh:b[3]/2, hp:99999,maxHp:99999, type:'wall', flammable:false, solid:true, destroyed:false});
+  });
+
+  const scatter = [
+    [220,280,'fence'],[380,280,'fence'],[620,280,'fence'],[780,280,'fence'],
+    [250,380,'crate'],[420,360,'barrel'],[580,360,'crate'],[750,380,'barrel'],
+    [500,150,'crate'],[500,520,'fence'],[350,520,'barrel'],[650,520,'crate'],
+    [150,350,'crate'],[850,350,'barrel']
+  ];
+  scatter.forEach(s=>{
+    const hp = s[2]==='barrel'?18:(s[2]==='crate'?24:32);
+    props.push({x:s[0],y:s[1], rw:s[2]==='fence'?26:16, rh:s[2]==='fence'?10:16,
+      hp:hp, maxHp:hp, type:s[2], flammable:true, solid:true, destroyed:false, burning:false});
+  });
+}
+
+// ---------- collision helpers ----------
+function pointInProp(x,y,p,pad){
+  pad = pad||0;
+  return Math.abs(x-p.x) < p.rw+pad && Math.abs(y-p.y) < p.rh+pad;
+}
+function propAtPoint(x,y,pad){
+  for(const p of props){
+    if(p.destroyed || !p.solid) continue;
+    if(pointInProp(x,y,p,pad)) return p;
+  }
+  return null;
+}
+function resolvePropCollision(ent){
+  for(const p of props){
+    if(p.destroyed || !p.solid) continue;
+    const dx = ent.x - p.x, dy = ent.y - p.y;
+    const halfW = p.rw + ent.radius, halfH = p.rh + ent.radius;
+    if(Math.abs(dx) < halfW && Math.abs(dy) < halfH){
+      const overlapX = halfW - Math.abs(dx);
+      const overlapY = halfH - Math.abs(dy);
+      if(overlapX < overlapY){ ent.x += overlapX * Math.sign(dx || 1); }
+      else{ ent.y += overlapY * Math.sign(dy || 1); }
+    }
+  }
+  ent.x = clamp(ent.x, WALL+ent.radius, W-WALL-ent.radius);
+  ent.y = clamp(ent.y, WALL+ent.radius, H-WALL-ent.radius);
+}
+
+// ---------- line of sight, visibility & noise ----------
+// Sight is blocked by walls and solid buildings/crates — NOT by low props (fences,
+// barrels). This is what stops enemies "seeing" through walls and drives fog of war.
+function propBlocksSight(p){
+  if(p.destroyed) return false;
+  return p.type==='wall' || p.type==='granary' || p.type==='barracks' || p.type==='manor' || p.type==='crate';
+}
+// Is the straight line from (x1,y1) to (x2,y2) clear of sight-blockers?
+function losClear(x1,y1,x2,y2){
+  const dx = x2-x1, dy = y2-y1;
+  const d = Math.hypot(dx,dy);
+  const steps = Math.max(1, Math.floor(d/10));
+  for(let i=1;i<steps;i++){
+    const t = i/steps, x = x1+dx*t, y = y1+dy*t;
+    for(const p of props){
+      if(propBlocksSight(p) && Math.abs(x-p.x) < p.rw && Math.abs(y-p.y) < p.rh) return false;
+    }
+  }
+  return true;
+}
+// Recompute the player's fog of war each frame: visible = within vision radius AND
+// with a clear line of sight; anything visible is also permanently "explored".
+function updateVisibility(){
+  fogVisible.fill(0);
+  if(!player || player.permaDead) return;
+  const pcx = Math.floor(player.x/FOG_CELL), pcy = Math.floor(player.y/FOG_CELL);
+  const rC = Math.ceil(PLAYER_VISION/FOG_CELL);
+  for(let cy=Math.max(0,pcy-rC); cy<=Math.min(GRID_H-1,pcy+rC); cy++){
+    for(let cx=Math.max(0,pcx-rC); cx<=Math.min(GRID_W-1,pcx+rC); cx++){
+      const wx = cx*FOG_CELL+FOG_CELL/2, wy = cy*FOG_CELL+FOG_CELL/2;
+      if(Math.hypot(wx-player.x, wy-player.y) > PLAYER_VISION) continue;
+      if(losClear(player.x, player.y, wx, wy)){
+        const i = cy*GRID_W+cx;
+        fogVisible[i] = 1; fogExplored[i] = 1;
+      }
+    }
+  }
+}
+function cellVisible(x,y){
+  const cx = Math.floor(x/FOG_CELL), cy = Math.floor(y/FOG_CELL);
+  if(cx<0||cy<0||cx>=GRID_W||cy>=GRID_H) return false;
+  return fogVisible[cy*GRID_W+cx] === 1;
+}
+function cellExplored(x,y){
+  const cx = Math.floor(x/FOG_CELL), cy = Math.floor(y/FOG_CELL);
+  if(cx<0||cy<0||cx>=GRID_W||cy>=GRID_H) return false;
+  return fogExplored[cy*GRID_W+cx] === 1;
+}
+// Noise: player actions (attacks, casts, explosions) alert nearby enemies even without
+// line of sight. Movement is silent — you can sneak if you don't act.
+function emitNoise(x,y,radius){
+  for(const e of enemies){
+    if(e.dead || e.type==='firefighter' || e.type==='landlord') continue;
+    if(dist({x,y},e) < radius){ e.heardNoise = 3; e.lastKnown = {x,y}; }
+  }
+}
+
+function spawnParticles(x,y,color,count,speed){
+  for(let i=0;i<count;i++){
+    const a = rand(0,Math.PI*2);
+    particles.push({x,y,vx:Math.cos(a)*rand(20,speed),vy:Math.sin(a)*rand(20,speed),life:rand(0.3,0.7),maxLife:0.7,color});
+  }
+}
+
+function raiseAlarm(amount){ alarm = clamp(alarm+amount, 0, 100); }
+
+function damagePropsInRadius(x,y,radius,dmg,igniteChance){
+  for(const p of props){
+    if(p.destroyed || p.type==='wall') continue;
+    if(dist({x,y},p) < radius + Math.max(p.rw,p.rh)){
+      p.hp -= dmg;
+      if(igniteChance && p.flammable && Math.random()<igniteChance) p.burning = true;
+      if(p.hp<=0) destroyProp(p);
+    }
+  }
+}
+
+function destroyProp(p){
+  p.destroyed = true; p.solid = false;
+  spawnParticles(p.x,p.y, p.type==='granary'?'#e8672c':'#8a7a5c', p.type==='granary'?26:12, 140);
+  addShake(p.type==='granary'||p.type==='barracks'?7:3, 0.25);
+  if(p.type==='barrel'){
+    damagePropsInRadius(p.x,p.y,55,40,0.6);
+    addShake(9, 0.3); addHitstop(0.06); emitNoise(p.x,p.y,360);
+    for(const e of enemies) if(!e.dead && dist(e,p)<55){ e.hp -= 22; addDmgNumber(e.x,e.y,22,'#ffb060'); applyStagger(e,0.5,angleTo(p,e),60); if(e.hp<=0) killEnemy(e); }
+    if(landlord && !landlord.dead && dist(landlord,p)<55){ landlord.hp -= 22; addDmgNumber(landlord.x,landlord.y,22,'#ffb060'); }
+    if(player && dist(player,p) < 55 && !player.invuln){ player.hp -= 10; if(player.hp<=0) player.handleDeath(); }
+    // friendly fire (reduced) to companions
+    for(const c of companions) if(!c.dead && !c.permaDead && dist(c,p)<55){ c.hp -= 22*FRIENDLY_FIRE_SCALE; }
+  }
+  if(p.type==='granary'){
+    granariesLeft--;
+    raiseAlarm(10);
+    if(Math.random()<0.7) pickups.push({x:p.x,y:p.y,type:'gold',amount:Math.floor(rand(15,30))});
+  } else if(p.type==='barracks'){
+    raiseAlarm(4);
+    if(Math.random()<0.6) pickups.push({x:p.x,y:p.y,type:'gold',amount:Math.floor(rand(10,20))});
+  } else if(p.type==='manor'){
+    raiseAlarm(8);
+    // burning/breaking the manor flushes the landlord into a panicked flight
+    if(landlord && !landlord.dead){ landlord.state = 'panic'; landlord.sheltered = false; }
+    for(let i=0;i<6;i++) pickups.push({x:p.x+rand(-30,30),y:p.y+rand(-20,20),type:'gold',amount:Math.floor(rand(8,16))});
+  } else {
+    if(Math.random()<0.35) pickups.push({x:p.x,y:p.y,type:'gold',amount:Math.floor(rand(2,6))});
+    if(Math.random()<0.15) pickups.push({x:p.x,y:p.y,type:'torch',amount:1});
+  }
+}
+
+// ---------- shared combat helpers ----------
+function applyStagger(e, dur, knockAngle, knockForce){
+  e.stagger = Math.max(e.stagger||0, dur);
+  e.windup = 0; // interrupt any telegraphed attack
+  if(knockForce){
+    e.kbx = Math.cos(knockAngle)*knockForce;
+    e.kby = Math.sin(knockAngle)*knockForce;
+  }
+}
+// Central damage entry point for conjured/projectile hits. Armor only bites against
+// plain physical hits — pierce (spears, power-shots) and magic (shadow) ignore it.
+function hurtEnemy(e, dmg, opts){
+  opts = opts||{};
+  if(e.shelter) return 0; // sheltered landlord can't be touched until the manor falls
+  let final = dmg;
+  if(e.armor && !opts.pierce && !opts.magic) final = Math.max(1, dmg - e.armor);
+  e.hp -= final;
+  e.hitFlash = 0.12;
+  addDmgNumber(e.x, e.y, final, opts.color);
+  spawnParticles(e.x, e.y, opts.particle || '#a11d1d', opts.particleCount || 8, 110);
+  if(opts.stagger) applyStagger(e, opts.stagger, opts.knockAngle||0, opts.knock||0);
+  if(e.hp<=0) killEnemy(e);
+  return final;
+}
+
+// ---------- Player ----------
+class Player{
+  constructor(cls,path){
+    this.x = PLAYER_SPAWN.x; this.y = PLAYER_SPAWN.y;
+    this.radius = cls==='brute'?21:14;          // brute is a much bigger creature
+    this.reach = cls==='brute'?1.5:1;           // and swings a far longer arc to match
+    // how fast facing eases toward the cursor (rad/sec). Heavier goblins turn slower,
+    // so aiming has weight instead of snapping instantly to the mouse.
+    this.turnRate = cls==='brute'?5.0:(cls==='shaman'?10:12);
+    this.cls = cls; this.path = path;
+    this.maxHp = cls==='brute'?170:(cls==='shaman'?85:110);
+    this.hp = this.maxHp;
+    this.maxStamina = 100; this.stamina = 100;
+    this.speed = cls==='slasher'?190:(cls==='brute'?118:160);
+    this.facing = 0;
+    this.torches = 5;
+    this.attackCd = 0; this.heavyWindup = 0; this.dodgeCd = 0; this.dodgeTime = 0; this.dodgeRecovery = 0;
+    this.dodgeDir = 0;
+    this.invuln = false;
+    this.postRespawnInvuln = 0;
+    this.abilityCd = 0;
+    this.staminaRegenDelay = 0;
+    this.lightAttackFlash = 0; this.heavyAttackFlash = 0; this.lanceFlash = 0;
+    this.throwCd = 0;
+    this.weapon = 'melee';
+    this.comboStep = 0;       // slasher combo: 0,1,2 -> third hit is finisher
+    this.comboWindow = 0;     // time left to continue the combo
+    // --- Shaman (Blood path) orb economy: max 9 orbs, spent on conjured weapons ---
+    this.bloodOrbs = (cls==='shaman' && path==='blood') ? 3 : 0;
+    this.maxBloodOrbs = 9;
+    this.siphonCd = 0;        // blood: draw orbs from living enemies
+    this.castCd = 0;          // shaman ranged attack cadence
+    this.noResourceFlash = 0; // feedback when you try to cast with too few orbs
+    this.dead = false;
+    this.permaDead = false;
+    this.lives = STARTING_LIVES;
+    this.respawnTimer = 0;
+    this.hurtFlash = 0;
+    this.abilityMaxCd = cls==='slasher'?4:(cls==='brute'?6:(path==='shadow'?5:6));
+  }
+  update(dt){
+    if(this.permaDead) return;
+
+    if(this.dead){
+      this.respawnTimer -= dt;
+      if(this.respawnTimer<=0){
+        this.dead = false;
+        this.hp = this.maxHp*0.6;
+        this.x = PLAYER_SPAWN.x; this.y = PLAYER_SPAWN.y;
+        this.postRespawnInvuln = 1.5;
+        spawnParticles(this.x,this.y,'#7fbf5f',16,150);
+      }
+      return;
+    }
+
+    // rotate toward the cursor at a limited turn rate (eases in, no instant snap)
+    const targetFacing = angleTo(this,mouse);
+    const turnStep = this.turnRate*dt;
+    const facingDiff = normalizeAngleDiff(targetFacing - this.facing);
+    if(Math.abs(facingDiff) <= turnStep) this.facing = targetFacing;
+    else this.facing += Math.sign(facingDiff)*turnStep;
+    this.hurtFlash = Math.max(0, this.hurtFlash-dt);
+
+    if(this.cls==='slasher' && keyPressedOnce['f']){
+      this.weapon = (this.weapon==='melee') ? 'bow' : 'melee';
+      this.comboStep = 0; this.comboWindow = 0;
+      spawnParticles(this.x,this.y,'#d8c9a3',6,90);
+    }
+
+    // movement
+    let mv = {x:0,y:0};
+    if(keys['w']) mv.y -= 1;
+    if(keys['s']) mv.y += 1;
+    if(keys['a']) mv.x -= 1;
+    if(keys['d']) mv.x += 1;
+    const mag = Math.hypot(mv.x,mv.y);
+    if(mag>0){ mv.x/=mag; mv.y/=mag; }
+
+    let curSpeed = this.speed;
+    if(this.dodgeTime>0){
+      // dodge locks you to the direction you rolled in — commit to it
+      this.dodgeTime -= dt;
+      this.invuln = true;
+      this.x += Math.cos(this.dodgeDir)*this.speed*2.6*dt;
+      this.y += Math.sin(this.dodgeDir)*this.speed*2.6*dt;
+      if(this.dodgeTime<=0){ this.dodgeRecovery = 0.28; }
+    } else {
+      this.invuln = this.postRespawnInvuln>0;
+      if(this.dodgeRecovery>0){
+        this.dodgeRecovery -= dt;
+        curSpeed = this.speed*0.42;
+      }
+      this.x += mv.x*curSpeed*dt;
+      this.y += mv.y*curSpeed*dt;
+    }
+    if(this.postRespawnInvuln>0) this.postRespawnInvuln -= dt;
+    resolvePropCollision(this);
+
+    // dodge — rolls in your movement direction (or facing if standing still)
+    if(keys['shift'] && this.dodgeCd<=0 && this.stamina>=20 && this.dodgeRecovery<=0 && this.dodgeTime<=0){
+      this.dodgeDir = mag>0 ? Math.atan2(mv.y,mv.x) : this.facing;
+      this.dodgeTime = 0.22; this.dodgeCd = 0.6; this.stamina -= 20; this.staminaRegenDelay = 0.5;
+      spawnParticles(this.x,this.y,'#cccccc',8,80);
+    }
+    this.dodgeCd -= dt;
+
+    // combo window decay
+    if(this.comboWindow>0){ this.comboWindow -= dt; if(this.comboWindow<=0) this.comboStep = 0; }
+
+    this.castCd -= dt;
+    this.noResourceFlash = Math.max(0, this.noResourceFlash-dt);
+
+    // ---- SHAMAN: ranged/support specialist — its own attack routing ----
+    if(this.cls==='shaman'){
+      this.updateShaman(dt);
+      this.attackCd -= dt;
+      this.siphonCd -= dt;
+      // torch (universal)
+      this.throwCd -= dt;
+      if(keys['q'] && this.throwCd<=0 && this.torches>0){
+        this.throwCd = 0.45; this.torches--;
+        const a = this.facing;
+        const sx = this.x+Math.cos(a)*(this.radius+7), sy = this.y+Math.sin(a)*(this.radius+7);
+        torches.push({x:sx,y:sy,px:sx,py:sy,vx:Math.cos(a)*480,vy:Math.sin(a)*480,life:0.7,radius:5,stuck:false,stuckTimer:0});
+      }
+      // ability (E)
+      this.abilityCd -= dt;
+      if(keys['e'] && this.abilityCd<=0){ this.useAbility(); this.abilityCd = this.abilityMaxCd; }
+      if(this.staminaRegenDelay>0) this.staminaRegenDelay -= dt;
+      else this.stamina = clamp(this.stamina + 30*dt, 0, this.maxStamina);
+      for(const f of fireZones){ if(dist(this,f) < f.radius && !this.invuln){ this.hp -= f.dps*dt; } }
+      if(this.hp<=0){ this.handleDeath(); }
+      return;
+    }
+
+    // light attack / bow shot
+    if(mouse.down && this.attackCd<=0 && this.stamina>=8 && this.dodgeTime<=0){
+      if(this.weapon==='bow'){
+        this.attackCd = 0.42; this.stamina -= 10; this.staminaRegenDelay = 0.45;
+        const a = this.facing;
+        arrows.push({x:this.x+Math.cos(a)*18,y:this.y+Math.sin(a)*18,vx:Math.cos(a)*520,vy:Math.sin(a)*520,life:1.4,radius:4,owner:'player',dmg:16});
+        raiseAlarm(1); emitNoise(this.x,this.y,150);
+      } else {
+        // slasher combo: hits 1-2 normal, hit 3 = lunging finisher
+        let dmg = this.cls==='brute'?14:(this.cls==='slasher'?12:9);
+        let range = 46*this.reach, knock = 10, finisher = false;
+        if(this.cls==='slasher'){
+          if(this.comboStep===2){
+            finisher = true;
+            dmg = 22; range = 56; knock = 34;
+            // lunge forward into the finisher
+            this.x += Math.cos(this.facing)*26; this.y += Math.sin(this.facing)*26;
+            resolvePropCollision(this);
+            this.comboStep = 0; this.comboWindow = 0;
+          } else {
+            this.comboStep++; this.comboWindow = 0.9;
+          }
+        }
+        this.attackCd = finisher ? 0.46 : (this.cls==='brute'?0.62:0.32);
+        this.stamina -= this.cls==='brute'?12:8; this.staminaRegenDelay = 0.45;
+        this.lightAttackFlash = 0.12;
+        this.meleeHit(range,0.9,dmg,knock,finisher?0.06:0.03);
+        raiseAlarm(1);
+      }
+    }
+    this.attackCd -= dt;
+
+    // heavy attack / power shot
+    if(mouse.rdown && this.heavyWindup<=0 && this.attackCd<=0 && this.stamina>=25 && this.dodgeTime<=0){
+      this.heavyWindup = this.cls==='brute'?0.52:0.38; this.stamina -= 25; this.staminaRegenDelay = 0.6;
+    }
+    if(this.heavyWindup>0){
+      this.heavyWindup -= dt;
+      if(this.heavyWindup<=0){
+        if(this.weapon==='bow'){
+          const a = this.facing;
+          arrows.push({x:this.x+Math.cos(a)*18,y:this.y+Math.sin(a)*18,vx:Math.cos(a)*640,vy:Math.sin(a)*640,life:1.6,radius:5,owner:'player',dmg:34,pierce:true});
+          this.attackCd = 0.6; emitNoise(this.x,this.y,180);
+        } else {
+          this.heavyAttackFlash = 0.16;
+          const dmg = this.cls==='brute'?34:(this.cls==='slasher'?24:18);
+          const knock = this.cls==='brute'?70:40;
+          this.meleeHit(58*this.reach,1.15,dmg,knock,0.09);
+          addShake(this.cls==='brute'?6:4, 0.18);
+          this.attackCd = this.cls==='brute'?0.72:0.5;
+        }
+        raiseAlarm(2);
+      }
+    }
+
+    // torch throw
+    this.throwCd -= dt;
+    if(keys['q'] && this.throwCd<=0 && this.torches>0){
+      this.throwCd = 0.45; this.torches--;
+      const a = angleTo(this,mouse);
+      const sx = this.x+Math.cos(a)*(this.radius+7), sy = this.y+Math.sin(a)*(this.radius+7);
+      torches.push({x:sx,y:sy,px:sx,py:sy,vx:Math.cos(a)*480,vy:Math.sin(a)*480,life:0.7,radius:5,stuck:false,stuckTimer:0});
+      emitNoise(this.x,this.y,140);
+    }
+
+    // ability
+    this.abilityCd -= dt;
+    if(keys['e'] && this.abilityCd<=0){
+      this.useAbility();
+      this.abilityCd = this.abilityMaxCd;
+    }
+
+    if(this.staminaRegenDelay>0) this.staminaRegenDelay -= dt;
+    else this.stamina = clamp(this.stamina + 30*dt, 0, this.maxStamina);
+
+    for(const f of fireZones){
+      if(dist(this,f) < f.radius && !this.invuln){
+        this.hp -= f.dps*dt;
+      }
+    }
+
+    if(this.hp<=0){ this.handleDeath(); }
+  }
+  takeHit(dmg){
+    if(this.invuln || this.dead || this.permaDead) return;
+    this.hp -= dmg;
+    this.hurtFlash = 0.15;
+    addDmgNumber(this.x,this.y,dmg,'#ff6a5a');
+    addShake(3,0.12);
+    spawnParticles(this.x,this.y,'#a11d1d',6,90);
+    if(this.hp<=0) this.handleDeath();
+  }
+  handleDeath(){
+    if(this.dead||this.permaDead) return;
+    this.hp = 0;
+    if(this.lives>0){
+      this.lives--;
+      this.dead = true;
+      this.respawnTimer = RESPAWN_DELAY;
+      spawnParticles(this.x,this.y,'#888888',18,120);
+      addShake(6,0.3);
+    } else {
+      this.permaDead = true;
+    }
+  }
+  // ---- SHAMAN input/attacks handled here ----
+  updateShaman(dt){
+    const a = this.facing;
+    const muzzleX = this.x + Math.cos(a)*(this.radius+6);
+    const muzzleY = this.y + Math.sin(a)*(this.radius+6);
+
+    if(this.path==='shadow'){
+      // LMB: shadow dagger — fast conjured blade, ignores armor (magic)
+      if(mouse.down && this.castCd<=0 && this.dodgeTime<=0){
+        this.castCd = 0.36;
+        arrows.push({x:muzzleX,y:muzzleY,vx:Math.cos(a)*560,vy:Math.sin(a)*560,life:1.2,radius:5,
+          owner:'player',dmg:13,magic:true,kind:'shadowDagger',color:'#8f6fd0'});
+        spawnParticles(muzzleX,muzzleY,'#6b3fa0',5,90);
+        raiseAlarm(1); emitNoise(this.x,this.y,140);
+      }
+      // RMB: shadow bolt — heavier, pierces ranks, ignores armor
+      if(mouse.rdown && this.castCd<=0 && this.dodgeTime<=0){
+        this.castCd = 0.7;
+        arrows.push({x:muzzleX,y:muzzleY,vx:Math.cos(a)*440,vy:Math.sin(a)*440,life:1.5,radius:8,
+          owner:'player',dmg:26,magic:true,pierce:true,kind:'shadowBolt',color:'#b070ff'});
+        spawnParticles(muzzleX,muzzleY,'#6b3fa0',10,120);
+        addShake(2,0.1);
+        raiseAlarm(2); emitNoise(this.x,this.y,170);
+      }
+    } else {
+      // BLOOD path — spend orbs on conjured weapons
+      // LMB: dagger (1 orb) — cheap ranged, blocked by armor
+      if(mouse.down && this.castCd<=0 && this.dodgeTime<=0){
+        if(this.bloodOrbs>=1){
+          this.bloodOrbs -= 1; this.castCd = 0.3;
+          arrows.push({x:muzzleX,y:muzzleY,vx:Math.cos(a)*520,vy:Math.sin(a)*520,life:1.1,radius:5,
+            owner:'player',dmg:14,kind:'bloodDagger',color:'#c0303a'});
+          spawnParticles(muzzleX,muzzleY,'#a11d1d',5,90);
+          raiseAlarm(1); emitNoise(this.x,this.y,140);
+        } else {
+          // out of orbs — fall back to a free, weak staff bonk so you're never fully
+          // locked out (can still break crates for torches, chip a foe to start siphoning)
+          this.castCd = 0.5;
+          this.lightAttackFlash = 0.12;
+          this.meleeHit(40, 0.8, 6, 8, 0.02);
+          this.noResourceFlash = 0.15;
+        }
+      }
+      // RMB: spear (2 orbs) — armor-piercing, punches through ranks
+      if(mouse.rdown && this.castCd<=0 && this.dodgeTime<=0){
+        if(this.bloodOrbs>=2){
+          this.bloodOrbs -= 2; this.castCd = 0.55;
+          arrows.push({x:muzzleX,y:muzzleY,vx:Math.cos(a)*600,vy:Math.sin(a)*600,life:1.4,radius:6,
+            owner:'player',dmg:26,pierce:true,kind:'bloodSpear',color:'#e04050'});
+          spawnParticles(muzzleX,muzzleY,'#a11d1d',9,120);
+          addShake(2,0.1);
+          raiseAlarm(2); emitNoise(this.x,this.y,170);
+        } else this.noResourceFlash = 0.3;
+      }
+      // F: Siphon — draw orbs out of nearby LIVING enemies
+      if(keys['f'] && this.siphonCd<=0){
+        this.siphonCd = 1.1;
+        let drew = 0;
+        for(const e of enemies){
+          if(e.dead) continue;
+          if(dist(this,e) < 150 && this.bloodOrbs < this.maxBloodOrbs){
+            e.hp -= 4;
+            this.bloodOrbs = Math.min(this.maxBloodOrbs, this.bloodOrbs+1);
+            drew++;
+            for(let i=0;i<4;i++){
+              const tt=i/4;
+              particles.push({x:e.x+(this.x-e.x)*tt, y:e.y+(this.y-e.y)*tt, vx:0,vy:0, life:0.4, maxLife:0.4, color:'#e04050'});
+            }
+            if(e.hp<=0) killEnemy(e);
+            if(drew>=3) break; // up to 3 orbs per siphon
+          }
+        }
+        if(drew>0) spawnParticles(this.x,this.y,'#a11d1d',10,110);
+        else this.noResourceFlash = 0.2;
+      }
+    }
+  }
+  meleeHit(range,arc,dmg,knock,stopTime){
+    emitNoise(this.x,this.y,170); // swinging is loud — nearby foes hear it
+    let landed = false;
+    for(const e of enemies){
+      if(e.dead || e.shelter) continue;
+      const d = dist(this,e);
+      if(d < range + e.radius){
+        const diff = Math.abs(normalizeAngleDiff(angleTo(this,e) - this.facing));
+        if(diff < arc){
+          e.hp -= dmg;
+          landed = true;
+          addDmgNumber(e.x,e.y,dmg);
+          spawnParticles(e.x,e.y,'#a11d1d',10,120);
+          e.hitFlash = 0.12;
+          // light hits flinch, heavy hits stagger+launch
+          if(knock>=30) applyStagger(e, 0.45, this.facing, knock*3.2);
+          else applyStagger(e, 0.14, this.facing, knock*2.2);
+          if(this.path==='blood'){ this.hp = clamp(this.hp + dmg*0.18, 0, this.maxHp); }
+          if(e.hp<=0) killEnemy(e);
+        }
+      }
+    }
+    if(landed && stopTime) addHitstop(stopTime); // hitstop only when you actually connect
+    damagePropsInRadius(
+      this.x+Math.cos(this.facing)*range*0.6,
+      this.y+Math.sin(this.facing)*range*0.6,
+      range*0.5, dmg*1.4, 0
+    );
+  }
+  useAbility(){
+    if(this.cls==='slasher'){
+      const a = this.facing;
+      this.x += Math.cos(a)*110; this.y += Math.sin(a)*110;
+      resolvePropCollision(this);
+      this.meleeHit(60,Math.PI,26,40,0.07);
+      spawnParticles(this.x,this.y,'#f0e0a0',14,160);
+    } else if(this.cls==='brute'){
+      damagePropsInRadius(this.x,this.y,125,75,0.4);
+      addShake(13,0.4); addHitstop(0.1);
+      for(const e of enemies){ if(!e.dead && dist(this,e)<128){ e.hp -= 30; addDmgNumber(e.x,e.y,30); applyStagger(e,0.7,angleTo(this,e),190); if(e.hp<=0) killEnemy(e);} }
+      spawnParticles(this.x,this.y,'#c9a25a',30,220);
+      raiseAlarm(4); emitNoise(this.x,this.y,340);
+    } else if(this.cls==='shaman' && this.path==='shadow'){
+      // Shadow Grasp — summon clutching hands at the cursor that root & stun a group.
+      // Support tool: locks enemies in place for you and your squad to punish.
+      const gx = mouse.x, gy = mouse.y;
+      graspZones.push({x:gx,y:gy,radius:78,life:2.4,tick:0});
+      for(const e of enemies){
+        if(!e.dead && dist({x:gx,y:gy},e) < 78+e.radius){
+          applyStagger(e, 2.2, 0, 0);   // held in place, can't act
+          e.rooted = 2.2;
+          hurtEnemy(e, 8, {magic:true, color:'#b070ff', particle:'#6b3fa0'});
+        }
+      }
+      spawnParticles(gx,gy,'#6b3fa0',22,150);
+      addShake(3,0.15);
+      damagePropsInRadius(gx, gy, 78, 20, 0); // the clutching hands also crush structures
+      raiseAlarm(2); emitNoise(gx,gy,200);
+    } else if(this.cls==='shaman' && this.path==='blood'){
+      // Blood Lance — spend 4 orbs to conjure a great lance and sweep everything ahead.
+      if(this.bloodOrbs>=4){
+        this.bloodOrbs -= 4;
+        const reach = 92, arc = 0.8;
+        let hit = false;
+        for(const e of enemies){
+          if(e.dead) continue;
+          if(dist(this,e) < reach+e.radius){
+            const diff = Math.abs(normalizeAngleDiff(angleTo(this,e)-this.facing));
+            if(diff < arc){
+              hurtEnemy(e, 42, {pierce:true, color:'#ff5060', particle:'#a11d1d', particleCount:12,
+                stagger:0.5, knockAngle:this.facing, knock:120});
+              this.hp = clamp(this.hp + 6, 0, this.maxHp); // lance drinks a little back
+              hit = true;
+            }
+          }
+        }
+        this.lanceFlash = 0.2;
+        if(hit) addHitstop(0.07);
+        addShake(6,0.22);
+        // the lance also tears into structures it sweeps through
+        damagePropsInRadius(this.x+Math.cos(this.facing)*reach*0.55, this.y+Math.sin(this.facing)*reach*0.55, reach*0.5, 42, 0);
+        spawnParticles(this.x+Math.cos(this.facing)*reach*0.6, this.y+Math.sin(this.facing)*reach*0.6,'#a11d1d',20,180);
+        raiseAlarm(3); emitNoise(this.x,this.y,220);
+      } else {
+        this.noResourceFlash = 0.4;
+        this.abilityCd = 0; // refund: don't eat the cooldown if you couldn't afford it
+      }
+    }
+  }
+  draw(){
+    if(this.permaDead) return;
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    if(this.dead){
+      ctx.globalAlpha = 0.3;
+      ctx.rotate(this.facing);
+      ctx.fillStyle = '#555';
+      ctx.beginPath(); ctx.ellipse(0,0,this.radius,this.radius*0.85,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#d8c9a3'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Downed — respawning ' + Math.max(0,this.respawnTimer).toFixed(1) + 's', this.x, this.y-24);
+      return;
+    }
+    if(this.dodgeTime>0 || this.dodgeRecovery>0) ctx.globalAlpha = 0.6;
+    ctx.rotate(this.facing);
+    let bodyColor = this.cls==='brute'?'#4c6b3a':(this.cls==='shaman'?(this.path==='blood'?'#5c2a2a':'#3a2f52'):'#5a7a3f');
+    if(this.hurtFlash>0) bodyColor = '#c04040';
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath(); ctx.ellipse(0,0,this.radius,this.radius*0.85,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a1712';
+    ctx.beginPath(); ctx.arc(this.radius*0.6,0,3,0,Math.PI*2); ctx.fill();
+    if(this.weapon==='bow'){
+      ctx.strokeStyle = '#8a5a34'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(this.radius*1.2,0,10,-1.1,1.1); ctx.stroke();
+      ctx.strokeStyle = '#d8c9a3'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(this.radius*1.2+9.6,-9.2); ctx.lineTo(this.radius*1.2+9.6,9.2); ctx.stroke();
+    } else if(this.cls==='shaman'){
+      // staff with a glowing orb tip in the path's colour
+      ctx.strokeStyle = '#4a3a2a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(this.radius*0.3,0); ctx.lineTo(this.radius*1.7, 0); ctx.stroke();
+      ctx.fillStyle = this.path==='blood' ? '#e0405a' : '#9f6fe0';
+      ctx.beginPath(); ctx.arc(this.radius*1.9, 0, 4.5, 0, Math.PI*2); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#d8c9a3'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(this.radius*0.3,0); ctx.lineTo(this.radius*1.9, 0); ctx.stroke();
+    }
+    ctx.restore();
+
+    // combo pips (slasher melee)
+    if(this.cls==='slasher' && this.weapon==='melee' && this.comboStep>0){
+      for(let i=0;i<this.comboStep;i++){
+        ctx.fillStyle = i===1 ? '#e0b23c' : '#d8c9a3';
+        ctx.beginPath(); ctx.arc(this.x-8+i*8, this.y+this.radius+10, 3, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    if(this.lightAttackFlash>0){ this.lightAttackFlash-=1/60; drawSwing(this,44*this.reach,0.9,'rgba(216,201,163,0.5)'); }
+    if(this.heavyAttackFlash>0){ this.heavyAttackFlash-=1/60; drawSwing(this,58*this.reach,1.15,'rgba(232,103,44,0.55)'); }
+    if(this.heavyWindup>0 && this.weapon==='melee' && this.cls!=='shaman'){ drawSwing(this,58*this.reach,1.15,'rgba(232,103,44,0.18)'); }
+    // blood lance sweep
+    if(this.lanceFlash>0){ this.lanceFlash-=1/60; drawSwing(this,92,0.8,'rgba(224,64,90,0.5)'); }
+    // out-of-orbs feedback ring
+    if(this.noResourceFlash>0){
+      ctx.strokeStyle = `rgba(255,80,90,${this.noResourceFlash*2})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(this.x,this.y,this.radius+6,0,Math.PI*2); ctx.stroke();
+    }
+  }
+}
+function drawSwing(ent,range,arc,color){
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(ent.x,ent.y);
+  ctx.arc(ent.x,ent.y,range, ent.facing-arc, ent.facing+arc);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// ---------- Companions ----------
+class Companion{
+  constructor(offsetX){
+    this.spawnX = 500+offsetX; this.spawnY = 130;
+    this.x = this.spawnX; this.y = this.spawnY; this.radius=12;
+    this.hp=55; this.maxHp=55; this.speed=150; this.attackCd=0;
+    this.dead=false; this.permaDead=false; this.lives=STARTING_LIVES; this.respawnTimer=0;
+    this.facing=0;
+  }
+  update(dt){
+    if(this.permaDead) return;
+    if(this.dead){
+      this.respawnTimer -= dt;
+      if(this.respawnTimer<=0){
+        this.dead=false; this.hp=this.maxHp*0.7;
+        this.x = player ? player.x+rand(-40,40) : this.spawnX;
+        this.y = player ? player.y+rand(-40,40) : this.spawnY;
+      }
+      return;
+    }
+    let target = null, bestD = 170;
+    for(const e of enemies){ if(e.dead) continue; const d=dist(this,e); if(d<bestD){bestD=d;target=e;} }
+    if(target){
+      this.facing = angleTo(this,target);
+      if(bestD>34){ this.x += Math.cos(this.facing)*this.speed*dt; this.y += Math.sin(this.facing)*this.speed*dt; }
+      else if(this.attackCd<=0){
+        this.attackCd = 0.9; target.hp -= 9;
+        addDmgNumber(target.x,target.y,9,'#b0d0a0');
+        applyStagger(target,0.1,this.facing,16);
+        spawnParticles(target.x,target.y,'#a11d1d',6,90);
+        if(target.hp<=0) killEnemy(target);
+      }
+    } else if(player && !player.dead && !player.permaDead){
+      const d = dist(this,player);
+      if(d>70){ this.facing = angleTo(this,player); this.x += Math.cos(this.facing)*this.speed*dt; this.y += Math.sin(this.facing)*this.speed*dt; }
+    }
+    resolvePropCollision(this);
+    this.attackCd -= dt;
+    for(const f of fireZones) if(dist(this,f)<f.radius) this.hp -= f.dps*dt*FRIENDLY_FIRE_SCALE;
+    if(this.hp<=0){
+      if(this.lives>0){ this.lives--; this.dead=true; this.respawnTimer=RESPAWN_DELAY; this.hp=0; spawnParticles(this.x,this.y,'#888',12,100); }
+      else { this.permaDead = true; }
+    }
+  }
+  draw(){
+    if(this.permaDead || this.dead) return;
+    ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.facing);
+    ctx.fillStyle = '#3f6b52';
+    ctx.beginPath(); ctx.ellipse(0,0,this.radius,this.radius*0.85,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1712'; ctx.beginPath(); ctx.arc(this.radius*0.5,0,2.5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    drawHpPip(this);
+  }
+}
+function drawHpPip(ent){
+  const w=26,h=4;
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(ent.x-w/2, ent.y-ent.radius-12, w, h);
+  ctx.fillStyle='#7fbf5f'; ctx.fillRect(ent.x-w/2, ent.y-ent.radius-12, w*clamp(ent.hp/ent.maxHp,0,1), h);
+}
+
+// ---------- Enemies (human archetypes) ----------
+// Combat pass: melee enemies now TELEGRAPH attacks (red windup flash) instead of
+// hitting instantly — this is what makes the dodge i-frames meaningful.
+function makeEnemy(type,x,y){
+  const base = {
+    militia:{hp:30,speed:95,range:38,dmg:8,cd:1.0,windup:0.5,radius:13,color:'#7a4a3a',armor:0,vision:240},
+    archer:{hp:20,speed:75,range:190,dmg:6,cd:1.5,windup:0.7,radius:12,color:'#8a6a3a',armor:0,vision:300},
+    knight:{hp:75,speed:72,range:44,dmg:16,cd:1.3,windup:0.65,radius:15,color:'#5a5a66',armor:6,vision:230},
+    firefighter:{hp:22,speed:105,range:0,dmg:0,cd:1,windup:0,radius:12,color:'#9a9a86',armor:0,vision:0}
+  }[type];
+  return {x,y,type,hp:base.hp,maxHp:base.hp,speed:base.speed,range:base.range,dmg:base.dmg,
+    cdMax:base.cd,cd:rand(0,base.cd),windupMax:base.windup,windup:0,armor:base.armor,
+    radius:base.radius,color:base.color,dead:false,facing:rand(0,Math.PI*2),
+    stagger:0,kbx:0,kby:0,hitFlash:0, dousing:0, target:null,
+    // awareness / perception
+    vision:base.vision, aware:false, alertTimer:0, heardNoise:0, lastKnown:null,
+    alertPing:0, home:{x,y}, wanderCd:rand(0,2), wanderTarget:null};
+}
+// The landlord — objective target for the "Kill the Landlord" mission. Lives in the
+// enemies array so player attacks hit it, but runs a bespoke state machine instead of
+// the combat AI: patrol -> flee to manor -> shelter -> (manor destroyed) -> panic flight.
+const LANDLORD_PATROL = [ {x:250,y:220},{x:750,y:220},{x:760,y:430},{x:240,y:430} ];
+function makeLandlord(){
+  return {x:250,y:220,type:'landlord',hp:110,maxHp:110,speed:70,range:0,dmg:0,
+    cdMax:1,cd:0,windupMax:0,windup:0,armor:2,radius:14,color:'#b8a038',
+    dead:false,facing:0,stagger:0,kbx:0,kby:0,hitFlash:0,
+    state:'patrol', wp:0, shelter:false, senseCd:0};
+}
+function killEnemy(e){
+  e.dead = true;
+  if(e.type==='landlord'){
+    landlordDown = true; landlord = null;
+    spawnParticles(e.x,e.y,'#e0b23c',30,180);
+    addShake(6,0.3);
+    for(let i=0;i<8;i++) pickups.push({x:e.x+rand(-20,20),y:e.y+rand(-20,20),type:'gold',amount:Math.floor(rand(10,20))});
+    return;
+  }
+  spawnParticles(e.x,e.y,'#7a1414',14,130);
+  raiseAlarm(e.type==='firefighter'?1:2.5);
+  if(e.type!=='firefighter' && Math.random()<0.5) pickups.push({x:e.x,y:e.y,type:'gold',amount:Math.floor(rand(3,9))});
+  // Blood shaman: defeated enemies bleed orbs that magnetize to the caster
+  if(player && player.cls==='shaman' && player.path==='blood'){
+    const n = 1 + (Math.random()<0.5?1:0);
+    for(let i=0;i<n;i++) pickups.push({x:e.x+rand(-8,8),y:e.y+rand(-8,8),type:'bloodorb',amount:1});
+  }
+}
+function updateEnemy(e,dt){
+  if(e.dead) return;
+  e.hitFlash = Math.max(0, e.hitFlash-dt);
+
+  // knockback decays even while staggered
+  if(e.kbx || e.kby){
+    e.x += e.kbx*dt; e.y += e.kby*dt;
+    e.kbx *= Math.pow(0.0001, dt); e.kby *= Math.pow(0.0001, dt);
+    if(Math.abs(e.kbx)<2) e.kbx=0;
+    if(Math.abs(e.kby)<2) e.kby=0;
+    resolvePropCollision(e);
+  }
+
+  // staggered: can't act
+  if(e.stagger>0){ e.stagger -= dt; return; }
+
+  // ---- LANDLORD state machine ----
+  if(e.type==='landlord'){ updateLandlord(e,dt); return; }
+
+  // ---- FIREFIGHTER: unarmed civilian that douses fires ----
+  if(e.type==='firefighter'){ updateFirefighter(e,dt); return; }
+
+  if(!player || player.dead || player.permaDead){ enemyIdle(e,dt); return; }
+
+  // ---- PERCEPTION: can this enemy actually detect the player? ----
+  const dPlayer = dist(e,player);
+  const canSee = dPlayer < e.vision && losClear(e.x,e.y, player.x,player.y);
+  const cityAlerted = alarm >= 35;           // once the city is loud, everyone's on alert
+  const wasAware = e.aware;
+  if(e.heardNoise>0) e.heardNoise -= dt;
+
+  if(canSee){ e.aware = true; e.alertTimer = 4.5; e.lastKnown = {x:player.x,y:player.y}; }
+  else if(cityAlerted){ e.aware = true; e.alertTimer = Math.max(e.alertTimer,1.5); e.lastKnown = {x:player.x,y:player.y}; }
+  else if(e.heardNoise>0){ e.aware = true; e.alertTimer = Math.max(e.alertTimer,2.5); }
+  else { e.alertTimer -= dt; if(e.alertTimer<=0) e.aware = false; }
+
+  // first moment of spotting: shout, spike the alarm (this is the "bell being rung"),
+  // and alert nearby allies so awareness spreads instead of being individual
+  if(e.aware && !wasAware && canSee){
+    e.alertPing = 0.7;
+    raiseAlarm(6);
+    emitNoise(e.x,e.y,190);
+    spawnParticles(e.x,e.y-e.radius-8,'#ffd24a',6,60);
+  }
+  if(e.alertPing>0) e.alertPing -= dt;
+
+  if(!e.aware){ enemyIdle(e,dt); return; }
+
+  const d = dPlayer;
+  e.cd -= dt;
+
+  // mid-telegraph: locked in, facing frozen at windup start — dodge NOW
+  if(e.windup>0){
+    e.windup -= dt;
+    if(e.windup<=0){
+      if(e.type==='archer'){
+        arrows.push({x:e.x,y:e.y,vx:Math.cos(e.facing)*300,vy:Math.sin(e.facing)*300,life:2,radius:4,owner:'enemy',dmg:e.dmg});
+      } else {
+        const dd = dist(e,player);
+        const diff = Math.abs(normalizeAngleDiff(angleTo(e,player) - e.facing));
+        if(dd < e.range+player.radius+6 && diff < 1.0){
+          player.takeHit(e.dmg);
+        }
+        drawSwingQueue.push({x:e.x,y:e.y,facing:e.facing,range:e.range+8,arc:0.85,life:0.12});
+      }
+      e.cd = e.cdMax;
+    }
+    return; // committed to the attack, no movement
+  }
+
+  // If aware but can't currently see the player, move to investigate the last-known
+  // spot rather than tracking perfectly through walls.
+  if(!canSee && e.lastKnown){
+    e.facing = angleTo(e,e.lastKnown);
+    if(dist(e,e.lastKnown) > 12){ e.x += Math.cos(e.facing)*e.speed*0.8*dt; e.y += Math.sin(e.facing)*e.speed*0.8*dt; }
+    resolvePropCollision(e);
+    for(const f of fireZones) if(dist(e,f)<f.radius){ e.hp -= f.dps*dt; }
+    if(e.hp<=0) killEnemy(e);
+    return;
+  }
+
+  e.facing = angleTo(e,player);
+
+  if(e.type==='archer'){
+    if(d>e.range*0.6){ e.x += Math.cos(e.facing)*e.speed*dt; e.y += Math.sin(e.facing)*e.speed*dt; }
+    else if(d<e.range*0.35){ e.x -= Math.cos(e.facing)*e.speed*dt; e.y -= Math.sin(e.facing)*e.speed*dt; }
+    // only loose an arrow with a clear shot — no firing through walls
+    if(d<e.range && e.cd<=0 && canSee){ e.windup = e.windupMax; }
+  } else {
+    if(d > e.range*0.85){ e.x += Math.cos(e.facing)*e.speed*dt; e.y += Math.sin(e.facing)*e.speed*dt; }
+    else if(e.cd<=0){ e.windup = e.windupMax; } // begin telegraph
+  }
+  resolvePropCollision(e);
+  for(const f of fireZones) if(dist(e,f)<f.radius){ e.hp -= f.dps*dt; }
+  if(e.hp<=0) killEnemy(e);
+}
+// Unaware enemies mill around their post — they don't know you're there.
+function enemyIdle(e,dt){
+  e.wanderCd -= dt;
+  if(e.wanderCd<=0 || !e.wanderTarget){
+    e.wanderCd = rand(1.8,4);
+    e.wanderTarget = {x: clamp(e.home.x+rand(-55,55),WALL+10,W-WALL-10), y: clamp(e.home.y+rand(-55,55),WALL+10,H-WALL-10)};
+  }
+  const dd = dist(e,e.wanderTarget);
+  if(dd > 8){
+    e.facing = angleTo(e,e.wanderTarget);
+    e.x += Math.cos(e.facing)*e.speed*0.35*dt;
+    e.y += Math.sin(e.facing)*e.speed*0.35*dt;
+    resolvePropCollision(e);
+  }
+  // still flammable while idle
+  for(const f of fireZones) if(dist(e,f)<f.radius){ e.hp -= f.dps*dt; e.aware=true; e.alertTimer=4; e.lastKnown={x:player?player.x:e.x,y:player?player.y:e.y}; }
+  if(e.hp<=0) killEnemy(e);
+}
+let drawSwingQueue = []; // enemy strike flashes
+// ---- Landlord behaviour ----
+function updateLandlord(e,dt){
+  for(const f of fireZones) if(dist(e,f)<f.radius){ e.hp -= f.dps*dt; if(e.hp<=0){ killEnemy(e); return; } }
+  e.senseCd -= dt;
+  const manor = props.find(p=>p.type==='manor' && !p.destroyed);
+
+  if(e.state==='patrol'){
+    // amble between waypoints
+    const wp = LANDLORD_PATROL[e.wp];
+    e.facing = angleTo(e,wp);
+    e.x += Math.cos(e.facing)*e.speed*dt; e.y += Math.sin(e.facing)*e.speed*dt;
+    if(dist(e,wp) < 20) e.wp = (e.wp+1)%LANDLORD_PATROL.length;
+    // sense danger: player close, or the city getting loud
+    const threat = (player && !player.dead && dist(e,player) < 190) || alarm > 45 || fireZones.length>0;
+    if(threat && e.senseCd<=0){
+      e.state = manor ? 'flee' : 'panic';
+      spawnParticles(e.x,e.y,'#e0b23c',10,120);
+    }
+  } else if(e.state==='flee'){
+    // run for the manor
+    if(!manor){ e.state='panic'; }
+    else {
+      e.facing = angleTo(e,manor);
+      e.x += Math.cos(e.facing)*130*dt; e.y += Math.sin(e.facing)*130*dt;
+      if(dist(e,manor) < Math.max(manor.rw,manor.rh)+6){ e.state='sheltered'; e.shelter=true; e.x=manor.x; e.y=manor.y; }
+    }
+  } else if(e.state==='sheltered'){
+    // safe inside the manor until it's destroyed (destroyProp flips him to panic)
+    e.shelter = true;
+    if(manor){ e.x = manor.x; e.y = manor.y; }
+    else { e.state='panic'; e.shelter=false; }
+  } else if(e.state==='panic'){
+    // no shelter left — run for the nearest map edge, fast
+    e.shelter = false;
+    const exits = [{x:e.x,y:WALL+10},{x:e.x,y:H-WALL-10},{x:WALL+10,y:e.y},{x:W-WALL-10,y:e.y}];
+    let best=exits[0], bd=1e9; for(const ex of exits){ const dd=dist(e,ex); if(dd<bd){bd=dd;best=ex;} }
+    e.facing = angleTo(e,best);
+    e.x += Math.cos(e.facing)*150*dt; e.y += Math.sin(e.facing)*150*dt;
+  }
+  resolvePropCollision(e);
+  if(e.hp<=0) killEnemy(e);
+}
+// ---- Firefighter behaviour ----
+function updateFirefighter(e,dt){
+  for(const f of fireZones) if(dist(e,f)<f.radius){ e.hp -= f.dps*0.5*dt; }
+  // find nearest active fire source: a burning prop, else a fire zone
+  let target=null, bd=1e9;
+  for(const p of props){ if(!p.destroyed && p.burning){ const dd=dist(e,p); if(dd<bd){bd=dd;target=p;} } }
+  if(!target){ for(const f of fireZones){ const dd=dist(e,f); if(dd<bd){bd=dd;target={x:f.x,y:f.y,zone:f};} } }
+  if(!target){
+    // nothing to douse — drift toward town centre and idle
+    e.facing = angleTo(e,{x:500,y:330});
+    if(dist(e,{x:500,y:330})>60){ e.x += Math.cos(e.facing)*e.speed*0.5*dt; e.y += Math.sin(e.facing)*e.speed*0.5*dt; }
+    resolvePropCollision(e);
+    return;
+  }
+  e.facing = angleTo(e,target);
+  if(bd > 34){
+    e.x += Math.cos(e.facing)*e.speed*dt; e.y += Math.sin(e.facing)*e.speed*dt;
+    e.dousing = 0;
+    resolvePropCollision(e);
+  } else {
+    // in range — douse. Stops the burn (halts damage) but does NOT repair the structure.
+    e.dousing += dt;
+    if(Math.random()<0.6) particles.push({x:target.x+rand(-14,14),y:target.y+rand(-14,14),vx:0,vy:rand(8,22),life:0.4,maxLife:0.4,color:'#8fb8d8'});
+    if(e.dousing > 1.0){
+      e.dousing = 0;
+      if(target.zone){ target.zone.life = 0; }
+      else { target.burning = false; }
+      // dousing nearby fire zones too
+      for(const f of fireZones) if(dist(f,target)<60) f.life = Math.min(f.life,0.3);
+    }
+  }
+}
+function drawEnemy(e){
+  if(e.dead) return;
+  if(e.shelter) return; // hidden inside the manor
+  // landlord: a fleeing gold-robed target with a marker so you can find him
+  if(e.type==='landlord'){
+    ctx.save(); ctx.translate(e.x,e.y);
+    ctx.fillStyle = e.hitFlash>0 ? '#fff' : e.color;
+    ctx.beginPath(); ctx.ellipse(0,0,e.radius,e.radius*0.9,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#4a3a10'; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    // floating target chevron
+    ctx.fillStyle = e.state==='panic' ? '#ff5a5a' : '#e0b23c';
+    ctx.beginPath();
+    ctx.moveTo(e.x, e.y-e.radius-16); ctx.lineTo(e.x-6, e.y-e.radius-24); ctx.lineTo(e.x+6, e.y-e.radius-24);
+    ctx.closePath(); ctx.fill();
+    drawHpPip(e);
+    if(e.state==='panic'){ ctx.fillStyle='#ff9a9a'; ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.fillText('FLEEING!', e.x, e.y+e.radius+14); }
+    return;
+  }
+  if(e.type==='firefighter'){
+    ctx.save(); ctx.translate(e.x,e.y);
+    ctx.fillStyle = e.hitFlash>0 ? '#fff' : e.color;
+    ctx.beginPath(); ctx.ellipse(0,0,e.radius,e.radius*0.85,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a6a8a'; ctx.beginPath(); ctx.arc(0,-2,3.5,0,Math.PI*2); ctx.fill(); // water bucket
+    ctx.restore();
+    if(e.dousing>0){ ctx.fillStyle='#8fb8d8'; ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.fillText('dousing', e.x, e.y-e.radius-6); }
+    drawHpPip(e);
+    return;
+  }
+  // telegraph ring: fills as the strike approaches
+  if(e.windup>0){
+    const t = 1 - (e.windup/e.windupMax);
+    ctx.strokeStyle = `rgba(255,${Math.floor(120-100*t)},40,${0.35+0.5*t})`;
+    ctx.lineWidth = 2+2*t;
+    ctx.beginPath(); ctx.arc(e.x,e.y,e.radius+7,0,Math.PI*2*t); ctx.stroke();
+    if(e.type!=='archer'){
+      ctx.fillStyle = `rgba(255,60,30,${0.06+0.14*t})`;
+      ctx.beginPath();
+      ctx.moveTo(e.x,e.y);
+      ctx.arc(e.x,e.y,e.range+8, e.facing-0.85, e.facing+0.85);
+      ctx.closePath(); ctx.fill();
+    } else {
+      // archer aim line: the shot lane is locked from windup start — step out of it
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,80,40,${0.15+0.5*t})`;
+      ctx.lineWidth = 1.5+1.5*t;
+      ctx.setLineDash([7,7]);
+      ctx.lineDashOffset = -elapsed*60;
+      ctx.beginPath();
+      ctx.moveTo(e.x+Math.cos(e.facing)*(e.radius+5), e.y+Math.sin(e.facing)*(e.radius+5));
+      ctx.lineTo(e.x+Math.cos(e.facing)*e.range, e.y+Math.sin(e.facing)*e.range);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.facing);
+  let c = e.color;
+  if(e.hitFlash>0) c = '#e8e0d0';
+  else if(e.stagger>0) c = '#9a8a7a';
+  ctx.fillStyle = c;
+  // staggered enemies wobble
+  if(e.stagger>0) ctx.rotate(Math.sin(elapsed*30)*0.15);
+  ctx.beginPath(); ctx.ellipse(0,0,e.radius,e.radius*0.85,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = e.type==='knight'?'#c0c0c0':'#d8c9a3';
+  ctx.beginPath(); ctx.arc(e.radius*0.5,0,e.type==='knight'?4:2.5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  drawHpPip(e);
+}
+
+// ---------- waves / spawning ----------
+const spawnPoints = [{x:60,y:60},{x:940,y:60},{x:60,y:590},{x:940,y:590},{x:500,y:60}];
+function initialWave(){
+  enemies.push(makeEnemy('militia',180,220));
+  enemies.push(makeEnemy('militia',820,220));
+  enemies.push(makeEnemy('militia',400,350));
+  enemies.push(makeEnemy('militia',600,350));
+  enemies.push(makeEnemy('militia',500,480));
+  enemies.push(makeEnemy('archer',170,180));
+  enemies.push(makeEnemy('archer',830,180));
+}
+function hordeWave(){
+  const tier = alarmTier;
+  const count = 4 + tier;
+  for(let i=0;i<count;i++){
+    const sp = spawnPoints[Math.floor(rand(0,spawnPoints.length))];
+    const type = tier>=1 && Math.random()<0.4 ? 'knight' : (Math.random()<0.3?'archer':'militia');
+    enemies.push(makeEnemy(type, sp.x+rand(-20,20), sp.y+rand(-20,20)));
+  }
+}
+function updateBarracks(dt){
+  // A razed/spent district stops producing internal defenders.
+  if(cityRazed) return;
+  for(const p of props){
+    if(p.type!=='barracks' || p.destroyed) continue;
+    p.spawnTimer -= dt;
+    if(p.spawnTimer<=0){
+      p.spawnTimer = BARRACKS_INTERVAL;
+      if(enemies.length < MAX_ENEMIES){
+        const type = Math.random()<0.25 ? 'archer' : 'militia';
+        enemies.push(makeEnemy(type, p.x+rand(-30,30), p.y+rand(-30,30)));
+        spawnParticles(p.x,p.y,'#7a4a3a',8,80);
+      }
+    }
+  }
+}
+// External relief patrols — arrive from the map edges once the district is spent,
+// and ESCALATE the longer the player lingers after finishing the objective.
+function updatePatrols(dt){
+  postObjTimer += dt;
+  patrolTimer -= dt;
+  if(patrolTimer<=0){
+    const interval = Math.max(4, 9 - postObjTimer/12);   // gets faster over time
+    patrolTimer = interval;
+    const size = 2 + Math.floor(postObjTimer/12);          // and bigger over time
+    const edge = spawnPoints[Math.floor(rand(0,spawnPoints.length))];
+    for(let i=0;i<size;i++){
+      if(enemies.length>=MAX_ENEMIES+6) break;
+      const roll = Math.random();
+      const type = roll<0.35 ? 'knight' : (roll<0.6 ? 'archer' : 'militia');
+      enemies.push(makeEnemy(type, edge.x+rand(-24,24), edge.y+rand(-24,24)));
+    }
+    spawnParticles(edge.x,edge.y,'#c0c0c0',16,150);
+  }
+}
+// Firefighters — civilians dispatched to douse active fires. Spawn while fires burn.
+let firefighterTimer = 0;
+function updateFirefighterSpawns(dt){
+  firefighterTimer -= dt;
+  const anyFire = fireZones.length>0 || props.some(p=>!p.destroyed && p.burning);
+  const ffCount = enemies.filter(e=>e.type==='firefighter' && !e.dead).length;
+  if(anyFire && firefighterTimer<=0 && ffCount<3 && enemies.length<MAX_ENEMIES+4){
+    firefighterTimer = 5;
+    const edge = spawnPoints[Math.floor(rand(0,spawnPoints.length))];
+    enemies.push(makeEnemy('firefighter', edge.x+rand(-20,20), edge.y+rand(-20,20)));
+  }
+}
+
+// ---------- projectiles & fire ----------
+function igniteTorchAt(t, prop){
+  t.stuck = true;
+  t.vx = 0; t.vy = 0;
+  t.stuckTimer = 0.9; // burns visibly on the surface before the fire zone blooms
+  t.stuckProp = prop || null;
+  fireZones.push({x:t.x,y:t.y,radius:52,life:6,dps:9});
+  spawnParticles(t.x,t.y,'#e8672c',16,150);
+  if(prop && prop.flammable) prop.burning = true;
+  for(const p of props){ if(!p.destroyed && p.flammable && dist(t,p)<60) p.burning = true; }
+}
+function updateTorches(dt){
+  for(const t of torches){
+    if(t.stuck){
+      // torch stays lodged where it landed, burning down
+      if(t.stuckProp && t.stuckProp.destroyed){ t.dead = true; continue; }
+      t.stuckTimer -= dt;
+      if(Math.random()<0.4) particles.push({x:t.x+rand(-3,3),y:t.y+rand(-3,3),vx:rand(-10,10),vy:rand(-40,-15),life:rand(0.2,0.5),maxLife:0.5,color:'#ffb060'});
+      if(t.stuckTimer<=0) t.dead = true;
+      continue;
+    }
+    // substep the flight so fast torches can't tunnel through thin props
+    const steps = 3;
+    let collided = false;
+    for(let s=0;s<steps && !collided;s++){
+      t.x += t.vx*dt/steps; t.y += t.vy*dt/steps;
+      const p = propAtPoint(t.x, t.y, t.radius);
+      if(p){
+        // pull back to the surface so the torch visibly sticks to the wall, not inside it
+        const backX = t.vx===0&&t.vy===0 ? 0 : t.vx/Math.hypot(t.vx,t.vy);
+        const backY = t.vx===0&&t.vy===0 ? 0 : t.vy/Math.hypot(t.vx,t.vy);
+        while(propAtPoint(t.x, t.y, t.radius-2)){
+          t.x -= backX*2; t.y -= backY*2;
+        }
+        igniteTorchAt(t, p);
+        collided = true;
+      }
+    }
+    if(collided) continue;
+    t.life -= dt;
+    if(t.x<WALL||t.x>W-WALL||t.y<WALL||t.y>H-WALL){
+      t.x = clamp(t.x, WALL+2, W-WALL-2); t.y = clamp(t.y, WALL+2, H-WALL-2);
+      igniteTorchAt(t, null);
+      continue;
+    }
+    let hitEnemy = false;
+    for(const e of enemies){ if(!e.dead && dist(t,e)<e.radius+t.radius){ hitEnemy=true; e.hp-=10; addDmgNumber(e.x,e.y,10,'#ffb060'); e.hitFlash=0.12; if(e.hp<=0) killEnemy(e);} }
+    if(hitEnemy || t.life<=0){
+      igniteTorchAt(t, null);
+      if(hitEnemy){ t.stuckTimer = 0.4; }
+    }
+  }
+  torches = torches.filter(t=>!t.dead);
+}
+function updateArrows(dt){
+  for(const a of arrows){
+    a.x += a.vx*dt; a.y += a.vy*dt; a.life -= dt;
+    if(a.life<=0 || a.x<WALL||a.x>W-WALL||a.y<WALL||a.y>H-WALL) a.dead = true;
+    if(a.dead) continue;
+
+    // prop collision
+    const hitProp = propAtPoint(a.x,a.y,a.radius);
+    if(hitProp){
+      if(a.owner==='player' && hitProp.type!=='wall'){
+        // player projectiles damage destructible structures (crates for torches,
+        // granaries/manor objectives, barrels, fences) — casters can break things too
+        a.hitProps = a.hitProps || [];
+        if(!a.hitProps.includes(hitProp)){
+          a.hitProps.push(hitProp);
+          hitProp.hp -= a.dmg;
+          spawnParticles(a.x,a.y, a.color || '#c8a060', 6, 90);
+          if(hitProp.hp<=0) destroyProp(hitProp);
+        }
+        if(!a.pierce) a.dead = true;
+      } else {
+        // stone walls, and all enemy arrows, just stop
+        a.dead = true;
+      }
+      if(a.dead) continue;
+    }
+
+    if(a.owner==='enemy'){
+      if(player && !player.dead && !player.permaDead && dist(a,player) < player.radius+a.radius){
+        player.takeHit(a.dmg); a.dead = true;
+      }
+    } else if(a.owner==='player'){
+      a.hitList = a.hitList || [];
+      for(const e of enemies){
+        if(e.dead || a.hitList.includes(e)) continue;
+        if(dist(a,e) < e.radius+a.radius){
+          hurtEnemy(e, a.dmg, {
+            pierce:a.pierce, magic:a.magic, color:a.color,
+            stagger: a.pierce?0.3:0.1,
+            knockAngle: Math.atan2(a.vy,a.vx),
+            knock: a.pierce?50:14
+          });
+          if(a.pierce) a.hitList.push(e); // pierce through, but only hit each foe once
+          else { a.dead = true; break; }
+        }
+      }
+    }
+  }
+  arrows = arrows.filter(a=>!a.dead);
+}
+function updateFire(dt){
+  for(const f of fireZones){ f.life -= dt; }
+  fireZones = fireZones.filter(f=>f.life>0);
+
+  for(const p of props){
+    if(p.destroyed || !p.burning) continue;
+    p.hp -= 10*dt;
+    if(Math.random()<0.01){
+      fireZones.push({x:p.x,y:p.y,radius:44,life:3,dps:6});
+      for(const p2 of props) if(!p2.destroyed && p2.flammable && p2!==p && dist(p,p2)<50) p2.burning=true;
+    }
+    if(p.hp<=0) destroyProp(p);
+  }
+  if(fireZones.length>0) raiseAlarm(0.6*dt*fireZones.length);
+}
+
+// ---------- pickups ----------
+function updatePickups(dt){
+  for(const pk of pickups){
+    if(!player || player.dead || player.permaDead) continue;
+    // blood orbs drift toward the shaman before being collected
+    if(pk.type==='bloodorb'){
+      const d = dist(pk,player);
+      if(d < 190){
+        const a = angleTo(pk,player);
+        pk.x += Math.cos(a)*260*dt; pk.y += Math.sin(a)*260*dt;
+      }
+    }
+    if(dist(pk,player) < player.radius+16){
+      if(pk.type==='gold') gold += pk.amount;
+      if(pk.type==='torch') player.torches += pk.amount;
+      if(pk.type==='bloodorb') player.bloodOrbs = Math.min(player.maxBloodOrbs, player.bloodOrbs+pk.amount);
+      pk.dead = true;
+    }
+  }
+  pickups = pickups.filter(p=>!p.dead);
+}
+
+// ---------- shadow grasp zones (summoned clutching hands) ----------
+function updateGrasp(dt){
+  for(const g of graspZones){
+    g.life -= dt; g.tick -= dt;
+    if(g.tick<=0){
+      g.tick = 0.4;
+      for(const e of enemies){
+        if(!e.dead && dist(g,e) < g.radius+e.radius){
+          applyStagger(e, 0.5, 0, 0); // keep them pinned while the hands hold
+        }
+      }
+    }
+    if(Math.random()<0.5){
+      const ang = rand(0,Math.PI*2), rr = rand(0,g.radius);
+      particles.push({x:g.x+Math.cos(ang)*rr, y:g.y+Math.sin(ang)*rr, vx:0, vy:rand(-30,-8), life:rand(0.3,0.6), maxLife:0.6, color:'#6b3fa0'});
+    }
+  }
+  graspZones = graspZones.filter(g=>g.life>0);
+}
+
+// ---------- particles ----------
+function updateParticles(dt){
+  for(const p of particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.9; p.vy*=0.9; p.life-=dt; }
+  particles = particles.filter(p=>p.life>0);
+}
+
+// ---------- alarm / horde logic ----------
+function updateAlarm(dt){
+  alarm += 0.4*dt;
+  alarm = clamp(alarm,0,100);
+  if(alarm>=100){
+    alarmTier++;
+    alarm = 40;
+    hordeWave();
+    addShake(5,0.4);
+    spawnParticles(500,40,'#e8672c',30,220);
+  }
+}
+
+// ---------- drawing the map ----------
+function drawMap(){
+  ctx.fillStyle = '#211d18';
+  ctx.fillRect(-20,-20,W+40,H+40);
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  for(let x=0;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  ctx.save();
+  ctx.fillStyle = extractionActive ? 'rgba(120,220,140,0.28)' : 'rgba(120,120,120,0.12)';
+  ctx.strokeStyle = extractionActive ? '#7fe08f' : '#555';
+  ctx.lineWidth = 2;
+  ctx.fillRect(EXTRACTION.x,EXTRACTION.y,EXTRACTION.w,EXTRACTION.h);
+  ctx.strokeRect(EXTRACTION.x,EXTRACTION.y,EXTRACTION.w,EXTRACTION.h);
+  ctx.fillStyle = extractionActive ? '#bff5c8' : '#888';
+  ctx.font = '11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(extractionActive?'EXTRACTION — GO!':'extraction (locked)', EXTRACTION.x+EXTRACTION.w/2, EXTRACTION.y-6);
+  ctx.restore();
+
+  for(const p of props){
+    if(p.destroyed){
+      ctx.fillStyle = 'rgba(40,35,30,0.5)';
+      ctx.beginPath(); ctx.ellipse(p.x,p.y,p.rw*0.7,p.rh*0.7,0,0,Math.PI*2); ctx.fill();
+      continue;
+    }
+    let color;
+    switch(p.type){
+      case 'wall': color = '#3a342c'; break;
+      case 'granary': color = p.burning? '#c8542a' : '#8a6a3a'; break;
+      case 'barracks': color = '#4a2a2a'; break;
+      case 'manor': color = p.burning ? '#8a4a2a' : '#6a5a44'; break;
+      case 'fence': color = '#6b5335'; break;
+      case 'crate': color = '#7a5a34'; break;
+      case 'barrel': color = '#5a3a24'; break;
+    }
+    ctx.fillStyle = color;
+    ctx.fillRect(p.x-p.rw,p.y-p.rh,p.rw*2,p.rh*2);
+    if(p.type!=='wall'){
+      ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.strokeRect(p.x-p.rw,p.y-p.rh,p.rw*2,p.rh*2);
+    }
+    if(p.type==='manor'){
+      // roof detailing so it reads as a manor
+      ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(p.x-p.rw,p.y); ctx.lineTo(p.x+p.rw,p.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x,p.y-p.rh); ctx.lineTo(p.x,p.y+p.rh); ctx.stroke();
+    }
+    if(p.type==='granary' || p.type==='barracks' || p.type==='manor'){
+      ctx.fillStyle= p.type==='manor' ? '#f0e0b0' : '#2a2018'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(p.type==='granary'?'GRANARY':(p.type==='barracks'?'BARRACKS':'MANOR'), p.x, p.y+3);
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(p.x-p.rw,p.y-p.rh-10,p.rw*2,5);
+      ctx.fillStyle= p.type==='granary'?'#c8542a':(p.type==='manor'?'#d8a838':'#a15a3a'); ctx.fillRect(p.x-p.rw,p.y-p.rh-10,p.rw*2*clamp(p.hp/p.maxHp,0,1),5);
+    }
+    if(p.burning){
+      ctx.fillStyle='rgba(232,103,44,0.35)';
+      ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(p.rw,p.rh)+6,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+function drawFire(){
+  for(const f of fireZones){
+    const g = ctx.createRadialGradient(f.x,f.y,2,f.x,f.y,f.radius);
+    g.addColorStop(0,'rgba(255,200,80,0.55)');
+    g.addColorStop(0.6,'rgba(232,103,44,0.35)');
+    g.addColorStop(1,'rgba(232,103,44,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.radius,0,Math.PI*2); ctx.fill();
+  }
+}
+function drawTorches(){
+  for(const t of torches){
+    if(t.stuck){
+      // stuck torch: small handle + flickering flame on the surface
+      ctx.strokeStyle = '#5a3a24'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(t.x,t.y+4); ctx.lineTo(t.x,t.y-3); ctx.stroke();
+      ctx.fillStyle = Math.random()<0.5 ? '#ffb060' : '#e8672c';
+      ctx.beginPath(); ctx.arc(t.x, t.y-5, 4+Math.random()*1.5, 0, Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = '#e8672c';
+      ctx.beginPath(); ctx.arc(t.x,t.y,t.radius,0,Math.PI*2); ctx.fill();
+    }
+  }
+  for(const a of arrows){
+    const col = a.color || (a.owner==='player' ? '#d8c9a3' : '#c0a080');
+    if(a.kind && a.kind!=='arrow'){
+      // conjured shard — oriented streak in its element colour
+      const ang = Math.atan2(a.vy,a.vx);
+      ctx.save(); ctx.translate(a.x,a.y); ctx.rotate(ang);
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(a.radius+4,0); ctx.lineTo(-a.radius,-a.radius*0.7); ctx.lineTo(-a.radius,a.radius*0.7);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 0.35; ctx.fillRect(-a.radius-10,-1.5,10,3); ctx.globalAlpha = 1;
+      ctx.restore();
+    } else {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(a.x,a.y,a.radius,0,Math.PI*2); ctx.fill();
+    }
+  }
+}
+function drawGrasp(){
+  for(const g of graspZones){
+    const t = clamp(g.life/2.4,0,1);
+    ctx.save();
+    ctx.strokeStyle = `rgba(140,90,210,${0.3+0.4*t})`;
+    ctx.fillStyle = `rgba(70,40,110,${0.18*t})`;
+    ctx.beginPath(); ctx.arc(g.x,g.y,g.radius,0,Math.PI*2); ctx.fill();
+    // clutching hands: spokes reaching inward
+    ctx.lineWidth = 3;
+    for(let i=0;i<7;i++){
+      const ang = (i/7)*Math.PI*2 + g.life*1.5;
+      const r1 = g.radius*0.9, r2 = g.radius*0.5 + Math.sin(g.life*6+i)*6;
+      ctx.beginPath();
+      ctx.moveTo(g.x+Math.cos(ang)*r1, g.y+Math.sin(ang)*r1);
+      ctx.lineTo(g.x+Math.cos(ang)*r2, g.y+Math.sin(ang)*r2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+function drawPickups(){
+  for(const pk of pickups){
+    if(pk.type==='bloodorb'){
+      const g = ctx.createRadialGradient(pk.x,pk.y,1,pk.x,pk.y,7);
+      g.addColorStop(0,'#ff8090'); g.addColorStop(1,'#8a0d1d');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(pk.x,pk.y,5,0,Math.PI*2); ctx.fill();
+      continue;
+    }
+    ctx.fillStyle = pk.type==='gold' ? '#e0b23c' : '#e8672c';
+    ctx.beginPath(); ctx.arc(pk.x,pk.y,6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.stroke();
+  }
+}
+function drawParticles(){
+  for(const p of particles){
+    ctx.globalAlpha = clamp(p.life/ (p.maxLife||0.7),0,1);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x,p.y,2.4,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawEnemySwings(dt){
+  for(const s of drawSwingQueue){
+    s.life -= dt;
+    ctx.fillStyle = `rgba(255,90,60,${clamp(s.life/0.12,0,1)*0.45})`;
+    ctx.beginPath();
+    ctx.moveTo(s.x,s.y);
+    ctx.arc(s.x,s.y,s.range, s.facing-s.arc, s.facing+s.arc);
+    ctx.closePath(); ctx.fill();
+  }
+  drawSwingQueue = drawSwingQueue.filter(s=>s.life>0);
+}
+
+// ---------- HUD ----------
+const hpfill = document.getElementById('hpfill');
+const stafill = document.getElementById('stafill');
+const alarmfill = document.getElementById('alarmfill');
+const objectiveText = document.getElementById('objectiveText');
+const goldText = document.getElementById('goldText');
+const abilityBox = document.getElementById('abilityBox');
+const livesIcons = document.getElementById('livesIcons');
+
+function updateHud(){
+  if(!player) return;
+  hpfill.style.width = clamp(player.hp/player.maxHp,0,1)*100+'%';
+  stafill.style.width = clamp(player.stamina/player.maxStamina,0,1)*100+'%';
+  alarmfill.style.width = alarm+'%';
+  alarmfill.style.background = alarm>75 ? 'linear-gradient(90deg,#8a1010,#ff4d1a)' : 'linear-gradient(90deg,#6b1010,#e8672c)';
+  if(chosenMission==='landlord'){
+    if(landlordDown) objectiveText.textContent = 'Objective: The landlord is dead — extract!';
+    else if(landlord && landlord.state==='sheltered') objectiveText.textContent = 'Objective: Burn the manor to flush him out';
+    else if(landlord && landlord.state==='panic') objectiveText.textContent = 'Objective: Run him down before he escapes!';
+    else objectiveText.textContent = 'Objective: Hunt down the landlord';
+  } else {
+    objectiveText.textContent = granariesLeft>0
+      ? `Objective: Burn ${granariesLeft} more granar${granariesLeft===1?'y':'ies'}`
+      : (extractionActive ? 'Objective: Reach the extraction gate!' : 'Objective: Get to the south wall');
+  }
+  goldText.textContent = `Gold: ${gold}`;
+  const clsName = player.cls.charAt(0).toUpperCase()+player.cls.slice(1) + (player.path?` (${player.path})`:'');
+  const abilityReady = player.abilityCd<=0 ? 'Ready' : player.abilityCd.toFixed(1)+'s';
+  const weaponLabel = player.cls==='slasher' ? `  |  Weapon: ${player.weapon==='bow'?'Bow':'Daggers'}` : '';
+  let resourceLabel = '';
+  if(player.cls==='shaman' && player.path==='blood'){
+    const orbs = '◆'.repeat(player.bloodOrbs) + '◇'.repeat(player.maxBloodOrbs-player.bloodOrbs);
+    resourceLabel = `  |  Orbs: ${player.bloodOrbs}/${player.maxBloodOrbs} ${orbs}`;
+  } else if(player.cls==='shaman' && player.path==='shadow'){
+    resourceLabel = '  |  LMB dagger · RMB bolt · E grasp';
+  }
+  const abilityName = player.cls==='shaman'
+    ? (player.path==='shadow'?'Shadow Grasp':'Blood Lance (4 orbs)')
+    : 'Ability';
+  abilityBox.textContent = `Class: ${clsName}  |  Torches: ${player.torches}  |  ${abilityName}: ${abilityReady}${weaponLabel}${resourceLabel}`;
+  livesIcons.innerHTML = Array.from({length:STARTING_LIVES}).map((_,i)=>
+    `<span class="${i<player.lives?'':'lost'}">●</span>`).join('');
+}
+
+// ---------- overlay / class select ----------
+const overlay = document.getElementById('overlay');
+const classRow = document.getElementById('classRow');
+const pathRow = document.getElementById('pathRow');
+const missionRow = document.getElementById('missionRow');
+const beginBtn = document.getElementById('beginBtn');
+const overlaySub = document.getElementById('overlaySub');
+
+function updateBeginState(){
+  const needPath = chosenClass==='shaman';
+  const ready = !!chosenMission && !!chosenClass && (!needPath || !!chosenPath);
+  beginBtn.disabled = !ready;
+}
+
+missionRow.querySelectorAll('.pathCard').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    missionRow.querySelectorAll('.pathCard').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    chosenMission = card.dataset.mission;
+    updateBeginState();
+  });
+});
+classRow.querySelectorAll('.classCard').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    classRow.querySelectorAll('.classCard').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    chosenClass = card.dataset.class;
+    if(chosenClass==='shaman'){
+      pathRow.style.display = 'flex';
+      chosenPath = null;
+      pathRow.querySelectorAll('.pathCard').forEach(c=>c.classList.remove('selected'));
+    } else {
+      pathRow.style.display = 'none';
+      chosenPath = null;
+    }
+    updateBeginState();
+  });
+});
+pathRow.querySelectorAll('.pathCard').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    pathRow.querySelectorAll('.pathCard').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    chosenPath = card.dataset.path;
+    updateBeginState();
+  });
+});
+beginBtn.addEventListener('click', ()=> startGame());
+
+function startGame(){
+  buildMap();
+  player = new Player(chosenClass, chosenPath);
+  companions = [new Companion(-70), new Companion(70)];
+  enemies = []; torches=[]; arrows=[]; fireZones=[]; particles=[]; pickups=[]; dmgNumbers=[]; drawSwingQueue=[]; graspZones=[];
+  alarm = 0; alarmTier = 0; gold = 0; granariesLeft = 3; extractionActive = false; elapsed = 0;
+  objectiveComplete = false; landlordDown = false; postObjTimer = 0; patrolTimer = 3; cityRazed = false; firefighterTimer = 0;
+  hitstop = 0; shake = {t:0,mag:0};
+  fogExplored.fill(0); fogVisible.fill(0);
+  initialWave();
+  if(chosenMission==='landlord'){
+    landlord = makeLandlord();
+    enemies.push(landlord);
+    // personal guard escorting him on patrol
+    enemies.push(makeEnemy('knight', landlord.x-30, landlord.y+10));
+    enemies.push(makeEnemy('militia', landlord.x+28, landlord.y+14));
+    enemies.push(makeEnemy('militia', landlord.x+6, landlord.y-26));
+  } else {
+    landlord = null;
+  }
+  state = 'playing';
+  overlay.classList.add('hidden');
+}
+
+function showEndOverlay(won){
+  state = won ? 'win' : 'lose';
+  overlay.classList.remove('hidden');
+  const summaryHtml = (won ? 'Raid complete — the goblins feast tonight.' : 'All your lives are spent. The city stands... for now.') +
+    `<div id="scoreSummary">Gold looted: ${gold} &nbsp;|&nbsp; Time survived: ${elapsed.toFixed(0)}s</div>`;
+  document.getElementById('overlaySub').innerHTML = summaryHtml;
+  classRow.style.display = 'none';
+  pathRow.style.display = 'none';
+  missionRow.style.display = 'none';
+  beginBtn.classList.add('hidden');
+  const restart = document.createElement('button');
+  restart.id = 'restartBtn';
+  restart.textContent = 'Return to Camp';
+  restart.onclick = ()=>{
+    classRow.style.display='flex'; missionRow.style.display='flex';
+    beginBtn.classList.remove('hidden'); beginBtn.disabled = true;
+    classRow.querySelectorAll('.classCard').forEach(c=>c.classList.remove('selected'));
+    missionRow.querySelectorAll('.pathCard').forEach(c=>c.classList.remove('selected'));
+    chosenClass = null; chosenPath = null; chosenMission = null;
+    document.getElementById('scoreSummary')?.remove();
+    restart.remove();
+    overlaySub.textContent = 'Choose your raid';
+    state = 'classSelect';
+  };
+  overlay.appendChild(restart);
+}
+
+// ---------- main loop ----------
+let lastTime = performance.now();
+function loop(now){
+  let dt = Math.min((now-lastTime)/1000, 0.05);
+  lastTime = now;
+
+  // hitstop: freeze the world briefly on meaty hits (screen still renders)
+  if(hitstop>0){ hitstop -= dt; dt = 0; }
+
+  if(state==='playing' && dt>0){
+    elapsed += dt;
+    player.update(dt);
+    for(const c of companions) c.update(dt);
+    for(const e of enemies) updateEnemy(e,dt);
+    enemies = enemies.filter(e=>!e.dead);
+    updateTorches(dt);
+    updateArrows(dt);
+    updateFire(dt);
+    updateBarracks(dt);
+    updateFirefighterSpawns(dt);
+    updatePickups(dt);
+    updateGrasp(dt);
+    updateParticles(dt);
+    updateDmgNumbers(dt);
+    updateAlarm(dt);
+    updateVisibility();
+
+    // mission objective + burnt-city state
+    objectiveComplete = (chosenMission==='landlord') ? landlordDown : (granariesLeft<=0);
+    // the district is "razed" (internal spawns stop, patrols take over) once the
+    // objective is done, or once every internal barracks is rubble
+    const barracksLeft = props.some(p=>p.type==='barracks' && !p.destroyed);
+    cityRazed = objectiveComplete || !barracksLeft;
+    if(objectiveComplete) updatePatrols(dt);
+
+    extractionActive = objectiveComplete;
+    if(extractionActive && player && !player.dead && !player.permaDead){
+      if(player.x>EXTRACTION.x && player.x<EXTRACTION.x+EXTRACTION.w && player.y>EXTRACTION.y && player.y<EXTRACTION.y+EXTRACTION.h){
+        showEndOverlay(true);
+      }
+    }
+    if(player && player.permaDead){
+      showEndOverlay(false);
+    }
+
+    updateHud();
+  }
+
+  // ---- render (with screen shake offset) ----
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+  if(shake.t>0){
+    shake.t -= (now-lastTime)/1000 + 0.016;
+    const m = shake.mag * clamp(shake.t/0.3,0,1);
+    ctx.translate(rand(-m,m), rand(-m,m));
+    if(shake.t<=0) shake.mag = 0;
+  }
+  drawMap();
+  drawFire();
+  drawGrasp();
+  drawPickups();
+  if(player){
+    for(const c of companions){ if(cellVisible(c.x,c.y)) c.draw(); }
+    for(const e of enemies){ if(cellVisible(e.x,e.y)) drawEnemy(e); }
+    drawEnemySwings(0.016);
+  }
+  drawTorches();
+  drawParticles();
+  drawDmgNumbers();
+  drawFog();
+  if(player) player.draw(); // player always visible, above the fog
+
+  keyPressedOnce = {};
+  requestAnimationFrame(loop);
+}
+// Fog of war overlay: unexplored cells are black, remembered-but-unseen cells are
+// dimmed, currently-visible cells are clear. A soft vignette softens the sight edge.
+function drawFog(){
+  if(state!=='playing' || !player) return;
+  for(let cy=0; cy<GRID_H; cy++){
+    for(let cx=0; cx<GRID_W; cx++){
+      const i = cy*GRID_W+cx;
+      if(fogVisible[i]) continue;
+      ctx.fillStyle = fogExplored[i] ? 'rgba(6,5,4,0.6)' : 'rgba(6,5,4,0.98)';
+      ctx.fillRect(cx*FOG_CELL, cy*FOG_CELL, FOG_CELL+1, FOG_CELL+1);
+    }
+  }
+  // soft edge of vision around the player
+  const g = ctx.createRadialGradient(player.x,player.y,PLAYER_VISION*0.55,player.x,player.y,PLAYER_VISION*1.05);
+  g.addColorStop(0,'rgba(6,5,4,0)');
+  g.addColorStop(1,'rgba(6,5,4,0.35)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(player.x,player.y,PLAYER_VISION*1.05,0,Math.PI*2); ctx.fill();
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
