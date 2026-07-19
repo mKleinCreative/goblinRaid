@@ -1,0 +1,22 @@
+# Unreal Engine generated folders - never version these
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+
+# Visual Studio workspace files - regenerated via right-click .uproject > Generate project files
+.vs/
+*.sln
+*.slnx
+.vsconfig
+
+# Content is excluded for now: the Content folder holds multi-GB Fab/Megascans packs that
+# don't belong in a plain git repo. When project-authored assets (Blueprints, maps, data assets)
+# start accumulating, set up Git LFS and start tracking Content/ selectively - the Fab packs
+# themselves are always re-downloadable from the Fab library.
+Content/
+
+# Plugin build artifacts
+Plugins/**/Binaries/
+Plugins/**/Intermediate/

@@ -1,0 +1,15 @@
+#include "Combat/GSGameplayTags.h"
+
+namespace GSTags
+{
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_Dagger, "Damage.Dagger", "Slasher dual daggers (melee mode)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_Bow, "Damage.Bow", "Slasher hunting bow (ranged mode)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_Greatclub, "Damage.Greatclub", "Brute great-club, incl. Ground Slam concussive AoE");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_ShadowMagic, "Damage.ShadowMagic", "Shaman Shadow path - ignores physical armor");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_BloodMagic, "Damage.BloodMagic", "Shaman Blood path - Blood Nova etc.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_Fire, "Damage.Fire", "Torches and fire volumes - the goblin equalizer");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_Blast, "Damage.Blast", "Explosive barrels - always bypasses armor");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_IgnoresArmor, "Damage.IgnoresArmor", "Modifier: skip flat armor mitigation");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Dead, "State.Dead", "Character is dead - blocks ability activation");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Invulnerable, "State.Invulnerable", "Respawn i-frames - damage GEs check this");
+}
