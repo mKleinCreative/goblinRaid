@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{BA1FD7FD-4270-6B86-55D0-7BA582458C8F}",
+	"EngineAssociation": "5.8",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -82,6 +82,10 @@
 		},
 		{
 			"Name": "AllToolsets",
+			"Enabled": true
+		},
+		{
+			"Name": "XRBase",
 			"Enabled": true
 		}
 	]

@@ -12,4 +12,7 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage_IgnoresArmor, "Damage.IgnoresArmor", "Modifier: skip flat armor mitigation");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Dead, "State.Dead", "Character is dead - blocks ability activation");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Invulnerable, "State.Invulnerable", "Respawn i-frames - damage GEs check this");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Crouching, "State.Crouching", "Stealth stance active - crouch toggle (design doc §7)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Dodging, "State.Dodging", "Dodge roll in flight - i-frames + committed movement lock (design doc §7)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Aiming, "State.Aiming", "Facing camera/aim direction instead of movement direction (tech doc §16)");
 }

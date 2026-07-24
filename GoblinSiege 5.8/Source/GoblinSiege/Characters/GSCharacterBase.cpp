@@ -2,6 +2,7 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "AbilitySystemComponent.h"
 #include "Core/GSGameMode.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AGSCharacterBase::AGSCharacterBase()
 {
@@ -114,4 +115,14 @@ void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float Invulnerabi
 	// A short-duration GameplayEffect granting a "State.Invulnerable" tag (checked by the damage
 	// GameplayEffect's application requirements) is the idiomatic GAS way to implement the
 	// invulnerability window - apply it here once that effect class exists as a data asset.
+}
+
+void AGSCharacterBase::SetTurnRateRadPerSec(float NewTurnRateRadPerSec)
+{
+	TurnRateRadPerSec = NewTurnRateRadPerSec;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->RotationRate = FRotator(0.f, FMath::RadiansToDegrees(TurnRateRadPerSec), 0.f);
+	}
 }

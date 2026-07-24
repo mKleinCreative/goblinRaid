@@ -1,5 +1,7 @@
 #include "Characters/GSPlayerCharacter.h"
+#include "Characters/GSTargetingComponent.h"
 #include "Weapons/GSWeaponComponent.h"
+#include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -11,27 +13,53 @@
 AGSPlayerCharacter::AGSPlayerCharacter()
 {
 	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
+	TargetingComponent = CreateDefaultSubobject<UGSTargetingComponent>(TEXT("TargetingComponent"));
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	// Top-down/isometric-leaning boom to match the browser prototype's readable, wide-view combat.
-	CameraBoom->TargetArmLength = 900.f;
-	CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
+	// Third-person over-the-shoulder rig (tech doc §16): ~450 arm, slight right-shoulder offset,
+	// low pitch by default - goblins are short, the world should loom. Free-look rides the
+	// controller's rotation (bUsePawnControlRotation); the character mesh's own rotation is a
+	// separate concern handled below (movement-facing by default, aim-facing on demand - see
+	// UpdateRotationMode).
+	CameraBoom->TargetArmLength = 450.f;
+	CameraBoom->SocketOffset = FVector(0.f, 55.f, 65.f);
+	CameraBoom->bUsePawnControlRotation = true;
 	CameraBoom->bDoCollisionTest = true;
-	CameraBoom->bInheritPitch = false;
-	CameraBoom->bInheritYaw = false;
-	CameraBoom->bInheritRoll = false;
+	CameraBoom->SetRelativeRotation(FRotator(-10.f, 0.f, 0.f));
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	FollowCamera->bUsePawnControlRotation = false;
 
+	// The character body doesn't snap to controller yaw/pitch/roll directly - UpdateRotationMode
+	// switches bOrientRotationToMovement vs. bUseControllerRotationYaw depending on aim state.
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = false; // turn rate is handled explicitly per design doc
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->bOrientRotationToMovement = true;
+		MoveComp->RotationRate = FRotator(0.f, FMath::RadiansToDegrees(TurnRateRadPerSec), 0.f);
+		MoveComp->NavAgentProps.bCanCrouch = true;
+	}
 }
 
 void AGSPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		BaseWalkSpeed = MoveComp->MaxWalkSpeed;
+	}
+	UpdateRotationMode();
+
+	if (WeaponComponent)
+	{
+		WeaponComponent->OnWeaponModeChanged.AddDynamic(this, &AGSPlayerCharacter::HandleWeaponModeChanged);
+	}
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -69,6 +97,10 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(DodgeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Dodge);
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ThrowTorch);
 		EIC->BindAction(SwapWeaponModeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_SwapWeaponMode);
+		EIC->BindAction(AimAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_AimStart);
+		EIC->BindAction(AimAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_AimStop);
+		EIC->BindAction(AimAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_AimStop);
+		EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ToggleCrouch);
 
 		// Light/heavy attack and the "E" ability are bound by the currently-granted ability set's
 		// own AbilityTask_WaitInputPress/Release (standard GAS pattern), not hardcoded here, so
@@ -79,6 +111,16 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 void AGSPlayerCharacter::Input_Move(const FInputActionValue& Value)
 {
 	const FVector2D MoveInput = Value.Get<FVector2D>();
+	if (!MoveInput.IsNearlyZero())
+	{
+		LastMoveInput = MoveInput;
+	}
+
+	if (AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_Dodging))
+	{
+		return; // committed recovery - the roll owns movement until it ends (design doc §7)
+	}
+
 	if (!Controller || MoveInput.IsNearlyZero())
 	{
 		return;
@@ -88,8 +130,9 @@ void AGSPlayerCharacter::Input_Move(const FInputActionValue& Value)
 	AddMovementInput(FRotationMatrix(ControlRot).GetUnitAxis(EAxis::X), MoveInput.Y);
 	AddMovementInput(FRotationMatrix(ControlRot).GetUnitAxis(EAxis::Y), MoveInput.X);
 
-	// Facing is eased toward the movement/aim direction at TurnRateRadPerSec (per-weapon value from
-	// GSWeaponDataAsset) in Tick or a dedicated movement component - see design doc "Turn rate".
+	// Facing itself is handled by CharacterMovementComponent::bOrientRotationToMovement +
+	// RotationRate (set from TurnRateRadPerSec - see SetTurnRateRadPerSec) rather than here, so
+	// aim-facing (UpdateRotationMode) can override it without touching this function.
 }
 
 void AGSPlayerCharacter::Input_Look(const FInputActionValue& Value)
@@ -124,4 +167,93 @@ void AGSPlayerCharacter::Input_SwapWeaponMode(const FInputActionValue& Value)
 	{
 		WeaponComponent->ToggleRangedMode();
 	}
+}
+
+void AGSPlayerCharacter::Input_AimStart(const FInputActionValue& Value)
+{
+	bIsAiming = true;
+	UpdateRotationMode();
+}
+
+void AGSPlayerCharacter::Input_AimStop(const FInputActionValue& Value)
+{
+	bIsAiming = false;
+	UpdateRotationMode();
+}
+
+void AGSPlayerCharacter::Input_ToggleCrouch(const FInputActionValue& Value)
+{
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Crouch();
+	}
+}
+
+void AGSPlayerCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeedCrouched = BaseWalkSpeed * CrouchSpeedMultiplier;
+	}
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->AddLooseGameplayTag(GSTags::State_Crouching);
+	}
+}
+
+void AGSPlayerCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->RemoveLooseGameplayTag(GSTags::State_Crouching);
+	}
+}
+
+void AGSPlayerCharacter::HandleWeaponModeChanged(bool bRangedMode)
+{
+	UpdateRotationMode();
+}
+
+void AGSPlayerCharacter::UpdateRotationMode()
+{
+	const bool bShouldFaceAim = bIsAiming || (WeaponComponent && WeaponComponent->IsInRangedMode());
+
+	bUseControllerRotationYaw = bShouldFaceAim;
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->bOrientRotationToMovement = !bShouldFaceAim;
+	}
+
+	if (AbilitySystemComponent)
+	{
+		const bool bHasTag = AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_Aiming);
+		if (bShouldFaceAim && !bHasTag)
+		{
+			AbilitySystemComponent->AddLooseGameplayTag(GSTags::State_Aiming);
+		}
+		else if (!bShouldFaceAim && bHasTag)
+		{
+			AbilitySystemComponent->RemoveLooseGameplayTag(GSTags::State_Aiming);
+		}
+	}
+}
+
+FVector AGSPlayerCharacter::GetDodgeDirection() const
+{
+	if (!LastMoveInput.IsNearlyZero() && Controller)
+	{
+		const FRotator ControlRot(0.f, Controller->GetControlRotation().Yaw, 0.f);
+		const FVector Forward = FRotationMatrix(ControlRot).GetUnitAxis(EAxis::X);
+		const FVector Right = FRotationMatrix(ControlRot).GetUnitAxis(EAxis::Y);
+		return (Forward * LastMoveInput.Y + Right * LastMoveInput.X).GetSafeNormal();
+	}
+	return GetActorForwardVector();
 }

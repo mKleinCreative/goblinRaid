@@ -1,0 +1,66 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "3.0.0",
+	"FriendlyName": "MetaRoad",
+	"Description": "Procedural generation of road networks",
+	"Category": "Other",
+	"CreatedBy": "Ivan Zhukov",
+	"CreatedByURL": "",
+	"DocsURL": "https://unrealdrive.readthedocs.io/en/latest/",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EngineVersion": "5.8.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "MetaRoad",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		},
+		{
+			"Name": "MetaRoadEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "GeometryProcessing",
+			"Enabled": true
+		},
+		{
+			"Name": "MeshModelingToolset",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
+			"Name": "ZoneGraph",
+			"Enabled": true
+		},
+		{
+			"Name": "EngineAssetDefinitions",
+			"Enabled": true
+		}
+	]
+}

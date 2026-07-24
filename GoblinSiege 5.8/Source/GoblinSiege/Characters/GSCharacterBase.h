@@ -41,6 +41,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
 	virtual void ApplyRespawnState(float HealthFraction, float InvulnerabilitySeconds);
 
+	/** Per-archetype/per-weapon turn-rate identity (Brute turns like a barge, Slasher/Scout turns
+	 *  sharp - design doc "Turn rate"). Pushes the value into CharacterMovementComponent::RotationRate
+	 *  so bOrientRotationToMovement-driven turning actually uses it. Called by UGSWeaponComponent on
+	 *  equip so a weapon's identity applies itself to its wearer (tech doc §16). */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Movement")
+	void SetTurnRateRadPerSec(float NewTurnRateRadPerSec);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Movement")
+	float GetTurnRateRadPerSec() const { return TurnRateRadPerSec; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -61,8 +71,8 @@ protected:
 	TObjectPtr<UGSAttributeSetBase> AttributeSetBase;
 
 	/** Turn rate in rad/s - per-archetype tuning knob called out repeatedly in the design doc
-	 *  (Brute 5, Slasher 12, Shaman 10, Militia/Knight slower still). Drives a smoothed rotation
-	 *  in Tick rather than a snap-to-facing. */
+	 *  (Brute 5, Slasher 12, Shaman 10, Militia/Knight slower still). Drives
+	 *  CharacterMovementComponent::RotationRate via SetTurnRateRadPerSec rather than a snap-to-facing. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "GoblinSiege|Movement")
 	float TurnRateRadPerSec = 8.f;
 

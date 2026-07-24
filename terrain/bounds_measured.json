@@ -1,0 +1,7792 @@
+{
+ "Pillar_Exterior_02_StoneBase": {
+  "min": [
+   -28.6,
+   -28.6,
+   -100.0
+  ],
+  "max": [
+   28.6,
+   28.6,
+   0.1
+  ],
+  "size": [
+   57.2,
+   57.2,
+   100.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_StoneBase",
+  "class": "StaticMesh"
+ },
+ "SideBridge": {
+  "min": [
+   -359.7,
+   445.4,
+   -23.4
+  ],
+  "max": [
+   361.8,
+   839.8,
+   569.5
+  ],
+  "size": [
+   721.5,
+   394.3,
+   592.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_SideBridge",
+  "class": "StaticMesh"
+ },
+ "BridgeMid": {
+  "min": [
+   -363.8,
+   -456.5,
+   -24.1
+  ],
+  "max": [
+   363.8,
+   458.4,
+   576.4
+  ],
+  "size": [
+   727.6,
+   914.9,
+   600.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_BridgeMid",
+  "class": "StaticMesh"
+ },
+ "SideBridge_Col": {
+  "min": [
+   -352.6,
+   456.7,
+   -23.4
+  ],
+  "max": [
+   353.7,
+   838.3,
+   567.2
+  ],
+  "size": [
+   706.3,
+   381.6,
+   590.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/Collisions/SM_SideBridge_Col",
+  "class": "StaticMesh"
+ },
+ "BridgeMid_Col": {
+  "min": [
+   -361.1,
+   -456.5,
+   -23.8
+  ],
+  "max": [
+   361.5,
+   458.4,
+   574.9
+  ],
+  "size": [
+   722.6,
+   914.9,
+   598.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/Collisions/SM_BridgeMid_Col",
+  "class": "StaticMesh"
+ },
+ "VillageOak_Col": {
+  "min": [
+   -854.6,
+   -1053.3,
+   -66.5
+  ],
+  "max": [
+   1587.9,
+   952.6,
+   2366.0
+  ],
+  "size": [
+   2442.5,
+   2005.9,
+   2432.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/Collision/SM_VillageOak_Col",
+  "class": "StaticMesh"
+ },
+ "VillageBirch_03_Col": {
+  "min": [
+   -101.1,
+   -150.4,
+   -52.1
+  ],
+  "max": [
+   132.7,
+   198.2,
+   1091.6
+  ],
+  "size": [
+   233.8,
+   348.6,
+   1143.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/Collision/SM_VillageBirch_03_Col",
+  "class": "StaticMesh"
+ },
+ "VillageBirch_02_Col": {
+  "min": [
+   -144.0,
+   -138.0,
+   -42.4
+  ],
+  "max": [
+   135.2,
+   162.9,
+   1500.7
+  ],
+  "size": [
+   279.1,
+   300.9,
+   1543.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/Collision/SM_VillageBirch_02_Col",
+  "class": "StaticMesh"
+ },
+ "VillageBirch_01_Col": {
+  "min": [
+   -247.6,
+   -291.1,
+   -58.3
+  ],
+  "max": [
+   245.3,
+   549.6,
+   1199.3
+  ],
+  "size": [
+   492.9,
+   840.6,
+   1257.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/Collision/SM_VillageBirch_01_Col",
+  "class": "StaticMesh"
+ },
+ "Tree_Apple_01_Col": {
+  "min": [
+   -366.7,
+   -301.6,
+   -9.7
+  ],
+  "max": [
+   330.4,
+   323.4,
+   771.9
+  ],
+  "size": [
+   697.1,
+   625.0,
+   781.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/Collision/SM_Tree_Apple_01_Col",
+  "class": "StaticMesh"
+ },
+ "MarketTable_Addon": {
+  "min": [
+   -120.5,
+   -41.5,
+   -2.5
+  ],
+  "max": [
+   121.1,
+   39.8,
+   41.1
+  ],
+  "size": [
+   241.6,
+   81.3,
+   43.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable_Addon",
+  "class": "StaticMesh"
+ },
+ "Docks_01": {
+  "min": [
+   4.1,
+   -429.6,
+   -350.0
+  ],
+  "max": [
+   629.6,
+   419.6,
+   170.0
+  ],
+  "size": [
+   625.5,
+   849.2,
+   520.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Docks_01",
+  "class": "StaticMesh"
+ },
+ "Chicken_Platform": {
+  "min": [
+   -67.7,
+   -24.0,
+   -7.6
+  ],
+  "max": [
+   54.0,
+   24.1,
+   65.7
+  ],
+  "size": [
+   121.6,
+   48.2,
+   73.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Chicken_Platform",
+  "class": "StaticMesh"
+ },
+ "SackStack": {
+  "min": [
+   -66.3,
+   -53.9,
+   0.5
+  ],
+  "max": [
+   67.4,
+   54.1,
+   120.4
+  ],
+  "size": [
+   133.7,
+   108.0,
+   119.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SackStack",
+  "class": "StaticMesh"
+ },
+ "Vine_Corner_01": {
+  "min": [
+   -37.6,
+   -43.9,
+   -126.1
+  ],
+  "max": [
+   138.5,
+   138.9,
+   308.5
+  ],
+  "size": [
+   176.1,
+   182.8,
+   434.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_Corner_01",
+  "class": "StaticMesh"
+ },
+ "Vine_03": {
+  "min": [
+   -163.5,
+   -15.1,
+   -316.2
+  ],
+  "max": [
+   166.7,
+   44.1,
+   87.9
+  ],
+  "size": [
+   330.2,
+   59.2,
+   404.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_03",
+  "class": "StaticMesh"
+ },
+ "Vine_02": {
+  "min": [
+   -101.9,
+   -9.8,
+   -424.2
+  ],
+  "max": [
+   105.5,
+   34.5,
+   29.8
+  ],
+  "size": [
+   207.4,
+   44.3,
+   454.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_02",
+  "class": "StaticMesh"
+ },
+ "Vine_01": {
+  "min": [
+   -198.2,
+   -5.7,
+   -238.3
+  ],
+  "max": [
+   198.1,
+   23.3,
+   38.5
+  ],
+  "size": [
+   396.3,
+   29.1,
+   276.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_01",
+  "class": "StaticMesh"
+ },
+ "TreeLog_2": {
+  "min": [
+   -163.7,
+   -31.8,
+   -2.2
+  ],
+  "max": [
+   164.3,
+   24.6,
+   54.6
+  ],
+  "size": [
+   328.0,
+   56.4,
+   56.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TreeLog_2",
+  "class": "StaticMesh"
+ },
+ "ThickPlank": {
+  "min": [
+   -97.4,
+   -11.2,
+   0.8
+  ],
+  "max": [
+   97.6,
+   11.8,
+   26.2
+  ],
+  "size": [
+   195.0,
+   23.0,
+   25.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_ThickPlank",
+  "class": "StaticMesh"
+ },
+ "SmallPlank": {
+  "min": [
+   -58.4,
+   -5.0,
+   2.2
+  ],
+  "max": [
+   58.0,
+   4.1,
+   23.2
+  ],
+  "size": [
+   116.4,
+   9.1,
+   21.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SmallPlank",
+  "class": "StaticMesh"
+ },
+ "ShortThickPlank": {
+  "min": [
+   -55.9,
+   -11.2,
+   1.7
+  ],
+  "max": [
+   55.9,
+   11.2,
+   23.8
+  ],
+  "size": [
+   111.8,
+   22.4,
+   22.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_ShortThickPlank",
+  "class": "StaticMesh"
+ },
+ "SackOpen_Grain": {
+  "min": [
+   -31.8,
+   -19.7,
+   90.7
+  ],
+  "max": [
+   32.7,
+   19.2,
+   102.4
+  ],
+  "size": [
+   64.4,
+   38.9,
+   11.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SackOpen_Grain",
+  "class": "StaticMesh"
+ },
+ "SackOpen": {
+  "min": [
+   -44.3,
+   -31.0,
+   0.6
+  ],
+  "max": [
+   44.2,
+   30.0,
+   102.6
+  ],
+  "size": [
+   88.5,
+   61.0,
+   102.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SackOpen",
+  "class": "StaticMesh"
+ },
+ "MushroomTree": {
+  "min": [
+   -21.1,
+   -16.8,
+   -10.3
+  ],
+  "max": [
+   21.1,
+   19.0,
+   8.9
+  ],
+  "size": [
+   42.1,
+   35.8,
+   19.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_MushroomTree",
+  "class": "StaticMesh"
+ },
+ "LongPlank_02": {
+  "min": [
+   -100.5,
+   -5.4,
+   0.4
+  ],
+  "max": [
+   99.1,
+   4.9,
+   25.7
+  ],
+  "size": [
+   199.6,
+   10.3,
+   25.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_LongPlank_02",
+  "class": "StaticMesh"
+ },
+ "LongPlank_01": {
+  "min": [
+   -100.9,
+   -4.5,
+   0.6
+  ],
+  "max": [
+   99.7,
+   4.1,
+   24.6
+  ],
+  "size": [
+   200.6,
+   8.6,
+   24.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_LongPlank_01",
+  "class": "StaticMesh"
+ },
+ "Grain_Round": {
+  "min": [
+   -24.1,
+   -24.1,
+   -2.5
+  ],
+  "max": [
+   24.1,
+   24.1,
+   7.0
+  ],
+  "size": [
+   48.2,
+   48.2,
+   9.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Grain_Round",
+  "class": "StaticMesh"
+ },
+ "FlowerPlanter_03": {
+  "min": [
+   -251.2,
+   -115.1,
+   -228.1
+  ],
+  "max": [
+   249.0,
+   43.5,
+   86.0
+  ],
+  "size": [
+   500.1,
+   158.6,
+   314.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_03",
+  "class": "StaticMesh"
+ },
+ "FlowerPlanter_02": {
+  "min": [
+   -127.1,
+   -102.9,
+   -117.4
+  ],
+  "max": [
+   122.3,
+   41.2,
+   84.4
+  ],
+  "size": [
+   249.3,
+   144.1,
+   201.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_02",
+  "class": "StaticMesh"
+ },
+ "FlowerPlanter_01": {
+  "min": [
+   -142.2,
+   -115.1,
+   -141.7
+  ],
+  "max": [
+   155.7,
+   43.5,
+   89.9
+  ],
+  "size": [
+   297.9,
+   158.6,
+   231.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_01",
+  "class": "StaticMesh"
+ },
+ "Firewood_3": {
+  "min": [
+   -38.3,
+   -13.8,
+   0.2
+  ],
+  "max": [
+   38.0,
+   12.4,
+   13.7
+  ],
+  "size": [
+   76.3,
+   26.2,
+   13.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Firewood_3",
+  "class": "StaticMesh"
+ },
+ "CrateLid": {
+  "min": [
+   -56.2,
+   -53.4,
+   96.5
+  ],
+  "max": [
+   60.4,
+   55.9,
+   109.7
+  ],
+  "size": [
+   116.6,
+   109.4,
+   13.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateLid",
+  "class": "StaticMesh"
+ },
+ "CrateHandles": {
+  "min": [
+   -49.3,
+   -33.6,
+   -2.4
+  ],
+  "max": [
+   49.4,
+   32.8,
+   56.8
+  ],
+  "size": [
+   98.7,
+   66.4,
+   59.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateHandles",
+  "class": "StaticMesh"
+ },
+ "Barrel_03": {
+  "min": [
+   -41.5,
+   -41.5,
+   -4.5
+  ],
+  "max": [
+   41.5,
+   41.5,
+   121.3
+  ],
+  "size": [
+   83.1,
+   83.1,
+   125.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_03",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_Platform_02": {
+  "min": [
+   -122.4,
+   -131.0,
+   -10.0
+  ],
+  "max": [
+   132.5,
+   124.0,
+   153.9
+  ],
+  "size": [
+   254.9,
+   254.9,
+   163.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_Platform_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_Platform_01": {
+  "min": [
+   -85.8,
+   -84.6,
+   -10.0
+  ],
+  "max": [
+   87.1,
+   85.4,
+   153.9
+  ],
+  "size": [
+   172.9,
+   170.0,
+   163.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_Platform_01",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Platform": {
+  "min": [
+   -160.6,
+   -162.8,
+   -9.1
+  ],
+  "max": [
+   196.3,
+   142.8,
+   21.3
+  ],
+  "size": [
+   356.9,
+   305.6,
+   30.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Platform",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Handrails_Top_05": {
+  "min": [
+   -250.0,
+   3.2,
+   5.2
+  ],
+  "max": [
+   387.0,
+   16.8,
+   96.9
+  ],
+  "size": [
+   636.9,
+   13.6,
+   91.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_05",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Handrails_Top_04": {
+  "min": [
+   -7.4,
+   -233.8,
+   5.2
+  ],
+  "max": [
+   7.4,
+   237.2,
+   96.9
+  ],
+  "size": [
+   14.8,
+   471.0,
+   91.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_04",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Handrails_Top_03": {
+  "min": [
+   -158.9,
+   -7.3,
+   5.2
+  ],
+  "max": [
+   178.9,
+   7.3,
+   96.9
+  ],
+  "size": [
+   337.8,
+   14.6,
+   91.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_03",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Handrails_Top_02": {
+  "min": [
+   -7.2,
+   -99.0,
+   5.2
+  ],
+  "max": [
+   7.2,
+   99.0,
+   96.9
+  ],
+  "size": [
+   14.4,
+   198.1,
+   91.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Handrails_Top_01": {
+  "min": [
+   -140.0,
+   -9.3,
+   5.2
+  ],
+  "max": [
+   159.2,
+   5.0,
+   96.9
+  ],
+  "size": [
+   299.1,
+   14.2,
+   91.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_01",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_Handrails": {
+  "min": [
+   125.8,
+   -116.7,
+   24.3
+  ],
+  "max": [
+   140.7,
+   67.9,
+   247.7
+  ],
+  "size": [
+   14.9,
+   184.6,
+   223.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_02": {
+  "min": [
+   -161.1,
+   -118.0,
+   6.7
+  ],
+  "max": [
+   138.9,
+   256.0,
+   256.7
+  ],
+  "size": [
+   300.0,
+   374.0,
+   250.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_C_01": {
+  "min": [
+   -160.6,
+   -118.0,
+   6.7
+  ],
+  "max": [
+   139.4,
+   134.1,
+   156.7
+  ],
+  "size": [
+   300.0,
+   252.1,
+   150.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_01",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_B_02": {
+  "min": [
+   -130.0,
+   -116.6,
+   -34.6
+  ],
+  "max": [
+   120.0,
+   90.9,
+   149.7
+  ],
+  "size": [
+   250.0,
+   207.5,
+   184.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_B_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_B_01": {
+  "min": [
+   -130.0,
+   -112.5,
+   -31.1
+  ],
+  "max": [
+   120.0,
+   203.3,
+   244.1
+  ],
+  "size": [
+   250.0,
+   315.8,
+   275.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_B_01",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_A_02": {
+  "min": [
+   -85.0,
+   -116.6,
+   -34.6
+  ],
+  "max": [
+   85.0,
+   90.9,
+   149.7
+  ],
+  "size": [
+   170.0,
+   207.5,
+   184.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_A_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Interior_A_01": {
+  "min": [
+   -85.0,
+   -108.0,
+   -24.7
+  ],
+  "max": [
+   85.0,
+   207.8,
+   250.5
+  ],
+  "size": [
+   170.0,
+   315.8,
+   275.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_A_01",
+  "class": "StaticMesh"
+ },
+ "RoofSpike": {
+  "min": [
+   -46.7,
+   -46.7,
+   -47.1
+  ],
+  "max": [
+   46.7,
+   46.7,
+   348.3
+  ],
+  "size": [
+   93.5,
+   93.5,
+   395.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_RoofSpike",
+  "class": "StaticMesh"
+ },
+ "Door_E": {
+  "min": [
+   -110.5,
+   -29.7,
+   -126.0
+  ],
+  "max": [
+   -0.7,
+   4.3,
+   190.0
+  ],
+  "size": [
+   109.8,
+   34.0,
+   316.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_E",
+  "class": "StaticMesh"
+ },
+ "Door_D": {
+  "min": [
+   -130.3,
+   -19.3,
+   -126.7
+  ],
+  "max": [
+   1.7,
+   11.7,
+   155.9
+  ],
+  "size": [
+   132.0,
+   31.0,
+   282.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_D",
+  "class": "StaticMesh"
+ },
+ "Door_C": {
+  "min": [
+   -110.5,
+   -29.7,
+   -126.0
+  ],
+  "max": [
+   -0.7,
+   4.3,
+   132.5
+  ],
+  "size": [
+   109.8,
+   34.0,
+   258.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_C",
+  "class": "StaticMesh"
+ },
+ "Door_A": {
+  "min": [
+   -132.8,
+   -19.3,
+   -126.7
+  ],
+  "max": [
+   -0.8,
+   11.7,
+   129.7
+  ],
+  "size": [
+   132.0,
+   31.0,
+   256.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_A",
+  "class": "StaticMesh"
+ },
+ "Bar_Main": {
+  "min": [
+   -200.0,
+   -50.0,
+   -5.0
+  ],
+  "max": [
+   200.0,
+   50.0,
+   105.0
+  ],
+  "size": [
+   400.0,
+   100.0,
+   110.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Bar_Main",
+  "class": "StaticMesh"
+ },
+ "Bar_End": {
+  "min": [
+   -100.0,
+   -50.0,
+   -5.0
+  ],
+  "max": [
+   0.0,
+   50.0,
+   105.0
+  ],
+  "size": [
+   100.0,
+   100.0,
+   110.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Bar_End",
+  "class": "StaticMesh"
+ },
+ "Bar_Corner": {
+  "min": [
+   -0.1,
+   -50.0,
+   -5.0
+  ],
+  "max": [
+   100.2,
+   50.1,
+   105.0
+  ],
+  "size": [
+   100.3,
+   100.1,
+   110.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Bar_Corner",
+  "class": "StaticMesh"
+ },
+ "House_Wall_Interior_Stairs_01": {
+  "min": [
+   -249.4,
+   217.0,
+   -0.1
+  ],
+  "max": [
+   -49.4,
+   249.4,
+   391.1
+  ],
+  "size": [
+   200.0,
+   32.4,
+   391.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_Stairs_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_Interior_Extension": {
+  "min": [
+   -318.0,
+   217.0,
+   -0.1
+  ],
+  "max": [
+   -248.1,
+   249.4,
+   391.2
+  ],
+  "size": [
+   69.9,
+   32.4,
+   391.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_Extension",
+  "class": "StaticMesh"
+ },
+ "House_Wall_Interior_A_01": {
+  "min": [
+   -249.4,
+   217.0,
+   -0.1
+  ],
+  "max": [
+   250.5,
+   249.4,
+   391.2
+  ],
+  "size": [
+   499.9,
+   32.4,
+   391.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_A_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_Interior_2_5x4_02": {
+  "min": [
+   -249.4,
+   217.3,
+   0.0
+  ],
+  "max": [
+   0.6,
+   250.2,
+   391.1
+  ],
+  "size": [
+   250.1,
+   32.8,
+   391.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_2_5x4_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_Interior_2_5x4_01": {
+  "min": [
+   -249.4,
+   217.3,
+   0.0
+  ],
+  "max": [
+   0.6,
+   249.4,
+   391.1
+  ],
+  "size": [
+   250.1,
+   32.1,
+   391.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_2_5x4_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Interior_Window_B_01": {
+  "min": [
+   -249.4,
+   213.5,
+   0.0
+  ],
+  "max": [
+   250.5,
+   249.4,
+   391.1
+  ],
+  "size": [
+   499.9,
+   35.9,
+   391.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Window_B_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Interior_Door_E_01": {
+  "min": [
+   -249.4,
+   217.3,
+   0.0
+  ],
+  "max": [
+   250.5,
+   249.7,
+   391.1
+  ],
+  "size": [
+   499.9,
+   32.4,
+   391.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_E_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Interior_Door_D_01": {
+  "min": [
+   -249.4,
+   217.3,
+   0.0
+  ],
+  "max": [
+   250.5,
+   249.7,
+   391.1
+  ],
+  "size": [
+   499.9,
+   32.4,
+   391.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_D_01",
+  "class": "StaticMesh"
+ },
+ "StairSlabs_Left": {
+  "min": [
+   -100.7,
+   -3.8,
+   -0.1
+  ],
+  "max": [
+   153.5,
+   202.0,
+   60.0
+  ],
+  "size": [
+   254.2,
+   205.7,
+   60.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StairSlabs_Left",
+  "class": "StaticMesh"
+ },
+ "StairSlabs_Mid": {
+  "min": [
+   -100.6,
+   -3.8,
+   -0.1
+  ],
+  "max": [
+   153.6,
+   202.0,
+   60.0
+  ],
+  "size": [
+   254.2,
+   205.7,
+   60.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StairSlabs_Mid",
+  "class": "StaticMesh"
+ },
+ "StairSlabs_Right": {
+  "min": [
+   -100.4,
+   -3.8,
+   -0.1
+  ],
+  "max": [
+   100.3,
+   202.0,
+   60.0
+  ],
+  "size": [
+   200.8,
+   205.7,
+   60.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StairSlabs_Right",
+  "class": "StaticMesh"
+ },
+ "StoneWall_01": {
+  "min": [
+   -148.6,
+   -16.9,
+   0.3
+  ],
+  "max": [
+   150.7,
+   17.9,
+   135.8
+  ],
+  "size": [
+   299.3,
+   34.8,
+   135.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+  "class": "StaticMesh"
+ },
+ "StoneWall_01_Left": {
+  "min": [
+   126.9,
+   -16.0,
+   0.1
+  ],
+  "max": [
+   158.3,
+   16.0,
+   100.6
+  ],
+  "size": [
+   31.4,
+   32.0,
+   100.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01_Left",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Interior_Door_C_01": {
+  "min": [
+   -249.4,
+   217.0,
+   0.0
+  ],
+  "max": [
+   250.5,
+   250.2,
+   391.2
+  ],
+  "size": [
+   499.9,
+   33.2,
+   391.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_C_01",
+  "class": "StaticMesh"
+ },
+ "StoneWall_01_Right": {
+  "min": [
+   -140.2,
+   -15.4,
+   0.8
+  ],
+  "max": [
+   -114.5,
+   16.0,
+   129.5
+  ],
+  "size": [
+   25.8,
+   31.4,
+   128.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01_Right",
+  "class": "StaticMesh"
+ },
+ "StoneWall_02": {
+  "min": [
+   -148.6,
+   -16.8,
+   0.3
+  ],
+  "max": [
+   150.7,
+   16.8,
+   136.1
+  ],
+  "size": [
+   299.3,
+   33.6,
+   135.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+  "class": "StaticMesh"
+ },
+ "StoneWall_02_Left": {
+  "min": [
+   121.0,
+   -19.1,
+   0.0
+  ],
+  "max": [
+   224.0,
+   32.4,
+   125.0
+  ],
+  "size": [
+   102.9,
+   51.5,
+   125.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02_Left",
+  "class": "StaticMesh"
+ },
+ "StoneWall_02_Right": {
+  "min": [
+   -225.4,
+   -49.2,
+   -0.6
+  ],
+  "max": [
+   -101.4,
+   45.8,
+   130.2
+  ],
+  "size": [
+   124.0,
+   95.0,
+   130.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02_Right",
+  "class": "StaticMesh"
+ },
+ "VillageWall_End": {
+  "min": [
+   -19.9,
+   -20.4,
+   0.0
+  ],
+  "max": [
+   19.8,
+   20.4,
+   212.5
+  ],
+  "size": [
+   39.7,
+   40.7,
+   212.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_VillageWall_End",
+  "class": "StaticMesh"
+ },
+ "VillageWall_TIling": {
+  "min": [
+   -100.9,
+   -12.0,
+   0.3
+  ],
+  "max": [
+   100.6,
+   12.0,
+   202.7
+  ],
+  "size": [
+   201.4,
+   24.0,
+   202.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_VillageWall_TIling",
+  "class": "StaticMesh"
+ },
+ "Pig": {
+  "min": [
+   -61.7,
+   -114.1,
+   0.0
+  ],
+  "max": [
+   61.7,
+   157.2,
+   154.1
+  ],
+  "size": [
+   123.3,
+   271.3,
+   154.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Chars/Pig/SK_Pig",
+  "class": "SkeletalMesh"
+ },
+ "Sheep": {
+  "min": [
+   -63.5,
+   -116.8,
+   -0.0
+  ],
+  "max": [
+   63.5,
+   153.8,
+   237.1
+  ],
+  "size": [
+   127.0,
+   270.7,
+   237.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Chars/Sheep/SK_Sheep",
+  "class": "SkeletalMesh"
+ },
+ "House_Wall_5x4_Interior_Door_B_01": {
+  "min": [
+   -249.4,
+   217.0,
+   0.0
+  ],
+  "max": [
+   250.5,
+   250.2,
+   391.1
+  ],
+  "size": [
+   499.9,
+   33.2,
+   391.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_B_01",
+  "class": "StaticMesh"
+ },
+ "Apple": {
+  "min": [
+   -9.2,
+   -10.4,
+   -8.8
+  ],
+  "max": [
+   11.2,
+   8.9,
+   10.7
+  ],
+  "size": [
+   20.4,
+   19.3,
+   19.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Apple",
+  "class": "StaticMesh"
+ },
+ "Barrel_01": {
+  "min": [
+   -41.5,
+   -41.5,
+   -4.5
+  ],
+  "max": [
+   41.5,
+   41.5,
+   103.6
+  ],
+  "size": [
+   83.1,
+   83.1,
+   108.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_01",
+  "class": "StaticMesh"
+ },
+ "Barrel_02": {
+  "min": [
+   -41.5,
+   -41.5,
+   -4.5
+  ],
+  "max": [
+   41.5,
+   63.1,
+   103.6
+  ],
+  "size": [
+   83.1,
+   104.6,
+   108.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_02",
+  "class": "StaticMesh"
+ },
+ "Barrel_04": {
+  "min": [
+   -41.5,
+   -41.5,
+   -4.5
+  ],
+  "max": [
+   41.5,
+   41.5,
+   103.6
+  ],
+  "size": [
+   83.1,
+   83.1,
+   108.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_04",
+  "class": "StaticMesh"
+ },
+ "CrateOpen": {
+  "min": [
+   -49.3,
+   -31.7,
+   -2.4
+  ],
+  "max": [
+   49.3,
+   31.5,
+   56.8
+  ],
+  "size": [
+   98.5,
+   63.2,
+   59.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateOpen",
+  "class": "StaticMesh"
+ },
+ "Trough": {
+  "min": [
+   -83.2,
+   -35.3,
+   -1.8
+  ],
+  "max": [
+   84.1,
+   35.1,
+   42.0
+  ],
+  "size": [
+   167.3,
+   70.3,
+   43.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Trough",
+  "class": "StaticMesh"
+ },
+ "CrateSquare": {
+  "min": [
+   -58.3,
+   -55.6,
+   -7.9
+  ],
+  "max": [
+   59.5,
+   57.2,
+   99.4
+  ],
+  "size": [
+   117.8,
+   112.8,
+   107.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateSquare",
+  "class": "StaticMesh"
+ },
+ "MushroomShort": {
+  "min": [
+   -10.5,
+   -8.9,
+   -0.1
+  ],
+  "max": [
+   7.8,
+   8.2,
+   23.3
+  ],
+  "size": [
+   18.2,
+   17.1,
+   23.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_MushroomShort",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_C_03": {
+  "min": [
+   -249.4,
+   -292.1,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   42.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_C_03",
+  "class": "StaticMesh"
+ },
+ "MushroomTall": {
+  "min": [
+   -9.3,
+   -9.8,
+   0.1
+  ],
+  "max": [
+   8.7,
+   9.0,
+   31.5
+  ],
+  "size": [
+   18.0,
+   18.8,
+   31.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_MushroomTall",
+  "class": "StaticMesh"
+ },
+ "Sack": {
+  "min": [
+   -46.3,
+   -26.3,
+   0.6
+  ],
+  "max": [
+   45.8,
+   26.1,
+   112.0
+  ],
+  "size": [
+   92.1,
+   52.4,
+   111.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Sack",
+  "class": "StaticMesh"
+ },
+ "StreetLight": {
+  "min": [
+   -165.4,
+   -67.8,
+   -0.1
+  ],
+  "max": [
+   66.9,
+   67.7,
+   432.0
+  ],
+  "size": [
+   232.3,
+   135.5,
+   432.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_StreetLight",
+  "class": "StaticMesh"
+ },
+ "TaskBoardMiddle": {
+  "min": [
+   -135.7,
+   -20.8,
+   -7.2
+  ],
+  "max": [
+   136.4,
+   80.2,
+   338.8
+  ],
+  "size": [
+   272.1,
+   101.0,
+   346.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TaskBoardMiddle",
+  "class": "StaticMesh"
+ },
+ "TreeLog_1": {
+  "min": [
+   -164.8,
+   -32.2,
+   -3.7
+  ],
+  "max": [
+   165.3,
+   24.6,
+   53.3
+  ],
+  "size": [
+   330.1,
+   56.8,
+   56.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TreeLog_1",
+  "class": "StaticMesh"
+ },
+ "TreeStump": {
+  "min": [
+   -44.9,
+   -47.4,
+   -0.1
+  ],
+  "max": [
+   56.7,
+   49.1,
+   64.1
+  ],
+  "size": [
+   101.6,
+   96.5,
+   64.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TreeStump",
+  "class": "StaticMesh"
+ },
+ "Trough_FoodPile": {
+  "min": [
+   -78.4,
+   -22.4,
+   22.3
+  ],
+  "max": [
+   78.4,
+   22.4,
+   39.9
+  ],
+  "size": [
+   156.9,
+   44.7,
+   17.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Trough_FoodPile",
+  "class": "StaticMesh"
+ },
+ "VegetableFence": {
+  "min": [
+   -71.9,
+   -5.3,
+   -0.2
+  ],
+  "max": [
+   57.9,
+   7.3,
+   65.2
+  ],
+  "size": [
+   129.8,
+   12.5,
+   65.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_C_02": {
+  "min": [
+   -249.4,
+   -292.1,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   42.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_C_02",
+  "class": "StaticMesh"
+ },
+ "VillageFenceDoor": {
+  "min": [
+   -4.6,
+   -10.3,
+   1.6
+  ],
+  "max": [
+   87.0,
+   10.2,
+   146.2
+  ],
+  "size": [
+   91.5,
+   20.5,
+   144.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFenceDoor",
+  "class": "StaticMesh"
+ },
+ "VillageFencePost": {
+  "min": [
+   -25.9,
+   -8.5,
+   0.4
+  ],
+  "max": [
+   -4.9,
+   8.3,
+   145.4
+  ],
+  "size": [
+   21.0,
+   16.8,
+   145.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFencePost",
+  "class": "StaticMesh"
+ },
+ "VillageFence": {
+  "min": [
+   -166.2,
+   -13.3,
+   -1.3
+  ],
+  "max": [
+   164.8,
+   13.1,
+   145.1
+  ],
+  "size": [
+   331.1,
+   26.4,
+   146.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+  "class": "StaticMesh"
+ },
+ "WarriorStatue": {
+  "min": [
+   -194.0,
+   -191.1,
+   -14.8
+  ],
+  "max": [
+   189.6,
+   249.6,
+   573.3
+  ],
+  "size": [
+   383.5,
+   440.7,
+   588.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_WarriorStatue",
+  "class": "StaticMesh"
+ },
+ "Well": {
+  "min": [
+   -91.1,
+   -84.3,
+   1.5
+  ],
+  "max": [
+   148.3,
+   84.3,
+   164.0
+  ],
+  "size": [
+   239.4,
+   168.7,
+   162.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Well",
+  "class": "StaticMesh"
+ },
+ "WellRoof": {
+  "min": [
+   -115.6,
+   -120.5,
+   106.6
+  ],
+  "max": [
+   115.6,
+   119.6,
+   339.6
+  ],
+  "size": [
+   231.2,
+   240.1,
+   233.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WellRoof",
+  "class": "StaticMesh"
+ },
+ "MarketStallStructure": {
+  "min": [
+   -150.0,
+   -220.0,
+   -0.0
+  ],
+  "max": [
+   150.0,
+   54.0,
+   297.4
+  ],
+  "size": [
+   300.0,
+   274.0,
+   297.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+  "class": "StaticMesh"
+ },
+ "Pillar_Exterior_02_Basic": {
+  "min": [
+   -14.3,
+   -14.3,
+   -33.8
+  ],
+  "max": [
+   14.3,
+   14.3,
+   390.0
+  ],
+  "size": [
+   28.6,
+   28.6,
+   423.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Basic",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_C_01": {
+  "min": [
+   -249.4,
+   -292.1,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   42.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_C_01",
+  "class": "StaticMesh"
+ },
+ "House_Floor_Beam": {
+  "min": [
+   -249.6,
+   -4.8,
+   -30.0
+  ],
+  "max": [
+   250.8,
+   24.8,
+   -10.0
+  ],
+  "size": [
+   500.4,
+   29.7,
+   20.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_Beam",
+  "class": "StaticMesh"
+ },
+ "Chicken_Coop": {
+  "min": [
+   -152.9,
+   -133.4,
+   -10.0
+  ],
+  "max": [
+   77.4,
+   131.0,
+   212.6
+  ],
+  "size": [
+   230.2,
+   264.5,
+   222.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Chicken_Coop",
+  "class": "StaticMesh"
+ },
+ "MarketTable": {
+  "min": [
+   -115.5,
+   -43.2,
+   -0.0
+  ],
+  "max": [
+   113.7,
+   43.0,
+   71.6
+  ],
+  "size": [
+   229.2,
+   86.2,
+   71.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable",
+  "class": "StaticMesh"
+ },
+ "Barn": {
+  "min": [
+   -366.0,
+   -261.8,
+   -14.0
+  ],
+  "max": [
+   347.9,
+   241.8,
+   555.9
+  ],
+  "size": [
+   713.9,
+   503.6,
+   569.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Barn",
+  "class": "StaticMesh"
+ },
+ "WaterLilyA": {
+  "min": [
+   -39.4,
+   -34.1,
+   -0.1
+  ],
+  "max": [
+   39.4,
+   34.1,
+   10.3
+  ],
+  "size": [
+   78.7,
+   68.2,
+   10.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_WaterLilyA",
+  "class": "StaticMesh"
+ },
+ "WaterLilyC": {
+  "min": [
+   -37.0,
+   -32.0,
+   -0.0
+  ],
+  "max": [
+   37.0,
+   32.0,
+   0.0
+  ],
+  "size": [
+   74.0,
+   64.0,
+   0.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_WaterLilyC",
+  "class": "StaticMesh"
+ },
+ "WaterLilyD": {
+  "min": [
+   -39.4,
+   -34.1,
+   -0.0
+  ],
+  "max": [
+   39.4,
+   34.1,
+   0.0
+  ],
+  "size": [
+   78.7,
+   68.2,
+   0.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_WaterLilyD",
+  "class": "StaticMesh"
+ },
+ "HayStack": {
+  "min": [
+   -121.4,
+   -126.6,
+   -8.4
+  ],
+  "max": [
+   124.2,
+   121.9,
+   285.3
+  ],
+  "size": [
+   245.6,
+   248.5,
+   293.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_HayStack",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_B_03": {
+  "min": [
+   -249.4,
+   -295.5,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   45.6,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_B_03",
+  "class": "StaticMesh"
+ },
+ "Scarecrow": {
+  "min": [
+   -104.3,
+   -31.0,
+   -0.0
+  ],
+  "max": [
+   102.0,
+   35.1,
+   192.8
+  ],
+  "size": [
+   206.3,
+   66.0,
+   192.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Scarecrow",
+  "class": "StaticMesh"
+ },
+ "StallCover_01": {
+  "min": [
+   -105.6,
+   -206.8,
+   10.2
+  ],
+  "max": [
+   105.6,
+   36.2,
+   298.2
+  ],
+  "size": [
+   211.1,
+   243.0,
+   288.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_01",
+  "class": "StaticMesh"
+ },
+ "StallCover_02": {
+  "min": [
+   -105.6,
+   -206.8,
+   10.2
+  ],
+  "max": [
+   105.6,
+   36.2,
+   298.2
+  ],
+  "size": [
+   211.1,
+   243.0,
+   288.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_02",
+  "class": "StaticMesh"
+ },
+ "Windmill_Sail": {
+  "min": [
+   0.0,
+   -2677.2,
+   -2677.2
+  ],
+  "max": [
+   1028.9,
+   2677.2,
+   2677.2
+  ],
+  "size": [
+   1028.9,
+   5354.5,
+   5354.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Windmill_Sail",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_B_02": {
+  "min": [
+   -249.4,
+   -295.5,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   45.6,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_B_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_B_01": {
+  "min": [
+   -249.4,
+   -295.5,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   45.6,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_B_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_A_03": {
+  "min": [
+   -249.4,
+   -298.2,
+   -1.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   48.2,
+   401.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_A_03",
+  "class": "StaticMesh"
+ },
+ "WIndmill_Base": {
+  "min": [
+   -854.5,
+   -806.7,
+   -3.6
+  ],
+  "max": [
+   854.5,
+   800.8,
+   4433.5
+  ],
+  "size": [
+   1708.9,
+   1607.4,
+   4437.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WIndmill_Base",
+  "class": "StaticMesh"
+ },
+ "GrassVillage_Medium": {
+  "min": [
+   -83.7,
+   -73.4,
+   -2.0
+  ],
+  "max": [
+   72.0,
+   70.9,
+   72.2
+  ],
+  "size": [
+   155.7,
+   144.3,
+   74.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_GrassVillage_Medium",
+  "class": "StaticMesh"
+ },
+ "GrassVillage_Tall": {
+  "min": [
+   -131.5,
+   -115.6,
+   -1.7
+  ],
+  "max": [
+   132.6,
+   102.3,
+   115.5
+  ],
+  "size": [
+   264.2,
+   217.8,
+   117.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_GrassVillage_Tall",
+  "class": "StaticMesh"
+ },
+ "GrassVillage_Small": {
+  "min": [
+   -58.0,
+   -65.7,
+   -3.3
+  ],
+  "max": [
+   50.2,
+   55.8,
+   32.4
+  ],
+  "size": [
+   108.2,
+   121.5,
+   35.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_GrassVillage_Small",
+  "class": "StaticMesh"
+ },
+ "VillageWheat_01": {
+  "min": [
+   -39.9,
+   -46.7,
+   -5.8
+  ],
+  "max": [
+   32.7,
+   47.9,
+   151.9
+  ],
+  "size": [
+   72.6,
+   94.6,
+   157.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+  "class": "StaticMesh"
+ },
+ "VillageWheat_02": {
+  "min": [
+   -39.9,
+   -46.7,
+   -5.8
+  ],
+  "max": [
+   32.7,
+   47.9,
+   151.9
+  ],
+  "size": [
+   72.6,
+   94.6,
+   157.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+  "class": "StaticMesh"
+ },
+ "VillageWheat_Grass": {
+  "min": [
+   -131.5,
+   -115.6,
+   -1.7
+  ],
+  "max": [
+   132.6,
+   102.3,
+   115.5
+  ],
+  "size": [
+   264.2,
+   217.8,
+   117.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_Grass",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Window_A_02": {
+  "min": [
+   -249.4,
+   -298.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   48.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_A_02",
+  "class": "StaticMesh"
+ },
+ "Reeds_01": {
+  "min": [
+   -25.9,
+   -25.7,
+   -5.2
+  ],
+  "max": [
+   31.5,
+   34.1,
+   119.1
+  ],
+  "size": [
+   57.4,
+   59.8,
+   124.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_Reeds_01",
+  "class": "StaticMesh"
+ },
+ "Reeds_02": {
+  "min": [
+   -0.8,
+   -12.3,
+   -0.9
+  ],
+  "max": [
+   16.9,
+   10.8,
+   108.3
+  ],
+  "size": [
+   17.6,
+   23.1,
+   109.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_Reeds_02",
+  "class": "StaticMesh"
+ },
+ "Reeds_03": {
+  "min": [
+   -27.7,
+   -25.9,
+   -2.3
+  ],
+  "max": [
+   31.6,
+   18.6,
+   69.2
+  ],
+  "size": [
+   59.3,
+   44.4,
+   71.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_Reeds_03",
+  "class": "StaticMesh"
+ },
+ "FlowerGroup_Village_01": {
+  "min": [
+   -74.1,
+   -91.0,
+   -2.4
+  ],
+  "max": [
+   84.6,
+   78.5,
+   45.6
+  ],
+  "size": [
+   158.7,
+   169.5,
+   48.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerGroup_Village_01",
+  "class": "StaticMesh"
+ },
+ "FlowerGroup_Village_03": {
+  "min": [
+   -74.1,
+   -91.0,
+   -2.4
+  ],
+  "max": [
+   84.6,
+   78.5,
+   45.6
+  ],
+  "size": [
+   158.7,
+   169.5,
+   48.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerGroup_Village_03",
+  "class": "StaticMesh"
+ },
+ "FlowerVillage_01": {
+  "min": [
+   -23.0,
+   -20.8,
+   -0.9
+  ],
+  "max": [
+   18.5,
+   22.3,
+   84.1
+  ],
+  "size": [
+   41.6,
+   43.2,
+   84.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerVillage_01",
+  "class": "StaticMesh"
+ },
+ "FlowerGroup_Village_02": {
+  "min": [
+   -59.0,
+   -56.8,
+   -1.5
+  ],
+  "max": [
+   63.7,
+   74.3,
+   97.4
+  ],
+  "size": [
+   122.8,
+   131.1,
+   98.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerGroup_Village_02",
+  "class": "StaticMesh"
+ },
+ "Chicken": {
+  "min": [
+   -41.5,
+   -42.3,
+   0.2
+  ],
+  "max": [
+   41.5,
+   27.1,
+   70.0
+  ],
+  "size": [
+   83.1,
+   69.4,
+   69.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Chars/Chicken/SK_Chicken",
+  "class": "SkeletalMesh"
+ },
+ "House_Wall_5x4_Window_A_01": {
+  "min": [
+   -249.4,
+   -298.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   48.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_A_01",
+  "class": "StaticMesh"
+ },
+ "Tree_Apple_01": {
+  "min": [
+   -444.3,
+   -464.2,
+   -9.4
+  ],
+  "max": [
+   472.9,
+   438.4,
+   941.2
+  ],
+  "size": [
+   917.2,
+   902.6,
+   950.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/SM_Tree_Apple_01",
+  "class": "StaticMesh"
+ },
+ "VillageBirch_01": {
+  "min": [
+   -501.6,
+   -605.0,
+   -58.2
+  ],
+  "max": [
+   531.2,
+   734.3,
+   1356.3
+  ],
+  "size": [
+   1032.9,
+   1339.3,
+   1414.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/SM_VillageBirch_01",
+  "class": "StaticMesh"
+ },
+ "VillageBirch_02": {
+  "min": [
+   -509.3,
+   -476.6,
+   -42.6
+  ],
+  "max": [
+   490.3,
+   492.4,
+   1785.8
+  ],
+  "size": [
+   999.6,
+   969.0,
+   1828.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/SM_VillageBirch_02",
+  "class": "StaticMesh"
+ },
+ "VillageBirch_03": {
+  "min": [
+   -439.3,
+   -446.7,
+   -52.1
+  ],
+  "max": [
+   366.7,
+   374.5,
+   1379.0
+  ],
+  "size": [
+   806.0,
+   821.2,
+   1431.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/SM_VillageBirch_03",
+  "class": "StaticMesh"
+ },
+ "VillageOak": {
+  "min": [
+   -1240.0,
+   -1394.7,
+   -67.2
+  ],
+  "max": [
+   1851.3,
+   1382.9,
+   2597.6
+  ],
+  "size": [
+   3091.4,
+   2777.6,
+   2664.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Trees/SM_VillageOak",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_E_02": {
+  "min": [
+   -249.4,
+   -290.0,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.0,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_E_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_E_01": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_E_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_D_03": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_D_03",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_D_02": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_D_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_D_01": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_D_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_C_03": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_C_03",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_C_02": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_C_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_C_01": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_C_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_B_03": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_B_03",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_B_02": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_B_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_B_01": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_B_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_A_03": {
+  "min": [
+   -249.4,
+   -290.8,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -247.4,
+   400.0
+  ],
+  "size": [
+   499.9,
+   43.4,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_A_03",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_A_02": {
+  "min": [
+   -249.4,
+   -290.8,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -247.4,
+   400.0
+  ],
+  "size": [
+   499.9,
+   43.4,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_A_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_Door_A_01": {
+  "min": [
+   -249.4,
+   -290.8,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -247.4,
+   400.0
+  ],
+  "size": [
+   499.9,
+   43.4,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_A_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_A_03": {
+  "min": [
+   -249.6,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   500.1,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_A_03",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_A_02": {
+  "min": [
+   -249.5,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.6,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   500.1,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_A_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_5x4_A_01": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   250.5,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   499.9,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_A_01",
+  "class": "StaticMesh"
+ },
+ "House_Wall_2_5x4_03": {
+  "min": [
+   -249.4,
+   -290.0,
+   -0.0
+  ],
+  "max": [
+   0.6,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   250.1,
+   40.0,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_2_5x4_03",
+  "class": "StaticMesh"
+ },
+ "House_Wall_2_5x4_02": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   0.6,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   250.1,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_2_5x4_02",
+  "class": "StaticMesh"
+ },
+ "House_Wall_2_5x4_01": {
+  "min": [
+   -249.4,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   0.6,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   250.1,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_2_5x4_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_WallTop_01": {
+  "min": [
+   -291.9,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   291.9,
+   -250.0,
+   510.0
+  ],
+  "size": [
+   583.8,
+   40.2,
+   510.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_WallTop_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_WallSide_01": {
+  "min": [
+   250.6,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   585.9,
+   -250.0,
+   400.0
+  ],
+  "size": [
+   335.3,
+   40.2,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_WallSide_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_Tiling_Half": {
+  "min": [
+   -643.9,
+   -121.5,
+   -64.3
+  ],
+  "max": [
+   7.6,
+   131.0,
+   899.4
+  ],
+  "size": [
+   651.5,
+   252.5,
+   963.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Tiling_Half",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_Tiling": {
+  "min": [
+   -643.5,
+   -262.3,
+   -64.3
+  ],
+  "max": [
+   7.7,
+   239.7,
+   899.4
+  ],
+  "size": [
+   651.2,
+   502.0,
+   963.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Tiling",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_End": {
+  "min": [
+   -647.7,
+   -170.9,
+   -64.3
+  ],
+  "max": [
+   7.7,
+   21.7,
+   904.8
+  ],
+  "size": [
+   655.4,
+   192.6,
+   969.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_End",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_Corner_Outer": {
+  "min": [
+   -644.3,
+   -253.4,
+   -68.0
+  ],
+  "max": [
+   254.1,
+   650.9,
+   899.4
+  ],
+  "size": [
+   898.4,
+   904.4,
+   967.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Corner_Outer",
+  "class": "StaticMesh"
+ },
+ "House_Roof_02_Corner_Inner": {
+  "min": [
+   -7.6,
+   -751.4,
+   -64.3
+  ],
+  "max": [
+   753.4,
+   10.2,
+   899.4
+  ],
+  "size": [
+   761.0,
+   761.6,
+   963.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Corner_Inner",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallTop_Standard_02": {
+  "min": [
+   -12.8,
+   -103.6,
+   0.0
+  ],
+  "max": [
+   28.3,
+   103.6,
+   201.3
+  ],
+  "size": [
+   41.2,
+   207.1,
+   201.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Standard_02",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallTop_Standard_01": {
+  "min": [
+   -12.8,
+   -103.6,
+   0.0
+  ],
+  "max": [
+   28.3,
+   103.6,
+   201.3
+  ],
+  "size": [
+   41.2,
+   207.1,
+   201.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Standard_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallTop_Extended_02": {
+  "min": [
+   -10.0,
+   -160.1,
+   -0.8
+  ],
+  "max": [
+   31.2,
+   160.1,
+   301.2
+  ],
+  "size": [
+   41.2,
+   320.2,
+   302.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Extended_02",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallTop_Extended_01": {
+  "min": [
+   -160.1,
+   -10.0,
+   -0.8
+  ],
+  "max": [
+   160.1,
+   31.2,
+   301.2
+  ],
+  "size": [
+   320.2,
+   41.2,
+   302.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Extended_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallMiddle_A_06": {
+  "min": [
+   -10.0,
+   -124.6,
+   -0.0
+  ],
+  "max": [
+   33.2,
+   125.3,
+   299.7
+  ],
+  "size": [
+   43.2,
+   249.8,
+   299.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_06",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallMiddle_A_05": {
+  "min": [
+   -10.0,
+   -124.6,
+   -0.0
+  ],
+  "max": [
+   33.3,
+   125.2,
+   299.7
+  ],
+  "size": [
+   43.3,
+   249.8,
+   299.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_05",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallMiddle_A_04": {
+  "min": [
+   -10.0,
+   -124.6,
+   -0.0
+  ],
+  "max": [
+   33.6,
+   125.3,
+   299.7
+  ],
+  "size": [
+   43.6,
+   249.8,
+   299.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_04",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallMiddle_A_03": {
+  "min": [
+   -10.0,
+   -124.6,
+   -0.0
+  ],
+  "max": [
+   31.1,
+   125.3,
+   299.7
+  ],
+  "size": [
+   41.2,
+   249.8,
+   299.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_03",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallMiddle_A_02": {
+  "min": [
+   -124.6,
+   -31.1,
+   0.0
+  ],
+  "max": [
+   125.3,
+   10.0,
+   299.7
+  ],
+  "size": [
+   249.8,
+   41.2,
+   299.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_02",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallMiddle_A_01": {
+  "min": [
+   -10.0,
+   -124.6,
+   -0.0
+  ],
+  "max": [
+   31.1,
+   125.3,
+   299.7
+  ],
+  "size": [
+   41.2,
+   249.8,
+   299.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallBottom_Standard_02": {
+  "min": [
+   -9.7,
+   119.6,
+   0.0
+  ],
+  "max": [
+   28.3,
+   298.6,
+   279.8
+  ],
+  "size": [
+   38.0,
+   179.0,
+   279.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Standard_02",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallBottom_Standard_01": {
+  "min": [
+   -9.7,
+   119.6,
+   0.0
+  ],
+  "max": [
+   28.3,
+   298.6,
+   279.8
+  ],
+  "size": [
+   38.0,
+   179.0,
+   279.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Standard_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallBottom_Extended_02": {
+  "min": [
+   -11.4,
+   123.3,
+   -8.8
+  ],
+  "max": [
+   31.2,
+   356.6,
+   299.3
+  ],
+  "size": [
+   42.5,
+   233.3,
+   308.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Extended_02",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_WallBottom_Extended_01": {
+  "min": [
+   -11.4,
+   123.3,
+   -8.8
+  ],
+  "max": [
+   31.2,
+   356.6,
+   299.3
+  ],
+  "size": [
+   42.5,
+   233.3,
+   308.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Extended_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Tiling_TopExtended": {
+  "min": [
+   -158.8,
+   -250.1,
+   319.2
+  ],
+  "max": [
+   0.0,
+   250.4,
+   625.7
+  ],
+  "size": [
+   158.8,
+   500.6,
+   306.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_TopExtended",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Tiling_Top": {
+  "min": [
+   -108.8,
+   -250.0,
+   319.2
+  ],
+  "max": [
+   2.2,
+   250.0,
+   518.5
+  ],
+  "size": [
+   111.0,
+   500.0,
+   199.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Top",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Tiling_Half_TopExtended": {
+  "min": [
+   -108.8,
+   -120.1,
+   319.2
+  ],
+  "max": [
+   50.0,
+   130.0,
+   625.7
+  ],
+  "size": [
+   158.8,
+   250.1,
+   306.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Half_TopExtended",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Tiling_Half_Top": {
+  "min": [
+   -108.8,
+   -120.0,
+   319.2
+  ],
+  "max": [
+   2.2,
+   130.0,
+   518.5
+  ],
+  "size": [
+   111.0,
+   250.0,
+   199.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Half_Top",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Tiling_Half_Base": {
+  "min": [
+   -382.0,
+   -120.2,
+   -71.2
+  ],
+  "max": [
+   -75.2,
+   130.7,
+   339.0
+  ],
+  "size": [
+   306.8,
+   250.9,
+   410.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Half_Base",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Tiling_Base": {
+  "min": [
+   -383.1,
+   -250.2,
+   -71.2
+  ],
+  "max": [
+   -75.2,
+   250.7,
+   339.0
+  ],
+  "size": [
+   307.9,
+   500.9,
+   410.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Base",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Middle_Tiling_WindowFrame": {
+  "min": [
+   -479.4,
+   -250.2,
+   -71.2
+  ],
+  "max": [
+   -29.7,
+   250.7,
+   493.2
+  ],
+  "size": [
+   449.7,
+   500.9,
+   564.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Middle_Tiling_WindowFrame",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Middle_Tiling_Window_02": {
+  "min": [
+   -329.4,
+   -113.3,
+   38.0
+  ],
+  "max": [
+   -299.9,
+   113.5,
+   264.1
+  ],
+  "size": [
+   29.5,
+   226.8,
+   226.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Middle_Tiling_Window_02",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Middle_Tiling_Window_01": {
+  "min": [
+   -331.6,
+   -113.3,
+   38.0
+  ],
+  "max": [
+   -299.2,
+   113.5,
+   264.1
+  ],
+  "size": [
+   32.4,
+   226.8,
+   226.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Middle_Tiling_Window_01",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_End_TopExtended": {
+  "min": [
+   -114.5,
+   -174.5,
+   314.5
+  ],
+  "max": [
+   61.8,
+   10.0,
+   633.6
+  ],
+  "size": [
+   176.4,
+   184.5,
+   319.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_End_TopExtended",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_End_Top": {
+  "min": [
+   -114.5,
+   -167.9,
+   314.5
+  ],
+  "max": [
+   7.9,
+   10.0,
+   521.2
+  ],
+  "size": [
+   122.4,
+   177.9,
+   206.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_End_Top",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_End_Base": {
+  "min": [
+   -387.6,
+   -155.5,
+   -68.3
+  ],
+  "max": [
+   -73.5,
+   10.4,
+   342.4
+  ],
+  "size": [
+   314.1,
+   165.9,
+   410.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_End_Base",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Corner_Outer_Standard": {
+  "min": [
+   -0.4,
+   -0.9,
+   -71.2
+  ],
+  "max": [
+   382.3,
+   382.4,
+   518.5
+  ],
+  "size": [
+   382.8,
+   383.3,
+   589.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Outer_Standard",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Corner_Outer_Extended": {
+  "min": [
+   -250.4,
+   -250.7,
+   -71.2
+  ],
+  "max": [
+   441.1,
+   440.3,
+   638.7
+  ],
+  "size": [
+   691.5,
+   691.0,
+   709.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Outer_Extended",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Corner_Inner_Standard": {
+  "min": [
+   -551.6,
+   -550.7,
+   -71.2
+  ],
+  "max": [
+   -47.8,
+   -47.8,
+   518.5
+  ],
+  "size": [
+   503.8,
+   502.9,
+   589.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Inner_Standard",
+  "class": "StaticMesh"
+ },
+ "House_Roof_01_Corner_Inner_Extended": {
+  "min": [
+   -501.6,
+   -501.0,
+   -71.2
+  ],
+  "max": [
+   0.4,
+   0.1,
+   625.7
+  ],
+  "size": [
+   502.0,
+   501.1,
+   696.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Inner_Extended",
+  "class": "StaticMesh"
+ },
+ "House_Foundation_5x4_Extemded": {
+  "min": [
+   -290.0,
+   -305.0,
+   -250.0
+  ],
+  "max": [
+   300.0,
+   -255.0,
+   50.0
+  ],
+  "size": [
+   590.0,
+   50.0,
+   300.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4_Extemded",
+  "class": "StaticMesh"
+ },
+ "House_Foundation_5x4_Corner_Extended": {
+  "min": [
+   -316.3,
+   -316.3,
+   -250.0
+  ],
+  "max": [
+   390.0,
+   -243.7,
+   55.5
+  ],
+  "size": [
+   706.3,
+   72.6,
+   305.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4_Corner_Extended",
+  "class": "StaticMesh"
+ },
+ "House_Foundation_5x4_Corner": {
+  "min": [
+   -316.3,
+   -316.3,
+   -250.0
+  ],
+  "max": [
+   250.0,
+   -243.7,
+   55.5
+  ],
+  "size": [
+   566.3,
+   72.6,
+   305.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4_Corner",
+  "class": "StaticMesh"
+ },
+ "House_Foundation_5x4": {
+  "min": [
+   -250.0,
+   -305.0,
+   -250.0
+  ],
+  "max": [
+   250.0,
+   -255.0,
+   50.0
+  ],
+  "size": [
+   500.0,
+   50.0,
+   300.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4",
+  "class": "StaticMesh"
+ },
+ "House_Foundation_2x4": {
+  "min": [
+   -250.0,
+   -305.0,
+   -250.0
+  ],
+  "max": [
+   0.0,
+   -255.0,
+   50.0
+  ],
+  "size": [
+   250.0,
+   50.0,
+   300.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_2x4",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_Overang_Beam": {
+  "min": [
+   249.1,
+   -249.5,
+   -30.0
+  ],
+  "max": [
+   324.3,
+   250.5,
+   10.0
+  ],
+  "size": [
+   75.2,
+   500.0,
+   40.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Overang_Beam",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_Overang": {
+  "min": [
+   -249.5,
+   -324.2,
+   -16.8
+  ],
+  "max": [
+   250.5,
+   -249.1,
+   10.0
+  ],
+  "size": [
+   500.0,
+   75.1,
+   26.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Overang",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_LargeHatch": {
+  "min": [
+   -750.0,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   250.9,
+   254.2,
+   11.2
+  ],
+  "size": [
+   1000.9,
+   504.8,
+   41.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_LargeHatch",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_Hatch_04": {
+  "min": [
+   -257.8,
+   -253.3,
+   -30.0
+  ],
+  "max": [
+   250.9,
+   252.1,
+   11.1
+  ],
+  "size": [
+   508.7,
+   505.5,
+   41.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_04",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_Hatch_03": {
+  "min": [
+   -252.1,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   253.3,
+   262.0,
+   11.1
+  ],
+  "size": [
+   505.5,
+   512.5,
+   41.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_03",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_Hatch_02": {
+  "min": [
+   -249.8,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   250.9,
+   252.1,
+   11.1
+  ],
+  "size": [
+   500.7,
+   502.7,
+   41.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_02",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_Hatch_01": {
+  "min": [
+   -252.1,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   252.2,
+   249.5,
+   11.1
+  ],
+  "size": [
+   504.3,
+   500.0,
+   41.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_01",
+  "class": "StaticMesh"
+ },
+ "House_Floor_5x4_01": {
+  "min": [
+   -249.8,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   250.9,
+   249.5,
+   6.0
+  ],
+  "size": [
+   500.7,
+   500.0,
+   36.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_01",
+  "class": "StaticMesh"
+ },
+ "Terrace_Floor_Side": {
+  "min": [
+   -250.2,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   250.9,
+   270.0,
+   105.3
+  ],
+  "size": [
+   501.1,
+   520.5,
+   135.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Side",
+  "class": "StaticMesh"
+ },
+ "Terrace_Floor_Middle": {
+  "min": [
+   -249.8,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   250.9,
+   250.2,
+   6.0
+  ],
+  "size": [
+   500.7,
+   500.7,
+   36.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Middle",
+  "class": "StaticMesh"
+ },
+ "Terrace_Floor_Front": {
+  "min": [
+   -249.8,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   270.0,
+   250.2,
+   105.3
+  ],
+  "size": [
+   519.8,
+   500.7,
+   135.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Front",
+  "class": "StaticMesh"
+ },
+ "Terrace_Floor_Corner": {
+  "min": [
+   -250.2,
+   -250.5,
+   -30.0
+  ],
+  "max": [
+   270.0,
+   270.0,
+   105.3
+  ],
+  "size": [
+   520.2,
+   520.5,
+   135.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Corner",
+  "class": "StaticMesh"
+ },
+ "Support_Pillar_01": {
+  "min": [
+   -95.8,
+   -93.9,
+   -100.0
+  ],
+  "max": [
+   26.0,
+   26.0,
+   390.0
+  ],
+  "size": [
+   121.8,
+   119.9,
+   490.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Support_Pillar_01",
+  "class": "StaticMesh"
+ },
+ "Support_Arch_02": {
+  "min": [
+   -95.8,
+   -9.4,
+   -48.5
+  ],
+  "max": [
+   5.8,
+   9.4,
+   66.8
+  ],
+  "size": [
+   101.6,
+   18.8,
+   115.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Support_Arch_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Exterior_Wood_01_Half": {
+  "min": [
+   -66.9,
+   -85.0,
+   -40.0
+  ],
+  "max": [
+   144.9,
+   85.0,
+   217.2
+  ],
+  "size": [
+   211.8,
+   170.0,
+   257.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Wood_01_Half",
+  "class": "StaticMesh"
+ },
+ "Stairs_Exterior_Wood_01": {
+  "min": [
+   -206.9,
+   -85.0,
+   -20.0
+  ],
+  "max": [
+   124.9,
+   85.0,
+   337.2
+  ],
+  "size": [
+   331.8,
+   170.0,
+   357.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Wood_01",
+  "class": "StaticMesh"
+ },
+ "Stairs_Exterior_Bricks_03": {
+  "min": [
+   -6.9,
+   -137.7,
+   -110.0
+  ],
+  "max": [
+   146.9,
+   137.7,
+   192.1
+  ],
+  "size": [
+   153.8,
+   275.4,
+   302.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Bricks_03",
+  "class": "StaticMesh"
+ },
+ "Stairs_Exterior_Bricks_02": {
+  "min": [
+   -6.9,
+   -137.7,
+   -10.0
+  ],
+  "max": [
+   146.9,
+   137.7,
+   192.1
+  ],
+  "size": [
+   153.8,
+   275.4,
+   202.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Bricks_02",
+  "class": "StaticMesh"
+ },
+ "Stairs_Exterior_Bricks_01": {
+  "min": [
+   -2.7,
+   -137.7,
+   -10.0
+  ],
+  "max": [
+   151.1,
+   137.7,
+   92.1
+  ],
+  "size": [
+   153.8,
+   275.4,
+   102.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Bricks_01",
+  "class": "StaticMesh"
+ },
+ "Platform_Exterior_03": {
+  "min": [
+   -94.5,
+   -90.5,
+   -34.1
+  ],
+  "max": [
+   104.5,
+   130.2,
+   89.2
+  ],
+  "size": [
+   199.0,
+   220.7,
+   123.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Platform_Exterior_03",
+  "class": "StaticMesh"
+ },
+ "Platform_Exterior_02": {
+  "min": [
+   -94.5,
+   -90.5,
+   -34.1
+  ],
+  "max": [
+   104.5,
+   130.2,
+   88.3
+  ],
+  "size": [
+   199.0,
+   220.7,
+   122.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Platform_Exterior_02",
+  "class": "StaticMesh"
+ },
+ "Platform_Exterior_01": {
+  "min": [
+   -94.5,
+   -106.1,
+   -34.1
+  ],
+  "max": [
+   92.5,
+   130.2,
+   89.2
+  ],
+  "size": [
+   187.0,
+   236.4,
+   123.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Platform_Exterior_01",
+  "class": "StaticMesh"
+ },
+ "Pillar_Exterior_02_Straight": {
+  "min": [
+   -95.8,
+   -14.3,
+   -33.8
+  ],
+  "max": [
+   95.8,
+   14.3,
+   390.0
+  ],
+  "size": [
+   191.6,
+   28.6,
+   423.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Straight",
+  "class": "StaticMesh"
+ },
+ "Pillar_Exterior_02_Cross": {
+  "min": [
+   -95.8,
+   -95.8,
+   -33.8
+  ],
+  "max": [
+   95.8,
+   95.8,
+   390.0
+  ],
+  "size": [
+   191.6,
+   191.6,
+   423.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Cross",
+  "class": "StaticMesh"
+ },
+ "Pillar_Exterior_02_Corner": {
+  "min": [
+   -95.8,
+   -95.8,
+   -33.8
+  ],
+  "max": [
+   14.3,
+   14.3,
+   390.0
+  ],
+  "size": [
+   110.1,
+   110.1,
+   423.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Corner",
+  "class": "StaticMesh"
+ },
+ "Pillar_Exterior_01_Straight": {
+  "min": [
+   -26.0,
+   -96.2,
+   -100.0
+  ],
+  "max": [
+   26.0,
+   96.2,
+   390.0
+  ],
+  "size": [
+   52.0,
+   192.3,
+   490.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_01_Straight",
+  "class": "StaticMesh"
+ },
+ "Balcony_02": {
+  "min": [
+   -10.0,
+   -500.9,
+   -40.0
+  ],
+  "max": [
+   299.1,
+   502.9,
+   118.0
+  ],
+  "size": [
+   309.1,
+   1003.8,
+   158.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_02",
+  "class": "StaticMesh"
+ },
+ "Balcony_01_Support_Extension": {
+  "min": [
+   -54.4,
+   -236.7,
+   -118.5
+  ],
+  "max": [
+   41.5,
+   237.4,
+   -5.9
+  ],
+  "size": [
+   95.8,
+   474.2,
+   112.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_01_Support_Extension",
+  "class": "StaticMesh"
+ },
+ "Balcony_01_Support": {
+  "min": [
+   -9.8,
+   -199.4,
+   -118.5
+  ],
+  "max": [
+   86.0,
+   199.4,
+   -3.2
+  ],
+  "size": [
+   95.8,
+   398.9,
+   115.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_01_Support",
+  "class": "StaticMesh"
+ },
+ "Balcony_01": {
+  "min": [
+   -10.0,
+   -250.9,
+   -40.0
+  ],
+  "max": [
+   299.1,
+   252.9,
+   118.0
+  ],
+  "size": [
+   309.1,
+   503.8,
+   158.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_01",
+  "class": "StaticMesh"
+ },
+ "House_Corner_Beam": {
+  "min": [
+   -30.8,
+   -30.6,
+   0.0
+  ],
+  "max": [
+   0.7,
+   -0.3,
+   397.9
+  ],
+  "size": [
+   31.5,
+   30.4,
+   397.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_Beam",
+  "class": "StaticMesh"
+ },
+ "House_Corner_02_SIde": {
+  "min": [
+   -340.0,
+   -293.6,
+   -0.0
+  ],
+  "max": [
+   -300.0,
+   -191.6,
+   400.8
+  ],
+  "size": [
+   40.0,
+   102.0,
+   400.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_02_SIde",
+  "class": "StaticMesh"
+ },
+ "House_Corner_02_Front": {
+  "min": [
+   -345.2,
+   -290.2,
+   -0.0
+  ],
+  "max": [
+   -241.4,
+   -250.0,
+   400.2
+  ],
+  "size": [
+   103.8,
+   40.2,
+   400.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_02_Front",
+  "class": "StaticMesh"
+ },
+ "Firewood_1": {
+  "min": [
+   -38.1,
+   -17.0,
+   -0.2
+  ],
+  "max": [
+   38.1,
+   10.0,
+   26.7
+  ],
+  "size": [
+   76.2,
+   27.0,
+   26.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Firewood_1",
+  "class": "StaticMesh"
+ },
+ "Firewood_2": {
+  "min": [
+   -42.0,
+   -16.7,
+   0.6
+  ],
+  "max": [
+   38.1,
+   9.6,
+   26.8
+  ],
+  "size": [
+   80.0,
+   26.3,
+   26.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Firewood_2",
+  "class": "StaticMesh"
+ },
+ "House_Corner_02": {
+  "min": [
+   -340.0,
+   -293.6,
+   -0.0
+  ],
+  "max": [
+   -241.4,
+   -191.6,
+   400.8
+  ],
+  "size": [
+   98.6,
+   102.0,
+   400.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_02",
+  "class": "StaticMesh"
+ },
+ "House_Corner_01": {
+  "min": [
+   -290.0,
+   249.9,
+   0.0
+  ],
+  "max": [
+   -249.6,
+   290.0,
+   400.0
+  ],
+  "size": [
+   40.4,
+   40.1,
+   400.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_01",
+  "class": "StaticMesh"
+ },
+ "Sheep_HairTop": {
+  "min": [
+   -63.5,
+   -116.8,
+   -0.0
+  ],
+  "max": [
+   63.5,
+   153.8,
+   254.2
+  ],
+  "size": [
+   127.0,
+   270.7,
+   254.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Chars/Sheep/SK_Sheep_HairTop",
+  "class": "SkeletalMesh"
+ },
+ "Fireplace_Base": {
+  "min": [
+   -63.7,
+   -65.6,
+   -0.0
+  ],
+  "max": [
+   63.5,
+   79.6,
+   219.9
+  ],
+  "size": [
+   127.2,
+   145.1,
+   219.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Fireplace_Base",
+  "class": "StaticMesh"
+ },
+ "Fireplace_Tiling": {
+  "min": [
+   -46.0,
+   -44.3,
+   -0.0
+  ],
+  "max": [
+   46.0,
+   44.3,
+   103.7
+  ],
+  "size": [
+   92.0,
+   88.6,
+   103.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Fireplace_Tiling",
+  "class": "StaticMesh"
+ },
+ "Fireplace_Top": {
+  "min": [
+   -57.6,
+   -54.9,
+   -0.0
+  ],
+  "max": [
+   57.6,
+   54.9,
+   92.3
+  ],
+  "size": [
+   115.1,
+   109.7,
+   92.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Fireplace_Top",
+  "class": "StaticMesh"
+ },
+ "Bunch_01": {
+  "min": [
+   -36.0,
+   -36.0,
+   -6.1
+  ],
+  "max": [
+   36.0,
+   36.0,
+   3.1
+  ],
+  "size": [
+   72.0,
+   72.0,
+   9.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_01",
+  "class": "StaticMesh"
+ },
+ "Bunch_02": {
+  "min": [
+   -37.1,
+   -58.3,
+   -6.3
+  ],
+  "max": [
+   37.1,
+   58.3,
+   8.2
+  ],
+  "size": [
+   74.3,
+   116.6,
+   14.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_02",
+  "class": "StaticMesh"
+ },
+ "Bunch_03": {
+  "min": [
+   -42.4,
+   -42.4,
+   -2.2
+  ],
+  "max": [
+   42.4,
+   42.4,
+   10.6
+  ],
+  "size": [
+   84.8,
+   84.8,
+   12.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_03",
+  "class": "StaticMesh"
+ },
+ "Banner_01": {
+  "min": [
+   -45.6,
+   -1.3,
+   -86.7
+  ],
+  "max": [
+   45.6,
+   1.1,
+   1.3
+  ],
+  "size": [
+   91.3,
+   2.4,
+   87.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Banner_01",
+  "class": "StaticMesh"
+ },
+ "Banner_02": {
+  "min": [
+   -45.6,
+   -1.3,
+   -73.1
+  ],
+  "max": [
+   45.6,
+   1.1,
+   1.3
+  ],
+  "size": [
+   91.3,
+   2.4,
+   74.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Banner_02",
+  "class": "StaticMesh"
+ },
+ "Banner_03": {
+  "min": [
+   -45.6,
+   -1.3,
+   -72.2
+  ],
+  "max": [
+   45.6,
+   1.1,
+   1.3
+  ],
+  "size": [
+   91.3,
+   2.4,
+   73.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Banner_03",
+  "class": "StaticMesh"
+ },
+ "HouseBanner_01": {
+  "min": [
+   -20.0,
+   -0.6,
+   -84.6
+  ],
+  "max": [
+   20.0,
+   -0.6,
+   7.2
+  ],
+  "size": [
+   40.0,
+   0.0,
+   91.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_HouseBanner_01",
+  "class": "StaticMesh"
+ },
+ "HouseBanner_02": {
+  "min": [
+   -20.0,
+   -0.6,
+   -86.1
+  ],
+  "max": [
+   20.0,
+   -0.6,
+   5.8
+  ],
+  "size": [
+   40.0,
+   0.0,
+   91.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_HouseBanner_02",
+  "class": "StaticMesh"
+ },
+ "BarrelBroken": {
+  "min": [
+   -41.6,
+   -41.5,
+   -4.1
+  ],
+  "max": [
+   41.5,
+   41.5,
+   103.4
+  ],
+  "size": [
+   83.1,
+   83.1,
+   107.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_BarrelBroken",
+  "class": "StaticMesh"
+ },
+ "BarrelShelf": {
+  "min": [
+   -104.1,
+   -43.3,
+   0.6
+  ],
+  "max": [
+   104.4,
+   43.2,
+   221.5
+  ],
+  "size": [
+   208.5,
+   86.6,
+   220.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_BarrelShelf",
+  "class": "StaticMesh"
+ },
+ "KegHolder": {
+  "min": [
+   -44.7,
+   -34.4,
+   0.3
+  ],
+  "max": [
+   44.7,
+   34.4,
+   21.6
+  ],
+  "size": [
+   89.3,
+   68.8,
+   21.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_KegHolder",
+  "class": "StaticMesh"
+ },
+ "Basket": {
+  "min": [
+   -35.2,
+   -35.2,
+   -0.0
+  ],
+  "max": [
+   35.2,
+   35.2,
+   58.9
+  ],
+  "size": [
+   70.4,
+   70.4,
+   59.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Basket",
+  "class": "StaticMesh"
+ },
+ "Pot": {
+  "min": [
+   -34.8,
+   -32.1,
+   -0.7
+  ],
+  "max": [
+   34.8,
+   31.9,
+   57.2
+  ],
+  "size": [
+   69.6,
+   63.9,
+   57.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Pot",
+  "class": "StaticMesh"
+ },
+ "ClipPaper": {
+  "min": [
+   -4.9,
+   -1.5,
+   -4.3
+  ],
+  "max": [
+   4.9,
+   2.3,
+   5.4
+  ],
+  "size": [
+   9.7,
+   3.8,
+   9.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_ClipPaper",
+  "class": "StaticMesh"
+ },
+ "Poster": {
+  "min": [
+   -15.4,
+   0.4,
+   0.9
+  ],
+  "max": [
+   15.4,
+   1.6,
+   45.5
+  ],
+  "size": [
+   30.8,
+   1.3,
+   44.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Poster",
+  "class": "StaticMesh"
+ },
+ "PosterRoll01": {
+  "min": [
+   -15.4,
+   -0.2,
+   3.4
+  ],
+  "max": [
+   16.0,
+   6.1,
+   44.5
+  ],
+  "size": [
+   31.4,
+   6.3,
+   41.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_PosterRoll01",
+  "class": "StaticMesh"
+ },
+ "PosterRoll02": {
+  "min": [
+   -14.9,
+   -0.7,
+   1.7
+  ],
+  "max": [
+   15.0,
+   5.9,
+   44.1
+  ],
+  "size": [
+   29.9,
+   6.5,
+   42.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_PosterRoll02",
+  "class": "StaticMesh"
+ },
+ "PosterSmall": {
+  "min": [
+   -15.2,
+   -0.5,
+   8.3
+  ],
+  "max": [
+   16.5,
+   0.5,
+   27.9
+  ],
+  "size": [
+   31.7,
+   1.0,
+   19.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_PosterSmall",
+  "class": "StaticMesh"
+ },
+ "CrateBroken": {
+  "min": [
+   -57.7,
+   -55.6,
+   -7.9
+  ],
+  "max": [
+   58.9,
+   57.4,
+   98.5
+  ],
+  "size": [
+   116.6,
+   113.0,
+   106.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateBroken",
+  "class": "StaticMesh"
+ },
+ "ExteriorLightPost": {
+  "min": [
+   -6.7,
+   -2.4,
+   -15.0
+  ],
+  "max": [
+   6.7,
+   90.8,
+   29.5
+  ],
+  "size": [
+   13.4,
+   93.2,
+   44.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_ExteriorLightPost",
+  "class": "StaticMesh"
+ },
+ "Gravestone_A": {
+  "min": [
+   -65.8,
+   -22.9,
+   -0.0
+  ],
+  "max": [
+   65.8,
+   22.9,
+   150.7
+  ],
+  "size": [
+   131.5,
+   45.7,
+   150.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Gravestone_A",
+  "class": "StaticMesh"
+ },
+ "Gravestone_B": {
+  "min": [
+   -65.8,
+   -22.9,
+   -0.0
+  ],
+  "max": [
+   65.8,
+   22.9,
+   151.5
+  ],
+  "size": [
+   131.5,
+   45.7,
+   151.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Gravestone_B",
+  "class": "StaticMesh"
+ },
+ "Gravestone_C": {
+  "min": [
+   -65.8,
+   -22.9,
+   -0.0
+  ],
+  "max": [
+   65.8,
+   22.9,
+   81.3
+  ],
+  "size": [
+   131.5,
+   45.7,
+   81.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Gravestone_C",
+  "class": "StaticMesh"
+ },
+ "Hay_Scattered_01": {
+  "min": [
+   -100.0,
+   -100.0,
+   -0.0
+  ],
+  "max": [
+   100.0,
+   100.0,
+   24.9
+  ],
+  "size": [
+   200.0,
+   200.0,
+   24.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_01",
+  "class": "StaticMesh"
+ },
+ "Hay_Scattered_02": {
+  "min": [
+   -132.1,
+   -132.1,
+   -18.7
+  ],
+  "max": [
+   132.1,
+   132.1,
+   26.3
+  ],
+  "size": [
+   264.1,
+   264.1,
+   45.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_02",
+  "class": "StaticMesh"
+ },
+ "Hay_Scattered_03": {
+  "min": [
+   -207.7,
+   -202.0,
+   -41.7
+  ],
+  "max": [
+   208.3,
+   262.8,
+   45.5
+  ],
+  "size": [
+   416.0,
+   464.8,
+   87.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_03",
+  "class": "StaticMesh"
+ },
+ "Hay_Scattered_04": {
+  "min": [
+   -127.4,
+   -100.0,
+   -58.2
+  ],
+  "max": [
+   58.3,
+   100.0,
+   19.9
+  ],
+  "size": [
+   185.7,
+   200.0,
+   78.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_04",
+  "class": "StaticMesh"
+ },
+ "Hay_Scattered_05": {
+  "min": [
+   -10.9,
+   -100.0,
+   -87.3
+  ],
+  "max": [
+   137.1,
+   100.0,
+   24.9
+  ],
+  "size": [
+   148.0,
+   200.0,
+   112.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_05",
+  "class": "StaticMesh"
+ },
+ "Hoe": {
+  "min": [
+   -6.9,
+   -3.8,
+   -2.0
+  ],
+  "max": [
+   7.1,
+   28.3,
+   148.2
+  ],
+  "size": [
+   14.0,
+   32.1,
+   150.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hoe",
+  "class": "StaticMesh"
+ },
+ "Pitchfork": {
+  "min": [
+   -15.2,
+   -4.0,
+   -11.8
+  ],
+  "max": [
+   15.2,
+   7.3,
+   195.2
+  ],
+  "size": [
+   30.4,
+   11.3,
+   207.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Pitchfork",
+  "class": "StaticMesh"
+ },
+ "Rake": {
+  "min": [
+   -17.9,
+   -4.1,
+   -3.6
+  ],
+  "max": [
+   17.9,
+   6.9,
+   162.3
+  ],
+  "size": [
+   35.8,
+   11.0,
+   165.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Rake",
+  "class": "StaticMesh"
+ },
+ "Shovel": {
+  "min": [
+   -23.1,
+   -3.9,
+   -10.7
+  ],
+  "max": [
+   23.0,
+   6.6,
+   201.4
+  ],
+  "size": [
+   46.1,
+   10.5,
+   212.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Shovel",
+  "class": "StaticMesh"
+ },
+ "Ladder": {
+  "min": [
+   -41.0,
+   -5.6,
+   0.4
+  ],
+  "max": [
+   40.9,
+   6.0,
+   371.0
+  ],
+  "size": [
+   81.9,
+   11.6,
+   370.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Ladder",
+  "class": "StaticMesh"
+ },
+ "Lantern": {
+  "min": [
+   -22.5,
+   -19.7,
+   0.7
+  ],
+  "max": [
+   22.9,
+   19.7,
+   77.7
+  ],
+  "size": [
+   45.5,
+   39.4,
+   77.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Lantern",
+  "class": "StaticMesh"
+ },
+ "TaskBoardRSide": {
+  "min": [
+   -206.4,
+   -7.6,
+   -8.4
+  ],
+  "max": [
+   -84.4,
+   37.4,
+   254.0
+  ],
+  "size": [
+   122.0,
+   45.0,
+   262.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TaskBoardRSide",
+  "class": "StaticMesh"
+ },
+ "Tavern_Sign": {
+  "min": [
+   -99.1,
+   -4.7,
+   -50.1
+  ],
+  "max": [
+   99.1,
+   37.5,
+   79.2
+  ],
+  "size": [
+   198.2,
+   42.2,
+   129.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Tavern_Sign",
+  "class": "StaticMesh"
+ },
+ "WoodcutterAxe": {
+  "min": [
+   -3.7,
+   -5.4,
+   -6.8
+  ],
+  "max": [
+   3.7,
+   39.7,
+   72.4
+  ],
+  "size": [
+   7.5,
+   45.1,
+   79.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_WoodcutterAxe",
+  "class": "StaticMesh"
+ },
+ "BeerMug": {
+  "min": [
+   -12.0,
+   -22.8,
+   -0.7
+  ],
+  "max": [
+   12.0,
+   12.2,
+   26.6
+  ],
+  "size": [
+   23.9,
+   35.1,
+   27.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_BeerMug",
+  "class": "StaticMesh"
+ },
+ "Bench": {
+  "min": [
+   -96.9,
+   -19.7,
+   -0.1
+  ],
+  "max": [
+   97.5,
+   45.9,
+   59.7
+  ],
+  "size": [
+   194.5,
+   65.6,
+   59.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bench",
+  "class": "StaticMesh"
+ },
+ "BenchOutdoors": {
+  "min": [
+   -96.9,
+   -32.2,
+   -0.1
+  ],
+  "max": [
+   97.5,
+   45.9,
+   104.2
+  ],
+  "size": [
+   194.5,
+   78.1,
+   104.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_BenchOutdoors",
+  "class": "StaticMesh"
+ },
+ "StoolShort": {
+  "min": [
+   -43.0,
+   -27.6,
+   0.6
+  ],
+  "max": [
+   43.4,
+   32.9,
+   56.8
+  ],
+  "size": [
+   86.4,
+   60.5,
+   56.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+  "class": "StaticMesh"
+ },
+ "StoolTall": {
+  "min": [
+   -21.7,
+   -23.4,
+   0.3
+  ],
+  "max": [
+   22.0,
+   23.2,
+   111.9
+  ],
+  "size": [
+   43.7,
+   46.5,
+   111.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolTall",
+  "class": "StaticMesh"
+ },
+ "Bottle_A_01": {
+  "min": [
+   -10.1,
+   -7.4,
+   -0.0
+  ],
+  "max": [
+   10.1,
+   7.4,
+   38.2
+  ],
+  "size": [
+   20.2,
+   14.8,
+   38.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_A_01",
+  "class": "StaticMesh"
+ },
+ "Bottle_B_01": {
+  "min": [
+   -9.6,
+   -9.6,
+   -0.0
+  ],
+  "max": [
+   9.6,
+   9.6,
+   40.3
+  ],
+  "size": [
+   19.3,
+   19.3,
+   40.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_B_01",
+  "class": "StaticMesh"
+ },
+ "Bottle_B_NoCork_01": {
+  "min": [
+   -9.6,
+   -9.6,
+   -0.0
+  ],
+  "max": [
+   9.6,
+   9.6,
+   38.9
+  ],
+  "size": [
+   19.3,
+   19.3,
+   38.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_B_NoCork_01",
+  "class": "StaticMesh"
+ },
+ "Bottle_C_01": {
+  "min": [
+   -5.6,
+   -5.6,
+   -0.0
+  ],
+  "max": [
+   5.6,
+   5.6,
+   38.3
+  ],
+  "size": [
+   11.2,
+   11.2,
+   38.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_C_01",
+  "class": "StaticMesh"
+ },
+ "Bottle_A_02": {
+  "min": [
+   -10.1,
+   -7.4,
+   -0.0
+  ],
+  "max": [
+   10.1,
+   7.4,
+   38.2
+  ],
+  "size": [
+   20.2,
+   14.8,
+   38.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_A_02",
+  "class": "StaticMesh"
+ },
+ "Bottle_B_02": {
+  "min": [
+   -9.6,
+   -9.6,
+   -0.0
+  ],
+  "max": [
+   9.6,
+   9.6,
+   40.3
+  ],
+  "size": [
+   19.3,
+   19.3,
+   40.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_B_02",
+  "class": "StaticMesh"
+ },
+ "Bottle_B_NoCork_02": {
+  "min": [
+   -9.6,
+   -9.6,
+   -0.0
+  ],
+  "max": [
+   9.6,
+   9.6,
+   38.9
+  ],
+  "size": [
+   19.3,
+   19.3,
+   38.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_B_NoCork_02",
+  "class": "StaticMesh"
+ },
+ "Bottle_C_02": {
+  "min": [
+   -5.6,
+   -5.6,
+   -0.0
+  ],
+  "max": [
+   5.6,
+   5.6,
+   38.3
+  ],
+  "size": [
+   11.2,
+   11.2,
+   38.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bottle_C_02",
+  "class": "StaticMesh"
+ },
+ "Bowl": {
+  "min": [
+   -20.6,
+   -20.6,
+   0.2
+  ],
+  "max": [
+   20.6,
+   20.6,
+   16.5
+  ],
+  "size": [
+   41.2,
+   41.2,
+   16.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bowl",
+  "class": "StaticMesh"
+ },
+ "HoneyPot": {
+  "min": [
+   -21.5,
+   -21.4,
+   0.3
+  ],
+  "max": [
+   21.5,
+   21.6,
+   50.3
+  ],
+  "size": [
+   43.0,
+   43.0,
+   50.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_HoneyPot",
+  "class": "StaticMesh"
+ },
+ "Jug": {
+  "min": [
+   -17.2,
+   -18.1,
+   0.2
+  ],
+  "max": [
+   17.2,
+   18.1,
+   55.6
+  ],
+  "size": [
+   34.4,
+   36.3,
+   55.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Jug",
+  "class": "StaticMesh"
+ },
+ "Plate": {
+  "min": [
+   -30.3,
+   -30.5,
+   0.0
+  ],
+  "max": [
+   30.2,
+   30.2,
+   6.6
+  ],
+  "size": [
+   60.5,
+   60.8,
+   6.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Plate",
+  "class": "StaticMesh"
+ },
+ "Bread": {
+  "min": [
+   -25.9,
+   -13.5,
+   0.7
+  ],
+  "max": [
+   26.0,
+   13.6,
+   23.5
+  ],
+  "size": [
+   51.9,
+   27.0,
+   22.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bread",
+  "class": "StaticMesh"
+ },
+ "CheeseSlice": {
+  "min": [
+   -5.8,
+   -15.0,
+   0.6
+  ],
+  "max": [
+   9.5,
+   10.8,
+   21.4
+  ],
+  "size": [
+   15.3,
+   25.8,
+   20.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CheeseSlice",
+  "class": "StaticMesh"
+ },
+ "CheeseWheel": {
+  "min": [
+   -28.0,
+   -28.0,
+   0.5
+  ],
+  "max": [
+   28.0,
+   27.6,
+   21.4
+  ],
+  "size": [
+   56.1,
+   55.7,
+   20.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CheeseWheel",
+  "class": "StaticMesh"
+ },
+ "Ham": {
+  "min": [
+   -21.4,
+   -43.9,
+   0.5
+  ],
+  "max": [
+   21.4,
+   18.5,
+   43.3
+  ],
+  "size": [
+   42.8,
+   62.4,
+   42.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Ham",
+  "class": "StaticMesh"
+ },
+ "HamSlice": {
+  "min": [
+   -21.1,
+   -23.7,
+   -2.7
+  ],
+  "max": [
+   21.1,
+   18.5,
+   1.2
+  ],
+  "size": [
+   42.2,
+   42.2,
+   4.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_HamSlice",
+  "class": "StaticMesh"
+ },
+ "CandleHolderSingle": {
+  "min": [
+   -9.3,
+   -9.2,
+   0.2
+  ],
+  "max": [
+   9.2,
+   9.3,
+   44.5
+  ],
+  "size": [
+   18.4,
+   18.5,
+   44.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleHolderSingle",
+  "class": "StaticMesh"
+ },
+ "CandleHolderThree": {
+  "min": [
+   -9.1,
+   -28.7,
+   0.2
+  ],
+  "max": [
+   9.4,
+   28.7,
+   65.3
+  ],
+  "size": [
+   18.5,
+   57.4,
+   65.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleHolderThree",
+  "class": "StaticMesh"
+ },
+ "CandleHolderSingle_Gold": {
+  "min": [
+   -9.3,
+   -9.2,
+   0.2
+  ],
+  "max": [
+   9.2,
+   9.3,
+   44.5
+  ],
+  "size": [
+   18.4,
+   18.5,
+   44.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleHolderSingle_Gold",
+  "class": "StaticMesh"
+ },
+ "CandleHolderThree_Gold": {
+  "min": [
+   -9.1,
+   -28.7,
+   0.2
+  ],
+  "max": [
+   9.4,
+   28.7,
+   65.3
+  ],
+  "size": [
+   18.5,
+   57.4,
+   65.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleHolderThree_Gold",
+  "class": "StaticMesh"
+ },
+ "CandleMelted": {
+  "min": [
+   -4.2,
+   -4.9,
+   0.0
+  ],
+  "max": [
+   4.6,
+   3.7,
+   11.8
+  ],
+  "size": [
+   8.8,
+   8.6,
+   11.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleMelted",
+  "class": "StaticMesh"
+ },
+ "CandleShort": {
+  "min": [
+   -5.3,
+   -5.1,
+   0.9
+  ],
+  "max": [
+   4.8,
+   5.2,
+   20.6
+  ],
+  "size": [
+   10.1,
+   10.3,
+   19.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleShort",
+  "class": "StaticMesh"
+ },
+ "CandleTall": {
+  "min": [
+   -2.4,
+   -2.3,
+   0.2
+  ],
+  "max": [
+   2.3,
+   2.0,
+   25.5
+  ],
+  "size": [
+   4.7,
+   4.3,
+   25.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_CandleTall",
+  "class": "StaticMesh"
+ },
+ "Chandelier": {
+  "min": [
+   -85.8,
+   -73.7,
+   -96.7
+  ],
+  "max": [
+   85.6,
+   76.0,
+   0.1
+  ],
+  "size": [
+   171.4,
+   149.7,
+   96.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Chandelier",
+  "class": "StaticMesh"
+ },
+ "ChestBox": {
+  "min": [
+   -74.7,
+   -47.8,
+   -1.9
+  ],
+  "max": [
+   75.5,
+   51.3,
+   79.7
+  ],
+  "size": [
+   150.2,
+   99.1,
+   81.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_ChestBox",
+  "class": "StaticMesh"
+ },
+ "Cupboard_01": {
+  "min": [
+   -113.1,
+   -33.5,
+   -11.3
+  ],
+  "max": [
+   113.1,
+   39.4,
+   84.3
+  ],
+  "size": [
+   226.2,
+   72.8,
+   95.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Cupboard_01",
+  "class": "StaticMesh"
+ },
+ "Cupboard_01_Shelf": {
+  "min": [
+   -113.1,
+   -33.5,
+   -11.2
+  ],
+  "max": [
+   113.1,
+   25.5,
+   200.2
+  ],
+  "size": [
+   226.2,
+   59.0,
+   211.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Cupboard_01_Shelf",
+  "class": "StaticMesh"
+ },
+ "Shelf_01": {
+  "min": [
+   -113.1,
+   -33.5,
+   -21.9
+  ],
+  "max": [
+   113.1,
+   25.5,
+   6.3
+  ],
+  "size": [
+   226.2,
+   59.0,
+   28.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Shelf_01",
+  "class": "StaticMesh"
+ },
+ "Cupboard_02": {
+  "min": [
+   -113.1,
+   -33.5,
+   -11.3
+  ],
+  "max": [
+   113.1,
+   39.4,
+   200.2
+  ],
+  "size": [
+   226.2,
+   72.8,
+   211.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Cupboard_02",
+  "class": "StaticMesh"
+ },
+ "DoubleBed": {
+  "min": [
+   -92.4,
+   -116.8,
+   0.0
+  ],
+  "max": [
+   104.5,
+   118.0,
+   123.5
+  ],
+  "size": [
+   196.9,
+   234.8,
+   123.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_DoubleBed",
+  "class": "StaticMesh"
+ },
+ "DoubleBed_Mattres": {
+  "min": [
+   -76.9,
+   -101.7,
+   33.9
+  ],
+  "max": [
+   91.7,
+   102.3,
+   75.9
+  ],
+  "size": [
+   168.6,
+   204.0,
+   42.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_DoubleBed_Mattres",
+  "class": "StaticMesh"
+ },
+ "DoubleBed_MattresDuvetCombo": {
+  "min": [
+   -109.3,
+   -101.7,
+   0.8
+  ],
+  "max": [
+   118.6,
+   102.3,
+   108.6
+  ],
+  "size": [
+   227.9,
+   204.0,
+   107.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_DoubleBed_MattresDuvetCombo",
+  "class": "StaticMesh"
+ },
+ "FancyFrame": {
+  "min": [
+   -81.4,
+   -2.6,
+   -51.1
+  ],
+  "max": [
+   81.4,
+   7.1,
+   59.6
+  ],
+  "size": [
+   162.8,
+   9.8,
+   110.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_FancyFrame",
+  "class": "StaticMesh"
+ },
+ "Fork": {
+  "min": [
+   -1.1,
+   -0.5,
+   -9.3
+  ],
+  "max": [
+   1.2,
+   0.5,
+   17.4
+  ],
+  "size": [
+   2.3,
+   1.1,
+   26.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Fork",
+  "class": "StaticMesh"
+ },
+ "Knife": {
+  "min": [
+   -1.6,
+   -0.9,
+   -9.3
+  ],
+  "max": [
+   1.6,
+   0.9,
+   18.4
+  ],
+  "size": [
+   3.2,
+   1.7,
+   27.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Knife",
+  "class": "StaticMesh"
+ },
+ "Ladle": {
+  "min": [
+   -5.7,
+   -8.2,
+   -20.1
+  ],
+  "max": [
+   5.7,
+   8.2,
+   20.1
+  ],
+  "size": [
+   11.4,
+   16.3,
+   40.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Ladle",
+  "class": "StaticMesh"
+ },
+ "Spoon": {
+  "min": [
+   -2.1,
+   -1.1,
+   -9.3
+  ],
+  "max": [
+   1.7,
+   0.5,
+   17.0
+  ],
+  "size": [
+   3.8,
+   1.6,
+   26.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Spoon",
+  "class": "StaticMesh"
+ },
+ "Pillow_A": {
+  "min": [
+   -46.5,
+   -22.7,
+   -6.3
+  ],
+  "max": [
+   47.3,
+   20.1,
+   9.8
+  ],
+  "size": [
+   93.9,
+   42.8,
+   16.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Pillow_A",
+  "class": "StaticMesh"
+ },
+ "Pillow_B": {
+  "min": [
+   -45.9,
+   -22.7,
+   -7.3
+  ],
+  "max": [
+   48.0,
+   20.0,
+   8.8
+  ],
+  "size": [
+   93.9,
+   42.7,
+   16.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Pillow_B",
+  "class": "StaticMesh"
+ },
+ "Pillow_C": {
+  "min": [
+   -18.4,
+   -12.4,
+   -5.1
+  ],
+  "max": [
+   18.5,
+   20.2,
+   8.4
+  ],
+  "size": [
+   36.9,
+   32.6,
+   13.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Pillow_C",
+  "class": "StaticMesh"
+ },
+ "RectangularTable": {
+  "min": [
+   -150.3,
+   -83.0,
+   -1.1
+  ],
+  "max": [
+   149.3,
+   83.8,
+   92.3
+  ],
+  "size": [
+   299.6,
+   166.8,
+   93.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_RectangularTable",
+  "class": "StaticMesh"
+ },
+ "RectangularTableCloth": {
+  "min": [
+   -86.0,
+   -91.4,
+   34.1
+  ],
+  "max": [
+   86.0,
+   91.6,
+   96.2
+  ],
+  "size": [
+   172.0,
+   183.0,
+   62.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_RectangularTableCloth",
+  "class": "StaticMesh"
+ },
+ "RoundTable": {
+  "min": [
+   -101.5,
+   -101.5,
+   0.5
+  ],
+  "max": [
+   101.5,
+   101.5,
+   92.9
+  ],
+  "size": [
+   203.1,
+   203.1,
+   92.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_RoundTable",
+  "class": "StaticMesh"
+ },
+ "Rug_01": {
+  "min": [
+   -140.2,
+   -213.7,
+   0.0
+  ],
+  "max": [
+   143.6,
+   211.8,
+   1.6
+  ],
+  "size": [
+   283.8,
+   425.5,
+   1.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Rug_01",
+  "class": "StaticMesh"
+ },
+ "Rug_02": {
+  "min": [
+   -113.2,
+   -119.0,
+   0.5
+  ],
+  "max": [
+   115.1,
+   114.4,
+   2.5
+  ],
+  "size": [
+   228.3,
+   233.4,
+   2.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Rug_02",
+  "class": "StaticMesh"
+ },
+ "Rug_03": {
+  "min": [
+   -124.2,
+   -124.9,
+   0.2
+  ],
+  "max": [
+   124.2,
+   122.9,
+   2.1
+  ],
+  "size": [
+   248.3,
+   247.7,
+   1.9
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Rug_03",
+  "class": "StaticMesh"
+ },
+ "SingleBed": {
+  "min": [
+   -73.6,
+   -116.2,
+   0.0
+  ],
+  "max": [
+   75.7,
+   114.4,
+   109.1
+  ],
+  "size": [
+   149.3,
+   230.6,
+   109.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_SingleBed",
+  "class": "StaticMesh"
+ },
+ "SingleBed_Mattress": {
+  "min": [
+   -59.5,
+   -99.3,
+   34.3
+  ],
+  "max": [
+   61.9,
+   99.9,
+   64.5
+  ],
+  "size": [
+   121.5,
+   199.2,
+   30.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_SingleBed_Mattress",
+  "class": "StaticMesh"
+ },
+ "SingleBed_MattressDuvet": {
+  "min": [
+   -70.4,
+   -99.3,
+   27.6
+  ],
+  "max": [
+   73.6,
+   99.9,
+   76.2
+  ],
+  "size": [
+   144.0,
+   199.2,
+   48.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_SingleBed_MattressDuvet",
+  "class": "StaticMesh"
+ },
+ "Stew": {
+  "min": [
+   -20.1,
+   -19.8,
+   -0.3
+  ],
+  "max": [
+   19.0,
+   19.4,
+   0.5
+  ],
+  "size": [
+   39.2,
+   39.2,
+   0.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Stew",
+  "class": "StaticMesh"
+ },
+ "WoodFrame": {
+  "min": [
+   -81.4,
+   -2.6,
+   -51.1
+  ],
+  "max": [
+   81.4,
+   7.1,
+   59.6
+  ],
+  "size": [
+   162.8,
+   9.8,
+   110.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_WoodFrame",
+  "class": "StaticMesh"
+ },
+ "StallCover_03": {
+  "min": [
+   -105.6,
+   -206.8,
+   10.2
+  ],
+  "max": [
+   105.6,
+   36.2,
+   298.2
+  ],
+  "size": [
+   211.1,
+   243.0,
+   288.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_03",
+  "class": "StaticMesh"
+ },
+ "TableCloth_01": {
+  "min": [
+   -122.2,
+   -56.2,
+   27.8
+  ],
+  "max": [
+   126.4,
+   55.1,
+   73.5
+  ],
+  "size": [
+   248.6,
+   111.4,
+   45.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_TableCloth_01",
+  "class": "StaticMesh"
+ },
+ "TableCloth_02": {
+  "min": [
+   24.1,
+   -28.9,
+   3.0
+  ],
+  "max": [
+   128.7,
+   56.7,
+   74.6
+  ],
+  "size": [
+   104.7,
+   85.6,
+   71.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_TableCloth_02",
+  "class": "StaticMesh"
+ },
+ "WaterWheel": {
+  "min": [
+   -289.2,
+   -149.1,
+   -288.6
+  ],
+  "max": [
+   289.2,
+   167.1,
+   288.6
+  ],
+  "size": [
+   578.5,
+   316.2,
+   577.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WaterWheel",
+  "class": "StaticMesh"
+ },
+ "WaterLilyB": {
+  "min": [
+   -22.9,
+   -19.8,
+   -0.0
+  ],
+  "max": [
+   22.9,
+   19.8,
+   0.0
+  ],
+  "size": [
+   45.8,
+   39.7,
+   0.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/Other/SM_WaterLilyB",
+  "class": "StaticMesh"
+ },
+ "House_Roof_Beam_End": {
+  "min": [
+   -19.7,
+   -268.4,
+   -22.9
+  ],
+  "max": [
+   18.7,
+   16.5,
+   237.6
+  ],
+  "size": [
+   38.4,
+   284.9,
+   260.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Roof_Beam_End",
+  "class": "StaticMesh"
+ },
+ "House_Roof_Beam_Half_Tiling": {
+  "min": [
+   -19.7,
+   -133.8,
+   -22.9
+  ],
+  "max": [
+   18.7,
+   129.2,
+   190.6
+  ],
+  "size": [
+   38.4,
+   262.9,
+   213.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Roof_Beam_Half_Tiling",
+  "class": "StaticMesh"
+ },
+ "House_Roof_Beam_Tiling": {
+  "min": [
+   -19.7,
+   -252.8,
+   -22.9
+  ],
+  "max": [
+   18.7,
+   260.0,
+   194.8
+  ],
+  "size": [
+   38.4,
+   512.8,
+   217.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Roof_Beam_Tiling",
+  "class": "StaticMesh"
+ },
+ "House_Window_A": {
+  "min": [
+   -75.5,
+   -15.3,
+   -5.2
+  ],
+  "max": [
+   75.5,
+   5.2,
+   181.5
+  ],
+  "size": [
+   151.0,
+   20.4,
+   186.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_A",
+  "class": "StaticMesh"
+ },
+ "House_Window_B": {
+  "min": [
+   -105.7,
+   -15.3,
+   -5.2
+  ],
+  "max": [
+   111.9,
+   5.2,
+   181.5
+  ],
+  "size": [
+   217.5,
+   20.4,
+   186.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_B",
+  "class": "StaticMesh"
+ },
+ "House_Window_B_Alternate": {
+  "min": [
+   -106.5,
+   -15.3,
+   -5.2
+  ],
+  "max": [
+   110.5,
+   5.2,
+   181.5
+  ],
+  "size": [
+   217.0,
+   20.4,
+   186.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_B_Alternate",
+  "class": "StaticMesh"
+ },
+ "House_Window_C": {
+  "min": [
+   -70.5,
+   -16.8,
+   3.7
+  ],
+  "max": [
+   69.2,
+   1.8,
+   198.0
+  ],
+  "size": [
+   139.7,
+   18.5,
+   194.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_C",
+  "class": "StaticMesh"
+ },
+ "House_Window_D": {
+  "min": [
+   -88.6,
+   -13.4,
+   -5.6
+  ],
+  "max": [
+   78.6,
+   6.4,
+   129.6
+  ],
+  "size": [
+   167.2,
+   19.7,
+   135.2
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_D",
+  "class": "StaticMesh"
+ },
+ "FlowerPlanter_3": {
+  "min": [
+   -127.1,
+   -102.9,
+   -117.4
+  ],
+  "max": [
+   122.3,
+   41.2,
+   84.4
+  ],
+  "size": [
+   249.3,
+   144.1,
+   201.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_3",
+  "class": "StaticMesh"
+ },
+ "ShortThickPlank_2": {
+  "min": [
+   -55.9,
+   -11.2,
+   1.7
+  ],
+  "max": [
+   55.9,
+   11.2,
+   23.8
+  ],
+  "size": [
+   111.8,
+   22.4,
+   22.1
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_ShortThickPlank_2",
+  "class": "StaticMesh"
+ },
+ "SmallPlank_2": {
+  "min": [
+   -58.4,
+   -5.0,
+   2.2
+  ],
+  "max": [
+   58.0,
+   4.1,
+   23.2
+  ],
+  "size": [
+   116.4,
+   9.1,
+   21.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SmallPlank_2",
+  "class": "StaticMesh"
+ },
+ "Trough_WaterPlane": {
+  "min": [
+   -78.4,
+   -22.4,
+   24.8
+  ],
+  "max": [
+   78.4,
+   22.4,
+   24.8
+  ],
+  "size": [
+   156.9,
+   44.7,
+   0.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Trough_WaterPlane",
+  "class": "StaticMesh"
+ },
+ "RoofTIles": {
+  "min": [
+   -1120.8,
+   -1107.0,
+   -120.5
+  ],
+  "max": [
+   1115.4,
+   1129.0,
+   2588.9
+  ],
+  "size": [
+   2236.2,
+   2236.0,
+   2709.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_RoofTIles",
+  "class": "StaticMesh"
+ },
+ "VillageWall_TIling_2": {
+  "min": [
+   -100.9,
+   -12.0,
+   0.3
+  ],
+  "max": [
+   100.6,
+   12.0,
+   202.7
+  ],
+  "size": [
+   201.4,
+   24.0,
+   202.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_VillageWall_TIling_2",
+  "class": "StaticMesh"
+ },
+ "Terrain_01": {
+  "min": [
+   -3135.0,
+   -3037.4,
+   -1054.6
+  ],
+  "max": [
+   3134.5,
+   3036.8,
+   1290.7
+  ],
+  "size": [
+   6269.5,
+   6074.2,
+   2345.3
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Terrain/SM_Terrain_01",
+  "class": "StaticMesh"
+ },
+ "Terrain_02": {
+  "min": [
+   -4853.9,
+   -4511.9,
+   -916.9
+  ],
+  "max": [
+   4853.1,
+   4511.5,
+   2097.9
+  ],
+  "size": [
+   9707.0,
+   9023.4,
+   3014.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Terrain/SM_Terrain_02",
+  "class": "StaticMesh"
+ },
+ "Terrain_03": {
+  "min": [
+   -5048.8,
+   -4502.0,
+   -937.9
+  ],
+  "max": [
+   5048.8,
+   4502.0,
+   1895.9
+  ],
+  "size": [
+   10097.7,
+   9003.9,
+   2833.8
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Terrain/SM_Terrain_03",
+  "class": "StaticMesh"
+ },
+ "House_Medium_03": {
+  "min": [
+   -992.1,
+   -967.3,
+   -435.0
+  ],
+  "max": [
+   343.5,
+   999.3,
+   992.6
+  ],
+  "size": [
+   1335.6,
+   1966.6,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_03",
+  "class": "StaticMesh"
+ },
+ "House_Small_03": {
+  "min": [
+   -1445.5,
+   -970.5,
+   -300.0
+  ],
+  "max": [
+   528.8,
+   1029.3,
+   1217.6
+  ],
+  "size": [
+   1974.2,
+   1999.8,
+   1517.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_03",
+  "class": "StaticMesh"
+ },
+ "House_Small_09": {
+  "min": [
+   -544.5,
+   -974.4,
+   -295.0
+  ],
+  "max": [
+   1381.8,
+   468.4,
+   1132.6
+  ],
+  "size": [
+   1926.3,
+   1442.8,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_09",
+  "class": "StaticMesh"
+ },
+ "House_Small_11": {
+  "min": [
+   -489.1,
+   -501.4,
+   -295.0
+  ],
+  "max": [
+   1390.2,
+   1132.3,
+   1132.6
+  ],
+  "size": [
+   1879.3,
+   1633.6,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_11",
+  "class": "StaticMesh"
+ },
+ "House_Small_17": {
+  "min": [
+   -723.0,
+   -573.6,
+   -735.0
+  ],
+  "max": [
+   1234.2,
+   753.2,
+   692.6
+  ],
+  "size": [
+   1957.2,
+   1326.8,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_17",
+  "class": "StaticMesh"
+ },
+ "House_Medium_09": {
+  "min": [
+   -1123.2,
+   -867.4,
+   -461.0
+  ],
+  "max": [
+   1056.2,
+   867.4,
+   1627.6
+  ],
+  "size": [
+   2179.4,
+   1734.8,
+   2088.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_09",
+  "class": "StaticMesh"
+ },
+ "Distant_House_01": {
+  "min": [
+   -228.1,
+   -835.4,
+   -448.2
+  ],
+  "max": [
+   1316.1,
+   1216.5,
+   1069.3
+  ],
+  "size": [
+   1544.2,
+   2051.9,
+   1517.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_Distant_House_01",
+  "class": "StaticMesh"
+ },
+ "Distant_House_Small_02": {
+  "min": [
+   -1406.2,
+   -456.4,
+   -295.0
+  ],
+  "max": [
+   533.7,
+   878.9,
+   1137.6
+  ],
+  "size": [
+   1939.8,
+   1335.3,
+   1432.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_Distant_House_Small_02",
+  "class": "StaticMesh"
+ },
+ "House_Medium_01": {
+  "min": [
+   -1326.9,
+   -1196.3,
+   -795.0
+  ],
+  "max": [
+   317.1,
+   493.5,
+   1217.6
+  ],
+  "size": [
+   1643.9,
+   1689.7,
+   2012.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_01",
+  "class": "StaticMesh"
+ },
+ "House_Medium_02": {
+  "min": [
+   -1658.4,
+   -579.4,
+   -700.0
+  ],
+  "max": [
+   398.4,
+   1776.1,
+   817.6
+  ],
+  "size": [
+   2056.8,
+   2355.4,
+   1517.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_02",
+  "class": "StaticMesh"
+ },
+ "House_Medium_04": {
+  "min": [
+   -1038.1,
+   -1232.5,
+   -705.0
+  ],
+  "max": [
+   579.9,
+   639.0,
+   1217.6
+  ],
+  "size": [
+   1618.0,
+   1871.5,
+   1922.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_04",
+  "class": "StaticMesh"
+ },
+ "House_Medium_05": {
+  "min": [
+   -217.2,
+   -414.5,
+   -850.0
+  ],
+  "max": [
+   1442.5,
+   884.9,
+   1002.6
+  ],
+  "size": [
+   1659.7,
+   1299.3,
+   1852.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_05",
+  "class": "StaticMesh"
+ },
+ "House_Medium_06": {
+  "min": [
+   -2321.5,
+   -755.5,
+   -856.8
+  ],
+  "max": [
+   25.7,
+   1419.3,
+   1227.6
+  ],
+  "size": [
+   2347.2,
+   2174.8,
+   2084.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_06",
+  "class": "StaticMesh"
+ },
+ "House_Medium_07": {
+  "min": [
+   -1473.0,
+   -2358.3,
+   -1060.0
+  ],
+  "max": [
+   863.2,
+   230.3,
+   1067.6
+  ],
+  "size": [
+   2336.2,
+   2588.6,
+   2127.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_07",
+  "class": "StaticMesh"
+ },
+ "House_Medium_08": {
+  "min": [
+   -1531.1,
+   -434.8,
+   -890.0
+  ],
+  "max": [
+   474.8,
+   1353.2,
+   1062.6
+  ],
+  "size": [
+   2005.9,
+   1788.0,
+   1952.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_08",
+  "class": "StaticMesh"
+ },
+ "House_Medium_10": {
+  "min": [
+   -1199.3,
+   -899.0,
+   -562.0
+  ],
+  "max": [
+   794.6,
+   1355.9,
+   1212.6
+  ],
+  "size": [
+   1993.9,
+   2254.9,
+   1774.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_10",
+  "class": "StaticMesh"
+ },
+ "House_Medium_11": {
+  "min": [
+   -1075.9,
+   -579.0,
+   -1011.8
+  ],
+  "max": [
+   208.9,
+   960.1,
+   1067.6
+  ],
+  "size": [
+   1284.7,
+   1539.1,
+   2079.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_11",
+  "class": "StaticMesh"
+ },
+ "House_Medium_12": {
+  "min": [
+   -498.2,
+   -944.3,
+   -710.0
+  ],
+  "max": [
+   1920.6,
+   1078.7,
+   1217.6
+  ],
+  "size": [
+   2418.8,
+   2023.1,
+   1927.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_12",
+  "class": "StaticMesh"
+ },
+ "House_Medium_13": {
+  "min": [
+   -447.0,
+   -740.3,
+   -300.0
+  ],
+  "max": [
+   1667.8,
+   806.4,
+   1212.6
+  ],
+  "size": [
+   2114.8,
+   1546.7,
+   1512.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_13",
+  "class": "StaticMesh"
+ },
+ "House_Medium_15": {
+  "min": [
+   -878.0,
+   -970.9,
+   -866.8
+  ],
+  "max": [
+   1463.3,
+   1057.9,
+   1217.6
+  ],
+  "size": [
+   2341.3,
+   2028.8,
+   2084.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_15",
+  "class": "StaticMesh"
+ },
+ "House_Medium_16": {
+  "min": [
+   -547.1,
+   -1513.4,
+   -1266.8
+  ],
+  "max": [
+   2029.7,
+   513.9,
+   817.6
+  ],
+  "size": [
+   2576.7,
+   2027.3,
+   2084.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_16",
+  "class": "StaticMesh"
+ },
+ "House_Medium_17": {
+  "min": [
+   -613.6,
+   -1311.9,
+   -998.0
+  ],
+  "max": [
+   1347.7,
+   772.4,
+   1217.6
+  ],
+  "size": [
+   1961.4,
+   2084.3,
+   2215.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_17",
+  "class": "StaticMesh"
+ },
+ "House_Medium_18": {
+  "min": [
+   -849.8,
+   -905.6,
+   -1110.0
+  ],
+  "max": [
+   1244.4,
+   659.8,
+   817.6
+  ],
+  "size": [
+   2094.2,
+   1565.4,
+   1927.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_18",
+  "class": "StaticMesh"
+ },
+ "House_Small_01": {
+  "min": [
+   -735.9,
+   -859.4,
+   -740.0
+  ],
+  "max": [
+   735.9,
+   644.4,
+   687.6
+  ],
+  "size": [
+   1471.8,
+   1503.8,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_01",
+  "class": "StaticMesh"
+ },
+ "House_Small_02": {
+  "min": [
+   -1406.2,
+   -456.4,
+   -295.0
+  ],
+  "max": [
+   533.7,
+   878.9,
+   1137.6
+  ],
+  "size": [
+   1939.8,
+   1335.3,
+   1432.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_02",
+  "class": "StaticMesh"
+ },
+ "House_Small_04": {
+  "min": [
+   -1536.2,
+   -1016.1,
+   -440.0
+  ],
+  "max": [
+   273.8,
+   573.0,
+   1072.6
+  ],
+  "size": [
+   1809.9,
+   1589.1,
+   1512.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_04",
+  "class": "StaticMesh"
+ },
+ "House_Small_05": {
+  "min": [
+   -652.4,
+   -525.8,
+   -300.0
+  ],
+  "max": [
+   468.0,
+   984.8,
+   1127.6
+  ],
+  "size": [
+   1120.4,
+   1510.7,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_05",
+  "class": "StaticMesh"
+ },
+ "House_Small_06": {
+  "min": [
+   -1107.7,
+   -725.5,
+   -115.0
+  ],
+  "max": [
+   316.3,
+   743.4,
+   1312.6
+  ],
+  "size": [
+   1424.0,
+   1468.9,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_06",
+  "class": "StaticMesh"
+ },
+ "House_Small_07": {
+  "min": [
+   -1468.0,
+   -530.7,
+   -700.0
+  ],
+  "max": [
+   496.5,
+   1436.2,
+   817.6
+  ],
+  "size": [
+   1964.6,
+   1966.9,
+   1517.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_07",
+  "class": "StaticMesh"
+ },
+ "House_Small_08": {
+  "min": [
+   -1333.5,
+   -247.1,
+   -595.8
+  ],
+  "max": [
+   773.8,
+   1731.2,
+   1070.7
+  ],
+  "size": [
+   2107.2,
+   1978.2,
+   1666.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_08",
+  "class": "StaticMesh"
+ },
+ "House_Small_10": {
+  "min": [
+   -384.3,
+   -911.0,
+   -1001.1
+  ],
+  "max": [
+   1469.7,
+   637.6,
+   689.2
+  ],
+  "size": [
+   1854.0,
+   1548.6,
+   1690.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_10",
+  "class": "StaticMesh"
+ },
+ "House_Small_12": {
+  "min": [
+   -1580.2,
+   -1028.2,
+   -300.0
+  ],
+  "max": [
+   551.9,
+   973.1,
+   1212.6
+  ],
+  "size": [
+   2132.1,
+   2001.3,
+   1512.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_12",
+  "class": "StaticMesh"
+ },
+ "House_Small_13": {
+  "min": [
+   -564.6,
+   -983.5,
+   -695.0
+  ],
+  "max": [
+   991.0,
+   714.7,
+   817.6
+  ],
+  "size": [
+   1555.6,
+   1698.2,
+   1512.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_13",
+  "class": "StaticMesh"
+ },
+ "House_Small_14": {
+  "min": [
+   -1231.4,
+   -1171.6,
+   -300.0
+  ],
+  "max": [
+   641.4,
+   795.4,
+   1217.6
+  ],
+  "size": [
+   1872.8,
+   1966.9,
+   1517.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_14",
+  "class": "StaticMesh"
+ },
+ "House_Small_15": {
+  "min": [
+   -737.0,
+   -1454.7,
+   -805.0
+  ],
+  "max": [
+   994.7,
+   817.4,
+   812.6
+  ],
+  "size": [
+   1731.7,
+   2272.0,
+   1617.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_15",
+  "class": "StaticMesh"
+ },
+ "House_Small_16": {
+  "min": [
+   -1190.6,
+   -945.0,
+   -450.0
+  ],
+  "max": [
+   262.2,
+   584.7,
+   1477.6
+  ],
+  "size": [
+   1452.7,
+   1529.7,
+   1927.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_16",
+  "class": "StaticMesh"
+ },
+ "House_Small_18": {
+  "min": [
+   -1440.4,
+   -784.9,
+   -295.0
+  ],
+  "max": [
+   494.0,
+   541.9,
+   1132.6
+  ],
+  "size": [
+   1934.5,
+   1326.8,
+   1427.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_18",
+  "class": "StaticMesh"
+ },
+ "House_Small_19": {
+  "min": [
+   -994.7,
+   -284.2,
+   -695.0
+  ],
+  "max": [
+   502.0,
+   1275.0,
+   817.6
+  ],
+  "size": [
+   1496.7,
+   1559.2,
+   1512.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_19",
+  "class": "StaticMesh"
+ },
+ "House_Small_20": {
+  "min": [
+   -783.6,
+   -696.6,
+   -848.8
+  ],
+  "max": [
+   727.4,
+   866.6,
+   687.6
+  ],
+  "size": [
+   1511.0,
+   1563.2,
+   1536.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_20",
+  "class": "StaticMesh"
+ },
+ "House_Small_21": {
+  "min": [
+   -183.5,
+   -1495.9,
+   -583.9
+  ],
+  "max": [
+   707.6,
+   382.4,
+   967.6
+  ],
+  "size": [
+   891.1,
+   1878.2,
+   1551.5
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_21",
+  "class": "StaticMesh"
+ },
+ "House_Small_22": {
+  "min": [
+   -1504.8,
+   -1035.8,
+   -702.1
+  ],
+  "max": [
+   513.3,
+   655.3,
+   812.5
+  ],
+  "size": [
+   2018.1,
+   1691.1,
+   1514.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_22",
+  "class": "StaticMesh"
+ },
+ "House_Small_23": {
+  "min": [
+   -668.1,
+   -1772.1,
+   -450.0
+  ],
+  "max": [
+   1283.8,
+   761.6,
+   1067.6
+  ],
+  "size": [
+   1951.9,
+   2533.7,
+   1517.6
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_23",
+  "class": "StaticMesh"
+ },
+ "House_Small_Open_01": {
+  "min": [
+   -287.5,
+   -333.2,
+   -548.8
+  ],
+  "max": [
+   1105.7,
+   1121.7,
+   987.6
+  ],
+  "size": [
+   1393.2,
+   1454.8,
+   1536.4
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_Open_01",
+  "class": "StaticMesh"
+ },
+ "Bridge_01": {
+  "min": [
+   -4005.4,
+   -634.7,
+   -46.0
+  ],
+  "max": [
+   923.2,
+   1852.1,
+   805.0
+  ],
+  "size": [
+   4928.6,
+   2486.7,
+   851.0
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Props/SM_MERGED_Bridge_01",
+  "class": "StaticMesh"
+ },
+ "Fence_01": {
+  "min": [
+   -1588.9,
+   -3782.6,
+   -58.4
+  ],
+  "max": [
+   61.0,
+   710.6,
+   337.3
+  ],
+  "size": [
+   1649.9,
+   4493.2,
+   395.7
+  ],
+  "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Props/SM_MERGED_Fence_01",
+  "class": "StaticMesh"
+ }
+}

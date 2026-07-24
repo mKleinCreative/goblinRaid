@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   viewBox="-5 -10 110 110"
+   id="svg5"
+   sodipodi:docname="Сhevrons.svg"
+   width="110"
+   height="110"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5" />
+  <sodipodi:namedview
+     id="namedview5"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="6.7222222"
+     inkscape:cx="22.090909"
+     inkscape:cy="80.85124"
+     inkscape:window-width="3840"
+     inkscape:window-height="2054"
+     inkscape:window-x="3829"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g4" />
+  <g
+     id="g4"
+     transform="translate(0,-14.578512)">
+    <path
+       id="path1"
+       d="m 50.210938,5.6982133 -11.503907,11.5039057 -4.669922,20.28711 16.09375,-16.09961 h 0.158203 L 67.083984,38.188448 62.074219,17.561494 Z"
+       style="fill:#ffffff;fill-opacity:1" />
+    <path
+       id="path3"
+       d="M 50.210938,34.729463 29.869141,55.07126 25.197266,75.362276 50.130859,50.428682 h 0.158203 L 76.556641,76.69626 71.544922,56.063448 Z"
+       style="fill:#ffffff;fill-opacity:1" />
+    <path
+       id="path3-9"
+       d="M 50.875,64.092745 20.867188,94.100557 16.193359,114.39548 50.796875,79.791963 h 0.15625 l 34.613281,34.613287 0.02539,-0.0254 -4.996094,-20.566412 z"
+       style="fill:#ffffff;fill-opacity:1" />
+    <path
+       id="rect6"
+       style="fill:#ffffff;fill-opacity:1;stroke-width:18.8976;stroke-dasharray:18.8977, 37.7953"
+       d="M 31.935452 -1.9929224 L 31.934673 110.01582 L 37.615516 108.68789 L 37.616296 -3.320849 L 31.935452 -1.9929224 z "
+       transform="rotate(13.156942)" />
+    <path
+       id="rect6-7"
+       style="fill:#ffffff;fill-opacity:1;stroke-width:18.8976;stroke-dasharray:18.8977, 37.7953"
+       d="M 60.482552 19.996959 L 60.480809 132.1825 L 66.160977 133.54716 L 66.16272 21.361614 L 60.482552 19.996959 z "
+       transform="rotate(-13.509233)" />
+  </g>
+</svg>

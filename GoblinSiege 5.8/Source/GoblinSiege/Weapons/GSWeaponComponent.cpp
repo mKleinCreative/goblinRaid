@@ -45,6 +45,11 @@ void UGSWeaponComponent::GrantAbilitiesFromWeapon()
 		return;
 	}
 
+	// Per-weapon turn-rate identity (Brute turns like a barge, Scout/Slasher turns sharp - design
+	// doc "Turn rate"). Lives on the character (a movement concern), pushed here since equip is
+	// the one moment a weapon's identity applies itself to its wearer (tech doc §16).
+	OwnerCharacter->SetTurnRateRadPerSec(EquippedWeapon->TurnRateRadPerSec);
+
 	// Class baseline stats ride on the weapon's init effect (design doc: class == weapon).
 	if (EquippedWeapon->InitialAttributesEffect)
 	{

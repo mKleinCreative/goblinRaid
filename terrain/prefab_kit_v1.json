@@ -1,0 +1,1984 @@
+{
+ "MarketSquare": [
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_WarriorStatue",
+   "name": "WarriorStatue",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": 1150.0,
+   "dy": 0.0,
+   "yaw": 180.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_01",
+   "name": "StallCover_01",
+   "dx": 1150.0,
+   "dy": 0.0,
+   "yaw": 180.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 1
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable",
+   "name": "MarketTable",
+   "dx": 1500.0,
+   "dy": 0.0,
+   "yaw": 180.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": 813.2,
+   "dy": 813.2,
+   "yaw": 225.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_02",
+   "name": "StallCover_02",
+   "dx": 813.2,
+   "dy": 813.2,
+   "yaw": 225.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 4
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": 0.0,
+   "dy": 1150.0,
+   "yaw": 270.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_03",
+   "name": "StallCover_03",
+   "dx": 0.0,
+   "dy": 1150.0,
+   "yaw": 270.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 6
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable",
+   "name": "MarketTable",
+   "dx": 0.0,
+   "dy": 1500.0,
+   "yaw": 270.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": -813.2,
+   "dy": 813.2,
+   "yaw": 315.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_01",
+   "name": "StallCover_01",
+   "dx": -813.2,
+   "dy": 813.2,
+   "yaw": 315.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 9
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": -1150.0,
+   "dy": 0.0,
+   "yaw": 360.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_02",
+   "name": "StallCover_02",
+   "dx": -1150.0,
+   "dy": 0.0,
+   "yaw": 360.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 11
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable",
+   "name": "MarketTable",
+   "dx": -1500.0,
+   "dy": 0.0,
+   "yaw": 360.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": -813.2,
+   "dy": -813.2,
+   "yaw": 405.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_03",
+   "name": "StallCover_03",
+   "dx": -813.2,
+   "dy": -813.2,
+   "yaw": 405.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 14
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": 0.0,
+   "dy": -1150.0,
+   "yaw": 450.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_01",
+   "name": "StallCover_01",
+   "dx": 0.0,
+   "dy": -1150.0,
+   "yaw": 450.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 16
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable",
+   "name": "MarketTable",
+   "dx": 0.0,
+   "dy": -1500.0,
+   "yaw": 450.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+   "name": "MarketStallStructure",
+   "dx": 813.2,
+   "dy": -813.2,
+   "yaw": 495.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_02",
+   "name": "StallCover_02",
+   "dx": 813.2,
+   "dy": -813.2,
+   "yaw": 495.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 19
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Basket",
+   "name": "Basket",
+   "dx": 1247.2,
+   "dy": 516.6,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateSquare",
+   "name": "CrateSquare",
+   "dx": -516.6,
+   "dy": 1247.2,
+   "yaw": 70.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SackStack",
+   "name": "SackStack",
+   "dx": -1247.2,
+   "dy": -516.6,
+   "yaw": 140.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Pot",
+   "name": "Pot",
+   "dx": 516.6,
+   "dy": -1247.2,
+   "yaw": 210.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_StreetLight",
+   "name": "StreetLight",
+   "dx": 2100,
+   "dy": 0,
+   "yaw": 180,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_StreetLight",
+   "name": "StreetLight",
+   "dx": -2100,
+   "dy": 0,
+   "yaw": 0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TaskBoardMiddle",
+   "name": "TaskBoardMiddle",
+   "dx": 0,
+   "dy": -2400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bench",
+   "name": "Bench",
+   "dx": -950,
+   "dy": -2250,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bench",
+   "name": "Bench",
+   "dx": 950,
+   "dy": -2250,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_01",
+   "name": "FlowerPlanter_01",
+   "dx": 2050,
+   "dy": 1600,
+   "yaw": 20,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_02",
+   "name": "FlowerPlanter_02",
+   "dx": -2050,
+   "dy": 1650,
+   "yaw": -15,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  }
+ ],
+ "Tavern": [
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Medium_05",
+   "name": "House_Medium_05",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Tavern_Sign",
+   "name": "Tavern_Sign",
+   "dx": 520,
+   "dy": 700,
+   "yaw": 0,
+   "scale": 1.0,
+   "mode": "zoff",
+   "val": 250
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Banner_01",
+   "name": "Banner_01",
+   "dx": -500,
+   "dy": 700,
+   "yaw": 0,
+   "scale": 1.0,
+   "mode": "zoff",
+   "val": 280
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Banner_02",
+   "name": "Banner_02",
+   "dx": 60,
+   "dy": 700,
+   "yaw": 0,
+   "scale": 1.0,
+   "mode": "zoff",
+   "val": 280
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_RoundTable",
+   "name": "RoundTable",
+   "dx": 950,
+   "dy": 1550,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+   "name": "StoolShort",
+   "dx": 1140,
+   "dy": 1550,
+   "yaw": 90.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+   "name": "StoolShort",
+   "dx": 760,
+   "dy": 1550,
+   "yaw": -90.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_RoundTable",
+   "name": "RoundTable",
+   "dx": -150,
+   "dy": 1950,
+   "yaw": 35.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+   "name": "StoolShort",
+   "dx": 40,
+   "dy": 1950,
+   "yaw": 125.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+   "name": "StoolShort",
+   "dx": -340,
+   "dy": 1950,
+   "yaw": -55.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_RoundTable",
+   "name": "RoundTable",
+   "dx": -1150,
+   "dy": 1500,
+   "yaw": 70.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+   "name": "StoolShort",
+   "dx": -960,
+   "dy": 1500,
+   "yaw": 160.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_StoolShort",
+   "name": "StoolShort",
+   "dx": -1340,
+   "dy": 1500,
+   "yaw": -20.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_BenchOutdoors",
+   "name": "BenchOutdoors",
+   "dx": 1600,
+   "dy": 750,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_01",
+   "name": "Barrel_01",
+   "dx": -1550,
+   "dy": 950,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_03",
+   "name": "Barrel_03",
+   "dx": -1700,
+   "dy": 780,
+   "yaw": 30,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Barrel_02",
+   "name": "Barrel_02",
+   "dx": -1520,
+   "dy": 640,
+   "yaw": 60,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_KegHolder",
+   "name": "KegHolder",
+   "dx": -1330,
+   "dy": 800,
+   "yaw": 15,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_StreetLight",
+   "name": "StreetLight",
+   "dx": 2150,
+   "dy": 1350,
+   "yaw": 200,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_FlowerPlanter_3",
+   "name": "FlowerPlanter_3",
+   "dx": -2150,
+   "dy": 1250,
+   "yaw": 5,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  }
+ ],
+ "CottageGarden": [
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_05",
+   "name": "House_Small_05",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_02",
+   "name": "Vine_02",
+   "dx": 585,
+   "dy": 160,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_01",
+   "name": "Vine_01",
+   "dx": -595,
+   "dy": -220,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Vine_03",
+   "name": "Vine_03",
+   "dx": -200,
+   "dy": 770,
+   "yaw": 0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -1150,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -819,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -488,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -157,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 174,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 505,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 836,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFenceDoor",
+   "name": "VillageFenceDoor",
+   "dx": 0,
+   "dy": 2500,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -1290,
+   "dy": 1050,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -1290,
+   "dy": 1381,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -1290,
+   "dy": 1712,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -1290,
+   "dy": 2043,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": -1290,
+   "dy": 2374,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1290,
+   "dy": 1050,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1290,
+   "dy": 1381,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1290,
+   "dy": 1712,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1290,
+   "dy": 2043,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1290,
+   "dy": 2374,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerGroup_Village_01",
+   "name": "FlowerGroup_Village_01",
+   "dx": -600,
+   "dy": 1550,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerGroup_Village_02",
+   "name": "FlowerGroup_Village_02",
+   "dx": 0,
+   "dy": 1550,
+   "yaw": 40.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerGroup_Village_03",
+   "name": "FlowerGroup_Village_03",
+   "dx": 600,
+   "dy": 1550,
+   "yaw": 80.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerVillage_01",
+   "name": "FlowerVillage_01",
+   "dx": 320,
+   "dy": 1150,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_FlowerVillage_01",
+   "name": "FlowerVillage_01",
+   "dx": -340,
+   "dy": 2100,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Firewood_1",
+   "name": "Firewood_1",
+   "dx": 830,
+   "dy": -420,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Firewood_2",
+   "name": "Firewood_2",
+   "dx": 830,
+   "dy": -330,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Basket",
+   "name": "Basket",
+   "dx": 470,
+   "dy": 990,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Bench",
+   "name": "Bench",
+   "dx": 0,
+   "dy": 800,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  }
+ ],
+ "CottageVeg": [
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_09",
+   "name": "House_Small_09",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 180,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": -780,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": -520,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": -260,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 0,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 260,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 520,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 780,
+   "dy": 1400,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": -780,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": -520,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": -260,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 0,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 260,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 520,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VegetableFence",
+   "name": "VegetableFence",
+   "dx": 780,
+   "dy": 2000,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_01",
+   "name": "Bunch_01",
+   "dx": -650,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_02",
+   "name": "Bunch_02",
+   "dx": -325,
+   "dy": 1700,
+   "yaw": 50.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_03",
+   "name": "Bunch_03",
+   "dx": 0,
+   "dy": 1700,
+   "yaw": 100.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_01",
+   "name": "Bunch_01",
+   "dx": 325,
+   "dy": 1700,
+   "yaw": 150.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Bakes/SM_Bunch_02",
+   "name": "Bunch_02",
+   "dx": 650,
+   "dy": 1700,
+   "yaw": 200.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Scarecrow",
+   "name": "Scarecrow",
+   "dx": 1080,
+   "dy": 1700,
+   "yaw": -20,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateOpen",
+   "name": "CrateOpen",
+   "dx": -1020,
+   "dy": 820,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Interior/SM_Pot",
+   "name": "Pot",
+   "dx": -820,
+   "dy": 860,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_01",
+   "name": "Hay_Scattered_01",
+   "dx": 930,
+   "dy": 830,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFencePost",
+   "name": "VillageFencePost",
+   "dx": -950,
+   "dy": 1150,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFencePost",
+   "name": "VillageFencePost",
+   "dx": 950,
+   "dy": 1150,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFencePost",
+   "name": "VillageFencePost",
+   "dx": -950,
+   "dy": 2250,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFencePost",
+   "name": "VillageFencePost",
+   "dx": 950,
+   "dy": 2250,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  }
+ ],
+ "MillTerraces": [
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WIndmill_Base",
+   "name": "WIndmill_Base",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 30,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Windmill_Sail",
+   "name": "Windmill_Sail",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 30.6,
+   "scale": 0.8,
+   "mode": "sail",
+   "val": 0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/DemoAssets/MergedActors/Houses/SM_MERGED_House_Small_17",
+   "name": "House_Small_17",
+   "dx": 2500,
+   "dy": -800,
+   "yaw": 210,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": -1200,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": -900,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": -600,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": -300,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": 0,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": 300,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": 600,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": 900,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": 1200,
+   "dy": 1700,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": -900,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": -600,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": -300,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": 0,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": 300,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+   "name": "StoneWall_01",
+   "dx": 600,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+   "name": "StoneWall_02",
+   "dx": 900,
+   "dy": 2650,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -1000,
+   "dy": 1900,
+   "yaw": 0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -750,
+   "dy": 1900,
+   "yaw": 61,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -500,
+   "dy": 1900,
+   "yaw": 122,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -250,
+   "dy": 1900,
+   "yaw": 183,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 0,
+   "dy": 1900,
+   "yaw": 244,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 250,
+   "dy": 1900,
+   "yaw": 305,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 500,
+   "dy": 1900,
+   "yaw": 6,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 750,
+   "dy": 1900,
+   "yaw": 67,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 1000,
+   "dy": 1900,
+   "yaw": 128,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -1000,
+   "dy": 2085,
+   "yaw": 37,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -750,
+   "dy": 2085,
+   "yaw": 98,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -500,
+   "dy": 2085,
+   "yaw": 159,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -250,
+   "dy": 2085,
+   "yaw": 220,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 0,
+   "dy": 2085,
+   "yaw": 281,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 250,
+   "dy": 2085,
+   "yaw": 342,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 500,
+   "dy": 2085,
+   "yaw": 43,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 750,
+   "dy": 2085,
+   "yaw": 104,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 1000,
+   "dy": 2085,
+   "yaw": 165,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -1000,
+   "dy": 2270,
+   "yaw": 74,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -750,
+   "dy": 2270,
+   "yaw": 135,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -500,
+   "dy": 2270,
+   "yaw": 196,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -250,
+   "dy": 2270,
+   "yaw": 257,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 0,
+   "dy": 2270,
+   "yaw": 318,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 250,
+   "dy": 2270,
+   "yaw": 19,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 500,
+   "dy": 2270,
+   "yaw": 80,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 750,
+   "dy": 2270,
+   "yaw": 141,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 1000,
+   "dy": 2270,
+   "yaw": 202,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -1000,
+   "dy": 2455,
+   "yaw": 111,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -750,
+   "dy": 2455,
+   "yaw": 172,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": -500,
+   "dy": 2455,
+   "yaw": 233,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": -250,
+   "dy": 2455,
+   "yaw": 294,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 0,
+   "dy": 2455,
+   "yaw": 355,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 250,
+   "dy": 2455,
+   "yaw": 56,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 500,
+   "dy": 2455,
+   "yaw": 117,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_01",
+   "name": "VillageWheat_01",
+   "dx": 750,
+   "dy": 2455,
+   "yaw": 178,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Foliage/SM_VillageWheat_02",
+   "name": "VillageWheat_02",
+   "dx": 1000,
+   "dy": 2455,
+   "yaw": 239,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SackStack",
+   "name": "SackStack",
+   "dx": 950,
+   "dy": -950,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Sack",
+   "name": "Sack",
+   "dx": 1100,
+   "dy": -800,
+   "yaw": 40,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_SackOpen_Grain",
+   "name": "SackOpen_Grain",
+   "dx": 800,
+   "dy": -830,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Scarecrow",
+   "name": "Scarecrow",
+   "dx": 0,
+   "dy": 2200,
+   "yaw": 15,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TreeLog_1",
+   "name": "TreeLog_1",
+   "dx": -1550,
+   "dy": -650,
+   "yaw": 25,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  }
+ ],
+ "Farmyard": [
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Barn",
+   "name": "Barn",
+   "dx": 0,
+   "dy": 0,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1240,
+   "dy": 900,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1570,
+   "dy": 900,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1900,
+   "dy": 900,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2230,
+   "dy": 900,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2560,
+   "dy": 900,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1240,
+   "dy": -300,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1570,
+   "dy": -300,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2230,
+   "dy": -300,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2560,
+   "dy": -300,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFenceDoor",
+   "name": "VillageFenceDoor",
+   "dx": 1900,
+   "dy": -300,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1090,
+   "dy": -140,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1090,
+   "dy": 190,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 1090,
+   "dy": 520,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2710,
+   "dy": -140,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2710,
+   "dy": 190,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_VillageFence",
+   "name": "VillageFence",
+   "dx": 2710,
+   "dy": 520,
+   "yaw": 90,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Trough",
+   "name": "Trough",
+   "dx": 1900,
+   "dy": 280,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Trough_FoodPile",
+   "name": "Trough_FoodPile",
+   "dx": 1900,
+   "dy": 280,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "peer",
+   "val": 17
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Chicken_Coop",
+   "name": "Chicken_Coop",
+   "dx": 2950,
+   "dy": -850,
+   "yaw": 145,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_HayStack",
+   "name": "HayStack",
+   "dx": -950,
+   "dy": 850,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_HayStack",
+   "name": "HayStack",
+   "dx": -1200,
+   "dy": 580,
+   "yaw": 60,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Hay_Scattered_03",
+   "name": "Hay_Scattered_03",
+   "dx": -980,
+   "dy": 230,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_CrateSquare",
+   "name": "CrateSquare",
+   "dx": 720,
+   "dy": -720,
+   "yaw": 15,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_Sack",
+   "name": "Sack",
+   "dx": 870,
+   "dy": -580,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  },
+  {
+   "asset": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Props/Exterior/SM_TreeStump",
+   "name": "TreeStump",
+   "dx": -1350,
+   "dy": -720,
+   "yaw": 0.0,
+   "scale": 1.0,
+   "mode": "ground",
+   "val": 0.0
+  }
+ ]
+}
