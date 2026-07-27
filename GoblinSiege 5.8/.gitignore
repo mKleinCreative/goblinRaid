@@ -20,3 +20,25 @@ Content/
 # Plugin build artifacts
 Plugins/**/Binaries/
 Plugins/**/Intermediate/
+
+# ---------------------------------------------------------------------------
+# 2026-07-26: project-authored Content is now tracked via Git LFS.
+# Fab/Megascans packs stay excluded - they are re-downloadable from the Fab
+# library and would bloat the repo (DreamscapeSeries alone is 2.2 GB).
+# Content/ is still ignored by default above; these negations opt specific
+# project-authored folders back in.
+# ---------------------------------------------------------------------------
+!Content/
+Content/*
+!Content/Characters/
+!Content/Blueprints/
+!Content/UI/
+!Content/Input/
+!Content/Maps/
+
+# source FBX staging lives outside Content (auto-import fires on anything
+# under Content/) and is not versioned - the clips come from Mixamo.
+_MixamoStaging/
+
+# Fab plugin copied into the project - reinstallable from Fab
+Plugins/Marketplace/

@@ -1,536 +1,311 @@
-# GOBLIN SIEGE — Game Design Document
+# GOBLIN SIEGE
 
-*Major revision · "The Generated Hamlet" — folds the 2026-07-20 hamlet pivot and the 2026-07-21 restructure rulings (ledger decisions 1–35, §13) into the canonical document, per the approved restructure proposal (Q-01). Supersedes the "Settlement Raid" revision's §6–§7: the slice raid target is now an unwalled, procedurally generated hamlet, and the palisade breach layer relocates intact to **Appendix A** as tier-2 content — deferred, not cut. Combat/weapon content carries forward unchanged unless noted.*
+## Game Design Document — Final Draft
 
----
+**Capstone Assignment #02 · Michael Klein · 23 July 2026**
 
-## 1. Vision
+*A third-person co-operative raid game where you play the monsters — built solo, with a multi-agent AI development team.*
 
-**Goblin Siege is a third-person co-operative raid game in which you play the monsters. You and your goblin warband slip out of your Overlord's lair, creep through the forest, descend on a human settlement — in this slice a tiny unwalled hamlet, up the ladder a walled town, one day a castle — burn it down, rob it blind, and scurry home before the humans get organized.**
-
-It plays like a satire. You are the evil exposing the idiocy of the good: the humans are pompous, greedy, and a little bit stupid, and the game's biggest laughs come from watching their so-called civilization fail exactly the way you'd expect — the watchman asleep at his post, the guards abandoning a chase to scoop up dropped coins, the town fighting over buckets while its wheat fields burn.
-
-### Design pillars
-
-- **Weighty, readable combat.** Attacks commit, dodges commit, enemies telegraph. Every hit has impact — hitstop, knockback, stagger. You win by reading the fight, not mashing. *(Unchanged from the combat prototype — this is proven.)*
-- **Fire and destruction as a language.** Torches, flammable buildings, and a settlement that visibly tries to save itself. The hamlet is made of wood and wheat, and the goblins know it.
-- **Quiet in, loud out.** No wall means no front door — the approach is a stealth game, but the objective is arson, and fire cannot be hidden. Stealth controls *when* the mayhem starts, not whether. *(The old pillar — "many ways over the wall" — isn't gone: the breach layer returns when the walls do, at tier 2. Appendix A.)*
-- **No two raids the same map.** A seeded generator arranges the hamlet fresh every raid from hand-authored modules. Scouting never goes stale, because the town was never placed by a human.
-- **A horde at your back.** One horn-blast and the treeline empties. The AI horde makes a lone goblin feel like an invasion — cheap to command, expendable by design, hilarious in motion.
-- **Pressure, not safety.** The longer you linger, the harder the county fights back. Greed (more loot, more fire, more score) pulls against survival (make it back to the runic site — nothing counts until you're home).
-- **Satire, always.** Every system should get a chance to be funny. Humans are greedy and dim; goblins are gleeful vermin. If a mechanic can express that (coin distractions, bucket brigades, a snoring watchman, a village that refuses to believe you exist), lean in.
-
-### Touchstones
-
-- **Overlord** — the tone anchor. Gleeful evil, an expendable minion horde, the "good" people revealed as venal idiots.
-- **Darktide** — horde combat, class identity, mixed-enemy waves demanding target priority.
-- **Helldivers** — mission-and-extraction structure; nothing is yours until you extract.
-- **Elden Ring** — deliberate stamina-gated melee, dodge i-frames, telegraphs you read rather than out-click.
-- **Enshrouded** *(environmental)* — smashable, burnable structures that reshape the play space.
+**Engine:** Unreal Engine 5.8 (C++/GAS) · **Prototype scope:** one hand-authored tutorial hamlet raid, 7 weeks (procedural generation is post-slice, funding-gated roadmap, §2.8) · **Target rating:** T
 
 ---
 
-## 2. Core gameplay loop
+# 1. Executive Summary
 
-1. **In the Overlord's lair**, pick your class (weapon-kit) and step into the runic circle.
-2. **Materialize at the runic site** — a ring of glowing standing stones in a forest clearing. Spawn, home base, and extraction point, all in one. **His Eternal Darkness names this raid's three burn targets** as you arrive (HUD + whisper — see §6.3, decision 11); the generator decided where they sit.
-3. **Move through the forest** along (or off) the paths toward the hamlet, dodging or ambushing human patrols — you'll see their drawn torches flickering through the trees before they see you. Getting spotted and letting a runner escape warns the town.
-4. **Case the hamlet.** No wall, no front door: circle it from the treeline, read the guard posts and the watchtower's cone, and *find* your targets — the environment guides you (converging roads, signposts, wheat thickening toward a field, the racket of a pen), never a HUD arrow.
-5. **Work quietly.** Crouch between hedgerows and haycarts, time the watchman's naps, take down an unaware guard from behind, toss a coin to pull the greedy off their posts — and start looting before anyone believes you exist.
-6. **Go loud — on purpose.** Torch the first objective and the quiet phase is over. Blow the horn, bring the horde sprinting from the treeline, burn the rest, and fight the town's response: guards, bucket lines, the bell, and eventually soldiers marching in from the distant castle.
-7. **Get out.** Burning the third objective **opens the portal** at the runic site. Back through the forest — the humans may pursue — step into the circle to teleport home, tossing loot into the portal as you go.
-8. **Bank your score.** Points tally from objectives, loot, and mischief — **fully banked only if you make it back.** *(Prototype: score screen and personal-best; the spending economy comes later — see §10.)*
+**Goblin Siege** is a third-person raid game in which the player is the monster. You are a goblin. Your Overlord — an unseen voice called **His Eternal Darkness**, who communicates only in layered whispers and subtitles — sends you through a runic portal into a dusk-lit forest in the county of **Groatsworth** *(name placeholder in the game's cozy-smug naming register)*, outside a tiny, unwalled human farming hamlet — too small to have a name, one of dozens dotting the county, and doing suspiciously well for itself. His Eternal Darkness assigns you **three burn targets**, drawn from what the hamlet happens to have — its village granary, its ripe wheat fields, its windmill — plus a standing order to steal everything that isn't nailed down, including the pigs, and get back to the standing stones before the portal collapses.
 
-**Every raid is capped at 30 minutes** (decided). The runic circle only holds its charge so long — His Eternal Darkness does not wait on goblins. See §9 for the clock's rules.
+**Win condition:** burn all three of the raid's assigned objectives — this slice's single tutorial hamlet carries one of each: the village core's granary, a farmstead's field, and the windmill (a randomized mix across many hamlets, never more than two of a kind, is the post-slice generator's job, §2.8) — which opens the extraction portal at the runic site; then step through it before the 30-minute raid clock (plus a 90-second grace window) expires. **Loss conditions:** lose all 5 lives, or fail to reach the portal in time and be *left behind*. Score is the connective tissue: everything you do earns points, but **deeds only fully bank if you make it home** (×1.5 on extraction; a wipe salvages just 25%), while physical **loot banks permanently the moment it reaches the stones** — so a smart goblin sends loot home early on the backs of expendable AI couriers.
 
----
+The raid's shape is **quiet in, loud out**. The hamlet has no wall — its defense is a handful of guards, a watchtower, and open sightlines — so the approach is a stealth game: noise, cover, a dozing watchman, a silent takedown, a flock of chickens that will scream about you to the whole county. But your objective is *arson*, which cannot be hidden. Stealth isn't about ghosting the mission; it's about **controlling when the mayhem starts** — and when it starts, you blow your war-horn and your cackling AI horde comes sprinting out of the treeline, up to ten goblins fighting at your back. Combat is weighty and readable (stamina-gated melee, committed dodges, telegraphed enemy attacks), the town visibly fights back (bucket brigades, a bell, reinforcements from a distant castle), and the game plays as satire throughout: the humans of Groatsworth county are pompous, greedy, and a little bit stupid.
 
-## 3. Tone & satire — how the game stays funny
+**One hamlet, hand-built to teach.** The slice ships a single, hand-composed hamlet — the same hand-authored building prefabs a procedural generator would eventually arrange per-raid, placed once by hand instead, with every burn objective, the patrol's soft-signal escalation, a civilian pair, and a livestock pen laid out to be found and understood in a player's very first raid (§2.8). The constrained procedural generator that would vary this layout raid to raid is fully designed but deliberately descoped from this slice: procedurally generating an entire map free of placement bugs is real, open-ended engineering risk, and a solo-plus-agents team on a seven-week clock spends that budget once, by hand, instead of fighting a system that isn't reliable yet. It remains the foundation of the game's long-term structure — a **settlement difficulty ladder** (unwalled hamlet → palisade town → stone-wall town → castle keep) in which each tier adds defenses, enemies, siege mechanics, and rewards. The slice proves tier one's *content* end-to-end; the generator that would populate it freshly every raid is funding-gated, post-slice roadmap.
 
-The comedy is systemic, not just written. Rules of thumb:
-
-- **Humans are greedy first, brave second.** Greed is an exploitable AI stat, not just a joke. Guards will break off a chase to pick up dropped coins. Civilians will loot their *own* marketplace once chaos starts.
-- **Humans are confident and wrong.** The watchtower guard dozes. Bark lines drip with misplaced superiority ("A goblin? Here? Don't be daft, it's shearing day.").
-- **The kingdom told them you're extinct** *(new tone pillar — decided, 2026-07-21)*. The hamlets are sparse but **saturated with royal propaganda**: the king slew the last dragon, vanquished the darklord, and wiped out his goblin minions — it says so on the statue. So when goblins appear, villagers **initially disbelieve their own eyes** — the double-take, the "must've been a badger," the guard polishing the WarriorStatue of the king who supposedly ended you. Feeds the disbelief bark family, the propaganda prop set (§11.1), and the First Spark comedy: the town's first response to arson is denial.
-- **Goblins are vermin, and proud.** The horde giggles, trips, cheers when things burn, and screams with joy when catapulted *(tier 2)*. Being flung over a wall as living ammunition is the mission statement — one rung of the ladder away.
-- **His Eternal Darkness frames everything.** Never seen, never shouts — he *whispers*, layered dark whispers with subtitles, setting objectives, commenting on failures, delivering the post-raid verdict. Apocalyptic gravitas applied to stealing pigs from a nameless hamlet in Groatsworth county — that contrast is the joke. *(Decided: name and whisper+subtitle delivery locked; no VO actor needed for the prototype.)*
-
-### Violence style — cartoony gore *(decided)*
-
-Everyone in the hamlet is killable — guards *and* civilians — and the violence is **cartoony with a hint of gore**: exaggerated blood spatters, flying limbs, comically clean cartoon bones. Gibs pop like party favors; deaths are punchlines, not snuff.
-
-- **Rating target: T at minimum.** Stylized cartoon gore keeps dismemberment on the T side (à la Castle Crashers); gib intensity is a single tuning scalar, not a redesign.
-- **Civilian kills score** (see §10) — modest points, because the satire lands better when killing civilians is *permitted and petty* rather than forbidden or lucrative. The same rule now covers **livestock** (§9): kill petty, steal big.
-
-**Satire mechanics (prototype-scoped where marked):**
-
-| Mechanic | What it does | Prototype? |
-|---|---|---|
-| **Coin toss** | Throw looted coins (debited from your pouch — §7) to make greedy humans, guards included, break behavior and scramble. A distraction tool that *is* the theme. | **Yes — promoted to core** (2026-07-20) |
-| **Thrown chicken** | A **noise** lure — hurl a squawking chicken and the nearest guard investigates the racket. Greed stays the coin toss's joke; the chicken's is chaos. *(decided, 2026-07-21)* | Yes — rides the noise system |
-| **Disbelief double-takes** | Propaganda-fed civilians refuse to believe the first sighting (see tone pillar above); barks carry it. | Yes — bark states |
-| **Sleeping watchman** | The watchtower guard periodically dozes; his vision cone visibly droops. Timing your approach around his naps is stealth-as-comedy. | Yes — a timer on his perception |
-| **Self-looting civilians** | Past an alarm threshold, some civilians grab loot from market stalls and run — competing with *you* for score. | Stretch |
-| **Bucket brigade** | Civilians queue at the well and douse fires — earnest, orderly, and outmatched (see §8.2 for the field-fire rules). Foul the well to stop it. | Yes — core counter-system |
-| **Bark system** | Short text barks keyed to states (idle, suspicious, disbelieving, alarmed, greedy, fleeing). Cheapest comedy per byte in the game. | Yes — text only |
+**Why this game fits this course:** Goblin Siege is being built by one human developer and a coordinated team of AI agents. The agents are not a metaphor and not a hypothetical — they have already produced the game's compiling UE 5.8 C++ scaffold, its hero props via a live Blender pipeline, its dialogue sheets, and its design documentation, with the process logs to prove it (§3, §4). This GDD describes both the game the player experiences and the agent system that is building it.
 
 ---
 
-## 4. The goblins — classes & weapons
+## Revision & growth — what changed since Assignment #1
 
-**Unchanged from the previous draft.** A goblin's identity is its weapon-kit; each kit has its own (future) progression tree. Full stats live in the prior combat sections and `race-design-goblins.md`; summary:
+This is a substantially revised design, not a polish pass, and every change below traces to a recorded decision rather than a silent rewrite.
 
-| Class | Kit | HP | Speed | Role |
-|---|---|---|---|---|
-| **Slasher** | Daggers ⇄ Bow (one weapon, live swap) | 110 | Fast | Mobile skirmisher — fastest crouch-walk, cleanest takedowns, picks off the watchman at range |
-| **Brute** | Great-club | 170 | Slow | Frontline breaker — worst at hiding, best when hiding stops; 1.5× body & reach; carries double |
-| **Shaman (Shadow)** | Shadow Staff | 85 | Medium | Ranged armor-ignoring pressure + group root/stun (Shadow Grasp) — controls the bucket brigade |
-| **Shaman (Blood)** | Blood Staff | 85 | Medium | Blood-orb economy caster — dagger/spear/lance conjured arsenal |
-
-**Universal kit (every class):**
-
-- **Torch toss (Q)** — sticks where it lands, ignites, spreads. The racial equalizer. Aimable — the mill demands a throw *through a window* (§6.3).
-- **The Horn (G)** — summons the AI horde (§5), and formally ends the quiet half.
-- **Crouch (toggle)** *(decided, 2026-07-21)* — the stealth stance (§7).
-- **Dodge roll** — 0.22s i-frames, committed recovery.
-- **Interact (E/hold E)** — the slice's verbs *(decided, 2026-07-21)*: **loot** (the gather-pouch channel), **takedown**, **foul the well**, **extract**, plus the **carry** state (loot sacks, live animals). Dig/chop/build/crossbar are tier-2 verbs (Appendix A).
-- **5 lives** — losing all HP costs a life; respawn at the runic site (decided — §9). Losing the last life ends your raid.
-
-**Class texture in the new loop (design intent, not hard gating):** the Slasher sneaks and silences; the Brute is the go-loud specialist who hauls two pigs at once; the Shamans keep the horde alive and shut down the bucket lines. Every class can do every raid verb — classes change *how well*, never *whether*.
+- **The settlement pivoted from a walled palisade town to an unwalled hamlet.** Draft 1 opened on a fortified town with a breach layer (hidden gaps, digging, a ram, a catapult). On review, that put wall-breaching and stealth-approach as competing first impressions in the same slice. The fix: prove the stealth-and-raid core on open ground first, where a guard's sightline is the only obstacle, and treat walls as a *harder* version of the same game rather than a second game bolted on. The palisade systems weren't cut — they're fully designed and now sit in Appendix A of the working design doc as tier-2 content, reframed as the second rung of a four-tier **settlement ladder** (hamlet → palisade town → stone-wall town → castle keep) that gives the game a difficulty curve it didn't have before.
+- **Livestock became a scored system, not set dressing.** Chickens, sheep, and pigs are now stealable loot and a stealth hazard at the same time: killing one is a petty deed (2–8 points), stealing one live is real money (10–40 loot points) and a valid courier target, and a startled flock is a noise event that pulls a guard's attention — the same "kill petty, steal big" rule already governing civilians, now extended on the hoof.
+- **The agent team restructured from a smaller split into ten specialized roles** (§3). The original two-role split (one programmer, one editor operator) produced a compiling scaffold, but the hard boundaries in this project turned out to run *between game systems* — combat, stealth, the generator, the horde, the town, the raid loop — not between tools. Splitting to six game-system agents plus four studio agents (design, art, writing, process) gives each mechanic cluster a single owner end-to-end and made the §4.2 accountability table possible.
+- **The procedural generator went from a flat template to a terrain-aware, constrained system with real design rules.** Draft 1's generator arranged prefabs on a seeded plot template; the current version adds a cover-guarantee rule (broken sightlines between the treeline and every objective), a wayfinding requirement (roads, signposts, and audible/visual cues instead of a HUD arrow), and a golden-seed fallback if seed variance doesn't tune in time.
+- This revision was driven primarily by my own iterative review against the running build — one of the three feedback channels this assignment names, alongside the agent stress-test and peer review. Every change above is recorded with its rationale in the working design document's decisions ledger (§13), so nothing here is a rewrite without a paper trail.
 
 ---
 
-## 5. The Horn & the horde — core system
+# 2. Game Mechanics
 
-Every goblin carries a war-horn. Blowing it (G) calls AI goblins scurrying out of the treeline to fight beside you.
+*This section describes what the player sees and does. Systems terminology is kept to the minimum needed to be precise.*
 
-### Rules
+## 2.1 The core loop
 
-- **Cap:** 10 active horde goblins per player *(prototype: 1 player → 10; tunable after playtests)*.
-- **Reserve:** each raid has a finite horde pool — starting at **2× the cap** (20 for solo). Dead horde goblins are gone; the horn refills you from the remaining pool. When the pool is dry, the treeline is silent. *(Decided: freely tunable in playtest; the pool is a future point-spend upgrade, and couriers spend from it too — §9.)*
-- **Summon flow:** blow the horn → 3–4 goblins per blast come sprinting from the nearest off-screen treeline spawn over a few seconds (they *run in*, never pop in — watching them arrive is the joke and the fantasy). Short cooldown between blasts. The horn is *loud* — blowing it early is a choice you get to regret.
-- **Tier 1 has no walls, so the horde flows freely through the hamlet** — which is exactly why higher tiers reintroduce them: the ladder is partly a story about the horde's access getting harder to arrange. *(The walled-access rules — horde paths in through gates, gaps, and tunnels; only players fly over by catapult — are tier-2 content, Appendix A.)*
+One raid, capped at 30 minutes:
 
-### Control model — *follow & frenzy, with a point*
+1. **Step through as the Scout.** This slice's one playable kit — daggers and bow, live-swapped — is where every raid starts: no class-select screen this slice, just a straight drop into the **runic site** — a ring of glowing standing stones in a forest clearing. This is spawn, respawn, and the extraction point, all in one. Humans are too superstitious to enter the circle; it is the one safe tile in the world.
+2. **Cross the forest.** Worn paths lead toward the hamlet; off-path is slower and darker. Human patrols — three guards, two militia and an archer, **torches drawn** — sweep the woods every 5–7 minutes; their firelight flickers through the trees long before they can see you, so a patrol is a thing you *choose* to meet. Slip around them, ambush them quietly, or brawl — but the archer carries the patrol's own signal horn, a committed, interruptible wind-up she sounds the moment the patrol is *losing* a fight (not on first contact), and a sounded horn reaches the hamlet just like a rung bell: cut her down before it leaves her lips and the horn never happens. Win the fight before the horn sounds and you're still not quite free of it, though: patrols are expected back at the hamlet on that same 5–7-minute cadence, and one that never checks in raises its own quiet alarm after a couple of minutes' grace (§2.6) — the woods keep no witnesses, but the hamlet still notices an empty road. The county itself points your way: roads converge on the hamlet, signposts mark the miles, and the pens are audible from the treeline.
+3. **Case the hamlet.** No wall means no front door: circle it from the treeline, read the guard posts and the watchtower's vision cone, watch the well and the pens, and *find your three targets*. The HUD names the raid's three objectives — granary, field, and windmill, one of each in this slice's tutorial hamlet (§2.8) — but knowing the names isn't knowing the map, so locating them is still part of the scout, same as it will be once the post-slice generator varies the layout raid to raid. Each type telegraphs differently: a windmill announces itself over the treetops, fields sprawl at the hamlet's edges, and a granary hides in the village center where the guards are thickest.
+4. **Work quietly.** Crouch between hedgerows and haycarts, time the watchman's naps, take down an unaware guard from behind, toss a stolen coin to pull the greedy off their posts — and start looting before anyone knows you're there. Pocket valuables, smash open the strongbox, sling a squirming pig over your shoulder.
+5. **Go loud — on purpose.** Torch the first objective and the quiet phase is over: fire is the one thing you can't hide — and each target burns differently. The granary is a compact blaze in the guarded village heart; a wheat field is a *spreading* fire that races along the crop rows and lights the map for a mile; the windmill goes up like a torch, sails turning as it burns. Blow the horn, bring the horde in from the treeline, burn the rest, and fight the town's response — guards, bucket lines, the bell, and eventually soldiers marching in from the distant castle.
+6. **Get out.** Burning the last objective makes the stones flare open. Run the forest gauntlet home — the humans may pursue — and step into the circle. Loot can be tossed into the portal, or sent ahead mid-raid via courier goblins.
+7. **Get judged.** An itemized score tally, a letter grade, and a whispered verdict from His Eternal Darkness ("Adequate. I have seen rats do better. …adequate."). Beat your personal best.
 
-Deliberately simple (decided): no squad-command layer.
+## 2.2 Win, lose, and the three pressures
 
-- **Follow (default):** the horde trails its summoner in a loose scamper.
-- **Frenzy (automatic):** any enemy that gets close, or anything the player attacks, gets swarmed. They disengage and re-follow when it dies or leaves the leash radius.
-- **Point (MMB or T, aimed at reticle):** one context command — *"get 'em."* Pointing at an enemy: swarm it. Pointing at a stall, a fence, a pen gate: smash it. Pointing at a dropped loot sack **or a pig**: the nearest goblin shoulders it and couriers it home (§9). Pointing at an objective while holding a torch out? They cheer — they don't carry torches. Fire stays a *player* verb, so the player is always the arsonist.
+- **Win:** all three assigned objectives burned *and* you exit through the portal. Deeds (kills, arson, mischief bonuses) multiply ×1.5 on a successful exit, plus +20 per unused life.
+- **Lose:** all 5 lives spent, or still outside the circle when the portal dies (0:00 plus a 90-second collapse window — screen-wide warning, guttering stone-glow, the whispers going cold). Either way you keep only 25% of unbanked deeds. Loot that already physically reached the stones — or the Warren (§2.6), once one's planted — is safe regardless.
+- Three stacking pressures: **lives** (respawn is at the runic site — or at the Warren, §2.6, once you've planted one — so dying deep in the hamlet before that costs a whole re-approach), **the alarm** (the town escalates and never de-escalates — goblins don't calm situations down, they leave), and **the clock** (30 minutes, always on the HUD, the Overlord's whispers checking in at the 10-minute mark, naming a direction at 5, and pointing you there outright inside the final 2).
 
-### Horde goblin spec
+## 2.3 The Scout — one class this slice, three more waiting
 
-One archetype for the prototype: **Horde Goblin** — ~40 HP, dagger swipe, fast, no dodge, comically fearless. No lives; they die for good (that's the point — the pool limit is the resource). They take friendly fire like everyone else, so a badly-thrown torch into your own horde is both a tragedy and the funniest thing that will happen all raid.
+**One hand-tuned kit, not four (decided, 2026-07-24).** The tutorial/demo slice ships a single playable class — **the Scout** — instead of the four-kit roster drafted earlier. It's the same trade the tutorial hamlet already made in §2.8: rather than split a seven-week solo-plus-agents budget across four weapon kits' worth of animation, telegraphs, and combat tuning, the Combat & Feel Agent (§3.1) spends that budget once, on one kit, and gets it playing *well* instead of four kits playing adequately. The other three aren't cut — they're fully designed and move to the same funding-gated, post-tutorial roadmap as the procedural generator (§2.8), unlocking once a player has cleared the tutorial hamlet and the studio has budget for a second kit's worth of production.
 
----
+A goblin's identity is its weapon kit, and this slice's identity is the Scout's. Every raid verb — sneak, loot, carry, take down, torch — is built once, on this kit, before the roster grows:
 
-## 6. The level — the hamlet and the forest
+| Class | Kit | HP / Speed | What it feels like to play |
+|---|---|---|---|
+| **Scout** | Daggers ⇄ Bow (live swap) | 110 / Fast | The natural sneak — fastest crouch-walk, cleanest takedowns, picks off the watchman at range |
 
-One core raid *environment* for the prototype — but no longer one map. An authored forest ring and runic site enclose a **procedurally generated hamlet**: every raid, a seeded generator arranges the settlement fresh from hand-authored modules (§6.3).
+It's the right single class to teach the game with: every raid verb reads clearly on a fast, light kit before a player ever needs to learn how a slower or ranged-caster kit changes the math.
 
-**Naming tone (decided — revised 2026-07-21, decision 10):** the cozy-smug, money-soaked register stands, stretched into an **ascending-currency register of county names** across the settlement ladder (§6.4): groat → penny → silver → highpurse. **Groatsworth, Pennybrook, and Silverford are *counties*, not towns — the raided settlements themselves stay nameless**, small parts of a larger countryside (there are many hamlets in Groatsworth; you are burning one of them). **Highpurse Keep** stays a named place: the county seat at the top of the ladder.
+**Waiting on the roadmap, once the Scout has taught the loop:**
 
-**Time of day (decided, unchanged):** the raid takes place at **dusk** — fixed golden-hour-into-twilight lighting for the prototype. Firelight gets to be gorgeous against it. Day/night cycle is roadmap; nothing in the lighting build should preclude it.
+- **The Brute** (Great-club, 170 / Slow) — the go-loud specialist: worst at hiding, best when hiding stops, and built to carry two pigs at once. Unlocking it turns "go loud on purpose" from a phase every raid passes through into a playstyle a returning player can lean into from the first minute.
+- **Shaman (Shadow)** (Shadow Staff, 85 / Medium) — armor-ignoring ranged pressure plus a group root; the answer to a bucket brigade and a knight's armor alike.
+- **Shaman (Blood)** (Blood Staff, 85 / Medium) — a blood-orb economy caster conjuring daggers, spears, and lances on the fly.
 
-### 6.1 The runic site (spawn / extraction)
+All three keep their full designs in the working design doc exactly as drafted. None of the class-specific work already done on them gets re-litigated when they unlock — it's frozen in the ledger the same way the palisade breach systems are (§2.8), waiting on its own tier rather than its own re-design.
 
-A ring of goblin-carved standing stones in a forest clearing, faintly glowing, humming with the Overlord's magic. Teleports the warband to and from the lair. **Authored once; persists across seeds.**
+**Universal kit, every class:** a **torch toss** (Q — sticks where it lands, ignites, spreads; fire is always a *player* verb), the **war-horn** (G — see §2.5), a committed **dodge roll** (0.22s of invulnerability, punishable recovery), a **crouch** (stealth stance), and **hold-E interact channels** — loot, take down, foul the well, carry. *(Chopping and the wood economy are deferred to tier 2 with the breach layer.)* Combat is deliberately weighty: attacks commit, enemies telegraph with visible wind-ups and ground decals, and every hit lands with hitstop and knockback. You win fights by reading them, not mashing.
 
-- **Spawn:** raids begin here. Loadout is chosen back at the lair (a menu screen for the prototype; the lair as a walkable hub is post-prototype).
-- **The portal opens on objective completion** (decided): the stones idle dark until all three of the raid's burn objectives are done, then flare open. Once open, goblins can step through to extract (**deeds bank on exit**) and **loot can be tossed into the portal** to bank instantly.
-- **Loot staging:** courier sacks (and delivered livestock) arriving before the portal opens pile up *inside* the circle — safe, since humans won't enter — and auto-bank the moment it flares.
-- **Pouch auto-bank** *(decided, 2026-07-21)*: stepping into the circle **banks your pouch automatically, mid-raid included** — a greedy goblin can jog home, empty its pockets into safety, and head back out.
-- **At 0:00 the portal begins to collapse** — 90 seconds to get through before it dies (§9, "The clock").
-- **Respawn:** respawn point when a life is lost (§9) — the stones re-knit you whether or not the portal is open.
-- Humans are superstitious about the stones and won't enter the circle — the one safe tile in the world. *(Also the satire: they filed a complaint about the stones instead of removing them.)*
+## 2.4 Stealth — the quiet half of the raid
 
-### 6.2 The forest
+Stealth is deliberately *lite*: the whole detection model is one readable rule — a guard's sighting of you must **hold for about 1.5 seconds to confirm**. Duck behind a haycart before the confirm lands and you were never there; get confirmed and the town moves to Suspicious. On top of that foundation sit five systems, and only five:
 
-Dense woodland ringing the hamlet, with **worn paths** connecting the runic site to the settlement's open approaches — with no wall there is no front door, and the fainter circling trail matters more, not less. Off-path movement is allowed everywhere but slower going and darker. **The forest ring is authored once and persists across seeds** — the fixed, learnable frame around the generated picture. It is also **green and unburnable** *(decided, 2026-07-21 — "it's magic")*: your fire language stops at the treeline, so the run home never burns down behind you.
+1. **Noise.** Every action has an audible radius the player learns by feel: walking is quiet, running less so, smashing stalls and fences is loud, and fire is a town-wide announcement. Guards investigate noise; the squawking chickens investigate *you*.
+2. **Crouch.** A stealth stance that tightens every guard's effective detection range and slows you to a creep. Hedgerows, fences, haycarts, and pen walls are the hamlet's cover language — the tutorial hamlet is hand-placed to guarantee broken sightlines between the treeline and every objective, the same design rule the post-slice generator will enforce algorithmically once it exists.
+3. **The takedown.** Approach an *unaware* human from behind and hold E: one silent, committed animation and they're gone. Interruptible, position-demanding, and deeply goblin. Any goblin can do it; the Scout — this slice's only class — does it fastest of the whole roster to come. On an unarmed civilian, the same approach offers a second outcome: **bind** them instead of ending them — a longer, more interruptible channel that starts a rope chain rather than a body (§2.6, §2.7).
+4. **Corpses talk.** Bodies aren't cleanup work (no dragging in this slice) — but a guard who *sees* one goes straight to Suspicious and starts investigating. Sloppy stealth leaves a trail of alarms behind you.
+5. **The coin toss.** Throw looted coins to make greedy humans — guards included — break off what they're doing and scramble for them. The distraction tool that *is* the game's thesis, promoted to a core verb in this slice.
 
-- **Human patrols (cadence decided):** a fresh patrol — **3 guards: 2 militia + 1 archer, torches drawn** *(decided, 2026-07-21)* — enters the forest **every 5–7 minutes at random intervals** (~4–6 patrols per raid), walking loops between the hamlet and the forest edges. Their **firelight is visible through the trees before they can see you** — the patrol announces itself, and reading the bobbing glow is the forest's stealth tell. Players choose: slip around, ambush quietly, or brawl. **Patrols are fully eliminable** — wipe one and the forest is genuinely clear until the next cadence tick — *until the alarm goes off*, when the castle starts sending real reinforcements (§8.1). **A patroller who breaks away and reaches the hamlet starts the raid warm.** Patrols intercept loot couriers **opportunistically only** (decided).
-- **Landmarks for orientation:** the watchtower's silhouette over the treetops, chimney smoke, a crashed cart on the main path (free starter loot + tutorial-by-scenery), **the windmill's turning sails when this seed rolled one** — and, far on the horizon, the silhouette of **Highpurse Keep**, the castle whose soldiers answer the bell (§8.1): a skybox promise of consequences, and the ladder's top rung.
-- *(The old harvestable-trees/deadfalls wood loop is tier-2 content with the rest of the wood economy — Appendix A. Chopping is not a slice verb — decided, 2026-07-21.)*
+What stealth is **not**, by decision: no light-and-shadow meter, no disguises, no body carrying, no ghost-run win condition. The objective is arson; a perfect stealth approach ends with a fire everyone can see. The reward for staying hidden is *position* — you choose when the loud half starts, with full pockets, thinned guards, a fouled well, and the horde one horn-blast away. A dedicated score bonus (**"First Spark Unseen"**) pays out if no one confirmed a goblin before the first objective caught fire.
 
-### 6.3 The generated hamlet
+## 2.5 The horn and the horde — the go-loud button
 
-A tiny, unwalled human farming hamlet doing suspiciously well for itself. No palisade, open approaches; defense by sightlines and a handful of guards. At raid start, a **constrained seeded generator** assembles it from three hand-authored **module types** on a **zone-ring template** *(decided, 2026-07-21 — modules occupy zones on a ring; roads are wayfinding dressing, not structure; the road-and-plots model becomes the tier-2+ generator evolution, where streets are real)*, stitched together with trees and greenery:
+Blowing the war-horn summons AI goblins who **sprint in from the treeline** (never popping into existence — watching them arrive is the joke and the fantasy), 3–4 per blast, up to 10 active, drawn from a finite raid pool of 20. Dead horde goblins are gone for good; when the pool is dry, the treeline is silent. The horn is *loud* — it is the formal end of the quiet half, and blowing it early is a choice you get to regret.
 
-| Module | Contents | Burn objective |
-|---|---|---|
-| **Core village** | Houses (6–8 in a ring, **shells-only interiors for the slice** — decided), the **well** (bucket-brigade source, foulable), the **watchtower** (watchman + bell + doze cycle), the small **barracks** (stone-based, unburnable, beatable), street lamps, propaganda props (the WarriorStatue et al., §3) — and, **only when the village carries an objective: market stalls with lootable gold and the strongbox** *(decided, 2026-07-21 — market wealth spawns only where the granary objective rolls; a non-objective village still generates its garrison, well, houses, and civilians, but keeps no wealth worth the trip)* | **The village granary** — a fat, silo-bellied hoard of grain sitting where the guards are thickest. Chaos-fracture collapse when fully burned. *(Custom asset — decided, 2026-07-21: the granary is a custom silo-bellied build, and the custom-vs-kitbash style seam is a feature: the things you burn read as yours to burn. The Barn stands in until it lands.)* |
-| **Farmstead** | Barn, **livestock pens** (chickens, sheep, pigs — §9: kill petty, steal big; a startled flock is a noise stimulus, so pens are stealth terrain), troughs, coop, haystacks, scarecrow | **The ripe wheat field itself** — fire spreads row to row across the crop grid; the most visible arson in the game. Doused cells are **re-ignitable**, and field fire **may jump to adjacent flammables** — fences, haystacks, a granary built too close *(decided, 2026-07-21 — more fire the better)*. Completion is measured in **grid cells: ≥70% burned (placeholder)**; Combat & Feel owns the metric. |
-| **Windmill** | The mill and its grain logistics (sack and crate clutter) — and the **landmark**: its sails turn above the treetops, an orientation aid from anywhere in the forest | **The mill** — and it has the game's wow moment *(decided, 2026-07-21)*: exterior fire alone won't take it. You ignite it by **tossing torches through its windows** (an aimed throw); the interior fire builds until the **grain dust detonates** — a one-off explosion (VFX + light spike budget-exempted for the moment itself) — and the aftermath **state-swaps to a smashed version**: silhouette kept, collapsed inward, still burning. |
+Control is deliberately simple — no squad-command layer:
 
-- **The objective roll (decided):** each generated map carries **three burn objectives randomized across the module types, max two of the same kind** — granary + two fields one raid, mill + granary + field the next. The portal opens when all three burn. **Two-village rolls are allowed** *(decided, 2026-07-21)*, with a standing generator rule: **two villages always generate far apart**. The roll changes where the loot, livestock, guards, and fire risk sit relative to each other; this is the tier-1 difficulty configuration — higher tiers re-weight module mixes, objective counts, and rewards.
-- **Objective discovery (decided, 2026-07-21):** the roll is **named at raid start** — HUD objective list plus the Overlord's whisper — but the environment, not the UI, guides you to *where*: **converging roads, signposts, wheat-density gradients thickening toward a field, the audible racket of a pen**. This is a **standing generator placement requirement**, not set dressing. **No HUD arrows, ever.** Finding the targets is the scout.
-- **The objective manifest (decided, 2026-07-21 — hybrid approved):** the generator emits a **manifest that is the source of truth for the roll**; per-entry actor resolution stays tag-search. Test plan: benchmark raid-start cost of manifest+validation vs pure tag-search — honestly noted: the slice is offline solo/co-op, no shared many-player resource exists, so the measurable risk is **raid-start hitching**; any future online backend load-tests separately.
-- **Trees & greenery seams:** hedgerows, copses, garden plots, and meadow grass fill the gaps between modules — and double as the stealth layer's cover language. **Density goes up substantially from the prototype's first pass** *(decided, 2026-07-21 — "a lot more trees")*. **Cover rule (decided):** the generator guarantees broken sightlines between the treeline and every objective. Fair by construction, on a map no human ever reviewed.
-- **Persistence & cost:** modules and arrangement change per seed; the forest ring and runic site do not (§6.1–6.2). Runtime navmesh builds at raid start — a loading-moment cost, not gameplay.
-- **Golden-seed fallback (decided):** if variance tuning slips, ship the single best seed as *the* hamlet. Human gate: Michael plays 5 seeds; all must read fair — **on foot**, which is why the walkable base character controller is week 1's top priority (§12.2, decision 23).
-- **Population (decided, 2026-07-21 — supersedes the old settlement table):** **4 posted guards — 1 in the watchtower, 1 at the barracks door, 2 wandering** (a data row, not code) — plus barracks reinforcements while alarmed, **6–10 civilians** on routine loops, and penned livestock.
+- **Follow:** the horde trails you in a loose scamper.
+- **Frenzy:** anything that attacks you, or anything you attack, gets swarmed automatically.
+- **Point (one context command):** aim at an enemy — *"get 'em."* Aim at a stall, a fence, a pen gate — smash it. Aim at a dropped loot sack **or a pig** — the nearest goblin shoulders it and **couriers it all the way home** to the runic site (§2.7) — deliver the cargo and that goblin **rejoins the pool of summonable goblins**, ready to answer the next horn blast; only death spends a goblin from the 20-pool for good.
 
-### 6.4 The settlement ladder
+With no wall in tier one, the horde flows freely through the hamlet — which is exactly why higher tiers (§2.8) reintroduce walls: the ladder is partly a story about the horde's access getting harder to arrange. Horde goblins take friendly fire like everyone else, so a badly thrown torch into your own mob is both a tragedy and the funniest thing that will happen all raid.
 
-The generator is the first rung of the game's long-term structure. Each tier scales defenses, enemy quality, mechanics, and rewards; all tiers procedurally generated. **Tier names are county names** (decision 10) — you raid ever-richer counties' settlements, and the settlements stay nameless until the one that isn't.
+## 2.6 The town that fights back — what the player sees
+
+The hamlet is small — **four posted guards** *(placeholder split: one in the watchtower, one on the barracks door, two wandering)*, the **watchtower** itself (an archer with a bell and a nap schedule; his vision cone visibly droops as he dozes), a small **barracks** (stone-based, unburnable, beatable), and 6–10 civilians on daily routines. The defense is legible on screen, not hidden in numbers, through four visible **alarm phases**:
+
+- **QUIET:** field work, pen chores, pottering. The watchman dozes. This is the stealth half's playground.
+- **SUSPICIOUS:** the hamlet is sitting on one uncorroborated **soft signal** — a goblin half-confirmed, a corpse discovered, a squawking flock, a forest patrol's horn carrying in from the treeline, a patrol that's overdue and hasn't checked in at its expected waypoint (§2.1), or a hamlet whose daily routines have gone conspicuously quiet — enough civilians dead, bound, or simply gone that the gap itself becomes the tell. Captured counts exactly the same as killed here: the town doesn't know the difference, only that people stopped showing up. Any single soft signal is enough to move QUIET → SUSPICIOUS: the nearest guard investigates, the watchman actually watches. Left uncorroborated, it **decays back to QUIET** after a short window — most soft signals are false alarms, and the town treats them that way. But a *second* soft signal of any kind arriving while the hamlet is still SUSPICIOUS doesn't just refresh the clock — it escalates straight to RAID, same as the bell or open combat: a far-off horn followed by a missing patrol's checkpoint alarm reads as confirmation, not coincidence, even though no human ever laid eyes on you. Neither timer shows on the HUD — the tell is ambient, a guard muttering that a patrol's running late, the watchman's posture stiffening after a horn call — so the pressure is felt, not read off a countdown. (Killing an entire patrol means it can never check in either way, so even a silent, horn-suppressed wipe eventually files its own soft signal once the grace window lapses — the difference is that a suppressed wipe costs one recoverable SUSPICIOUS blip instead of an instant escalation, which is exactly what the clean-wipe score bonus, §2.9, is paying for.)
+- **RAID:** the bell rings, or open combat, or *fire*. The barracks starts producing guards (militia, then archers, then armored knights), and the distant castle on the horizon — **Highpurse Keep** — begins sending reinforcement squads that march in from the map edge. Both taps draw from one finite **raid-response pool of 15** — this raid's entire Groatsworth garrison, not a script that tops itself up forever. (The pool size is tier- and race-specific, set deliberately below the goblin horde's pool of 20 so grinding it can never out-score an honest stealth-and-loot raid; see the race design briefs for how it scales to other defender races and settlement tiers.) Kill your way through it and the county is, for this raid, out of soldiers: the barracks and the horizon alike fall silent, no new fighters, no new combat points. The hamlet can't stop you; the county can — exactly once, at this size.
+- **RAZED:** the hamlet is substantially burned; internal spawners fall silent regardless of the pool's state. If any of the raid-response pool is still standing, what's left converges on you as a last push home. If you've already emptied it, that pressure is gone too — the "get out now" urgency is entirely the burning hamlet and the closing clock, because you've already laid the county's response to waste.
+
+Counterplay is physical and readable: silence the watchman before he rings the bell (+25); **foul the well** ("dump something unspeakable in it") to permanently disable the bucket brigade (+30); beat down the barracks to stop reinforcements (+40). Civilians (10 HP, no attack) run routines, panic, and join bucket lines — and, on top of the old petty-kill option, they're now a real choice. Kill one and it's *petty*, 5 points, permitted and forgettable, same as it's always been. **Bind one instead** (§2.4) and you're taking a captive: goblins haven't forgotten what "the kingdom" did to them, and marching prisoners home in a rope chain (§2.7) is the tribute His Eternal Darkness actually wants — not a body count. One stretch behavior, first in line if the schedule bites (§4.5): once chaos peaks, some **civilians loot their own market stalls** and bolt for home — competing with *you* for the hamlet's gold.
+
+**The Warren — a field relay, once the horn's been blown (decided, 2026-07-24).** Once a raid has gone loud, a player can spend a hold-E channel to plant **the Warren** — a crude, goblin-dug hole torn into the ground, not a second runic portal (His Eternal Darkness has exactly one of those, and it stays at the stones). Digging it is loud: it throws a noise signal like any other loud action, so where you plant it is a real decision, not a free save point. It costs one goblin from the horde pool (§2.5) — the digger stays behind to hold it open — and only one can be active per raid; if guards find and destroy it, it's gone for the rest of the raid and everything reverts to the stones. While it's standing, it does two things, deliberately not three: it becomes your respawn point instead of the far-off runic site, so a death deep in a burning hamlet costs a short trip back to the fight instead of the whole forest crossing; and loot and prisoners delivered to it **bank permanently on delivery, exactly like the stones** (§2.7) — so a raid that ends in a wipe still keeps whatever made it to the Warren. Deeds don't bank there, on purpose: loot gets more forgiving, because a struggling raid should still walk away with something real for what it actually gathered, but deeds — the raid's kills, arson, and mischief — still only bank on a clean extraction through the real portal. That's the tension the whole loop is built around, and a second place to bank them would erase the reason to ever risk the run home.
+
+## 2.7 Loot, livestock, and couriers — greed as a system
+
+Score comes in two kinds, and the difference is the strategic spine of the game:
+
+- **Deeds** (kills, takedowns, arson, mischief bonuses) are intangible and provisional — they bank only when *you* step through the stones.
+- **Loot** is physical — coins, market goods, the strongbox, grain sacks, **and livestock** — and **banks permanently the instant it reaches the runic site**, wipe-proof.
+
+**Livestock are loot that runs away.** The hamlet's pens hold chickens, sheep, and pigs (kitbashed from the same stylized packs as the humans). *Killing* an animal is a petty deed — 2 points for a chicken, 5 for a sheep, 8 for a pig, party-favor feathers included — permitted and pointless, exactly like civilian kills. *Stealing* one is the real prize: a live pig is a squirming over-the-shoulder carry worth a fat 40 loot points (sheep 25, chickens 10), and a valid courier target — point a horde goblin at a pen and watch it chase, catch, and waddle off with a pig on its back. His Eternal Darkness wants the hamlet's *wealth*, and its wealth has trotters.
+
+Livestock also belong to the stealth layer: **a startled flock is an alarm**. Blunder through the chicken pen and the squawking is a noise event that pulls the nearest guard to investigate — or, used deliberately, a thrown chicken is the cheapest distraction in the game. Pens are terrain: a hazard on one route, a tool on another, and a payday on the way out. Chickens get their own bit: they're weightless, so a goblin carries **two at once, one under each arm** — and fighting one-handed while holding a chicken is not just possible, it's encouraged.
+
+The rest of the loot flow: looting is something you *do*, not something that happens — a locked chest's lid must be **smashed open** (a destructible, the same make-the-world-breakable language as the burn objectives and the market stalls), and the coins inside are gathered with an interruptible hold-E channel, packing your **pouch** bit by bit while a patrol may be closing in. Die, and your pouch spills out as a lootable sack at your corpse. Loot moves home three ways: carry it yourself (slow, can't fight), toss it into the open portal (or the Warren, §2.6, if one's standing), or send it by courier — every courier is a fighter who leaves the raid *for the trip*, greed versus muscle from the same horde pool. That trip is temporary, not a sacrifice: a courier who delivers its cargo **rejoins the pool of summonable goblins** the instant it reaches the stones, free to answer the next horn blast same as any other reserve goblin. Only death is permanent — a horde goblin killed in the field is gone from the 20-pool for the rest of the raid, but a successful delivery costs nothing but time. That's the actual exchange rate behind "greed versus muscle": **time traded against tempo, not bodies traded against bodies.** Patrols intercept couriers opportunistically only; a dead courier (or pig-thief) drops its cargo where it fell and is spent from the pool for good, same as any other horde death.
+
+**Prisoners are loot that walks itself — mostly.** Binding a civilian (§2.4, §2.6) starts a rope chain rather than ending a life: bound captives link up behind whoever caught them and get walked home the same way any other cargo does. A horde goblin can escort up to **three prisoners per goblin** — point at the chain and it takes over, the same command that already couriers a pig or a loot sack (§2.5), and rejoins the summonable pool on a safe delivery exactly like any other courier — but beyond that capacity, or with no horde goblin free, you walk the rest yourself: slow, can't fight, exactly the cost of self-carrying any other loot. Prisoners bank the same way the rest of loot does — the instant the chain reaches the runic site or the Warren (§2.6), permanently, wipe-proof — and an intercepted or killed chain drops its cargo where it fell (and spends the escorting goblin from the pool), same as a dead courier. It's a harder, slower, riskier choice than a takedown, and it's meant to be: the game should reward marching the county's people home over quietly erasing them.
+
+## 2.8 The tutorial hamlet — and the ladder it's the first rung of
+
+**One hand-authored hamlet, not a generator (decided, 2026-07-23).** The slice ships a single, hand-composed hamlet assembled once from three hand-authored **module types**, stitched together with trees and greenery on an authored road-and-plots layout — not a constrained generator assembling a fresh one every raid. That's a deliberate scope call, not a fallback: procedurally generating an entire map free of placement bugs (week 1 alone already surfaced a road cutting through a house and a windmill sited on an unbuildable rock face) is real, open-ended engineering risk, and the better trade for a one-human-plus-agents team on a seven-week clock is to spend that budget once, by hand, and bank the reliability rather than fight a system that isn't there yet. The three module types:
+
+- **The core village** — the hamlet's social heart: houses, the well, the watchtower, the barracks, and the **market stalls with lootable gold** (the map's loot concentration, and where the strongbox spawns). Its burn objective is the **village granary**, sitting where the guards are thickest.
+- **Farmsteads** — the working edge: a farmhouse, **livestock pens** (the chickens, sheep, and pigs of §2.7), and ripe **wheat fields whose burn objective is the crop itself** — field fire spreads row to row, the most visible arson in the game and the hardest to douse.
+- **The windmill** — the landmark: its silhouette turns above the treetops (an orientation aid from anywhere in the forest, like the watchtower). Burning it down is a two-stage set piece, and — fixed this revision — both stages are now visible. Any torch touching the mill's frame starts **Stage 1 — Ablaze**: the sails catch, the smoke column thickens and darkens, a HUD line reads *"Windmill: Ablaze — needs a window shot,"* and His Eternal Darkness delivers a one-line bark the first time it happens ("Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window"). That's the tell fire's alarm cost was always missing: exterior fire still doesn't finish the objective on its own, but it's never silently wasted anymore — the player can see exactly what they bought and what's still owed. Finishing it means throwing a torch **through one of its windows** (an aimed throw) to catch the grain dust inside for **Stage 2 — Detonation**, which builds until the dust **detonates** in a one-off explosion and the mill state-swaps to a smashed-but-recognizable silhouette — collapsed inward, still burning. It's the raid's biggest visual payoff, the only objective you can't finish from outside, and now the only one where "go loud" and "finish the job" are two separate, both-legible steps instead of one action with a hidden second half.
+
+This hamlet carries **all three burn objectives in a single fixed layout — one granary, one field, one windmill** — rather than the randomized two-of-three mix a procedural version will eventually roll; a new player sees every objective type, and how each one burns, in their very first raid instead of maybe two of them. **Trees and greenery** (hedgerows, copses, garden plots) fill the seams between modules and double as the stealth layer's cover. The layout also owes the player **wayfinding**: you're told *what* to burn, and the environment leads you to *where* — roads converge on the village core, signposts point the miles, wheat density thickens toward the mill, and the pens announce themselves by ear. Hand-authored prefabs keep the art language and readability intact (every surface still telegraphs what burns and what breaks); the same prefab kit is what the post-slice generator will eventually arrange algorithmically, once it's built. The forest ring and the runic site are authored once, same as everything else.
+
+**A hamlet built to be skipped, one prompt at a time.** Every objective and mechanic this hamlet introduces — the granary, the field, the windmill, the patrol and its soft-signal escalation (§2.6), a civilian pair offering both the takedown and the bind choice (§2.4), and a livestock pen for a first courier run (§2.7) — carries a short, dismissible prompt the first time the player meets it: a bark from His Eternal Darkness plus a one-line HUD note naming the objective, the payoff, and the one control that does it (the windmill's Stage-1 bark above is one instance of this same system). A single settings toggle skips every prompt at once for players who don't want the hand-holding; nothing is gated behind reading them — they're a teaching layer sitting on top of mechanics that already work standalone, not a tutorial mode the rest of the game depends on.
+
+The full **settlement ladder** — and the constrained procedural generator that would populate its higher tiers with fresh layouts every raid — remains the long-term difficulty structure and stays fully designed: the generator's cover-guarantee rule, wayfinding requirement, and golden-seed fallback are recorded in the settlement-generator spec, and the race-specific raid-response pools below are recorded in the four race design briefs. Building the generator itself is post-slice, funding-gated work — the kind of open-ended placement-bug risk described above isn't worth taking on speculatively inside a seven-week solo-plus-agents slice. Tier names are *county* names, not town names *(placeholders in the ascending-currency register)*: the settlements you'll eventually raid stay nameless — small parts of a much larger countryside, beneath the humans' notice until they're on fire. Each tier scales defenses, enemy quality, mechanics, and rewards:
+
+**A failure mode worth naming even though it's dormant this slice (raised in Assignment 1 peer review, Avery Shelly).** The open question was what happens, mechanically, if the generator's five-seed review gate (settlement-generator spec §6) produces zero *fair* verdicts — past what the golden-seed fallback quietly assumes, since "pick the best-reviewed seed" only works if some seed is actually good. The spec now answers it (§7): if iteration burns the variance-tuning budget without any seed ever clearing a full fair verdict, the fallback drops one level further — to the seed with the fewest and least severe unfair markings, hand-patched exactly once (nudging a cover prop, moving a guard post off a corridor) rather than redesigned, a scoped and logged exception to the seed-review protocol's own no-hand-edits rule. That patched seed then follows the normal golden-seed procedure, and nothing about it is visible or explained in-fiction — the hamlet the player sees is just the hamlet, same as any other seed. It's genuinely moot for *this* slice, since no generator runs at raid start and there's no seed gate to fail — but the question needed a real answer before the generator's post-slice funding makes it live again, and it has one now instead of a gap.
 
 | Tier | County / target | New defenses | New play |
 |---|---|---|---|
-| 1 · *the slice* | **Groatsworth** — an unwalled hamlet | Open ground, 1 watchtower, small barracks | Pure stealth-approach raiding — this document |
-| 2 | **Pennybrook** — a palisade town | Wooden wall, gatehouse, more guards | The breach layer — hidden gap, dig, ram, catapult, the gate-opening inside job (Appendix A; fully designed, deferred not cut) |
-| 3 | **Silverford** — a stone-wall town | Unburnable perimeter, knights standard | Fire stops working on the walls; digging and siege engines become load-bearing |
-| 4 | **Highpurse Keep** — the castle itself | The county seat — where the reinforcements come *from* | Assassination missions (Mayor Goldbottom) — the roadmap's endgame |
+| 1 · *the slice* | **Groatsworth** — the tutorial hamlet (many nameless hamlets, once the generator ships) | Open ground, 1 watchtower, small barracks | Pure stealth-approach raiding — this document |
+| 2 | **Pennybrook** — palisade towns | Wooden wall, gatehouse, more guards | The breach layer: hidden gaps, digging, battering ram, catapult, gate-opening inside jobs *(fully designed; deferred from this slice)* |
+| 3 | **Silverford** — stone-walled towns | Unburnable walls, knights standard | Fire stops working on the perimeter; digging and siege engines become load-bearing |
+| 4 | **Highpurse Keep** — the castle itself | The counties' seat — the place the reinforcements come *from* | Assassination missions (Mayor Goldbottom), the roadmap's endgame |
 
-The ladder reframes rather than discards: tier 1 exists so the stealth-and-raid core is proven on open ground before walls complicate it — and it is partly a story about the horde's access getting harder to arrange (§5).
+The ladder reframes rather than discards prior design: the palisade breach systems (gap randomizer, gate structural HP, dig tunnels, wood economy, ram, catapult) are fully designed and architected in the project's technical docs — they are **tier-2 content**, not cut content. Tier 1 exists so the stealth-and-raid core is proven on open ground before walls complicate it.
 
----
+Each settlement's raid-response pool (§2.6) is sized to who's defending it, not just which tier it is: tier 1's Groatsworth garrison is 15, one notch below the goblin horde's own pool of 20 — and the tutorial hamlet already runs on that number directly, not a placeholder awaiting the ladder. Future defender races on the roadmap — Dwarves, Elves — aren't just re-skinned humans with a new tier number; their pools are set by their own identity (Dwarves' armored-but-fewer holds sit below the human garrison, and evasive-glass-cannon Elves field fewer bodies still) and recorded in their own race design briefs, not squeezed into this human-only ladder.
 
-## 7. The approach — stealth
+## 2.9 Scoring (placeholder values, tuned in week 6–7 playtests)
 
-With no wall, getting in is trivial; getting in **unnoticed** is the game. Stealth in the slice is deliberately *lite* — one readable foundation plus exactly five systems.
+Objective burned (granary / field / mill) 100 each (+150 for all three) · loot items 5–25 · market gold 5–15 per stall · strongbox 75 · **stolen pig/sheep/chicken 40/25/10 (loot-kind)** · **livestock killed 8/5/2 (deed, petty)** · militia/archer/knight 10/15/25 (capped by the raid-response pool of 15, §2.6) · takedown +5 on the kill · civilian 5 · **civilian captured (marched home, loot-kind) 15** · watchman silenced +25 · **"First Spark Unseen" +40** · **"None Left Behind" +40 (every civilian in the hamlet marched home alive)** · well fouled +30 · barracks demolished +40 · **clean patrol wipe (horn silenced before it sounds) +15** · **made it home: ×1.5 on deeds** · +20 per unused life. End screen: itemized deeds/loot split, letter grade, Overlord verdict, personal best. The prototype economy is *score only* — the tier ladder's scaling rewards and progression trees are architected for but deferred.
 
-**The foundation (existing, unchanged): the one-number confirm model.** A guard's sighting of you must **hold ~1.5 seconds to confirm**. Break line of sight before the confirm lands and you were never there; get confirmed and the town moves to SUSPICIOUS (§8.1). Every stealth system below tunes this one number's inputs — nothing replaces it.
+## 2.10 Tone — the comedy is systemic
 
-**The lean five (decided):**
+Humans are greedy first and brave second, and greed is an exploitable AI stat: the coin toss works on guards *because* they're guards in this economy. The watchman's doze is a timer on his perception cone. Text **barks** carry the cheapest comedy per byte ("A goblin? Here? Don't be daft, it's shearing day."). Violence is cartoony-with-a-hint-of-gore — party-favor gibs, clean cartoon bones, an exploding cushion of feathers for the chickens — with a single intensity scalar as the ratings knob, T target. His Eternal Darkness frames everything: apocalyptic whispered gravitas applied to stealing pigs from a hamlet too small for the humans to have bothered naming.
 
-1. **Noise.** Every action gets a formalized **audible radius** (extends the existing noise events): walking quiet, running less so, smashing loud, fire a town-wide announcement. Crouched actions scale to **0.45–0.6× radius** *(placeholder, signed 2026-07-21)*. Guards investigate noise. Squawking chickens investigate *you* — and a **thrown chicken is a deliberate noise lure** (§3, decision 35).
-2. **Crouch — a toggle** *(decided, 2026-07-21)*. The stealth stance: multiplies every guard's effective detection range by **0.75× *(placeholder, signed)*** and slows you to a creep. Hedgerows, fences, haycarts, and pen walls are the cover language; the generator guarantees broken sightlines between treeline and every objective (§6.3).
-3. **Silent takedown.** Hold-E on an *unaware* human from behind — eligibility is a **120° behind-cone**, the channel runs **1.2s** *(placeholders, signed)* — one silent, committed animation and they're gone: **the victim slumps quietly, no scream** *(decided)*, and **the goblin stays silent too before the horn — no gloat lines in the quiet half** *(decided, 2026-07-21)*. Interruptible, position-demanding, deeply goblin. Any class; the Slasher fastest. **+5 deed bonus** on the kill.
-4. **Corpse-suspicion.** No body dragging in this slice — but a guard who *sees* a corpse (same **1.5s confirm-hold** as a live sighting — decided, 2026-07-21) goes SUSPICIOUS and investigates. Sloppy stealth leaves a trail of alarms. **A found corpse does *not* void "First Spark Unseen"** *(decided)* — the bonus tracks confirmed *goblin* sightings, not suspicions; the town finding bodies and refusing to draw the obvious conclusion is the propaganda pillar (§3) doing its job.
-5. **The coin toss — promoted from stretch to core** *(decided, 2026-07-20)*. Throw looted coins — **each toss debits real coins from your pouch** *(decided, 2026-07-21)* — and greedy humans (guards included) break behavior and scramble. The distraction tool that *is* the thesis: greed as an exploitable AI stat, and a distraction that literally costs you score.
+There's a second, more specific joke underneath the general satire: **the kingdom told everyone goblins were extinct.** These hamlets are saturated with royal propaganda — a statue of the king who supposedly slew the last dragon and wiped out his goblin minions stands in every village center — so when a goblin actually shows up, the first reaction isn't fear, it's disbelief. Villagers double-take, mutter "must've been a badger," and keep pottering while their well gets fouled six feet away. It's why a guard finding a corpse goes only to Suspicious instead of sounding the alarm outright — the propaganda is doing its job even while the evidence is on the ground. The town's first response to arson is denial, and that denial is the joke.
 
-**Loop shape (decided): quiet in, loud out.** The objective is arson, and fire cannot be hidden — stealth is not about ghosting the mission, it is about **controlling when the loud half starts**. The reward for staying hidden is *position*: full pockets, thinned guards, a fouled well, and the horde one horn-blast away. The horn is the formal go-loud button. Score bonus: **"First Spark Unseen" +40** — no confirmed goblin sighting before the first objective ignites.
+None of this replaces the comedy — it gives it a floor. Every civilian a player captures rather than kills (§2.6, §2.7) is a small, systemic argument for who the goblins actually are versus what the propaganda claims: not vermin to be quietly stamped out, but a people who were told they didn't exist and are done proving it by staying quiet. His Eternal Darkness's whispers should register the difference — a raid that comes home with a rope chain of prisoners earns a different flavor of verdict than one that comes home merely rich ("Bring me proof they remember us. …adequate" sits closer to the register than another crack about rats). And the denial itself should visibly strain as the evidence piles up: one missing villager is "must've been a badger"; a hamlet's worth of empty routines is the joke's punchline finally landing on the people telling it. **"Now is the time of the goblins"** is the raid's real rallying cry underneath the satire — the Overlord's mockery of the humans and the game's own vengeance are two tones on the same idea, not a contradiction to resolve.
 
-**Explicitly rejected for the slice (decided):** light/shadow detection, disguises, body carrying, a ghost-run win condition.
-
-> **Tier-2 appendix note:** the former §7 — the breach systems (hidden gap, gate + crossbar/Inside Job, digging, the wood economy, ram, catapult) — is relocated **verbatim and in full to Appendix A** as tier-2 content: designed, architected (tech doc §17, §20), and **deferred to the ladder's second rung, not cut**.
+**The weight escalates with the ladder, not inside the first raid (decided, 2026-07-23).** Tier 1 stays deliberately goofy: propaganda-as-denial played as comedy, "must've been a badger," an Overlord who mocks more than he mourns. That's a sequencing choice, not a verdict that the theme doesn't matter — a new player's first raid needs to land as *fun*, and a little bit of superiority (outwitting bumbling guards, walking off with their pigs and their gold while they double-take at a monster they were told doesn't exist), because that feeling is what gets someone to queue up a second raid, not a history lesson delivered on their first one. The heavier version of the theme belongs to the settlement ladder (§2.8): as raids push deeper into the county — Pennybrook's walls, Silverford's stone, and finally Highpurse Keep, the seat the propaganda itself radiates from — the denial gets harder for the humans to sustain and the tone is free to darken to match, culminating in the Mayor Goldbottom assassination confronting the theme directly instead of laughing past it. Tier 1 spends its page count earning the player's trust and their sense of fun; tiers 2 through 4 are where that trust gets spent.
 
 ---
 
-## 8. The defenders & the alarm
+# 3. AI Architecture
 
-### 8.1 Alarm phases
+*Goblin Siege's development team is one human (design authority, art director, hands on the editor) plus ten specialized AI agents running through Claude sessions attached to a shared project workspace. Six of them are **game-system agents**, each owning one cluster of player-facing mechanics end-to-end — it writes the C++ for its systems, then wires them up inside the running editor over MCP. The other four are **studio agents** with craft roles that cut across systems. Every agent below is named, given its development role in one sentence, and — per this course's grounding requirement — described through what the player will actually see because of it.*
 
-The meter persists and drives **phases** rather than only escalating waves:
+*An honesty note up front: these are role-specialized sessions of the same underlying model working over a shared workspace, not ten separate deployments. The specialization is real and enforced — each agent starts from its own system's design sections, tech-doc chapters, and playbooks — and role decomposition over a shared blackboard is the MAS pattern this architecture implements.*
 
-1. **QUIET** — daily routine. Guards posted, civilians pottering, watchman half-asleep, pens clucking. Alarm ticks only from *witnessed* events.
-2. **SUSPICIOUS** (alarm > low threshold) — a half-confirmed sighting, a noise, a corpse, a patrol gone missing. Nearest guard investigates; the watchman actually watches; civilians mutter (and disbelieve — §3). Decays back to QUIET if nothing is confirmed.
-3. **RAID** (bell rung / open combat / **fire seen by a human** — *decided, 2026-07-21: fire promotes the alarm when a human sees it, with a **~10-second unseen-fire fuse** as backstop; even an unwitnessed blaze announces itself shortly*). The meter becomes the escalation system: barracks spawns, guard mix toughens per tier (militia → +archers → +knights), horde waves at threshold crossings. **The bell also signals Highpurse Keep**: from RAID onward, **castle reinforcement squads** march in from the far map edge on a timer. Before the alarm, the forest's only threat is the 5–7-minute patrol cadence — which you can keep clearing; after it, the castle's soldiers keep coming whether you clear them or not (decided).
-4. **RAZED / RELIEF** — once the hamlet is substantially burned, internal spawners go quiet and the castle reinforcements intensify into full **relief columns** — the "get out now" pressure on the trip home.
+## 3.1 The game-system agents
 
-**Alarm sources:** confirmed sightings, the bell, combat, seen fires (or the fuse), the barracks falling, patrol runners reaching town. **Alarm reducers:** none. Goblins don't de-escalate; they leave.
+*Each maps directly onto the §4.5 schedule: an agent's "peak week" is the week its mechanics come online. The compiling scaffold and the tech doc's system-by-system architecture (evidence cited below) were produced under an earlier two-agent split (one programmer, one editor operator); the mechanic split supersedes it because the hard boundaries in this project turned out to be between game systems, not between tools.*
 
-### 8.2 The humans (and their animals)
+**1. The Combat & Feel Agent.**
+*Role: owns the fight — the damage pipeline, the Scout's weapon kit (the Brute and both Shaman kits are designed and held for post-tutorial unlock, §2.3), enemy telegraphs, and the gore system, from C++ through in-editor tuning.*
+Player-facing effect: everything about hitting and being hit. Attacks that commit, dodges with real invulnerability frames, wind-ups you can read on an enemy's body and ground decal, knights whose plate shrugs off a straight-on dagger rush but not a takedown from the shadows or a bow shot placed at the gaps, and party-favor gibs with a single intensity scalar as the ratings knob. Shipped evidence: the compiling GAS scaffold (tagged damage types, the armor/race-matchup pipeline, fire spread, the granary's burn-triggered physics collapse) plus the browser combat prototype that proved the feel before a line of UE code was written.
 
-Existing archetypes carry over untouched (see `race-design-humans.md`): **Militia** (30 HP filler), **Archer** (20 HP, aim-line telegraph), **Knight** (75 HP, armor 6, late tiers). Behavior roles, not new stat blocks:
+**2. The Stealth & Interaction Agent.**
+*Role: builds the hold-E interact framework and the lean-five stealth layer — noise radii, crouch detection, takedowns, corpse-suspicion, and the coin-toss lure.*
+Player-facing effect: the entire quiet half of the raid — the channel bar filling as you pack coins with a patrol closing in, the guard who *almost* confirmed you before you ducked behind the haycart, the silent takedown, the coin arcing into the square and three guards diving after it. Its interact framework is built *first* (week 1) because five other systems ride on it — one ability, many verbs, zero subclasses — which is why "steal a pig" and "foul the well" cost data rows, not new systems. Status: framework architecture complete in the tech doc; the stealth five extend the existing one-number confirm model rather than replacing it.
 
-- **Patrol** (forest): 2 militia + 1 archer, **torches drawn** — the firelight-through-trees tell (§6.2). A survivor of a botched ambush becomes a **runner** (sprints to warn the hamlet).
-- **Watchman** (tower): archer + bell + doze cycle.
-- **Garrison** *(decided posting, a data row)*: 1 watchtower / 1 barracks door / 2 wandering.
-- **Firefighters:** bucket-brigade behavior sourced at the well; interruptible and killable mid-douse. **Field fires (decided, 2026-07-21 — Town Option C):** the brigade fights a burning crop **effectively at the field's edges only** — they can hold a perimeter, never the heart — and only responds once **the field is >25% burned** (the smoke draw): before that, nobody believes a field is really going. Earnest, orderly, and structurally too late.
-- **Civilians** (10 HP, no attack): routine loops → **disbelief** (§3) → flee/panic when it stops being deniable → some join bucket lines → (stretch) some loot their own market.
-- **Livestock** *(new — see §9)*: chickens, sheep, pigs on the civilian panic branch — flee behavior, startled-flock noise stimuli, catchable and carryable. **No named animals** *(decided — they are score, not pets)*.
+**3. The Settlement Generator Agent.**
+*Role, this slice: hand-composes and builds the single tutorial hamlet — the three module types (core village, farmsteads, windmill), one of each burn objective, prefab placement, guard posts, patrol routes, cover rules, and the skippable tutorial-prompt layer (§2.8). The constrained procedural generator this role was originally scoped to build — a seeded road-and-plots template, the three-objective roll (max two of a kind) — is descoped from this seven-week slice; it stays fully designed and moves to the post-slice roadmap, funding-gated (§2.8, §4.5).*
+Player-facing effect: a hamlet with everything the game teaches in it, laid out to be found — a granary, a field, and the windmill all locatable in one honest scout, a patrol whose soft-signal escalation can be learned without three other raids' worth of noise first, and a civilian pair offering both the takedown and the bind choice up front. Its cover-placement rule (broken sightlines guaranteed between treeline and every objective) is what makes the stealth layer fair on a hand-reviewed map. Every placement risk week 1 already surfaced (a road cutting through a house, a windmill on an unbuildable rock face) got fixed once, by hand, instead of needing a generator robust enough to avoid that class of bug on every seed. Status: descoped from procedural to hand-authored this revision; peak weeks 4–5.
 
----
+**4. The Horde Agent.**
+*Role: builds the war-horn, the horde's follow/frenzy/point brain, and the courier behavior for sacks and livestock.*
+Player-facing effect: the horde at your back — a 20-goblin raid pool, up to ten active at once, summoned mobs that sprint in from the treeline, swarm whatever you attack, smash whatever you point at, and chase down a pig before waddling homeward with it — then answering the next horn blast same as any other reserve goblin, since only death actually spends one from the pool (§2.7) — planting the Warren (§2.6) spends one too, the digger staying behind to hold the hole open. Also the game's quietest performance trick: the player never notices that horde goblins have no senses of their own (a central subsystem feeds them stimuli), which is precisely why a full active horde runs at frame rate. Status: designed in full (tech doc §18); week 3 is this agent's week, and its exit test is player-visible — ten goblins plus the player brawling guards without a frame drop.
 
-## 9. Lives, death & extraction
+**5. The Town Agent.**
+*Role: builds the living hamlet — the four alarm phases, guard perception, the patrol director, the watchman, civilians (including the bind/capture alternative to takedown, §2.6), livestock behavior, the bucket brigade, and the finite raid-response pool that caps RAID-phase reinforcements.*
+Player-facing effect: the town that visibly fights back and never calms down — the drooping vision cone of a dozing watchman, the guard who walks over to investigate a corpse, the runner sprinting for the bell after a botched ambush, bucket lines forming at the well, the flock that erupts into squawking the moment you vault into the wrong pen, and, eventually, a county that's visibly run out of soldiers to send. Livestock are this agent's cheapest win: an archetype data row plus a flee behavior, riding on the same panic branch as civilians. Status: partially scaffolded (the firefighting behavior task exists); the alarm-phase skeleton lands week 2, with peak weeks 5–6.
 
-- **5 lives** per player-goblin. Horde goblins have none.
-- **Decided:** on death you respawn **at the runic site** after ~4s — the stones re-knit you. This makes the forest run meaningful and deep raids risky.
-- The horde does **not** die with you; leaderless horde goblins hold position and defend themselves until you return or re-horn.
-- Losing the last life = raid over; **unbanked score is heavily docked** — you keep **25%** as a consolation ("His Eternal Darkness salvages something from your corpse"). Making it back through the stones banks 100% plus the return bonus.
+**6. The Raid Loop Agent.**
+*Role: builds the runic site and its portal states, the Warren's respawn and secondary-banking logic (§2.6), the 30-minute clock and its 10/5/2-minute nudges, and the two-kind score system that decides what a player keeps.*
+Player-facing effect: why nothing counts until you're home — the stones flaring open on the last burn objective, courier sacks, pigs, and rope-chained prisoners piling up visibly inside the circle and auto-banking the instant the portal opens, the 90-second collapse with its guttering glow and cold whispers, and the end-of-raid tally that splits deeds from loot before applying the ×1.5. It's also the agent responsible for the one deliberate exception to all of that: the Warren, a closer, plantable loot-and-respawn point that gives a struggling raid something to show for itself without ever letting deeds bank anywhere but the real stones — the distinction this agent's whole design is built to protect. This agent owns the game's spine: the week-4 milestone — first full loop playable on the tutorial hamlet, start-to-bank — is its deliverable jointly with the Generator. Status: designed (tech doc §22–23); the score table is a data table, so the week-6 sign-off is a spreadsheet edit.
 
-### Loot couriers — banking mid-raid *(decided)*
+## 3.2 The studio agents
 
-**Score comes in two kinds:**
+**7. The Design Steward.**
+*Role: maintains the living game design document, runs design reviews with Michael, and keeps a decisions ledger so no question gets re-litigated.*
+Player-facing effect: every "decided" mechanic in §2 — the 30-minute clock, respawn-at-the-stones, the deeds/loot banking split, kill-petty/steal-big livestock, the lean-five stealth boundary, the golden-seed fallback — exists because this agent surfaced the open question, proposed options with tradeoffs, and recorded the ruling. The player feels this agent as *coherence*: greed-versus-safety shows up identically in the pouch, the couriers, the pig-theft, and the extraction multiplier because one document governs all of them — and all six system agents build from it. Shipped evidence: the Settlement Raid GDD revision, its decisions ledger (three review rounds, 2026-07-10 to 07-12), and the 2026-07-20 hamlet-pivot decision record this document reflects.
 
-- **Deeds** — kills, takedowns, arson, mischief bonuses (well-fouling, First Spark…). Intangible. Deeds bank only when *you* exit through the stones; a wipe salvages 25%. The **×1.5 return bonus applies to deeds only**.
-- **Loot** — physical objects: market gold, strongboxes, grain sacks, valuables, **and livestock**. Loot is *carried*, and anything that physically reaches the runic site is **banked immediately and permanently** — wipe-proof.
+**8. The Asset Artist.**
+*Role: models, textures, and fixes 3D props in a live shared Blender file over MCP, iterating against Michael's annotated-screenshot critiques.*
+Player-facing effect: the hero props the player touches — the reference case is the marketplace **strongbox**, taken end-to-end through this pipeline: chunky hand-painted proportions, iron bands riding *on top of* the wood (the art style's promise that surfaces never lie about their hardness), a padlock with the hasp it actually locks to, and a lid built as an engine destructible so that *smashing it open* — the §2.7 mechanic — works. In this revision it also owns prefab-kit conformance: every piece must read correctly from every angle — true for Michael hand-placing it into the tutorial hamlet this slice, and doubly true for the generator that will place it unsupervised once that work is funded (§2.8). Shipped evidence: the finished chest, an atlas-texture generation script, and roughly a dozen logged review rounds distilled into the playbook below.
 
-**How loot moves:**
+**9. The Writer.**
+*Role: drafts all systemic text — NPC bark sheets keyed to AI states, and His Eternal Darkness's whisper lines — as data-table content, reviewed and approved by Michael.*
+Player-facing effect: the game's voice. Every guard muttering "it's shearing day," every snore from the watchtower, every approving whisper as a stolen pig crosses into the circle comes off this agent's approved sheets, wired so that adding a joke is a spreadsheet row, never code. Shipped evidence: the approved bark sheet (guards, civilians, patrols, watchman, and the Overlord's trigger-keyed verdict lines), now due a livestock-and-stealth extension pass, plus new capture/purge-triggered Overlord verdict lines (§2.10).
 
-- Players carry loot sacks themselves (over-the-shoulder carry — slower, can't attack). Fine for a last armful on the way out.
-- **The courier command:** point (§5) at a loot pile, dropped sack, **or animal** → the nearest horde goblin shoulders it (or chases, catches, and shoulders it) and **runs it all the way home** — then joins the reserve pool rather than trotting back alone. If the portal is open, the cargo banks; if not, it stages inside the circle and auto-banks when the portal flares (§6.1).
-- **The tradeoff:** every courier is a fighter who leaves the raid. Greed vs muscle, from the horde pool you already manage.
-- **The risk:** couriers are squishy, alone, and waddling under a sack through a patrolled forest. Patrols intercept **opportunistically only** (decided). A dead courier drops its cargo where it fell (recoverable). Watching your loot toddle into the treeline and *hoping* is exactly the right emotion.
-- **Comedy layer:** grunts, drops, head-carries. The Overlord whispers approvingly when loot banks ("Yesss. The grain of the unworthy.").
+**10. The Process Historian.**
+*Role: after every substantial working session, writes what broke, what fixed it, and what critique patterns recurred into build logs and playbooks, so the next session starts smarter instead of rediscovering.*
+Player-facing effect: indirect but real — velocity. The chest took ~12 review rounds; the playbook this agent wrote afterward front-loads the recurring principles (hard material overlaps soft at every seam; list every visual state before modeling; verify an object's world position, never trust its name) so each subsequent prop lands in a fraction of the rounds — which, at prefab-kit scale, is the difference between a hamlet built from twelve building pieces and one built from thirty. Shipped evidence: the build log (five root-caused compile failures with fixes, including one full regression caught and re-fixed), the asset-review playbook, and a modeling best-practices section in the GDD.
 
-### Livestock — loot that runs away *(decided, 2026-07-20/21)*
+## 3.3 Coordination — how the agents work as a system
 
-The pens hold **chickens, sheep, and pigs** (kitbash packs). The civilian satire rule applies on the hoof: **kill petty, steal big.**
+Three MAS mechanisms carry the coordination load, each earning its place by solving a specific observed problem:
 
-- **Kill** = petty deed points (chicken 2 / sheep 5 / pig 8). Chicken death = feather-poof gib variant. Permitted and pointless.
-- **Steal** = loot-kind (chicken 10 / sheep 25 / pig 40 — placeholders): live animals use the existing carry state and are valid courier targets. A pig is a squirming over-the-shoulder carry; the Brute carries two. **Chickens are weightless** *(decided, 2026-07-21)*: carry **two, one under each arm**, and **fighting one-handed while holding a chicken is possible** — encouraged, even.
-- **Startled flocks are noise stimuli** — blundering into a pen pulls the nearest guard; a **thrown chicken** is the deliberate version (§3, §7). Pens are stealth terrain: hazard on one route, tool on another, payday on the way out.
-- Implementation: archetype data rows + flee behavior on the civilian panic branch (§8.2); week 6 alongside civilians.
+- **A shared blackboard.** All agents read and write one project workspace (the GDD, tech doc, bark sheet, logs). Cross-agent contracts live there: when Michael's chest critique revealed that "opening" should be engine destruction rather than modeled animation, the Asset Artist *stopped modeling* and wrote the decision into the GDD, where the Stealth & Interaction Agent's framework and the Combat & Feel Agent's destructible pipeline pick it up. The clearest example of a real MAS handoff, not just parallel specialization on the same map (sharpened in response to Assignment 1 peer review, Avery Shelly): the Settlement Generator Agent's placement pass writes a named data contract — a marker set of guard posts, patrol loops, civilian anchors, and the cover-guarantee rule's placed props, specified in the settlement-generator spec — and the Town Agent's perception system reads that set directly to spawn guards, route patrols, and know exactly which props block a sightline, instead of re-deriving cover from raw level geometry itself. The spec states the division outright: **Generator owns *where*, Town owns *behavior and counts***. Neither agent renegotiates that boundary raid to raid; the schema between them is the contract, sitting in a design-doc section, not a conversation. The Horde Agent's couriers reusing the interaction framework's carry state is the same pattern one layer down.
+- **A decisions ledger as commitment device.** Agents treat ledger entries as frozen (approved sub-parts don't get re-touched; "decided" items don't get re-designed). This is the guard against the classic multi-agent failure of two sessions unknowingly re-opening each other's settled questions — which actually happened once at the file level (a project copy silently missing all prior fixes) and is why the ledger and logs are load-bearing, not ceremonial. The 2026-07-20 pivot this document reflects went *through* the ledger: the palisade systems were formally re-scoped to tier 2, not silently dropped.
+- **Human-in-the-loop as arbiter and art director.** Michael holds exclusive authority over aesthetics, tone, and design rulings; agents hold drafting and implementation. The playbook formalizes the critique protocol (annotated screenshots = problem area + fix intent; "fix completely before moving on" = blocking; approval = frozen). This is a deliberate hierarchy, not emergent consensus — one human at the root keeps ten agents from averaging their way into slop.
 
-### Gathering loot — the pouch *(decided 2026-07-11/12; auto-bank added 2026-07-21)*
+## 3.4 In-game AI (for clarity: conventional, not LLM)
 
-- **Opening a chest is a destruction, not a hinge:** the strongbox lid is a destructible (Chaos/Geometry Collection) smashed open by force; the coins are non-interactable until the lid is down.
-- **Channeled gathering, not instant grab:** stash-type loot is worked with hold-E — several seconds packing coin bit by bit, interruptible like every channel. You keep what you'd packed; the rest stays.
-- **The pouch** is your running unbanked-loot tally — passive, no slowdown, no fight penalty. **The coin toss (§7) spends from it.**
-- **On death, the pouch drops** — spills as a lootable sack at your corpse, recoverable by you or a teammate. Don't die holding more than you're willing to lose.
-- **Auto-bank (decided, 2026-07-21):** entering the runic circle banks the pouch automatically, mid-raid included (§6.1).
-
-### The clock — 30-minute raids *(decided, unchanged)*
-
-Hard cap at **30 minutes**; HUD timer always visible; the whispers turn impatient in the final five. **At 0:00** the portal begins to collapse — a **90-second grace window** (screen-wide warning, guttering stones, cold whispers) and then it dies. Anyone through in time banks normally; **anyone outside is left behind** — raid over, unbanked deeds take the wipe penalty (keep 25%). Staged and tossed-in loot is already safe. If the objectives were never completed by 0:00, the portal never opened — same salvage rule. Burn the targets; that's why you're here. The clock is the third pressure alongside lives and the alarm — and the strongest argument for sending loot home *early*.
+The NPCs the player fights are classical game AI, *built by* the agents above, not powered by them at runtime: behavior trees for guards, civilians, livestock, and the horde; a perception system whose entire stealth model is one number (a sighting must hold ~1.5 seconds to confirm); a **patrol director** that spawns forest patrols on a 5–7-minute cadence, tracks whether each one checks back in at its next waypoint (the missing-patrol soft signal, §2.6), and switches to castle reinforcements when the bell rings, drawing every RAID-phase spawn from one finite raid-response pool per race and tier (§2.6, §2.8); and the horde running as a crowd of perception-less agents fed stimuli by a central subsystem, which is what makes ten concurrent goblins cheap. The tutorial hamlet is hand-placed, hand-authored content this slice — no procedural code runs at raid start, and (like everything else here) it's not an LLM call either. No tokens are spent at play time; the player's machine never calls an API. This boundary is itself a scope decision: LLM-at-runtime was rejected as unnecessary — the comedy lives in authored barks and systemic behavior, which are cheaper, funnier, and shippable.
 
 ---
 
-## 10. Scoring — the prototype economy
+# 4. Technical Strategy
 
-**Decided: score only for the 7-week prototype.** No progression trees, no spending — an end-of-raid tally, a rating, and a personal best, architected so the future economy can consume it later without rework.
+## 4.1 Platform and scope
 
-**Score table** *(all values placeholder for playtesting):*
+UE 5.8, C++ with the Gameplay Ability System, Enhanced Input, Chaos Destruction, Niagara, and Behavior Trees; third-person camera; PC; solo-playable slice built co-op-ready (server-authoritative state throughout, no networking work in the slice). One raid environment: a single hand-authored tutorial hamlet inside an authored forest ring with the runic site (a procedurally arranged hamlet is designed but descoped from this slice — post-slice roadmap, §2.8). Art is stylized/hand-painted with marketplace kitbashing green-lit for environment, humans, and livestock; custom art time goes to goblins, the runic site, and hero props only. Because the hamlet is fixed rather than assembled at raid start, its navmesh is baked once rather than rebuilt every raid — one less moving part, and one less loading-moment cost, than a generated layout would carry.
 
-| Event | Points |
-|---|---|
-| Objective burned (granary / field / mill) | 100 each — **completion-only** *(decided, 2026-07-21: awarded when the objective completes — collapse, ≥70% of field cells, the mill blast — never partial credit)* |
-| All 3 objectives (raid complete) | +150 |
-| Loot item (market goods, house valuables) | 5–25 each *(loot-kind: bankable by courier — §9)* |
-| **Market gold** | **5–15 per stall** *(loot-kind; spawns only in objective-rolled villages — §6.3)* |
-| Marketplace strongbox | 75 *(loot-kind)* |
-| **Livestock stolen** | **pig 40 / sheep 25 / chicken 10** *(loot-kind — delivered live to the stones)* |
-| **Livestock killed** | **pig 8 / sheep 5 / chicken 2** *(deed — permitted and petty, §3)* |
-| Guard defeated | 10 (militia) / 15 (archer) / 25 (knight) |
-| **Silent takedown** | **+5** *(deed, on top of the kill's value — §7)* |
-| Civilian killed | 5 *(permitted and petty — §3)* |
-| Watchman silenced before he rings the bell | +25 |
-| **"First Spark Unseen"** — no confirmed sighting before the first ignition | **+40** *(deed; corpse discoveries don't void it — §7)* |
-| Well fouled | +30 |
-| Barracks demolished | +40 |
-| Patrol wiped with no runner escaping | +15 |
-| **Made it home** — exit via the runic site | **×1.5 on deeds** |
-| Per unused life remaining at extraction | +20 |
+## 4.2 Agent roles in the pipeline (summary)
 
-*(The "Inside Job" +50 relocates to Appendix A with the breach layer — decided, 2026-07-21: a far-future achievement, appendix only.)*
+| Agent | Surface(s) | Primary output | Human gate |
+|---|---|---|---|
+| Combat & Feel | C++ (file bridge) + Unreal MCP | Damage pipeline, the Scout's kit, telegraphs, gore (Brute + both Shaman kits designed, held for post-tutorial unlock) | Michael builds & runs; feel sign-off in week-7 tuning |
+| Stealth & Interaction | C++ (file bridge) + Unreal MCP | Interact framework, noise/crouch/takedown/lure | Playtest: can Michael stay hidden *on purpose* |
+| Settlement Generator | C++ (file bridge) + Unreal MCP | Hand-authored tutorial hamlet (one of each objective + tutorial prompts); procedural generator descoped to roadmap | Playtest legibility: Michael walks the hamlet cold, confirms every objective and prompt reads |
+| Horde | C++ (file bridge) + Unreal MCP | Horde subsystem, behavior trees, couriers | Week-3 exit test: 10 goblins + player at frame rate |
+| Town | C++ (file bridge) + Unreal MCP | Alarm phases, patrols, civilians, livestock, well | Playtest legibility: can Michael read the town's state cold |
+| Raid Loop | C++ (file bridge) + Unreal MCP | Portal states, raid clock, score system | Week-6 score-table sign-off (a spreadsheet edit) |
+| Design Steward | Project docs | GDD, decisions ledger | Michael rules on every open question |
+| Asset Artist | Blender MCP (live shared file) | Props, prefab kit, destructibles | Annotated-screenshot review rounds |
+| Writer | Project docs → data tables | Barks, whispers | Sheet-level approval |
+| Process Historian | Project docs | Build logs, playbooks | Passive; audited when consulted |
 
-The multiplier-on-return is the loop's spine: **deeds** are provisional until you're standing in the stones, while **couriered and banked loot is already safe** (§9). Kill-petty/steal-big, the pouch, the couriers, and the multiplier are one tension — greed vs safety — expressed four ways, by design. End-of-raid screen: itemized deeds/loot tally, an Overlord whisper verdict ("Adequate. I have seen rats do better. …adequate."), letter grade, personal best.
+The pipeline's shape: design flows down from the blackboard; the six system agents each work two surfaces — writing C++ through the file bridge, then wiring their own systems in-editor over MCP — so every one of them hits the same two constraints (§4.4, items 1–2) rather than those being one specialist's problem. Everything player-visible passes through Michael before it counts as done. The editor-side toolchain (UE 5.8's official Unreal MCP plugin bridged via `mcp-remote`, plus a staged 890-tool community extension, VibeUE, pending one manual plugin build) is the least-proven link in the pipeline, and the schedule treats it accordingly.
 
----
+## 4.3 Token budget
 
-## 11. Asset manifest — everything the prototype needs
+Anchored to measured experience rather than guessed: the strongbox — the first asset taken end-to-end — consumed roughly a dozen review rounds at an estimated 40–60k tokens per round (scene queries, `bmesh` scripts, screenshot verification, critique parsing), or **~600k tokens for one hero prop, first time**. The playbook exists to cut that to 3–4 rounds (~200k) per subsequent asset — which matters doubly now that the Asset Artist owes the generator a prefab kit. Code sessions run cheaper per artifact (the scaffold's five root-caused build failures each resolved in a session of ~100–150k), but recur weekly.
 
-Scoped to one generated environment, one defender race, third-person camera, dusk lighting.
+Because the system agents map onto the schedule, the budget is a schedule too: each agent's spend concentrates in the weeks its mechanics come online, with a smaller integration-and-bugfix tail afterward.
 
-### 11.0 Art direction & the material language *(decided)*
+| Agent | Peak weeks | 7-week total | What it buys |
+|---|---|---|---|
+| Combat & Feel | W1–2, W7 | 1.6M | 3D combat port, the Scout's kit tuned deep, fire/fracture content, gore |
+| Stealth & Interaction | W1, W5 | 1.4M | Interact framework + the lean-five stealth layer |
+| Settlement Generator | W4–5 | 1.5M | Hand-placed tutorial hamlet, prefab placement, tutorial-prompt system |
+| Horde | W3 | 1.4M | Horde subsystem, BTs, point command, couriers |
+| Town | W2, W5–6 | 1.4M | Alarm phases, patrols, watchman, civilians, livestock |
+| Raid Loop | W2, W4, W6 | 1.1M | Clock, portal states, score system, end screen |
+| Asset Artist | W2–7 (steady) | 2.7M | Prefab kit + hero props at post-playbook rates |
+| Design Steward | Weekly | 1.3M | Reviews, ledger upkeep, weekly re-planning |
+| Writer | W6 peak | 0.5M | Bark/whisper sheets + livestock/stealth extension |
+| Process Historian | Weekly | 0.7M | Session logs, playbook updates |
+| **Total** | **~1.9M/week avg** | **~13.6M** | |
 
-**Stylized and hand-painted.** Chunky proportions, painterly textures, saturated dusk palette. Locked — it hides kitbash seams, sells the satire, keeps the cartoony gore on the T side, and is achievable solo. **Kitbashing from Fab/Marketplace stylized-fantasy packs is green-lit** for environment, humans, and livestock (the slice builds on the Dreamscape Farmlands set); custom-art time goes to goblins, the runic site, and hero props — **and the custom-vs-kitbash seam is a feature** *(decided, 2026-07-21)*: the silo-bellied granary and the other things you burn read as *yours to burn* against the kitbashed everyday.
+This runs on the **Max 20x tier** ($200/month, Anthropic's highest consumer subscription tier, offering roughly 20 times more usage per session than the Pro plan) — chosen specifically because a sustained ~1.9M-token/week average is a heavy enough load that the smaller 5x tier's per-session allowance would likely not sustain it inside the plan's 5-hour rolling session window. That's a necessary condition, not a guarantee: Anthropic doesn't publish a flat weekly token ceiling for Max plans, so this schedule's throughput claim can't be checked against a public number the way the Round-3 design review rightly pointed out (Feasibility Lead's Finding 1, filed BLOCKING). What it *can* be checked against is Michael's own Usage settings dashboard — the session meter and the two weekly caps (all-models and Sonnet-only) it already tracks — verified week over week against the table above, the same diagnostic habit the budget rule below already describes. Real, logged usage is the throughput evidence; the number in this table is a planning target to be validated against it, not a settled fact. The mapping also gives the budget a diagnostic use: if the Town Agent is burning tokens in week 3, something upstream slipped. **Budget rule:** if any week exceeds ~2.2M, the fix is process (update the playbook, add a skill) rather than more spend — token overruns are treated as a symptom of agents rediscovering known things.
 
-**Every material telegraphs its hardness.** The art *is* the tutorial:
+## 4.4 API and infrastructure constraints — named and explained
 
-| Material | Look | Burns? | Breaks? | Gameplay meaning |
-|---|---|---|---|---|
-| **Thatch / hay / ripe wheat** | Shaggy, golden, overhanging | Instantly, spreads fast | Yes (trivial) | Torch magnets — roofs, haycarts, and crop rows are your accelerant |
-| **Raw wood** (granary, barn, mill, stalls, fences) | Visible planks, grain, rope lashings | Yes, on a delay | Yes — club, horde | The default goblin-interactive surface; the hamlet is made of it |
-| **Hardened/banded wood** (strongbox) | Iron bands, big rivets | Slowly / no | Only via the right verb | Signals "there's a mechanic here, not just HP" |
-| **Stone** (barracks base, well, tower footing) | Rounded painted masonry | No | Structural HP only — slow, loud | The fire-immune counterweight; beat it down or leave it |
-| **Metal** (knight armor, bell) | Painted specular, dented | No | No — mitigates (armor stat) | Pierce it or stagger the wearer |
-| **Runic stone** (the site) | Dark stone, glowing carvings | No | Indestructible | Sacred to goblins, untouchable by design |
-| **Forest-ring green** | Deep, lush, faintly too-alive | **No** *("it's magic" — decided 2026-07-21)* | No | The frame doesn't burn; your fire language stops at the treeline |
+1. **No remote code execution on the dev machine (the defining constraint).** Cloud agent sessions can read and write files on Michael's PC through the desktop bridge but cannot *run* anything there — no compiles, no plugin builds, no console commands. Consequence: every agent output that needs execution (a C++ build, the VibeUE plugin compile, an editor restart) ends in an explicit, documented manual step for Michael. The build log is written around this handoff, and the schedule (§4.5) never puts an agent-only task on the critical path of a same-day playable.
+2. **Unreal MCP is localhost, HTTP+SSE, editor-must-be-running.** Epic's plugin serves `127.0.0.1:8000/mcp` only while the editor is open, and Claude's desktop config is stdio-based, so the connection runs through an `mcp-remote` bridge. Consequence: every system agent's editor-side work happens in *supervised, batched sessions* while Michael has the editor up — which is embraced rather than fought, since live human review is the quality gate anyway. It also means editor-side work can't be scheduled overnight; overnight capacity goes to each agent's C++ and to writing.
+3. **Blender MCP calls are stateless and operator-hostile.** Script state does not persist between calls, and `bpy.ops` operators fail without viewport context — so every Asset Artist script re-queries the live scene and uses `bmesh` plus direct matrix math. Additionally, Michael works *in the same file in parallel*, so the agent re-verifies actual object state (never trusting object names, screenshots, or its own memory) before editing. These rules are codified in the playbook after each cost a real round-trip.
+4. **Context windows are a budget, managed with curated knowledge.** A 27-skill UE5 pattern library (GAS, Niagara, state trees, build-system errors) is installed project-side so agents load known-good patterns instead of re-deriving them — directly reducing both tokens (§4.3) and the recurrence of already-solved bugs (the build log's C1083 include-path failure has now been diagnosed twice; the log entry exists so it is never diagnosed a third time).
+5. **A hand-placed hamlet has no algorithmic safety net.** With the procedural generator descoped this slice (§2.8), there's no seed-level validator catching a broken sightline or an unreachable objective before Michael sees it — every placement bug is a manual catch, the same way week 1's on-foot walkthrough already caught a road cutting through a house and a windmill sited on an unbuildable rock face. Consequence: the hamlet gets one thorough walk-and-fix pass instead of a five-seed review gate — less total human time than reviewing five procedural layouts would cost, but also no golden-seed fallback to lean on if that pass runs long, so it's scheduled into week 4 itself rather than treated as slack. Hardware note: 32 GB RAM means builds are a foreground activity — another reason the human-executes-builds handoff is a feature, not a bug.
 
-Rule for every new asset: assign its material class *first*, then its look — never ship a surface whose appearance lies about its hardness. **Generator corollary:** every prefab-kit piece must read correctly from every angle, because no human places it.
+**Sizing the human gate (decided, 2026-07-23).** Round-3 review flagged that this bottleneck was named (constraints 1–2 above) but never sized against the schedule that depends on it — Feasibility Lead's Finding 2 and Business Analyst's Finding 2 both independently landed here, and the latter was upgraded to BLOCKING on that convergence. Michael has committed at least 6 hours a day to the project — read conservatively here as **~36 hours a week** (six days, one rest day; "at least" means this is a floor, so real margin is likely better than what follows), checked against the actual weekly manual-gate load implied by §4.2–§4.3: roughly 3 hours a week of Design Steward review and ledger upkeep (constant, every week); 3–6 hours of build-and-verify passes across whichever 2–3 system agents are peaking that week (the Peak weeks column above), at 3–5 short passes each; 2–4 hours of supervised, batched in-editor MCP sessions (constraint 2 — this work can't happen unattended); 2–4.5 hours of Asset Artist Blender review rounds once the playbook's post-first-prop rate (3–4 rounds, not the strongbox's dozen) is the norm; and 1–3 hours whenever a named milestone lands (the tutorial-hamlet walk-and-fix pass, the week-3 frame-rate exit test, playtest legibility, the week-6 score-table sign-off). That totals roughly **10–18 hours a week of manual-gate time in the heaviest overlap weeks**, against ~36 available — real margin, not a knife's edge. The estimate leans on one assumption worth flagging: it assumes the playbook's round-reduction promise (§4.3) actually holds across the whole prefab kit, not just the one hero prop it's measured on; if it doesn't, Asset Artist review alone could eat most of the margin. This is a planning estimate to validate against real logged hours as the schedule runs, the same way the token table gets checked against the Usage dashboard above — not a one-time proof the bottleneck is safe.
 
-### 11.1 Environment
-- **Forest kit:** pines/oaks/birches, bushes, rocks, dirt-path spline textures, treeline "horde spawn" markers, crashed cart set piece. *(Choppable-tree variants: tier 2, Appendix A.)*
-- **Runic site:** standing stones ×6–8 (emissive runes), circle ground decal, portal activation FX.
-- **Hamlet prefab kit (generator modules, Dreamscape kitbash + conformance pass):** house shells ×small/medium variants (**shells-only interiors for the slice** — decided), well + roof, market stalls + tables + covers (**cover recolor to burgundy/gold approved** — decided 2026-07-21), barn, fence/gate segments, pens, troughs, coop, haystacks, scarecrow, street lamps, clutter (barrels, crates, sacks, firewood), **wayfinding dressing** (signposts, converging road decals — a placement requirement, §6.3), **propaganda props** (WarriorStatue and kin, recast as royal propaganda — §3).
-- **Objectives:** **granary — custom silo-bellied build** with burn states + Geometry Collection (Barn stands in until it lands — decided); **wheat-field grid cells** with per-cell burn/doused/re-ignited states (§6.3); **windmill** — base + animated sails, window sockets for the aimed torch throw, interior-fire glow stages, **grain-dust explosion one-off**, and the **smashed state-swap variant** (silhouette kept, collapsed inward, still burning). **Baseline light budget: ≤3 shadowless dynamic lights (field) / ≤2 (mill)**, explosion spike exempted *(decided, 2026-07-21)*.
-- **Defense:** watchtower (ladder, platform, **bell** — animated + interactable), barracks (stone base, barred door/windows), well "fouled" state variant.
-- **Loot props:** strongbox (destructible lid, fill states, padlock+hasp — as built), **dropped loot pouch/sack** (death-drop and courier-drop, shared prop).
-- *(Palisade kit, gatehouse, siege engines, build-site decals, wood bundles: tier 2 — Appendix A.)*
+## 4.5 Schedule and honest scoping
 
-### 11.2 Characters
-- **Player goblins ×4 kits:** shared body (Brute at 1.5×) + kit dressing. Custom art priority #1.
-- **Horde goblin:** one cheap variant mesh (color/prop randomization).
-- **Humans:** militia, archer, knight, civilian ×2 body variants.
-- **Livestock:** chicken, sheep, pig (kitbash skeletal meshes; no named individuals — decided).
+**Status as of this submission: Week 1.** Week 1's top-priority deliverable — a walkable third-person controller, so the hamlet can be reviewed on foot rather than judged from a fly-through — is complete and confirmed working in-editor (GameMode, spawn point, and full WASD/mouse-look input, none of which existed at the start of the week). That first on-foot walkthrough already earned its keep: it surfaced and got fixes for a road cutting through a house and a windmill sited on an unbuildable rock face — real, hand-caught placement bugs that were part of what decided the procedural-generator descope in §2.8 — and produced a first hand-composed pass at the tutorial hamlet's building-prefab kit. The schedule below is tracking against real, verified engine work, not a paper plan.
 
-### 11.3 Animation
-- **Goblin shared set:** locomotion, **crouch locomotion (toggle stance)**, dodge roll, hit reacts, death, torch throw (**incl. aimed window throw**), horn blow, **takedown (silent — no bark pre-horn)**, interact-channel (covers loot/foul-well/extract), carry locomotion (sack / pig / **two chickens underarm + one-handed fighting variant** — decided 2026-07-21), emotes (cheer/giggle).
-- **Per-kit attack sets:** unchanged (daggers combo + lunge; bow; club light/heavy/slam; staff casts ×2 ×2).
-- **Human set:** locomotion, melee windup/swing, bow, hit/death, **quiet takedown slump** *(decided — the victim's half of §7's takedown)*, bucket-douse loop, panic-flee, **disbelief double-take** (§3), doze/wake, bell-ring, coin-scramble, run-the-alarm.
-- **Livestock set:** idle/graze, flee/flap, carried squirm.
-- Marketplace packs + retarget cover most; hand-key the comedy set and goblin signature moves.
+Seven weeks, solo + agents, sequenced so a full loop exists early: **W1** third-person camera/controls + the interact framework (five systems ride on it — built first) + crouch/noise foundations; **W2** fire + the three objective burn types (granary collapse, spreading field fire, the mill), plus the alarm-phase skeleton (Town) and raid-clock skeleton (Raid Loop); **W3** the horde; **W4** tutorial hamlet v1 (hand-placed layout, one of each objective, patrols/civilians/livestock placed, tutorial prompts wired) + runic site portal — *first full loop playable on the tutorial hamlet, start-to-bank*; **W5** the stealth five complete (takedowns, corpse-suspicion, coin toss) + patrols, watchman, hamlet walk-and-fix pass; **W6** civilians, livestock, couriers, score screen, first art pass; **W7** feel, barks, audio, balance, playtest build.
 
-### 11.4 VFX (Niagara)
-Fire (torch flame, surface fire, structure-burn stages, **row-to-row field-fire spread + smoke draw**, smoke columns — your progress report over the treetops), extinguish steam, **the grain-dust explosion** (one-off, budget-exempt light spike — §6.3), telegraph rings & aim-lines (ground decals for 3D), hitstop sparks, portal shimmer, wood-splinter bursts, blood-orb & shadow FX, coin glitter, alarm vignette, **gore set (cartoony):** spatter bursts, gib/limb pops with clean cartoon bones, **feather-poof** (chicken), comic "poof" on horde death — one shared gib component with an intensity scalar (the ratings knob).
+If weeks 5–6 slip, a pre-committed **cut order** protects the core: self-looting civilians → sheep and chickens (pigs alone carry the livestock design) → coin toss (back to stretch) → corpse-suspicion → takedowns. (The old **golden-seed fallback** — ship the single best procedural seed as *the* hamlet — is retired as a cut-order item because it's no longer a fallback: a single hand-authored hamlet with one of each objective is simply the plan now, §2.8.) **Never cut:** the horn and horde, the three-objective burn structure, the crouch-and-confirm stealth core, the runic-site banking loop, and the score screen — that quintet *is* the game on any map. The palisade-era breach systems (gap, gate, dig, ram, catapult, wood economy) are not in the cut order because they are not in the slice: they are fully designed tier-2 content awaiting the ladder's second rung. Post-slice roadmap, in decided order: the points/upgrade economy, then co-op multiplayer, then the ladder's upper tiers toward Highpurse Keep and the Mayor Goldbottom assassination.
 
-### 11.5 Audio
-Horn call (hero sound #1), portal hum/whoosh, bell (hero #2), fire loop + collapse, **the mill detonation (hero #3)**, pen ambience → **startled-flock squawk burst** (a *stimulus* as much as a sound), combat layer + wet cartoon splats, goblin chatter/giggles (suppressed pre-horn — §7), human bark VO *(text-only for prototype)*, forest dusk ambience, hamlet ambience (pottering → panic), score stinger, **His Eternal Darkness: layered dark-whisper beds + subtitles** (decided).
-
-### 11.6 UI
-HUD: health/lives, torch count, horn status (active/reserve), kit resource, **objective tracker naming this raid's roll** (granary/field/mill ×3 — names only, **no arrows**, §6.3), alarm-phase indicator, 30-minute timer, subtitle strip, interact prompts + channel bars, carry indicator, **pouch tally**. Screens: class select, pause, end-of-raid deeds/loot tally + grade, death/respawn. Reticle + soft lock-on.
+**If takedowns are actually cut, here's what survives (decided, 2026-07-23).** Takedowns stay last in the cut order rather than moving to "never cut" — reached only after self-looting civilians, sheep and chickens, coin toss, and corpse-suspicion have all already failed to recover the schedule, which is the cut order doing its job, not a threat hanging over a core mechanic. But if it's ever actually pulled, three things are true rather than undefined: **first**, the **bind** alternative on unarmed civilians (§2.4, §2.6, §2.7) survives regardless — it's the mechanical spine of Issue #2's civilian-depopulation fix and the "None Left Behind" bonus, and cutting the guard-takedown finisher doesn't touch the separate hold-E channel bind rides on. **Second**, quiet guard removal doesn't disappear with it: the Scout's bow already "picks off the watchman at range" (§2.3), and the coin toss still lures guards off post (§2.4) — takedowns losing the cut costs the up-close animated finisher specifically, not the entire quiet half. **Third**, the **"watchman silenced +25"** score line (§2.9) survives by generalizing its trigger from "killed by takedown" to "stopped from ringing the bell by any silent method" — a ranged kill before he wakes, a lure that pulls him off his post, still qualifies. (Corpse-suspicion is cut one step earlier in the same order, so by the time takedowns are reached there's no corpse-reaction system left needing its own bookkeeping.)
 
 ---
 
-## 12. Systems list & 7-week build plan
-
-### 12.1 Systems inventory *(★ = new since the combat prototype / tech scaffold; ► = changed or added in the 2026-07-20/21 restructure)*
-
-| # | System | Status |
-|---|---|---|
-| 1 | GAS combat pipeline, damage/armor/race matrix | Scaffolded (compiles, per build log) |
-| 2 | 4 weapon kits + torch toss | Designed + browser-proven; UE port. ► Torch throw gains the aimed window-throw (mill) |
-| 3 | ► Fire/flammable/spread + Chaos fracture | Scaffolded; now **three objective burn types**: granary collapse, **spreading field fire** (grid cells, ≥70% completion, re-ignitable, jumps to adjacent flammables — Combat & Feel owns), **mill chain** (window ignition → dust explosion → state-swap) |
-| 4 | ► Alarm meter + phases (QUIET/SUSPICIOUS/RAID/RAZED) | Scaffolded; phase rework + **fire-seen promotion w/ ~10s unseen fuse** + startled-flock stimuli feed it |
-| 5 | ★ Third-person camera & control | New — reticle aim, soft lock, telegraph redesign for 3D. ► **Walkable base controller is W1's top deliverable** (decision 23) |
-| 6 | ★ Horn & horde — summon, pool, follow/frenzy/point | New — biggest new AI system |
-| 7 | ★ ► **The stealth five** on the one-number confirm model | New — noise radii (data), crouch toggle (0.75× detection, 0.45–0.6× noise — placeholders), takedown awareness/behind-cone, corpse-suspicion (confirm-hold, doesn't void First Spark), coin-toss lure (pouch-debited) — plus the existing doze/runner/investigate set |
-| 8 | ★ ► Interact framework — hold-E channels | New — slice verbs: **loot (gather-pouch) / takedown / foul-well / extract** + carry state. Dig/build/chop/crossbar → tier 2 (Appendix A) |
-| 9 | ★ Breach set — gap, gate HP + crossbar, tunnel, ram, catapult | ► **DEFERRED — tier-2 backlog (Appendix A).** Design + architecture stand and wait |
-| 10 | ★ Wood economy — choppables, bundles, build sites | ► **DEFERRED — tier-2 backlog (Appendix A)** |
-| 11 | ★ ► Civilians **+ livestock** | Partially scaffolded (firefighting BT task exists) — routines, disbelief→panic, bucket brigade (**field-edge rules + >25% smoke gate**), well interaction; **livestock**: archetype data rows, flee on the panic branch, flock stimuli, carryable/courier-able, chickens weightless ×2 underarm |
-| 12 | ★ Score system — event bus → deeds/loot two-kind tally, banking multiplier, end screen | New — ► + livestock/market-gold/takedown/First-Spark rows; objective points completion-only |
-| 13 | ★ Runic site — spawn/respawn + objective-gated portal, toss-in/staging, 90s collapse | New — ► + **pouch auto-bank on circle entry, mid-raid included** |
-| 14 | Lives/respawn on PlayerState | Scaffolded; respawn at runic site (decided) |
-| 15 | Barks (text) + His Eternal Darkness whispers/subtitles | New, cheap — ► + disbelief/livestock/stealth bark families (Writer extension pass) |
-| 16 | ★ Gore/gib system — cartoony, shared component, intensity scalar | New — small; ► + feather-poof variant |
-| 17 | ★ ► Loot couriers — sacks **+ livestock** as cargo, point-to-courier BT, mid-raid banking | New — reuses carry state + point command + forest pathing; chase-catch-carry for animals |
-| 18 | ★ Raid clock — 30-min cap, 0:00 → 90s collapse & left-behind rule, impatient whispers | New — small |
-| 19 | ★ Patrol director — 5–7-min cadence (► 2 militia + 1 archer, torches drawn); castle reinforcements post-alarm | New (extends system 4's spawn logic) |
-| 20 | ★ ► **Settlement generator** | New — **zone-ring template** (roads = wayfinding dressing; road-and-plots is the tier-2+ evolution), three module types, module placement (**two-village rolls far apart**; non-objective villages carry no market), **objective roll (max 2 of a kind) emitting the manifest** (source of truth; per-entry resolution stays tag-search; benchmark raid-start cost — §6.3), guard posts/routes/routines by rule, **cover + wayfinding placement rules**, **substantially increased tree/cover density**, runtime navmesh at raid start, golden-seed fallback. The slice's biggest new technical bet |
-
-### 12.2 Week-by-week *(solo dev + AI-assist — confirmed)*
-
-| Week | Goal | Deliverable |
-|---|---|---|
-| **1** | Third-person foundation + quiet verbs | **Walkable base character controller first — top priority (decision 23): Michael must be able to review generator seeds on foot from day one.** Then camera/reticle on the scaffold; one kit (club) attacking a militia in a blockout; **interact-channel framework** (five systems ride on it — built first); **crouch toggle + noise foundations** |
-| **2** | Fire + the three burn types | Torch + spread; **granary collapse, spreading field fire, mill chain (window ignition → explosion → state-swap)**; alarm-phase skeleton (incl. fire-seen/fuse promotion); raid-clock skeleton |
-| **3** | The horde | Horn, pool, follow/frenzy/point; horde archetype; 10 goblins + player vs guards at frame rate |
-| **4** | The generated hamlet | **Generator v1** (zone-ring template, module placement, objective roll + **manifest + validation; run the manifest-vs-tag-search raid-start benchmark**) + runic-site portal — **first full loop playable on a generated hamlet, start-to-bank** |
-| **5** | Stealth complete | **The stealth five complete** (takedowns, corpse-suspicion, coin toss); patrols (torches drawn) + runner; watchman + bell + doze; **generator seed tuning + the 5-seed on-foot review gate** |
-| **6** | The living hamlet | Civilians (disbelief → panic), routines, bucket brigade (field-edge rules), well fouling; **livestock**; loot sacks + couriers + gathering pouch (+ auto-bank); remaining kits ported; score system + end screen; gore pass; art pass 1 (kitbash dress-up + stall recolor) |
-| **7** | Feel & funny | Telegraph/hitstop/shake tuning in 3D; barks (incl. disbelief family); hero audio (horn, bell, **mill detonation**); balance pass on score table & horde counts; bug triage; **playtest build** |
-
-### 12.3 Honest scoping — the cut order
-
-If weeks 5–6 slip, cut in this order *(revised per the pivot — decision 7)*:
-
-1. **Self-looting civilians** (stretch already) → 2. **Generator variance** — the **golden-seed fallback**: ship the single best seed as *the* hamlet; the pipeline is still proven and the slice still plays → 3. **Sheep & chickens** (pigs alone carry the livestock design) → 4. **Coin toss** (back to stretch) → 5. **Corpse-suspicion** → 6. **Takedowns**.
-
-**Never cut:** the horn/horde, **the three-objective burn structure** (floor if the roll must simplify: three fixed objectives, one of each type), **the crouch-and-confirm stealth core**, the runic-site banking loop, the score screen. That quintet *is* the game on any map.
-
-**The breach systems are not in this cut order because they are not in the slice** — they are tier-2 content (Appendix A). Deferred and cut are different words on purpose.
-
-**Team reality (confirmed):** solo dev (Michael) + AI-assist. The week-by-week is written for exactly that; the cut order is the safety valve, not a failure state.
-
-**Post-slice roadmap (decided order):** ① **Points & upgrades** — the spending economy built on the score system, worked toward a releasable build → ② **Co-op multiplayer** — turn on the networking everything was built ready for, then playtest → ③ **The assassination mission** — Mayor Goldbottom, after multiplayer playtesting — via the ladder's upper tiers (Pennybrook's breach layer, Silverford, Highpurse Keep). Elves/Dwarves unchanged: designed, further out.
-
----
-
-## 13. Decisions ledger & remaining open items
-
-**Decided (2026-07-10, three review rounds — summarized):** camera third-person, Overlord-style · horde control = follow & frenzy + one point command · siege tools = gather wood, then build *(stands as designed; tier-2 content since 2026-07-20 — Appendix A)* · prototype economy = score only · everyone killable incl. civilians, cartoony gore, T-minimum target · art stylized/hand-painted + material-hardness language + kitbash green-lit · team = solo + AI-assist · dusk, fixed · respawn = runic site · the Overlord = His Eternal Darkness, whispers + subtitles · naming register cozy-smug, Pennybrook confirmed *(2026-07-21: Pennybrook is now the tier-2 county's name — decision 10; the slice's raided settlements are nameless)* · horde 10 active / 20 reserve · solo slice, co-op-ready · couriers: opportunistic intercept only, ×1.5 deeds-only, courier-to-reserve · 30-minute raid clock · patrol cadence 5–7 min, eliminable until the alarm · bark rules + sheet approved · post-slice order: economy → co-op → assassination · portal opens on objective completion; 0:00 → 90s collapse; left-behind rule.
-
-**Decided (2026-07-11/12):** chest looting = channeled hold-E gathering (the pouch); on-death pouch drop shares the courier sack prop · chest lid = destructible (Chaos), smashed open; coins gated on lid-broken.
-
-**Decided (2026-07-20 — the hamlet pivot, decisions 1–9):**
-1. Slice pivots to an unwalled hamlet (no palisade, open approaches, small garrison); forest/patrols/runic site/clock/lives/alarm/horde/couriers/scoring unchanged.
-2. The settlement ladder is the long-term structure (hamlet → palisade → stone wall → castle keep); the breach layer is **tier-2 content, not cut**; ascending-currency naming register.
-3. Constrained procedural generation: hand-authored prefabs, seeded arrangement, rule-placed posts/routes/cover; forest ring + runic site persist; runtime navmesh; golden-seed fallback; 5-seed human gate.
-4. Stealth = the lean five on the one-number confirm model (noise radii, crouch, takedown, corpse-suspicion, coin toss promoted to core); light/shadow, disguises, body-carrying, ghost-runs rejected; quiet in, loud out; "First Spark Unseen" +40.
-5. Livestock: kill petty (2/5/8), steal big (10/25/40); carryable + courier-able; startled flocks are noise stimuli.
-6. Agent architecture: six game-system agents + four studio agents (ten total).
-7. Revised cut order (above); revised never-cut quintet; breach systems outside the cut order.
-8. Revised week plan (above).
-9. Hamlet map composition: three module types (core village / farmstead / windmill), three-objective roll, max two of a kind; village=granary, farmstead=field, windmill=mill; portal on all three.
-
-**Decided (2026-07-21 — restructure merge approved (Q-01) + rulings, decisions 10–35):**
-10. Ladder names are **county** names (Groatsworth/Pennybrook/Silverford); raided settlements stay nameless; Highpurse Keep stays a named place.
-11. Objective discovery: roll **named at raid start** (HUD + Overlord); environment guides to *where* (converging roads, signposts, wheat-density gradients, audible pens — a standing generator placement requirement); **no HUD arrows**.
-12. Chop deferred to tier 2 entirely; slice interact verbs = loot, takedown, foul-well, extract (+ carry).
-13. "Inside Job" = far-future achievement; lives in Appendix A only.
-14. House interiors shells-only for the slice; revisit post-prototype.
-15. Garrison: 4 posted = 1 watchtower / 1 barracks door / 2 wandering (data row); forest patrols = 2 militia + 1 archer with **torches drawn** (firelight visible before they are).
-16. Field-fire brigade: **effective at the edges** (Town Option C), gated on the smoke draw — responds only once the field is **>25% burned**.
-17. Non-objective core villages still generate (garrison/well/houses/civilians) but carry **no market or strongbox** — market wealth only where the granary objective rolls.
-18. Mill chain: ignition by torches **through the windows** (aimed throw; exterior fire insufficient) → interior build-up → **grain-dust explosion** (one-off VFX/light spike allowed) → **state-swap** to a smashed, inward-collapsed, still-burning silhouette. Baseline light budget ≤3 shadowless (field) / ≤2 (mill).
-19. Fire → RAID requires the fire to be **seen by a human**; **~10s unseen fuse** as backstop.
-20. Crouch = **toggle** · coin toss **debits pouch coins** · takedown kill = **quiet slump** · placeholders signed: **1.2s** takedown channel / **0.75×** crouch detection / **120°** behind-cone / **0.45–0.6×** crouched noise scale.
-21. Granary = **custom silo-bellied** build; the custom-vs-kitbash style seam is a feature; Barn stand-in approved meanwhile.
-22. **Two-village rolls allowed**; new generator rule: two villages always generate **far apart**.
-23. Tree/cover density up **substantially**; **walkable base character controller = top W1 priority** so Michael reviews seeds on foot.
-24. Corpses: the 1.5s confirm-hold applies to corpse recognition; a found corpse does **not** void First Spark Unseen — guards go Suspicious only.
-25. **Pouch auto-banks** on entering the runic circle, mid-raid included.
-26. Doused field cells **re-ignitable**; field fire **may jump** to adjacent flammables (fences, haystacks, a close granary) — more fire the better.
-27. Stall-cover recolor to **burgundy/gold** approved.
-28. Chickens: **weightless**, carry **two (one under each arm)**; fighting one-handed while holding a chicken is possible.
-29. No named livestock · player-goblin **silent on takedowns pre-horn** · objective points are **completion-only**.
-30. **Propaganda tone pillar** (§3): hamlets saturated with royal propaganda (the king slew the last dragon, vanquished the darklord and his minions) → villagers **initially disbelieve their eyes**; feeds disbelief barks, propaganda props (WarriorStatue kept as such), First Spark comedy.
-31. Forest ring is green and **unburnable** ("it's magic").
-32. Field-fire completion: **Combat & Feel owns it**; unit = grid cells; **≥70% (placeholder)**.
-33. **Objective manifest approved** (hybrid: manifest = source of truth for the roll; per-entry actor resolution stays tag-search). Test plan addition: benchmark raid-start cost of manifest+validation vs tag-search — noting honestly that the slice is offline solo/co-op (no shared many-player resource exists); the measurable risk is raid-start hitching; any future online backend load-tests separately.
-34. **Zone-ring template** for the slice (roads are wayfinding dressing); road-and-plots becomes the tier-2+ generator evolution where streets are real (towns/cities).
-35. Thrown chicken = **noise** lure (greed stays the coin toss's joke).
-
-**Remaining open items:**
-
-1. **Score table blessing** — §10 values (now incl. livestock, market gold, takedown, First Spark) are placeholders; sign off after the first playable tally (week 6).
-2. **Gore intensity default** — the gib scalar ships tunable; pick the default in the week-7 polish pass.
-3. **Pouch gather-rate & chest fill states** — channel speed, and whether fill states are visual or gating; pass once system 8 is implemented.
-4. **Chest lid fracture setup** — piece count, break conditions, debris behavior; a Blender-side call once the destructible pipeline is wired for props generally.
-5. **Generator module specifics** beyond decisions 9/17/22/34 — instance counts beyond the three objective carriers, zone-ring radii, the signpost/road wayfinding grammar; Settlement Generator agent to spec before W4.
-6. **Seed-review gate** — Michael plays 5 seeds on foot (W5); all must read fair.
-7. **Manifest benchmark result** (W4) — adopt or fall back per the raid-start numbers (decision 33's test).
-8. **Strongbox under a two-village roll** — one strongbox seeded into one of the two objective villages, or one each? *(placeholder: one, seeded)*.
-9. **Bark-sheet extension** — livestock, disbelief family, stealth states, pig-delivery whispers; Writer to draft, Michael to approve.
-
----
-
-## 14. Modeling best practices (Blender/asset pipeline)
-
-A running log of production-technical rules learned the hard way during asset builds — separate from the art-direction rules in the style guide, which cover how things should *look*. This section covers how they should be *built* so they don't cause downstream engine problems. Check this before modeling any new asset; add to it whenever a build reveals a new one.
-
-1. **Never fan a face's fill to a single center vertex. *(added 2026-07-12, from the treasure-chest end caps.)*** Capping a hole (a disc, a fan-shaped panel, any n-gon boundary) by connecting every boundary vertex to one shared center point creates a pole with as many edges as the boundary has vertices — the chest's end caps had a 41-edge pole from a 41-point boundary. A pole that severe skews normal interpolation badly enough to cause visible faceted shading and lighting artifacts under smooth shading, even though the topology "closes the hole" correctly on paper. **Fix:** fill n-gon boundaries with a proper triangulation that distributes edges across the surface (Blender: fill the boundary as an n-gon, then triangulate with the beauty method) rather than a manual fan from one point. Target keeping any single vertex's edge count in the single digits (under ~10) unless there's a specific structural reason (an actual wheel-spoke shape) for a higher-valence pole. This applies to any cap/fill face on any asset, not just chest lids — check for it on every hollow object's end caps, domes, and disc-shaped fills before calling the mesh done.
-
----
-
-## Appendix A — Tier-2 content: the breach layer (Pennybrook)
-
-*Everything in this appendix is designed, architected (tech doc §17, §20), and **deferred to the settlement ladder's second rung — not cut**. It re-enters at tier 2 (Pennybrook county's palisade towns), where the wall makes it load-bearing. No text below has been revised since the 2026-07-20 pivot; treat all numbers as pre-pivot placeholders when tier 2 is scoped. Related relocations: the horde's walled-access rules (§5), the "Inside Job" +50 score row (now a far-future achievement — decision 13), and the harvestable-trees wood loop (old §6.2).*
-
-### A.0 The palisade settlement *(the old §6.3 — tier-2 target reference)*
-
-A small human farming settlement — one social class above a hamlet and insufferably proud of it. Enclosed by a **wooden palisade**.
-
-| Structure | Function | Notes |
-|---|---|---|
-| **Palisade wall** | The enclosure. Wooden stakes, walkable perimeter outside. | Not climbable by hand. Diggable-under at its base. Burnable only slowly and loudly (fire on the wall itself spikes alarm hard — possible but rude). **Always has a hidden gap somewhere** (A.1). |
-| **Gatehouse** | Main (only) gate. **2 militia guards** posted. | Gate = structural HP object: batter it down (ram ≫ Brute club > other melee) **or open it from inside** via the crossbar (hold-E interact). Opening from inside is silent until someone notices it's open. |
-| **Watchtower / Granaries ×3 / Well / Barracks / Marketplace / Houses** | As per the tier-1 designs, scaled up. | Population: ~6 posted guards (2 gate, 1 tower, 3 wandering) + barracks reinforcements, ~8–10 civilians. |
-
-*(Forest wood sources — marked choppable trees and deadfalls, chopping loud enough to draw a patrol — return with this tier.)*
-
-### A.1 The hidden gap — free, if you find it
-
-Every wooden palisade has a spot the humans never quite fixed. Each raid, **1 gap is active out of ~4 candidate locations** (randomized): loose planks, a hog-hole, a section patched with a cart wheel. Squeeze-through is single-file and slow (players and horde both fit; the Brute grumbles and takes longer). Finding it costs scouting time; using it is silent. *Satire dressing: one candidate spot is "fixed" with a NO GOBLINS sign.*
-
-### A.2 Wood-and-build — the ram and the catapult *(decided: gather wood, then build)*
-
-A light resource loop, no inventory screen:
-
-- **Wood bundles** come from chopping marked trees, forest deadfalls, or — funniest and fastest — **stealing the settlement's own woodpiles** stacked outside the wall.
-- Carrying a bundle is a visible over-the-shoulder carry: **move slower, can't attack** (drop it to fight). Brute carries two.
-- Deposit bundles at a **build site** (fixed, pre-placed footprints — near the gate for the ram; in a clearing in wall-range for the catapult). When the wood quota is met, any goblin channels **Build** (hold E) to raise it. More builders = faster.
-
-| Engine | Wood cost | What it does |
-|---|---|---|
-| **Battering ram** | 4 bundles | 2+ goblins grab handles (horde goblins auto-man spare handles) and swing on a rhythm; each hit chunks the gate's structural HP. Loud — guards converge. The brute-force fantasy. |
-| **Catapult** | 6 bundles | A goblin climbs in, aims an arc over the wall, launches (scream included), lands with a roll **inside**. Player-transport only — the horde can't use it. The comedy option and the express lane for an inside-job gate opening. |
-
-### A.3 Digging — slow, quiet, reusable
-
-Channel **Dig** (hold E) at the palisade base to burrow under. Slow solo; each additional digger (players — horde-assist is stretch) speeds it up. Produces a **tunnel both teams' goblins can use all raid, both directions** — a permanent private door, including for extraction under pursuit. Quiet, but a guard walking past mid-dig will notice the flying dirt.
-
-### A.4 The inside job — open the gate
-
-Any goblin already inside (gap, tunnel, or catapult) can lift the gate's crossbar (hold E, ~3s, interruptible). The gate swings wide for the whole horde. Big score bonus (**"Inside Job" +50** — *now a far-future achievement, decision 13*), and the single best expression of the game's fantasy: one sneaky goblin turning the humans' front door into a goblin superhighway.
-
-**Design guarantee:** the gap and the gate always exist, so a breach is never resource-gated; wood/dig/catapult are *better, louder, or funnier* options layered on top.
-
----
-
-*Companion documents: `race-design-goblins.md`, `race-design-humans.md`, `race-design-elves.md`, `race-design-dwarves.md`, `claude/goblin-siege-hamlet-pivot-decisions.md` (the 2026-07-20 pivot record — now merged; this document again governs), `claude/goblin-siege-gdd-assignment1-draft.md` (Assignment #01 GDD), `claude/goblin-siege-bark-sheet.md` (approved; extension pass pending — open item 9), `claude/goblin-siege-ue5.8-tech-design-doc.md` (needs a follow-up pass to add systems 5–20 of §12.1), `claude/goblin-siege-build-log-and-mcp-plan.md`, `claude/goblin-siege-art-style-guide.md`, `claude/goblin-siege-asset-review-playbook.md`, `claude/goblin-siege-hamlet-generator.py.md` (working generator prototype), plus the studio's standing **decision queue**, **agent cycle log**, and **agent role specifications** (agent pack). Playable combat reference: `goblin-siege-prototype_3.html`.*
+*Companion project documents: full GDD ("Settlement Raid" revision + 2026-07-20 hamlet-pivot decision record), UE 5.8 technical design document, race design briefs (goblins, humans, elves, dwarves), approved bark sheet, art style guide, asset-review playbook, build log & MCP integration plan. Playable browser combat prototype: `goblin-siege-prototype_3.html`.*
