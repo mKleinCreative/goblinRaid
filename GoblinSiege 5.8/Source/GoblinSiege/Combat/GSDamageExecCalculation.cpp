@@ -4,6 +4,37 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "Characters/GSEnemyCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "Engine/Engine.h"
+#include "HAL/IConsoleManager.h"
+
+// 2026-08-02: combat damage was completely silent, and this function has TWO paths that return
+// without applying anything. On screen, "the trace missed", "the target has no ASC", "no Damage.*
+// tag on the spec" and "armor ate it" are four different bugs that look identical - each costs an
+// hour to tell apart by guessing. One cvar makes them one glance.
+//   GS.Combat.LogDamage 1   -> log line per resolution
+//   GS.Combat.LogDamage 2   -> also print on screen
+static int32 GSCombatLogDamage = 0;
+static FAutoConsoleVariableRef CVarGSCombatLogDamage(
+	TEXT("GS.Combat.LogDamage"),
+	GSCombatLogDamage,
+	TEXT("0 = off, 1 = log every damage resolution incl. rejections, 2 = also print on screen."),
+	ECVF_Cheat);
+
+static void GSLogDamage(const FString& Msg, bool bIsRejection)
+{
+	if (GSCombatLogDamage <= 0)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[GS.Damage] %s"), *Msg);
+
+	if (GSCombatLogDamage >= 2 && GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 4.f,
+			bIsRejection ? FColor::Orange : FColor::Yellow, FString::Printf(TEXT("[dmg] %s"), *Msg));
+	}
+}
 
 /** SetByCaller tag the attacking GameplayAbility must set: EffectSpec.SetSetByCallerMagnitude(
  *  GSTags::Damage_Dagger (or Bow/Greatclub/ShadowMagic/BloodMagic/Fire/Blast), RawDamageValue). */
@@ -48,12 +79,19 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 	const FGameplayTag DamageTypeTag = GetRawDamageSetByCallerTagForType(AssetTags);
 	if (!DamageTypeTag.IsValid())
 	{
-		return; // misconfigured attacking ability - no Damage.* tag set, nothing to apply
+		// Misconfigured attacking ability. By far the most likely cause is a Blueprint GE child
+		// carrying Damage.* in its ASSET tags instead of the ability calling AddAssetTag on the
+		// spec handle - the two look identical in the editor and only this path can tell you apart.
+		GSLogDamage(FString::Printf(TEXT("REJECTED: no Damage.* tag on spec (dynamic tags: %s)"),
+			*AssetTags.ToStringSimple()), true);
+		return;
 	}
 
 	const float RawDamage = Spec.GetSetByCallerMagnitude(DamageTypeTag, false, 0.f);
 	if (RawDamage <= 0.f)
 	{
+		GSLogDamage(FString::Printf(TEXT("REJECTED: %s tagged but SetByCaller magnitude is %.2f"),
+			*DamageTypeTag.GetTagName().ToString(), RawDamage), true);
 		return;
 	}
 
@@ -86,6 +124,23 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 		{
 			FinalDamage = FMath::Max(0.f, DamageAfterRace - TargetAttributes->GetArmor());
 		}
+	}
+
+	if (GSCombatLogDamage > 0)
+	{
+		const UGSAttributeSetBase* Attrs = TargetASC ? TargetASC->GetSet<UGSAttributeSetBase>() : nullptr;
+		GSLogDamage(FString::Printf(
+			TEXT("%s -> %s  %s  raw %.1f  x%.2f race  %s armor %.1f  = %.1f   (HP %.0f/%.0f)"),
+			*GetNameSafe(Spec.GetContext().GetInstigator()),
+			*GetNameSafe(TargetActor),
+			*DamageTypeTag.GetTagName().ToString(),
+			RawDamage, RaceMultiplier,
+			bSkipArmor ? TEXT("SKIP") : TEXT("-"),
+			Attrs ? Attrs->GetArmor() : 0.f,
+			FinalDamage,
+			Attrs ? Attrs->GetHealth() : 0.f,
+			Attrs ? Attrs->GetMaxHealth() : 0.f),
+			FinalDamage <= 0.f);
 	}
 
 	if (FinalDamage > 0.f)

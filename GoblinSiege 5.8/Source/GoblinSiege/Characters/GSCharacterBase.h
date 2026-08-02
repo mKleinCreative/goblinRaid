@@ -80,4 +80,28 @@ protected:
 	bool bIsDead = false;
 
 	bool bAttributesInitialized = false;
+
+	// ---- Death presentation (2026-08-02) -------------------------------------------------
+	// Ragdoll moved from "skip" to "adopt" - the physics comedy is on-brand for a comedy game
+	// (Michael's ruling, see claude/goblin-siege-acf-integration-plan.md). This does NOT replace
+	// UGSGibComponent when that lands: gib is for lethal overkill, ragdoll for ordinary death.
+	// Exposed as EditDefaultsOnly rather than hard-coded because death feel is a tuning pass, and
+	// with Live Coding unable to add UPROPERTYs, a knob you forgot costs a full rebuild.
+
+	/** Simulate physics on the mesh when Health hits 0. Off for anything that should stay standing. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death")
+	bool bRagdollOnDeath = true;
+
+	/** Collision profile applied to the mesh before simulating. "Ragdoll" is the engine default. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death")
+	FName RagdollCollisionProfile = TEXT("Ragdoll");
+
+	/** Extra shove along the killing blow's direction, so a corpse sells the hit. 0 = limp drop. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death")
+	float DeathImpulse = 0.f;
+
+	/** Seconds before the corpse is destroyed. 0 = never (correct for a playtest - you want to see
+	 *  what you killed). Set non-zero once a raid has enough bodies to matter. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death", meta = (ClampMin = "0.0"))
+	float CorpseLifespan = 0.f;
 };
