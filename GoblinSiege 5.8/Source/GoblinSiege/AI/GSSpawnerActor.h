@@ -12,6 +12,7 @@
 #include "GSSpawnerActor.generated.h"
 
 class UGSFlammableComponent;
+class UGSBurnFXComponent;
 class UGSRaceDataAsset;
 class AGSEnemyCharacter;
 class AGSGameState;
@@ -66,6 +67,17 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Spawner", meta = (EditCondition = "bHasFlammableComponent"))
 	TObjectPtr<UGSFlammableComponent> FlammableComponent;
+
+	/**
+	 * 2026-07-31, Michael's field-fire rulings: fire has to leave a mark, and the smoke has to
+	 * stay behind once the fire has moved on. A torched Watch-Station that goes silent but still
+	 * looks freshly built is the worst version of this - the player cannot tell which spawners
+	 * they have already dealt with, and "destroy to silence" stops reading off the world at all.
+	 * Rides FlammableComponent above, so it is inert on the spawners that don't take fire
+	 * (Barracks, Bunker) - those are killed structurally and have no burn to char to.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Spawner", meta = (EditCondition = "bHasFlammableComponent"))
+	TObjectPtr<UGSBurnFXComponent> BurnFXComponent;
 
 	/** Destroying a spawner doesn't reduce Alarm but raises it briefly - "a Barracks falling is
 	 *  loud" (design doc §5). */

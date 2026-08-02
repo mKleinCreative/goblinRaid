@@ -47,4 +47,30 @@ namespace GSTags
 	 *  AGSPlayerCharacter::UpdateRotationMode so animation Blueprints and future combat systems can
 	 *  query it without reaching into player-only state. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Aiming);
+
+	// ------------------------------------------------------------------ burn objective types
+	/**
+	 * The three burn-objective TYPE tags the burn-types spec §5 has owed since it was written,
+	 * added 2026-07-31 for Q-37 (the state half of Q-32's Required -> Optional -> Complete ruling).
+	 *
+	 * Every placed burn carrier declares one of these through
+	 * AGSBurnObjectiveBase::ObjectiveTypeTag, and it is the LOOKUP KEY for the win condition:
+	 * ruled 2026-07-31, the raid is won by burning one of each TYPE, so the moment the first
+	 * carrier of a type completes, the remaining carriers of that same type demote to Optional.
+	 * "Same type" is exactly "same tag" - which is why this is a tag and not the
+	 * EGSBurnObjectiveType enum it parallels. The enum is a C++ switch value that needs a recompile
+	 * to extend; a fourth burn type (a granary, a tannery) should join the win condition by being
+	 * placed and tagged in a level.
+	 *
+	 * Objective.Burn.* rather than the existing Damage.* / State.* roots because these describe a
+	 * MISSION-LAYER object, not a hit or a character state, and grouping them under a shared
+	 * Objective.Burn parent is what lets a future query match "any burn objective" with one
+	 * MatchesTag call.
+	 *
+	 * The market is never demoted: only one exists, so it has no siblings to be demoted by. That
+	 * falls out of the rule and needs no special case in the tag set.
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Mill);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Field);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Market);
 }

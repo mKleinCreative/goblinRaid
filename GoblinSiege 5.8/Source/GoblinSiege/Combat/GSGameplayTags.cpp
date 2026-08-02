@@ -15,4 +15,10 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Crouching, "State.Crouching", "Stealth stance active - crouch toggle (design doc §7)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Dodging, "State.Dodging", "Dodge roll in flight - i-frames + committed movement lock (design doc §7)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Aiming, "State.Aiming", "Facing camera/aim direction instead of movement direction (tech doc §16)");
+
+	// Burn-objective types (burn-types spec §5, added 2026-07-31 for Q-37). The win needs one burn
+	// of each of these; see GSGameplayTags.h and AGSBurnObjectiveBase::ObjectiveTypeTag.
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_Mill, "Objective.Burn.Mill", "Windmill burn objective - dust-fuse detonation (design doc §6.3)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_Field, "Objective.Burn.Field", "Wheat field burn objective - grid spread, >=70% of cells (Q-03)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_Market, "Objective.Burn.Market", "Market burn objective - stall-to-stall cluster spread; never Optional, only one exists");
 }

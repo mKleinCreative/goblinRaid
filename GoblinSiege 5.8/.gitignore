@@ -35,6 +35,7 @@ Content/*
 !Content/UI/
 !Content/Input/
 !Content/Maps/
+!Content/VFX/
 
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.

@@ -1,5 +1,6 @@
 #include "AI/GSSpawnerActor.h"
 #include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSBurnFXComponent.h"
 #include "Combat/GSRaceDataAsset.h"
 #include "Characters/GSEnemyCharacter.h"
 #include "Core/GSGameState.h"
@@ -14,6 +15,17 @@ AGSSpawnerActor::AGSSpawnerActor()
 	// Constructed conditionally per-instance via bHasFlammableComponent since not every subclass
 	// wants one (Barracks doesn't; Watch-Station and, arguably, a heavily-resisted Bunker do).
 	FlammableComponent = CreateDefaultSubobject<UGSFlammableComponent>(TEXT("FlammableComponent"));
+
+	// 2026-07-31: a burnt Watch-Station has to still look burnt an hour into the raid. Michael's
+	// ruling off the field-fire pass - fire leaves a mark, and the smoke stays behind after the
+	// fire has moved on - is what turns "silenced" from a fact in the spawn timer into something
+	// the player can read off the skyline. Constructed alongside the flammable rather than wired
+	// per-Blueprint so every race's spawner gets it without anyone remembering to add it.
+	//
+	// Unconditional on purpose, mirroring FlammableComponent: BeginPlay below is where the
+	// non-flammable spawners (Barracks, Bunker) shed the pair, and on those this component simply
+	// never has a burn to draw.
+	BurnFXComponent = CreateDefaultSubobject<UGSBurnFXComponent>(TEXT("BurnFX"));
 }
 
 void AGSSpawnerActor::BeginPlay()
@@ -30,6 +42,14 @@ void AGSSpawnerActor::BeginPlay()
 	{
 		FlammableComponent->DestroyComponent();
 		FlammableComponent = nullptr;
+
+		// 2026-07-31: the char driver goes with it. A stone Barracks has no burn to leave a mark
+		// from, so keeping it around would only leave a component holding a dead flammable.
+		if (BurnFXComponent)
+		{
+			BurnFXComponent->DestroyComponent();
+			BurnFXComponent = nullptr;
+		}
 	}
 
 	if (AGSGameState* GS = Cast<AGSGameState>(UGameplayStatics::GetGameState(this)))

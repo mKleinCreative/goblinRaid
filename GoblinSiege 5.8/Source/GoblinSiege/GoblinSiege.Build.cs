@@ -44,7 +44,25 @@ public class GoblinSiege : ModuleRules
 			"OnlineSubsystemUtils"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			// Landscape: UGSBurnMaskSubsystem derives the world burn mask's rectangle from the
+			// level's terrain bounds, which needs ALandscapeProxy (2026-07-31). Added with the
+			// per-field -> world mask re-architecture.
+			//
+			// PRIVATE, not public (moved 2026-07-31): ALandscapeProxy is named in exactly one .cpp
+			// (GSBurnMaskSubsystem.cpp) and in no header, so nothing that depends on GoblinSiege
+			// needs Landscape's include paths. A public dependency propagates to every dependent
+			// module and to every PCH that includes ours, which is build time paid for nothing.
+			//
+			// Deliberately NOT accompanied by "Foliage", even though the whole point of that change
+			// was to mark painted foliage: UFoliageInstancedStaticMeshComponent derives from
+			// UInstancedStaticMeshComponent -> UStaticMeshComponent -> UMeshComponent, all of which
+			// live in Engine, so the subsystem's UMeshComponent sweep binds all ~275,000 wheat
+			// instances without ever naming a foliage type. One less module dependency for the same
+			// result.
+			"Landscape"
+		});
 
 		// Uncomment if/when Blueprint-exposed async nodes or editor-only utility code is added.
 		// PrivateIncludePathModuleNames.AddRange(new string[] { });

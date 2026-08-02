@@ -226,3 +226,94 @@ When asked to rebuild / relaunch / test, use the project script — not manual `
 - **Living gotchas:** when you solve a real problem, append a one-line gotcha+fix to this file so the
   next session doesn't relearn it.
 <!-- END VibeUE -->
+
+<!-- BEGIN PROJECT-LOCAL — hand-written, keep BELOW the VibeUE block.
+     VibeUE.GenerateAgentConfig overwrites everything between its BEGIN/END markers.
+     Anything down here survives a regeneration. -->
+
+# Goblin Siege — this machine, this shell
+
+## The environment (assume none of this; it is all confirmed)
+
+- **OS: Windows. Default shell: PowerShell** (`powershell.exe`). `cmd` is available via `cmd /c`.
+  There is no bash, no `ls`, no `grep`, no `/` paths. Bash-isms fail with parser errors, not
+  "command not found", which makes them look like syntax bugs in your command.
+- **Engine:** `D:\Epic Games\UE_5.8\` — note the **space** in "Epic Games".
+- **Project:** `D:\goblinRaid\GoblinSiege 5.8\MyProject.uproject` — note the **space** in
+  "GoblinSiege 5.8", and that the `.uproject` is named `MyProject`, not `GoblinSiege`.
+- **Git repo root is `D:\goblinRaid`** — one level ABOVE the Unreal project folder.
+- **Two paths in this project contain spaces. Quote every path, every time.**
+
+## PowerShell rules that actually bite
+
+1. **A quoted path as the first token is a STRING, not a command.** PowerShell echoes it instead of
+   running it. Use the call operator `&`:
+   ```powershell
+   & "D:\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" MyProjectEditor Win64 Development ...
+   ```
+   Without `&` you get `Unexpected token 'MyProjectEditor' in expression or statement.`
+
+2. **Use `--%` for native-tool arguments.** Everything after it is passed verbatim, so PowerShell
+   stops mangling `-Project="C:\path with spaces"`:
+   ```powershell
+   & "D:\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" --% MyProjectEditor Win64 Development -Project="D:\goblinRaid\GoblinSiege 5.8\MyProject.uproject" -WaitMutex
+   ```
+
+3. **`$` does not survive the agent/MCP bridge.** `$_`, `$env:`, and `$var` arrive stripped or
+   mangled, producing errors like `.Line : The term '.Line' is not recognized` or
+   `Missing ')' in method call`. **Write PowerShell with no `$` at all:**
+   - `Select-String ... | Select-Object -Last 20 -ExpandProperty Line` — not `ForEach-Object { $_.Line }`
+   - `Where-Object ProcessId -eq 1234` — not `Where-Object { $_.ProcessId -eq 1234 }`
+   - `Get-Process cl,link,MSBuild -ErrorAction SilentlyContinue` — name the processes, don't filter
+
+4. **Escaped inner double quotes (`\"`) break the parse.** Prefer single quotes inside a
+   `-Command "..."`, or restructure to avoid nested quoting entirely.
+
+5. **Any `.bat` written from a Linux/cloud sandbox must be converted to CRLF** before it will run.
+   LF-only batch files flash open and close instantly with no error. (Cost us a day on
+   `install_vibeue.bat`.)
+
+6. **Desktop Commander's `start_process` times out at 60s.** Keep `Start-Sleep` under ~50s and poll
+   repeatedly instead of one long wait.
+
+## Compiling
+
+**Full build, editor CLOSED** — the clean path, and the one to use after adding any new `UCLASS`:
+```powershell
+& "D:\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" --% MyProjectEditor Win64 Development -Project="D:\goblinRaid\GoblinSiege 5.8\MyProject.uproject" -WaitMutex
+```
+
+**Live Coding (Ctrl+Alt+F11)** — seconds, for edits to existing function bodies only. It **cannot**
+register new `UCLASS` types or new `UPROPERTY`/`UFUNCTION` reflection. Confirmed on this project,
+not assumed.
+
+**The in-editor Compile button** works but gives **zero feedback** while it runs — a normal build
+here has taken 5m45s, which is indistinguishable from a hang. Before concluding it is stuck:
+
+- **Is anything actually compiling?** `Get-Process cl,link,MSBuild -ErrorAction SilentlyContinue`.
+  No `cl` means no compilation, full stop.
+- **Are the binaries already newer than the newest source file?** If yes, the build **succeeded**
+  and any remaining wait is a completion-handshake failure, not compilation.
+- **Did the log ever log a completion?** Grep `Saved/Logs/MyProject.log` for `HotReload`. A
+  `Launching UnrealBuildTool...` line with no `HotReload took Ns.` after it is the stranded-UBT bug:
+  UBT finished writing the DLLs and never exited, so the editor waits on a dead process forever and
+  Play stays disabled. **Fix: kill the orphaned `dotnet` process.** (Hit 2026-07-30, cost 4 hours.)
+- **Is the editor itself hung?** Check `Responding`, CPU delta over ~8s, and an
+  `execute_python_code` round-trip. A sub-millisecond Python round-trip means the game thread is
+  fine and the problem is elsewhere.
+- **Check dirty packages before advising a restart** (`get_dirty_map_packages` /
+  `get_dirty_content_packages`). Only safe at zero.
+
+## Known performance issue — Unreal Build Accelerator is crippled
+
+Builds log this and fall back to near-serial compilation (one `cl.exe` at a time):
+```
+UbaSessionServer - ERROR opening file C:\ProgramData\Epic\UnrealBuildAccelerator\memgroups
+  for write after retrying for 20 seconds (Access is denied.)
+UbaStorageServer - Can't move ...\cas\casdb.tmp to ...\cas\casdb (Access is denied.)
+```
+It still succeeds, but it wastes most of the build time (and 20s per retry, twice). **Fix: grant the
+user full control on `C:\ProgramData\Epic\UnrealBuildAccelerator`.** Until then, expect ~6-minute
+builds that should take under a minute. Machine has 32 GB RAM; close browsers during big builds.
+
+<!-- END PROJECT-LOCAL -->

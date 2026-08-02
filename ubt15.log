@@ -1,0 +1,160 @@
+Log file: C:\Users\Michael\AppData\Local\UnrealBuildTool\Log.txt
+Determining max actions to execute in parallel (12 physical cores, 20 logical cores)
+  Executing up to 12 processes, one per physical core
+Using 'git status' to determine working set for adaptive non-unity build (D:\goblinRaid).
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_142723\log (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_142723\temp (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_165320\log (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_165320\temp (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_171657\log (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_171657\temp (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_173609\log (Access is denied.)
+UbaSessionServer - Failed to delete directory C:\ProgramData\Epic\UnrealBuildAccelerator\sessions\260719_173609\temp (Access is denied.)
+UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
+UHT compiled-in object format Default
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\CraftingSystem\Module.CraftingSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\SpellActions\Module.SpellActions.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\MountSystem\Module.MountSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\MusicManager\Module.MusicManager.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\CollisionsManager\Module.CollisionsManager.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\CombinedAnimationsSystem\Module.CombinedAnimationsSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Intermediate\Build\Win64\x64\UnrealEditor\Development\MyProject\Module.MyProject.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AdvancedRPGSystem\Module.AdvancedRPGSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentSaveSystem\Module.AscentSaveSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\CinematicCameraManager\Module.CinematicCameraManager.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\ActionsSystem\Module.ActionsSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AIFramework\Module.AIFramework.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\ExecutionsSystem\Module.ExecutionsSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentTeams\Module.AscentTeams.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\CharacterController\Module.CharacterController.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentCoreInterfaces\Module.AscentCoreInterfaces.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentGASRuntime\Module.AscentGASRuntime.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentCombatFramework\Module.AscentCombatFramework.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentStateMachineEditor\Module.AscentStateMachineEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentStateMachine\Module.AscentStateMachine.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphRuntime\Module.AGSGraphRuntime.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\AGSGraphEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentQuestSystem\Module.AscentQuestSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\AssetEditorToolbar_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\AssetTypeActions_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\AGSGraphEditorSettings.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\ConnectionDrawingPolicy_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\EditorCommands_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\AssetEditor_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\AssetGraphSchema_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\EdGraph_AGSGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\Module.AGSGraphEditor.gen.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\SEdNode_AGSGraphEdge.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\EdNode_AGSGraphNode.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\SEdNode_AGSGraphNode.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\PerModuleInline.gen.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AGSGraphEditor\EdNode_AGSGraphEdge.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentQuestSystemEditor\Module.AscentQuestSystemEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentDialogueSystem\Module.AscentDialogueSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\StatusEffectSystem\Module.StatusEffectSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentUITools\Module.AscentUITools.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\UnitsSystem\Module.UnitsSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentComboGraphEditor\Module.AscentComboGraphEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\VehicleSystem\Module.VehicleSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentDialogueSystemEditor\Module.AscentDialogueSystemEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentEditor\Module.AscentEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentComboGraph\Module.AscentComboGraph.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\InventorySystem\Module.InventorySystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentEditorExtensions\Module.AscentEditorExtensions.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentMoralitySystem\Module.AscentMoralitySystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentLoadingScreen\Module.AscentLoadingScreen.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentTargetingSystem\Module.AscentTargetingSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentMapsSystem\Module.AscentMapsSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentUINavigationSystem\Module.AscentUINavigationSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentMapsEditor\Module.AscentMapsEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentGASEditor\Module.AscentGASEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentCheatManager\Module.AscentCheatManager.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentAttributeGraphEditor\Module.AscentAttributeGraphEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentAttributeEditor\Module.AscentAttributeEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentSkillTreeEditor\Module.AscentSkillTreeEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentSkillTree\Module.AscentSkillTree.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentSaveSystemEditor\Module.AscentSaveSystemEditor.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\MetaRoad\Intermediate\Build\Win64\x64\UnrealEditor\Development\MetaRoadEditor\Module.MetaRoadEditor.2.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\AscentCombatFramework\Intermediate\Build\Win64\x64\UnrealEditor\Development\AscentBuildingSystem\Module.AscentBuildingSystem.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\BlueprintTypeParser.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\DeepResearchTools.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\MetaRoad\Intermediate\Build\Win64\x64\UnrealEditor\Development\MetaRoadEditor\Module.MetaRoadEditor.4.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\HelpFileReader.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\MetaRoad\Intermediate\Build\Win64\x64\UnrealEditor\Development\MetaRoadEditor\Module.MetaRoadEditor.3.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\MetaRoad\Intermediate\Build\Win64\x64\UnrealEditor\Development\MetaRoad\Module.MetaRoad.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\JsonValueHelper.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\Marketplace\MetaRoad\Intermediate\Build\Win64\x64\UnrealEditor\Development\MetaRoadEditor\Module.MetaRoadEditor.1.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PerformanceServiceTests.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\ParameterConverter.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PerModuleInline.gen.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\Module.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\MapBlockoutMath.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\MapBlockoutImage.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PythonDiscoveryService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\Module.VibeUE.gen.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PythonSchemaService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PythonExecutionService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PythonToolsRegistration.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\ServiceBase.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\ServiceContext.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UAnimSequenceService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UBlueprintService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\ToolRegistry.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UActorService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\TerrainDataTools.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UAnimGraphService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UAnimMontageService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UInputService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UGameplayTagService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\PythonTools.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UEngineSettingsService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UEnumStructService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\ULandscapeMaterialService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UMapBlockoutService_Stages.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UFoliageService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UMetaSoundService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\ULandscapeService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UMapBlockoutService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UMapBlockoutService_Materialize.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UMaterialNodeService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UAssetDiscoveryService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UMaterialService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UNiagaraEmitterService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UNiagaraService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UNiagaraScratchPadService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\USkeletonService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UStateTreeService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\URuntimeVirtualTextureService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UProjectSettingsService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UTransactionService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UWidgetService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\USoundCueService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UPerformanceService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UPerformanceTriageSkill.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UViewportService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\UUVMappingService.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\VibeUEPaths.cpp.dep.json!
+CppDependencyCache - There is no partition covering path to D:\goblinRaid\GoblinSiege 5.8\Plugins\VibeUE\Intermediate\Build\Win64\x64\UnrealEditor\Development\VibeUE\VibeUEMCPToolBridge.cpp.dep.json!
+Building MyProjectEditor...
+===== Toolchain Information =====
+Using ISPC compiler (D:\Epic Games\UE_5.8\Engine\Source\ThirdParty\Intel\ISPC\bin\Windows\ispc.exe)
+  Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.24.0 (build commit  @ 20250404, LLVM 18.1.2) 
+Using Visual Studio 14.50.35737 toolchain (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.50.35717) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+=================================
+Using Unreal Build Accelerator local executor to run 4 action(s)
+  CPU 12 physical cores, 20 logical cores
+  Memory 31.86 GB physical, 53.02 GB/57.65 GB committed
+  UBA Storage capacity 40 GB
+[1/4] Compile [x64] Module.GoblinSiege.cpp [NoUba]
+[2/4] Link [x64] UnrealEditor-GoblinSiege-0006.dll [NoUba]
+[3/4] Link [x64] UnrealEditor-GoblinSiege-0006.lib [NoUba]
+[4/4] WriteMetadata MyProjectEditor.target [NoUba]
+
+UbaSessionServer - ERROR opening file C:\ProgramData\Epic\UnrealBuildAccelerator\memgroups for write after retrying for 20 seconds (Access is denied.)
+Total time in Unreal Build Accelerator local executor: 71.97 seconds
+Output binary: D:\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe
+
+Result: Succeeded
+Total execution time: 74.76 seconds
+Trace written to file C:\Users\Michael\AppData\Local\UnrealBuildTool\Trace.uba with size 9.7kb
+BUILD_EXITCODE=0 

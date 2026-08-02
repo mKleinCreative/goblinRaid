@@ -1,0 +1,7 @@
+Log file: C:\Users\Michael\AppData\Local\UnrealBuildTool\Log.txt
+Determining max actions to execute in parallel (12 physical cores, 20 logical cores)
+  Executing up to 12 processes, one per physical core
+Using 'git status' to determine working set for adaptive non-unity build (D:\goblinRaid).
+Creating makefile for MyProjectEditor (command line arguments changed)
+UBA FATAL ERROR 9887: Failed to create shared memory
+BUILD_EXITCODE=9887 

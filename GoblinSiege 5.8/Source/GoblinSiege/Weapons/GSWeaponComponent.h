@@ -1,6 +1,19 @@
 // Weapon identity lives here - equip/swap is a data operation (design doc §5). Owns the
-// Slasher's melee/ranged toggle (with the anti-cancel input lock) and the Blood Staff orb
+// Scout's melee/ranged toggle (with the anti-cancel input lock) and the Blood Staff orb
 // economy. Reconstructed 2026-07-19 to match the surviving GSPlayerCharacter.cpp caller.
+// ("Slasher" corrected to "Scout" on 2026-08-01 - design doc §13 decision 36 as amended that day.
+// Only comments touched by this pass were corrected; other files still say Slasher.)
+//
+// 2026-08-01 - THIS COMPONENT NOW SPAWNS AND MOVES THE WEAPON MESHES. Before today it equipped a
+// weapon's stats, applied its turn rate and granted its abilities, and that was the whole of
+// "equip": nothing was ever created, attached, or drawn, so a fully-equipped Scout stood in the
+// hamlet with empty hands. The mesh half of the data asset (UGSWeaponDataAsset's
+// GoblinSiege|Weapon|Visual block) is consumed here.
+//
+// Up to four UStaticMeshComponents are created at runtime and REUSED across equips rather than
+// destroyed and recreated: melee, ranged, quiver, held torch. Runtime NewObject + RegisterComponent
+// rather than CreateDefaultSubobject, because which meshes exist at all is a property of the data
+// asset that is equipped, which is not known at construction time and changes on every swap.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +21,8 @@
 #include "GSWeaponComponent.generated.h"
 
 class UGSWeaponDataAsset;
+class UStaticMesh;
+class UStaticMeshComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnOrbCountChanged, int32, NewCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWeaponModeChanged, bool, bRangedMode);
@@ -23,8 +38,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon")
 	void EquipWeapon(UGSWeaponDataAsset* NewWeapon);
 
-	/** Slasher dagger⇄bow toggle. Brief input lock so the swap can't be used as a frame-perfect
-	 *  combat cancel (race-design-goblins.md weapon-swap rule). */
+	/** Scout sword⇄bow toggle. Brief input lock so the swap can't be used as a frame-perfect
+	 *  combat cancel (race-design-goblins.md weapon-swap rule).
+	 *
+	 *  2026-08-01: this now MOVES MESHES as well as flipping the mode flag - the newly-active half
+	 *  goes to its hand socket and the newly-inactive half to its holster socket (or hides, if the
+	 *  weapon sets bShowHolsteredWeapon false). The quiver is untouched by the swap; it is worn
+	 *  continuously. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon")
 	void ToggleRangedMode();
 
@@ -33,6 +53,45 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
 	UGSWeaponDataAsset* GetEquippedWeapon() const { return EquippedWeapon; }
+
+	// --- Visible weapons (2026-08-01) ---
+
+	/**
+	 * The mesh component for whichever half of the sword⇄bow pair is currently IN HAND, or null if
+	 * nothing is equipped / the mesh is unset / the mesh failed to resolve.
+	 *
+	 * Exists for the attack abilities that do not exist yet: a sword swing wants to trace along the
+	 * blade's own bounds, and asking the weapon component "what am I actually holding" is a great
+	 * deal more honest than an ability hardcoding a socket name and a length. Deliberately does NOT
+	 * return the held torch even while the torch is readied - the torch is a separate tool slot
+	 * with its own ability (tech doc §16's GA_TorchBonk), and a sword ability that silently traced
+	 * along a torch would be a bug nobody would find. Use GetHeldTorchMesh() for that.
+	 *
+	 * Null is a normal, expected return. Every caller must handle it: the whole visual layer
+	 * degrades to "invisible but functional" when the art isn't in yet.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
+	UStaticMeshComponent* GetActiveWeaponMesh() const;
+
+	/** The readied-torch prop, or null. Non-null does not mean visible - check IsTorchReadied(). */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
+	UStaticMeshComponent* GetHeldTorchMesh() const { return HeldTorchMeshComponent; }
+
+	/**
+	 * Show/hide the torch in the goblin's off hand. Called by UGSGA_TorchToss around its throw
+	 * (readied on activation, gone the instant the projectile leaves), and intended as the hook the
+	 * future IA_EquipTorch toggle (tech doc §16, Q) drives directly once the torch becomes a
+	 * persistent tool slot rather than a one-shot ability.
+	 *
+	 * Creates the mesh component lazily on first ready rather than at equip: a goblin who never
+	 * throws a torch never pays for one, and the torch mesh is per-weapon-asset data that may
+	 * legitimately be unset.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon|Torch")
+	void SetTorchReadied(bool bNewReadied);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
+	bool IsTorchReadied() const { return bTorchReadied; }
 
 	// --- Blood Staff orb economy (design doc §5: melee hits bank orbs, Blood Nova spends them) ---
 
@@ -54,7 +113,51 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** Destroys every mesh component this class created and clears the swap-lock timer. Nothing
+	 *  this component builds may outlive it - a stray registered UStaticMeshComponent on a
+	 *  destroyed pawn is exactly the kind of leak that only shows up after an hour of respawns. */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	void GrantAbilitiesFromWeapon();
+
+	// --- Mesh plumbing (2026-08-01) ---
+
+	/** Resolves the equipped weapon's meshes into components (creating or reusing as needed) and
+	 *  then places them. Safe to call with no weapon equipped - it tears the meshes down instead. */
+	void RebuildWeaponMeshes();
+
+	/** Puts every existing mesh component on the socket its current state calls for: active half in
+	 *  hand, inactive half holstered or hidden, quiver where it always is, torch if readied. This
+	 *  is the one place attachment state is decided, so equip and swap can't disagree. */
+	void RefreshWeaponMeshPlacement();
+
+	/**
+	 * Creates (once) or reuses the component in Slot and points it at SoftMesh.
+	 *
+	 * Reuse rather than churn: a swap that destroyed and recreated components would re-register a
+	 * primitive with the scene, rebuild its render state, and re-resolve the same soft path, every
+	 * time the player taps the swap key - which is a key the design expects to be tapped mid-fight.
+	 * An unset or unresolvable mesh destroys the slot instead, so "the designer cleared the field"
+	 * and "the asset went missing" both end at the same honest place: no component, no draw.
+	 */
+	UStaticMeshComponent* EnsureWeaponMeshComponent(TObjectPtr<UStaticMeshComponent>& Slot,
+		const TSoftObjectPtr<UStaticMesh>& SoftMesh, bool& bResolveFailedLatch, const TCHAR* SlotLabel);
+
+	/**
+	 * Attaches one mesh to one socket on the owning character's skeletal mesh and applies the
+	 * per-weapon offset on top of the snap.
+	 *
+	 * VALIDATES THE SOCKET FIRST, and this matters more here than it usually would: the goblin
+	 * skeleton has NO weapon sockets on it as this is written, so the missing-socket path is not a
+	 * defensive nicety, it is the path that runs today. A missing socket falls back to the
+	 * character's ROOT component, which parks the weapon at the goblin's feet - visible, obviously
+	 * wrong, and impossible to confuse with "the mesh didn't load", which is the failure it would
+	 * otherwise be indistinguishable from. Silent is the one thing it must not be.
+	 */
+	void AttachWeaponMeshToSocket(UStaticMeshComponent* MeshComp, FName SocketName, const FTransform& Offset);
+
+	/** Destroys all four mesh components. Called from EndPlay and whenever the weapon is cleared. */
+	void DestroyWeaponMeshes();
 
 	/** Starting kit - set on the character Blueprint; EquipWeapon() swaps at runtime. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Weapon")
@@ -66,8 +169,55 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Weapon|Tuning")
 	int32 MaxBloodOrbs = 5;
 
+	// --- Runtime mesh components (2026-08-01) ---
+	// Transient and UPROPERTY: transient because they are rebuilt from the data asset on every
+	// equip and must never be serialised into a level or a Blueprint, and UPROPERTY because the GC
+	// has to know this component is the thing keeping them alive. A raw pointer here would be a
+	// crash waiting for the first garbage collection between an equip and a swap.
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> MeleeMeshComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> RangedMeshComponent;
+
+	/** Worn continuously; never moved by the swap. Split out of the bow on 2026-08-01 (bow / arrow
+	 *  / quiver) so the arrows stay on the goblin's back when the bow is holstered. */
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> QuiverMeshComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> HeldTorchMeshComponent;
+
 	bool bRangedMode = false;
 	bool bSwapLocked = false;
+	bool bTorchReadied = false;
 	int32 BloodOrbs = 0;
 	FTimerHandle SwapLockTimerHandle;
+
+	/**
+	 * One-shot warn latches per mesh slot, matching AGSFieldFireObjective::bSmokeSystemResolveFailed
+	 * and UGSBurnMaskSubsystem's pattern: a missing soft asset says so ONCE and the failed resolve
+	 * is never retried, because LoadSynchronous does not cache a failure - retrying it is a full
+	 * failed package lookup, and this code runs on every swap.
+	 *
+	 * RESET ON EQUIP, deliberately: these are latched against the CURRENT weapon's paths, and a
+	 * different data asset is entitled to a fresh attempt and a fresh warning. Latching them for
+	 * the component's whole life would mean equipping a kit whose sword exists, after one whose
+	 * sword doesn't, silently yields no sword.
+	 */
+	bool bMeleeMeshResolveFailed = false;
+	bool bRangedMeshResolveFailed = false;
+	bool bQuiverMeshResolveFailed = false;
+	bool bHeldTorchMeshResolveFailed = false;
+
+	/**
+	 * Sockets already complained about, so the "hand_r_weapon does not exist" line appears once and
+	 * not on every swap for the rest of the raid. Keyed by socket NAME rather than by slot, because
+	 * the interesting fact is which socket the skeleton is missing - that is what someone has to go
+	 * and author - and two slots pointed at the same missing socket are one problem, not two.
+	 *
+	 * Cleared on equip alongside the resolve latches: a new weapon may name different sockets.
+	 */
+	TSet<FName> WarnedMissingSockets;
 };
