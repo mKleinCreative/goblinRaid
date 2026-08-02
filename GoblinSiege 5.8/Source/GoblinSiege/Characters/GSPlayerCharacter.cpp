@@ -1,6 +1,7 @@
 #include "Characters/GSPlayerCharacter.h"
 #include "Characters/GSTargetingComponent.h"
 #include "Weapons/GSWeaponComponent.h"
+#include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
@@ -14,6 +15,10 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 {
 	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
 	TargetingComponent = CreateDefaultSubobject<UGSTargetingComponent>(TEXT("TargetingComponent"));
+
+	// Defaulted in C++ so a character Blueprint swings out of the box. An unset ability class is a
+	// silent failure - you press attack, nothing happens, and nothing tells you why.
+	SwordLightAbilityClass = UGSGA_SwordLight::StaticClass();
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -83,6 +88,10 @@ void AGSPlayerCharacter::BeginPlay()
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DodgeAbilityClass, 1, INDEX_NONE, this));
 		}
+		if (SwordLightAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(SwordLightAbilityClass, 1, INDEX_NONE, this));
+		}
 	}
 }
 
@@ -95,6 +104,10 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AGSPlayerCharacter::Input_Move);
 		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AGSPlayerCharacter::Input_Look);
 		EIC->BindAction(DodgeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Dodge);
+		if (AttackAction)
+		{
+			EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Attack);
+		}
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ThrowTorch);
 		EIC->BindAction(SwapWeaponModeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_SwapWeaponMode);
 		EIC->BindAction(AimAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_AimStart);
@@ -150,6 +163,23 @@ void AGSPlayerCharacter::Input_Dodge(const FInputActionValue& Value)
 	if (AbilitySystemComponent && DodgeAbilityClass)
 	{
 		AbilitySystemComponent->TryActivateAbilityByClass(DodgeAbilityClass);
+	}
+}
+
+void AGSPlayerCharacter::Input_Attack(const FInputActionValue& Value)
+{
+	if (!AbilitySystemComponent || !SwordLightAbilityClass)
+	{
+		return;
+	}
+
+	// Deliberately no cooldown check here. The ability's own recovery timer holds it active for
+	// windup+window+recovery, and GAS refuses to re-activate an already-active InstancedPerActor
+	// ability - so mashing is rate-limited by the swing itself. Putting a second gate in the input
+	// handler would mean two numbers to tune and one of them invisible.
+	if (!AbilitySystemComponent->TryActivateAbilityByClass(SwordLightAbilityClass))
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("[GoblinSiege] Attack input ignored - swing already active or blocked."));
 	}
 }
 

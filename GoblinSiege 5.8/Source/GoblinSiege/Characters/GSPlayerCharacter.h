@@ -48,6 +48,7 @@ protected:
 	void Input_Move(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
 	void Input_Dodge(const FInputActionValue& Value);
+	void Input_Attack(const FInputActionValue& Value);
 	void Input_ThrowTorch(const FInputActionValue& Value);
 	void Input_SwapWeaponMode(const FInputActionValue& Value);
 	void Input_AimStart(const FInputActionValue& Value);
@@ -87,6 +88,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> DodgeAction;
 
+	/** Light attack. Bound to Started, not Triggered - a held button should not machine-gun the
+	 *  swing; the ability's own recovery window is what gates the rate. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> AttackAction;
+
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> ThrowTorchAction;
 
@@ -104,6 +110,13 @@ protected:
 	/** Universal torch toss (racial trait) - granted in BeginPlay regardless of weapon kit. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> TorchTossAbilityClass;
+
+	/** Light melee swing. Defaults to UGSGA_SwordLight in the constructor so a fresh character
+	 *  Blueprint can swing without anyone remembering to fill this in - the same reasoning that
+	 *  put C++ defaults on GSTorchProjectile's FireVolumeClass. Per-weapon ability grants replace
+	 *  this once DA_Weapon_* assets carry their own GrantedAbilities. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> SwordLightAbilityClass;
 
 	/** Universal dodge roll (racial trait, design doc §7) - set to UGSGA_DodgeRoll in the character
 	 *  Blueprint defaults. */

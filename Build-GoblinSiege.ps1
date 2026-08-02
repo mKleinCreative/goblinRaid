@@ -75,6 +75,24 @@ if ($staleUbt) {
     Write-Host "  Stop-Process -Id $($staleUbt.ProcessId -join ',') -Force"
 }
 
+# --- the phantom build lock, SOLVED 2026-08-02 ------------------------------
+# For weeks this script has intermittently sat forever on
+#   "Build.bat is already running, waiting for existing script to terminate..."
+# with no compiler running and no other Build.bat process anywhere. It was never
+# a stale lock. Epic's Build.bat computes its lock path as
+#     set LockFile=%tmp%\<mangled-path-to-Build.bat>.lock
+# and then holds it open on handle 9. Agent/MCP shells inherit an environment
+# that has TEMP but NOT TMP, so %tmp% expands to nothing, the lock path collapses
+# to "\D-Epic Games-...lock" at the root of the current drive, the redirect is
+# denied, and Build.bat misreports that failure as "already running" - forever,
+# because retrying cannot fix a missing environment variable.
+# It never reproduced in an interactive console because those always define TMP.
+# One line fixes it. Do not remove it.
+if (-not (Test-Path Env:TMP)) {
+    Set-Item -Path Env:TMP -Value (Get-Item Env:TEMP).Value
+    Write-Host 'TMP was unset (agent shell); set it from TEMP so Build.bat can create its lock file.' -ForegroundColor Yellow
+}
+
 # --- stale Build.bat holding the mutex --------------------------------------
 # -WaitMutex makes Build.bat block silently and forever on a lock left behind by
 # a killed or wedged build. Caught live on 2026-07-31: a leftover cmd.exe from a
