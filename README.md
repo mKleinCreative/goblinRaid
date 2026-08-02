@@ -1,4 +1,15 @@
 # goblinRaid
+
+## Git LFS setup
+
+This repository uses Git LFS for Unreal binary assets (`*.uasset`, `*.umap`) via `/home/runner/work/goblinRaid/goblinRaid/.gitattributes`.
+
+1. Install Git LFS on your machine.
+2. In this repository, run `git lfs install --local`.
+3. Clone/pull normally, then run `git lfs pull` to fetch LFS objects.
+4. Keep `/home/runner/work/goblinRaid/goblinRaid/.gitattributes` committed when updating tracked patterns.
+5. If any large binaries were committed outside LFS, migrate history with `git lfs migrate import` before sharing changes.
+
 # GOBLIN SIEGE — Game Design Document
 
 *Working draft for review · reflects the browser prototype as currently built*
