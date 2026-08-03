@@ -48,6 +48,14 @@ namespace GSTags
 	 *  query it without reaching into player-only state. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Aiming);
 
+	/** Guard up. Read by UGSDamageExecCalculation, which mitigates frontal hits only - a block
+	 *  that protects your back is not a block. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Blocking);
+
+	/** Present only while a hit-react montage is playing. Exists so a flurry cannot restart the
+	 *  flinch every frame, which reads as a seizure rather than a stagger. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_HitReact);
+
 	// ------------------------------------------------------------------ burn objective types
 	/**
 	 * The three burn-objective TYPE tags the burn-types spec §5 has owed since it was written,

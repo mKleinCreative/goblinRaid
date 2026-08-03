@@ -2,7 +2,10 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayEffectExtension.h"
+#include "Animation/AnimMontage.h"
 #include "Core/GSGameMode.h"
+#include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Controller.h"
@@ -79,11 +82,123 @@ float AGSCharacterBase::GetMaxHealth() const
 	return AttributeSetBase ? AttributeSetBase->GetMaxHealth() : 0.f;
 }
 
+bool AGSCharacterBase::IsBlocking() const
+{
+	return AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_Blocking);
+}
+
+void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
+{
+	if (!bEnableHitReact || bIsDead)
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Two gates, and they do different jobs. The cooldown stops a combo restarting the montage on
+	// every contact - three hits in 2.1s should read as three staggers, not as a vibration. The
+	// tag check stops a flinch interrupting itself mid-play, which looks worse than no flinch.
+	if (World->GetTimeSeconds() - LastHitReactTime < HitReactCooldownSeconds)
+	{
+		return;
+	}
+	if (AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_HitReact))
+	{
+		return;
+	}
+
+	UAnimMontage* Chosen = nullptr;
+
+	if (IsBlocking() && BlockReact)
+	{
+		// A blocked hit is absorbed by the guard, not felt in the body.
+		Chosen = BlockReact;
+	}
+	else
+	{
+		Chosen = HitReactFront;
+
+		// Directional pick. FromDirection points from us toward the attacker, so a positive dot
+		// with our right vector means the blow came from our right.
+		if (!FromDirection.IsNearlyZero())
+		{
+			FVector Flat = FromDirection;
+			Flat.Z = 0.f;
+			if (!Flat.IsNearlyZero())
+			{
+				const float SideDot = FVector::DotProduct(Flat.GetSafeNormal(), GetActorRightVector());
+				if (SideDot < -0.5f && HitReactLeft)
+				{
+					Chosen = HitReactLeft;
+				}
+				else if (SideDot > 0.5f && HitReactRight)
+				{
+					Chosen = HitReactRight;
+				}
+			}
+		}
+	}
+
+	if (!Chosen)
+	{
+		return; // no montage authored yet - silently fine, the damage still landed
+	}
+
+	LastHitReactTime = World->GetTimeSeconds();
+	const float Length = PlayAnimMontage(Chosen, HitReactPlayRate);
+
+	if (AbilitySystemComponent && Length > 0.f)
+	{
+		AbilitySystemComponent->AddLooseGameplayTag(GSTags::State_HitReact);
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle,
+			FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				if (AbilitySystemComponent)
+				{
+					AbilitySystemComponent->RemoveLooseGameplayTag(GSTags::State_HitReact);
+				}
+			}),
+			Length, false);
+	}
+}
+
 void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 {
+	const float Delta = Data.NewValue - Data.OldValue;
+	const float MaxHealth = GetMaxHealth();
+
+	// The dynamic mirror of GAS's non-dynamic attribute delegate. Everything Blueprint-side - the
+	// health bar above all - listens here, because the GAS delegate itself cannot be bound from
+	// Blueprint or UMG at all.
+	OnHealthChanged.Broadcast(Data.NewValue, MaxHealth, Delta);
+
 	if (!bIsDead && Data.NewValue <= 0.f)
 	{
 		HandleDeath();
+		return;
+	}
+
+	// Flinch on meaningful damage only. The fraction gate is what keeps a burning wheat field
+	// from making everyone standing in it twitch four times a second.
+	if (Delta < 0.f && MaxHealth > 0.f && (-Delta / MaxHealth) >= HitReactMinDamageFraction)
+	{
+		FVector FromAttacker = FVector::ZeroVector;
+		if (Data.GEModData)
+		{
+			// Not named "Instigator": AActor already has a member of that name and this module
+			// builds with warnings-as-errors, so the shadow is a hard build failure.
+			if (const AActor* Attacker = Data.GEModData->EffectSpec.GetContext().GetInstigator())
+			{
+				FromAttacker = Attacker->GetActorLocation() - GetActorLocation();
+			}
+		}
+		PlayHitReact(FromAttacker);
 	}
 }
 
@@ -153,6 +268,8 @@ void AGSCharacterBase::HandleDeath()
 	{
 		SetLifeSpan(CorpseLifespan);
 	}
+
+	OnDied.Broadcast();
 
 	if (HasAuthority())
 	{

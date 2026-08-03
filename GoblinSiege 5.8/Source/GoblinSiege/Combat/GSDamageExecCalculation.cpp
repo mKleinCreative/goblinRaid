@@ -20,6 +20,23 @@ static FAutoConsoleVariableRef CVarGSCombatLogDamage(
 	TEXT("0 = off, 1 = log every damage resolution incl. rejections, 2 = also print on screen."),
 	ECVF_Cheat);
 
+// Block tuning, cvars rather than data assets on purpose: these are two numbers that decide
+// whether blocking feels worth doing, and they want to be draggable during a playtest without a
+// rebuild or an asset edit. They move onto the weapon/shield data asset once the feel is settled.
+static float GSBlockDamageMultiplier = 0.2f;
+static FAutoConsoleVariableRef CVarGSBlockMult(
+	TEXT("GS.Combat.BlockMultiplier"),
+	GSBlockDamageMultiplier,
+	TEXT("Damage multiplier applied to a successful frontal block, before armor. 0 = perfect block."),
+	ECVF_Cheat);
+
+static float GSBlockArcDegrees = 140.f;
+static FAutoConsoleVariableRef CVarGSBlockArc(
+	TEXT("GS.Combat.BlockArc"),
+	GSBlockArcDegrees,
+	TEXT("Total frontal arc, in degrees, within which a block applies."),
+	ECVF_Cheat);
+
 static void GSLogDamage(const FString& Msg, bool bIsRejection)
 {
 	if (GSCombatLogDamage <= 0)
@@ -115,6 +132,38 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 	// armor" callouts.
 	const bool bSkipArmor = DamageTypeTag == GSTags::Damage_Blast || AssetTags.HasTagExact(GSTags::Damage_IgnoresArmor);
 
+	// ---- block (2026-08-03) -------------------------------------------------------------
+	// Deliberately BEFORE armor: a guard is the outer layer. Frontal only - a block that
+	// protects your back is not a block, and being able to turtle in every direction removes
+	// the only decision blocking asks you to make.
+	bool bBlocked = false;
+	if (TargetASC && TargetASC->HasMatchingGameplayTag(GSTags::State_Blocking) && TargetActor)
+	{
+		const AActor* Attacker = Spec.GetContext().GetInstigator();
+		if (Attacker)
+		{
+			FVector ToAttacker = Attacker->GetActorLocation() - TargetActor->GetActorLocation();
+			ToAttacker.Z = 0.f;
+			if (!ToAttacker.IsNearlyZero())
+			{
+				const float Facing = FVector::DotProduct(ToAttacker.GetSafeNormal(),
+					TargetActor->GetActorForwardVector());
+				bBlocked = Facing >= FMath::Cos(FMath::DegreesToRadians(GSBlockArcDegrees * 0.5f));
+			}
+		}
+		else
+		{
+			// No instigator (environmental damage, e.g. standing in fire). A raised shield does
+			// nothing against the floor being on fire, so this stays unblocked on purpose.
+			bBlocked = false;
+		}
+	}
+
+	if (bBlocked)
+	{
+		DamageAfterRace *= GSBlockDamageMultiplier;
+	}
+
 	float FinalDamage = DamageAfterRace;
 	if (!bSkipArmor)
 	{
@@ -130,11 +179,12 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 	{
 		const UGSAttributeSetBase* Attrs = TargetASC ? TargetASC->GetSet<UGSAttributeSetBase>() : nullptr;
 		GSLogDamage(FString::Printf(
-			TEXT("%s -> %s  %s  raw %.1f  x%.2f race  %s armor %.1f  = %.1f   (HP %.0f/%.0f)"),
+			TEXT("%s -> %s  %s  raw %.1f  x%.2f race  %s%s armor %.1f  = %.1f   (HP %.0f/%.0f)"),
 			*GetNameSafe(Spec.GetContext().GetInstigator()),
 			*GetNameSafe(TargetActor),
 			*DamageTypeTag.GetTagName().ToString(),
 			RawDamage, RaceMultiplier,
+			bBlocked ? TEXT("BLOCKED ") : TEXT(""),
 			bSkipArmor ? TEXT("SKIP") : TEXT("-"),
 			Attrs ? Attrs->GetArmor() : 0.f,
 			FinalDamage,

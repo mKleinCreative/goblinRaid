@@ -2,7 +2,12 @@
 #include "Characters/GSTargetingComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/Abilities/GSGA_SwordLight.h"
+#include "Weapons/Abilities/GSGA_Block.h"
+#include "Destruction/GSTorchProjectile.h"
 #include "Combat/GSGameplayTags.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
 #include "AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -19,6 +24,14 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	// Defaulted in C++ so a character Blueprint swings out of the box. An unset ability class is a
 	// silent failure - you press attack, nothing happens, and nothing tells you why.
 	SwordLightAbilityClass = UGSGA_SwordLight::StaticClass();
+	BlockAbilityClass = UGSGA_Block::StaticClass();
+	// SwordHeavyAbilityClass is deliberately NOT defaulted: it and the light share a class, so a
+	// C++ default would silently give the heavy the light's stage array and the two would feel
+	// identical for no visible reason. Better to have the heavy do nothing until it is pointed at
+	// its own Blueprint - and the input handler says so in the log.
+
+	// Tick exists only to draw the torch aim arc, and early-outs when not aiming.
+	PrimaryActorTick.bCanEverTick = true;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -92,6 +105,78 @@ void AGSPlayerCharacter::BeginPlay()
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(SwordLightAbilityClass, 1, INDEX_NONE, this));
 		}
+		if (SwordHeavyAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(SwordHeavyAbilityClass, 1, INDEX_NONE, this));
+		}
+		if (BlockAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(BlockAbilityClass, 1, INDEX_NONE, this));
+		}
+	}
+}
+
+void AGSPlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bAimingTorch && bTorchAimEnabled)
+	{
+		DrawTorchAimArc();
+	}
+}
+
+void AGSPlayerCharacter::DrawTorchAimArc()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Read the flight parameters off the projectile CDO instead of duplicating them here. If the
+	// torch's speed or gravity is ever retuned, the aim line follows automatically - an aim
+	// indicator that lies about where the thing lands is worse than no indicator.
+	float Speed = 1400.f;
+	float GravityScale = 1.f;
+	if (const AGSTorchProjectile* TorchCDO = GetDefault<AGSTorchProjectile>())
+	{
+		if (const UProjectileMovementComponent* Move =
+				TorchCDO->FindComponentByClass<UProjectileMovementComponent>())
+		{
+			Speed = Move->InitialSpeed > 0.f ? Move->InitialSpeed : Speed;
+			GravityScale = Move->ProjectileGravityScale;
+		}
+	}
+
+	// Must match UGSGA_TorchToss::ThrowTorch exactly, including the +50 hand-height fudge.
+	const FRotator AimRotation = GetControlRotation();
+	const FVector Start = GetActorLocation() + AimRotation.Vector() * 80.f + FVector(0.f, 0.f, 50.f);
+
+	FPredictProjectilePathParams Params(12.f, Start, AimRotation.Vector() * Speed, TorchAimMaxSimSeconds);
+	Params.OverrideGravityZ = World->GetGravityZ() * GravityScale;
+	Params.bTraceWithCollision = true;
+	Params.bTraceComplex = false;
+	Params.ActorsToIgnore.Add(this);
+	Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
+	Params.DrawDebugTime = 0.f;
+	Params.SimFrequency = 15.f;
+
+	FPredictProjectilePathResult Result;
+	const bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
+
+	// The engine's own debug draw gives the arc; the landing ring is what the player actually
+	// reads, so draw that ourselves in the torch colour and make it obvious when it hits nothing.
+	if (bHit)
+	{
+		DrawDebugCircle(World, Result.HitResult.ImpactPoint + FVector(0.f, 0.f, 3.f), 55.f, 24,
+			TorchAimArcColour.ToFColor(true), false, -1.f, 0, 3.f,
+			FVector(1, 0, 0), FVector(0, 1, 0), false);
+	}
+	else if (Result.PathData.Num() > 0)
+	{
+		DrawDebugSphere(World, Result.PathData.Last().Location, 30.f, 10,
+			FColor::Silver, false, -1.f, 0, 2.f);
 	}
 }
 
@@ -108,7 +193,23 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		{
 			EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Attack);
 		}
-		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ThrowTorch);
+		if (HeavyAttackAction)
+		{
+			EIC->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_HeavyAttack);
+		}
+		if (BlockAction)
+		{
+			EIC->BindAction(BlockAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_BlockStart);
+			EIC->BindAction(BlockAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_BlockStop);
+			EIC->BindAction(BlockAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_BlockStop);
+		}
+
+		// Torch: hold to aim, release to throw. Canceled is bound as well as Completed because a
+		// focus loss mid-hold fires Canceled only, and without it the goblin would be left aiming
+		// forever with no way to resolve the throw.
+		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ThrowTorchStart);
+		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
+		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(SwapWeaponModeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_SwapWeaponMode);
 		EIC->BindAction(AimAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_AimStart);
 		EIC->BindAction(AimAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_AimStop);
@@ -194,6 +295,68 @@ void AGSPlayerCharacter::Input_Attack(const FInputActionValue& Value)
 			return;
 		}
 	}
+}
+
+void AGSPlayerCharacter::Input_HeavyAttack(const FInputActionValue& Value)
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+	if (!SwordHeavyAbilityClass)
+	{
+		// Loud on purpose. The heavy shares a class with the light, so a null here is invisible in
+		// the details panel - it looks configured because the class column is populated elsewhere.
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Heavy attack pressed but SwordHeavyAbilityClass is unset on %s. "
+				 "Point it at a UGSGA_SwordLight Blueprint child with its own Stages array."),
+			*GetName());
+		return;
+	}
+	AbilitySystemComponent->TryActivateAbilityByClass(SwordHeavyAbilityClass);
+}
+
+void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)
+{
+	if (AbilitySystemComponent && BlockAbilityClass)
+	{
+		AbilitySystemComponent->TryActivateAbilityByClass(BlockAbilityClass);
+	}
+}
+
+void AGSPlayerCharacter::Input_BlockStop(const FInputActionValue& Value)
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+
+	// Cancel by TAG, not by passing nullptr - nullptr means "cancel everything", which would abort
+	// a swing already in flight every time the guard came down. UGSGA_Block carries State.Blocking
+	// as an ability tag precisely so this filter can find it and nothing else.
+	FGameplayTagContainer BlockTags;
+	BlockTags.AddTag(GSTags::State_Blocking);
+	AbilitySystemComponent->CancelAbilities(&BlockTags);
+}
+
+void AGSPlayerCharacter::Input_ThrowTorchStart(const FInputActionValue& Value)
+{
+	if (!bTorchAimEnabled)
+	{
+		Input_ThrowTorch(Value); // aiming disabled: behave exactly as the old press-to-throw
+		return;
+	}
+	bAimingTorch = true;
+}
+
+void AGSPlayerCharacter::Input_ThrowTorchRelease(const FInputActionValue& Value)
+{
+	if (!bAimingTorch)
+	{
+		return; // release without a matching press (e.g. aiming was disabled) - nothing to resolve
+	}
+	bAimingTorch = false;
+	Input_ThrowTorch(Value);
 }
 
 void AGSPlayerCharacter::Input_ThrowTorch(const FInputActionValue& Value)

@@ -12,7 +12,12 @@
 class UAbilitySystemComponent;
 class UGSAttributeSetBase;
 class UGameplayEffect;
+class UAnimMontage;
 struct FOnAttributeChangeData;
+
+/** New, Max, Delta. Delta is negative for damage. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnHealthChanged, float, NewHealth, float, MaxHealth, float, Delta);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnDied);
 
 UCLASS(Abstract)
 class GOBLINSIEGE_API AGSCharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -61,6 +66,28 @@ protected:
 	/** Bound to the Health attribute's OnAttributeChanged delegate in BeginPlay. */
 	virtual void HandleHealthChanged(const FOnAttributeChangeData& Data);
 
+public:
+	/** Broadcast on every Health change, damage or heal. Exists because the attribute delegate GAS
+	 *  gives us is non-dynamic and therefore invisible to Blueprint and UMG - this is the version a
+	 *  health bar can actually bind to. Delta is negative for damage. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnHealthChanged OnHealthChanged;
+
+	/** Broadcast once, when this character dies. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnDied OnDied;
+
+	/** Play a flinch. Direction is the world-space vector from this character to whatever hit them;
+	 *  pass zero if unknown and the front reaction is used. Safe to call every frame - it self-gates
+	 *  on the cooldown and on State.HitReact. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	void PlayHitReact(const FVector& FromDirection);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool IsBlocking() const;
+
+protected:
+
 	/** Called once when Health first reaches 0. Notifies GSGameMode::HandleGoblinDeath. */
 	virtual void HandleDeath();
 
@@ -104,4 +131,46 @@ protected:
 	 *  what you killed). Set non-zero once a raid has enough bodies to matter. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death", meta = (ClampMin = "0.0"))
 	float CorpseLifespan = 0.f;
+
+	// ---- Hit reactions (2026-08-03) ------------------------------------------------------
+	// Combat read as stiff because nothing acknowledged a hit: health dropped and the victim
+	// carried on as though nothing had happened. A flinch is the cheapest possible feedback and
+	// it does most of the work.
+
+	/** Flinch played when the hit lands in front. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> HitReactFront;
+
+	/** Optional. Used when the hit comes from the character's left; falls back to HitReactFront. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> HitReactLeft;
+
+	/** Optional. Used when the hit comes from the character's right; falls back to HitReactFront. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> HitReactRight;
+
+	/** Played instead of a flinch when the hit was blocked - the guard absorbs it. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> BlockReact;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact", meta = (ClampMin = "0.1"))
+	float HitReactPlayRate = 1.4f;
+
+	/** Minimum gap between flinches. Without this a three-hit combo restarts the montage on every
+	 *  contact and the victim vibrates instead of staggering. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact", meta = (ClampMin = "0.0"))
+	float HitReactCooldownSeconds = 0.45f;
+
+	/** Fraction of MaxHealth a single hit must exceed to flinch. Stops a burning field or a
+	 *  damage-over-time tick from making a character flinch continuously. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float HitReactMinDamageFraction = 0.04f;
+
+	/** Whether a flinch is even attempted on this character. Off for anything that should look
+	 *  unshakeable - a Brute mid-charge, say. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	bool bEnableHitReact = true;
+
+private:
+	float LastHitReactTime = -1000.f;
 };

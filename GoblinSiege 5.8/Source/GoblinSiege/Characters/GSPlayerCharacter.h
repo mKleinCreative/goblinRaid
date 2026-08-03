@@ -47,8 +47,24 @@ protected:
 
 	void Input_Move(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
+	virtual void Tick(float DeltaSeconds) override;
+
 	void Input_Dodge(const FInputActionValue& Value);
 	void Input_Attack(const FInputActionValue& Value);
+	void Input_HeavyAttack(const FInputActionValue& Value);
+	void Input_BlockStart(const FInputActionValue& Value);
+	void Input_BlockStop(const FInputActionValue& Value);
+
+	/** Torch is now press-to-aim, release-to-throw. Started begins the aim arc; Completed and
+	 *  Canceled both throw, so letting go anywhere - including alt-tabbing - resolves the throw
+	 *  rather than leaving the goblin permanently aiming. */
+	void Input_ThrowTorchStart(const FInputActionValue& Value);
+	void Input_ThrowTorchRelease(const FInputActionValue& Value);
+
+	/** Draws the predicted torch arc. Reads speed and gravity off the projectile CDO rather than
+	 *  duplicating them, so the line the player aims with is the line the torch actually flies. */
+	void DrawTorchAimArc();
+
 	void Input_ThrowTorch(const FInputActionValue& Value);
 	void Input_SwapWeaponMode(const FInputActionValue& Value);
 	void Input_AimStart(const FInputActionValue& Value);
@@ -94,6 +110,14 @@ protected:
 	TObjectPtr<UInputAction> AttackAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> HeavyAttackAction;
+
+	/** Hold to guard. Bound to Started and Completed/Canceled - the guard is up exactly as long as
+	 *  the button is down. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> BlockAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> ThrowTorchAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
@@ -117,6 +141,30 @@ protected:
 	 *  this once DA_Weapon_* assets carry their own GrantedAbilities. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> SwordLightAbilityClass;
+
+	/** Heavy swing. Shares UGSGA_SwordLight's staged-swing machinery - a heavy is just a chain of
+	 *  one slower, harder stage - so it is a second Blueprint child rather than a second class. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> SwordHeavyAbilityClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> BlockAbilityClass;
+
+	// ---- torch aiming (2026-08-03) --------------------------------------------------------
+	/** Draw the predicted arc while the throw button is held. Off makes the torch an instant
+	 *  press-to-throw again, which is the pre-aiming behaviour. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
+	bool bTorchAimEnabled = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch", meta = (ClampMin = "0.2"))
+	float TorchAimMaxSimSeconds = 3.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
+	FLinearColor TorchAimArcColour = FLinearColor(1.f, 0.45f, 0.1f, 1.f);
+
+	/** True between the throw button going down and coming back up. */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Torch")
+	bool bAimingTorch = false;
 
 	/** Universal dodge roll (racial trait, design doc §7) - set to UGSGA_DodgeRoll in the character
 	 *  Blueprint defaults. */
