@@ -10,6 +10,24 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
+#include "HAL/IConsoleManager.h"
+
+// Master switch for combat debug drawing. The per-ability bDrawDebugSweep stays as the "does this
+// ability draw at all" opt-in; this is the global override, so a playtest can be made clean from
+// the console without editing a Blueprint and without a rebuild.
+//   GS.Combat.Debug 0   -> player view
+//   GS.Combat.Debug 1   -> trace spheres, hit markers, combo stage readout
+static int32 GSCombatDebug = 1;
+static FAutoConsoleVariableRef CVarGSCombatDebug(
+	TEXT("GS.Combat.Debug"),
+	GSCombatDebug,
+	TEXT("0 = hide all combat debug drawing (trace spheres, hit markers, combo stage text). 1 = show."),
+	ECVF_Cheat);
+
+bool GSCombatDebugEnabled()
+{
+	return GSCombatDebug > 0;
+}
 
 UGSGA_SwordLight::UGSGA_SwordLight()
 {
@@ -141,7 +159,9 @@ void UGSGA_SwordLight::DoSweep()
 	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, ObjParams,
 		FCollisionShape::MakeSphere(S.SweepRadius), Params);
 
-	if (bDrawDebugSweep)
+	const bool bShowDebug = bDrawDebugSweep && GSCombatDebugEnabled();
+
+	if (bShowDebug)
 	{
 		// Colour by stage so a chain is legible on screen without reading a log.
 		static const FColor StageColours[] = { FColor::Cyan, FColor::Green, FColor::Magenta };
@@ -206,7 +226,7 @@ void UGSGA_SwordLight::DoSweep()
 
 		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data, TargetASC);
 
-		if (bDrawDebugSweep)
+		if (bShowDebug)
 		{
 			DrawDebugSphere(World, Target->GetActorLocation() + FVector(0, 0, 60.f), 45.f, 12,
 				FColor::Red, false, 0.6f, 0, 3.f);
@@ -242,7 +262,7 @@ void UGSGA_SwordLight::FinishRecovery()
 	if (bComboQueued && Stages.IsValidIndex(CurrentStage + 1))
 	{
 		++CurrentStage;
-		if (bDrawDebugSweep && GEngine)
+		if (bDrawDebugSweep && GSCombatDebugEnabled() && GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Yellow,
 				FString::Printf(TEXT("[combo] stage %d/%d"), CurrentStage + 1, Stages.Num()));
