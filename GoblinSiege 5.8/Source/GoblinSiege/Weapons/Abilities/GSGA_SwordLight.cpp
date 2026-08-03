@@ -6,22 +6,31 @@
 #include "GameFramework/Character.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/OverlapResult.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 
 UGSGA_SwordLight::UGSGA_SwordLight()
 {
-	// InstancedPerActor because this ability owns per-swing state (HitActorsThisSwing and four
-	// timer handles). A NonInstanced ability would share that state across every goblin swinging.
+	// InstancedPerActor: this ability owns per-chain state (stage index, buffer flag, hit set,
+	// four timers). NonInstanced would share all of that across every goblin swinging at once.
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 
 	DamageEffectClass = UGSGE_WeaponDamage::StaticClass();
 
-	// A corpse does not swing, and the dodge roll owns its own recovery (design doc §7).
 	ActivationBlockedTags.AddTag(GSTags::State_Dead);
 	ActivationBlockedTags.AddTag(GSTags::State_Dodging);
+
+	// One default stage so a freshly-made Blueprint child swings before anyone fills the array in.
+	Stages.Add(FGSSwingStage());
+}
+
+const FGSSwingStage& UGSGA_SwordLight::GetStage() const
+{
+	static const FGSSwingStage Fallback;
+	return Stages.IsValidIndex(CurrentStage) ? Stages[CurrentStage] : Fallback;
 }
 
 void UGSGA_SwordLight::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -35,34 +44,60 @@ void UGSGA_SwordLight::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		return;
 	}
 
-	HitActorsThisSwing.Reset();
-
-	UWorld* World = GetWorld();
-	AActor* Avatar = GetAvatarActorFromActorInfo();
-	if (!World || !Avatar)
+	if (Stages.Num() == 0 || !GetWorld() || !GetAvatarActorFromActorInfo())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
 
-	// Animation is optional on purpose - see the header. A missing montage must never stop the
-	// swing from being testable.
-	if (AttackMontage)
+	CurrentStage = 0;
+	bComboQueued = false;
+	RunStage();
+}
+
+void UGSGA_SwordLight::RunStage()
+{
+	UWorld* World = GetWorld();
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!World || !Avatar)
+	{
+		FinishRecovery();
+		return;
+	}
+
+	// Per-stage, not per-ability: a three-hit chain should land three times on the same target.
+	HitActorsThisSwing.Reset();
+	bComboQueued = false;
+	bBufferOpen = !bBufferOpensAtDamageWindow;
+
+	const FGSSwingStage& S = GetStage();
+
+	if (S.Montage)
 	{
 		if (ACharacter* Char = Cast<ACharacter>(Avatar))
 		{
-			Char->PlayAnimMontage(AttackMontage, MontagePlayRate);
+			Char->PlayAnimMontage(S.Montage, S.MontagePlayRate);
 		}
 	}
 
-	if (WindupSeconds > 0.f)
+	if (S.WindupSeconds > 0.f)
 	{
-		World->GetTimerManager().SetTimer(WindupTimer, this, &UGSGA_SwordLight::OpenDamageWindow, WindupSeconds, false);
+		World->GetTimerManager().SetTimer(WindupTimer, this, &UGSGA_SwordLight::OpenDamageWindow, S.WindupSeconds, false);
 	}
 	else
 	{
 		OpenDamageWindow();
 	}
+}
+
+bool UGSGA_SwordLight::BufferComboInput()
+{
+	if (!bBufferOpen || !Stages.IsValidIndex(CurrentStage + 1))
+	{
+		return false;
+	}
+	bComboQueued = true;
+	return true;
 }
 
 void UGSGA_SwordLight::OpenDamageWindow()
@@ -73,12 +108,14 @@ void UGSGA_SwordLight::OpenDamageWindow()
 		return;
 	}
 
-	// Sweep immediately, then on an interval. Without the immediate one, a window shorter than the
-	// interval would never fire at all - which is exactly the kind of thing you would "fix" by
-	// tuning damage numbers for an hour.
+	bBufferOpen = true;
+
+	// Sweep immediately AND on an interval. Without the immediate one, any window shorter than
+	// the sweep interval would never fire - a bug you would misdiagnose as bad damage numbers.
 	DoSweep();
 	World->GetTimerManager().SetTimer(SweepTimer, this, &UGSGA_SwordLight::DoSweep, SweepIntervalSeconds, true);
-	World->GetTimerManager().SetTimer(WindowTimer, this, &UGSGA_SwordLight::CloseDamageWindow, DamageWindowSeconds, false);
+	World->GetTimerManager().SetTimer(WindowTimer, this, &UGSGA_SwordLight::CloseDamageWindow,
+		GetStage().DamageWindowSeconds, false);
 }
 
 void UGSGA_SwordLight::DoSweep()
@@ -90,10 +127,11 @@ void UGSGA_SwordLight::DoSweep()
 		return;
 	}
 
+	const FGSSwingStage& S = GetStage();
 	const FVector Forward = Avatar->GetActorForwardVector();
 	const FVector Origin = Avatar->GetActorLocation()
-		+ Forward * SweepForwardOffset
-		+ FVector(0.f, 0.f, SweepHeightOffset - Avatar->GetSimpleCollisionHalfHeight());
+		+ Forward * S.SweepForwardOffset
+		+ FVector(0.f, 0.f, S.SweepHeightOffset - Avatar->GetSimpleCollisionHalfHeight());
 
 	TArray<FOverlapResult> Overlaps;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(GSSwordLight), false, Avatar);
@@ -101,15 +139,18 @@ void UGSGA_SwordLight::DoSweep()
 	ObjParams.AddObjectTypesToQuery(ECC_Pawn);
 
 	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, ObjParams,
-		FCollisionShape::MakeSphere(SweepRadius), Params);
+		FCollisionShape::MakeSphere(S.SweepRadius), Params);
 
 	if (bDrawDebugSweep)
 	{
-		DrawDebugSphere(World, Origin, SweepRadius, 16, FColor::Cyan, false, 0.35f, 0, 1.5f);
+		// Colour by stage so a chain is legible on screen without reading a log.
+		static const FColor StageColours[] = { FColor::Cyan, FColor::Green, FColor::Magenta };
+		DrawDebugSphere(World, Origin, S.SweepRadius, 16,
+			StageColours[CurrentStage % 3], false, 0.35f, 0, 1.5f);
 	}
 
 	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
-	const float CosHalfArc = FMath::Cos(FMath::DegreesToRadians(SweepArcDegrees * 0.5f));
+	const float CosHalfArc = FMath::Cos(FMath::DegreesToRadians(S.SweepArcDegrees * 0.5f));
 
 	for (const FOverlapResult& O : Overlaps)
 	{
@@ -119,9 +160,9 @@ void UGSGA_SwordLight::DoSweep()
 			continue;
 		}
 
-		// Arc filter: a sphere centred in front still reaches slightly behind the shoulders, and
-		// being hit by a swing aimed away from you reads as a bug even when the maths is fine.
-		if (SweepArcDegrees < 360.f)
+		// A sphere centred in front still reaches slightly behind the shoulders. Being hit by a
+		// swing aimed away from you reads as a bug even when the maths is right.
+		if (S.SweepArcDegrees < 360.f)
 		{
 			FVector ToTarget = Target->GetActorLocation() - Avatar->GetActorLocation();
 			ToTarget.Z = 0.f;
@@ -135,7 +176,7 @@ void UGSGA_SwordLight::DoSweep()
 			UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 		if (!TargetASC || !SourceASC)
 		{
-			continue; // props and non-GAS pawns simply aren't damageable
+			continue;
 		}
 
 		if (TargetASC->HasMatchingGameplayTag(GSTags::State_Dead)
@@ -156,14 +197,12 @@ void UGSGA_SwordLight::DoSweep()
 			continue;
 		}
 
-		// The Damage.* tag is BOTH the type marker and the SetByCaller key (see
-		// UGSDamageExecCalculation). It must go on the SPEC - a Damage.* tag sitting in a
-		// Blueprint effect's asset tags is invisible to the exec calc and silently deals zero.
-		// There is no Damage.Sword tag; the sword rides Damage.Dagger until the matchup tables
-		// are re-cut. Logged in the decision queue so a "Dagger" row driving a sword is not a
-		// mystery in three weeks.
+		// The Damage.* tag is BOTH the type marker and the SetByCaller key, and it must go on the
+		// SPEC - the same tag sitting in a Blueprint effect's asset tags is invisible to
+		// UGSDamageExecCalculation and silently deals zero. The sword rides Damage.Dagger because
+		// no Damage.Sword tag exists yet; logged in the decision queue.
 		SpecHandle.Data->AddDynamicAssetTag(GSTags::Damage_Dagger);
-		SpecHandle.Data->SetSetByCallerMagnitude(GSTags::Damage_Dagger, Damage);
+		SpecHandle.Data->SetSetByCallerMagnitude(GSTags::Damage_Dagger, S.Damage);
 
 		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data, TargetASC);
 
@@ -177,21 +216,41 @@ void UGSGA_SwordLight::DoSweep()
 
 void UGSGA_SwordLight::CloseDamageWindow()
 {
-	if (UWorld* World = GetWorld())
+	UWorld* World = GetWorld();
+	if (!World)
 	{
-		World->GetTimerManager().ClearTimer(SweepTimer);
+		FinishRecovery();
+		return;
+	}
 
-		if (RecoverySeconds > 0.f)
-		{
-			World->GetTimerManager().SetTimer(RecoveryTimer, this, &UGSGA_SwordLight::FinishRecovery, RecoverySeconds, false);
-			return;
-		}
+	World->GetTimerManager().ClearTimer(SweepTimer);
+
+	const float Recovery = GetStage().RecoverySeconds;
+	if (Recovery > 0.f)
+	{
+		World->GetTimerManager().SetTimer(RecoveryTimer, this, &UGSGA_SwordLight::FinishRecovery, Recovery, false);
+		return;
 	}
 	FinishRecovery();
 }
 
 void UGSGA_SwordLight::FinishRecovery()
 {
+	// The chain advances here and nowhere else. Buffering during the swing only sets a flag;
+	// this is the single point that decides whether the flag becomes another swing. That is what
+	// keeps "am I mid-combo" from being answerable in two places that can disagree.
+	if (bComboQueued && Stages.IsValidIndex(CurrentStage + 1))
+	{
+		++CurrentStage;
+		if (bDrawDebugSweep && GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Yellow,
+				FString::Printf(TEXT("[combo] stage %d/%d"), CurrentStage + 1, Stages.Num()));
+		}
+		RunStage();
+		return;
+	}
+
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
@@ -212,17 +271,24 @@ void UGSGA_SwordLight::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
-	// Every path out of this ability comes through here, including cancellation by death or a
-	// dodge. A leaked sweep timer would keep dealing damage from a corpse.
+	// Every exit runs through here, including cancellation by death or a dodge. A leaked sweep
+	// timer would keep dealing damage from a corpse.
 	ClearAllTimers();
 
-	if (bWasCancelled && AttackMontage)
+	if (bWasCancelled)
 	{
 		if (ACharacter* Char = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
 		{
-			Char->StopAnimMontage(AttackMontage);
+			if (const UAnimMontage* M = GetStage().Montage)
+			{
+				Char->StopAnimMontage(const_cast<UAnimMontage*>(M));
+			}
 		}
 	}
+
+	CurrentStage = 0;
+	bComboQueued = false;
+	bBufferOpen = false;
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

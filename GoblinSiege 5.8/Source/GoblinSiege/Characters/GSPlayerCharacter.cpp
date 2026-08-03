@@ -173,13 +173,26 @@ void AGSPlayerCharacter::Input_Attack(const FInputActionValue& Value)
 		return;
 	}
 
-	// Deliberately no cooldown check here. The ability's own recovery timer holds it active for
-	// windup+window+recovery, and GAS refuses to re-activate an already-active InstancedPerActor
-	// ability - so mashing is rate-limited by the swing itself. Putting a second gate in the input
-	// handler would mean two numbers to tune and one of them invisible.
-	if (!AbilitySystemComponent->TryActivateAbilityByClass(SwordLightAbilityClass))
+	// GAS refuses to re-activate an already-active InstancedPerActor ability, and that refusal is
+	// exactly what turns a second press into a COMBO input rather than a competing swing. So the
+	// failure path is not an error here - it is the interesting case.
+	if (AbilitySystemComponent->TryActivateAbilityByClass(SwordLightAbilityClass))
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("[GoblinSiege] Attack input ignored - swing already active or blocked."));
+		return;
+	}
+
+	// Already swinging: hand the press to the running instance as a buffered follow-up.
+	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities())
+	{
+		if (!Spec.IsActive() || !Spec.Ability || !Spec.Ability->IsA(SwordLightAbilityClass))
+		{
+			continue;
+		}
+		if (UGSGA_SwordLight* Swing = Cast<UGSGA_SwordLight>(Spec.GetPrimaryInstance()))
+		{
+			Swing->BufferComboInput();
+			return;
+		}
 	}
 }
 
