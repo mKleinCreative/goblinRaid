@@ -95,6 +95,13 @@ no spawners, 3 loose enemies. Landmarks to build against: 4x SM_WIndmill_Base ~(
     fire, while `curl.exe` with identical URL/headers/body answers in 0.34s; (c) nested
     `powershell -File ...` stalls regardless of what the script does. `gs_ue.py` (stdlib urllib)
     has none of these. Launch the editor with `-ExecCmds=ModelContextProtocol.StartServer`.
+    **The hang is not passive - it LEAKS.** `Invoke-WebRequest` buffers the never-terminated SSE
+    stream into memory forever: one orphaned `gs_ue.ps1` reached **15.7 GB after ~90 minutes** and
+    took free RAM on this 32 GB machine down to 1.26 GB. That starves everything else - UBT drops
+    to `limiting max parallel actions to 1` ("978 MB available"), which is a large part of the
+    "why is this build taking six minutes" mystery, and Windows pages the editor's working set down
+    to ~0.4 GB so it looks hung too. If builds crawl, check for orphaned powershell.exe over 1 GB
+    (`Get-CimInstance Win32_Process -Filter "Name='powershell.exe'"`) BEFORE blaming UBA.
   - **PowerShell mangles a JSON string passed to a native exe** — inner double quotes are stripped
     and the server answers `-32700 Invalid JSON body!`. Write the body to a file, send `@file`.
   - **`execute_python_code` DISCARDS all buffered stdout when the script raises.** Every print before
