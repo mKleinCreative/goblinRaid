@@ -9,9 +9,13 @@ Requires UGSRaidLibrary (2026-08-05): editor Python cannot construct an FGamepla
 so a script can place a burn objective but can never make it count toward the win condition without
 that bridge. See AGENT_STATE.md FAILED.
 
-DOES NOT SAVE. Inspect the roster it prints, then save the level yourself - this map is 184 MB and
-overwriting it should be a decision, not a side effect.
+SAVES the level at the end, on purpose. An earlier version deliberately did not, so that
+overwriting a 184 MB map stayed a deliberate act - and then the editor died during the PIE test that
+followed and took every placement with it, because they existed only in memory. Re-running this is
+cheap and reverting it is `git checkout`; losing an editor session is neither.
 """
+import math
+
 import unreal
 
 OUT = []
@@ -145,24 +149,76 @@ def market():
     # AdoptCluster name-filters on {"Stall","Market"} AND requires a flammable component. The mesh
     # names already satisfy the filter; the components are what is missing, and without them the
     # market adopts ZERO stalls and reports it only in a log the player never sees.
-    made = 0
+    comps = []
     for a in stalls:
-        if lib.make_actor_flammable(a):
-            made += 1
+        c = lib.make_actor_flammable(a)
+        if c:
+            comps.append(c)
     say("  flammable components present on %d / %d stall actors" % (lib.count_flammable(stalls), len(stalls)))
 
-    if any(isinstance(a, unreal.GSMarketObjective) for a in actors()):
-        say("  SKIP: a market objective already exists")
-        return
+    # UGSFlammableComponent::SpreadRadius defaults to 450 uu, which is smaller than the gap between
+    # any two stalls on this map - so a lit stall burns out alone, the market sits at 1/64 = 1.6%
+    # forever, and the raid cannot be won. Nothing reports this: spread simply never happens.
+    #
+    # Size it from the real geometry: the p75 nearest-neighbour distance, with margin. Using p75
+    # rather than max keeps one outlying market table from turning the whole square into a single
+    # blast radius, and using nearest-neighbour rather than centre-distance is what actually governs
+    # whether fire can step from one stall to the next.
+    pts = [(a.get_actor_location().x, a.get_actor_location().y) for a in stalls]
+    nn = []
+    for i, (x1, y1) in enumerate(pts):
+        best = None
+        for j, (x2, y2) in enumerate(pts):
+            if i == j:
+                continue
+            d = math.hypot(x1 - x2, y1 - y2)
+            if best is None or d < best:
+                best = d
+        if best is not None:
+            nn.append(best)
+    nn.sort()
+    if nn:
+        p75 = nn[int(len(nn) * 0.75)]
+        spread = max(600.0, min(3000.0, p75 * 1.4))
+        for c in comps:
+            try:
+                c.set_editor_property("spread_radius", spread)
+                c.set_editor_property("can_spread", True)
+            except Exception as exc:
+                say("  (spread set failed: %s)" % exc)
+                break
+        say("  nearest-neighbour gap: median=%.0f p75=%.0f max=%.0f" % (nn[len(nn)//2], p75, nn[-1]))
+        say("  spread_radius -> %.0f on %d components (default 450 could not bridge any gap)"
+            % (spread, len(comps)))
 
-    sx = sum(a.get_actor_location().x for a in stalls) / float(len(stalls))
-    sy = sum(a.get_actor_location().y for a in stalls) / float(len(stalls))
-    sz = sum(a.get_actor_location().z for a in stalls) / float(len(stalls))
-    mk = eas.spawn_actor_from_class(unreal.GSMarketObjective,
-                                    unreal.Vector(sx, sy, sz), unreal.Rotator(0, 0, 0))
-    mk.set_actor_label("GS_Market")
-    lib.set_objective_identity(mk, "Objective.Burn.Market", "The Market")
-    say("  CREATED GS_Market at (%.0f, %.0f, %.0f)" % (sx, sy, sz))
+    existing = [a for a in actors() if isinstance(a, unreal.GSMarketObjective)]
+    if existing:
+        mk = existing[0]
+        say("  SKIP create: a market objective already exists")
+    else:
+        sx = sum(a.get_actor_location().x for a in stalls) / float(len(stalls))
+        sy = sum(a.get_actor_location().y for a in stalls) / float(len(stalls))
+        sz = sum(a.get_actor_location().z for a in stalls) / float(len(stalls))
+        mk = eas.spawn_actor_from_class(unreal.GSMarketObjective,
+                                        unreal.Vector(sx, sy, sz), unreal.Rotator(0, 0, 0))
+        mk.set_actor_label("GS_Market")
+        lib.set_objective_identity(mk, "Objective.Burn.Market", "The Market")
+        say("  CREATED GS_Market at (%.0f, %.0f, %.0f)" % (sx, sy, sz))
+
+    # AutoAdoptRadius defaults to 3000, which on this map reaches only 9 of 67 stall actors - the
+    # market square is far wider than the default assumes, and the shortfall is invisible except as
+    # one log line. Size it from the actual spread instead of hardcoding.
+    #
+    # p90 rather than max: one stray market table 21,000 uu away should not stretch the cluster
+    # across half the hamlet and drag unrelated props into the objective.
+    c = mk.get_actor_location()
+    dists = sorted(math.hypot(a.get_actor_location().x - c.x, a.get_actor_location().y - c.y)
+                   for a in stalls)
+    radius = min(12000.0, max(4000.0, dists[int(len(dists) * 0.9)] * 1.15))
+    mk.set_editor_property("auto_adopt_radius", radius)
+    say("  auto_adopt_radius -> %.0f (reaches %d of %d stalls; default 3000 reached %d)"
+        % (radius, sum(1 for d in dists if d <= radius), len(dists),
+           sum(1 for d in dists if d <= 3000.0)))
 
 
 # ------------------------------------------------------------------ 5. the runic site
@@ -206,5 +262,18 @@ for k, v in types.items():
 if "<EMPTY>" in types:
     say("  WARNING: untagged carriers can never satisfy the win condition.")
 
-say("\nNOT SAVED - review the roster above, then save the level.")
+
+# SAVE, immediately, before anything else touches the editor.
+#
+# This script originally refused to save on the reasoning that overwriting a 184 MB map should be a
+# deliberate act. That reasoning cost the whole pass on 2026-08-05: the editor died during the PIE
+# test that came next, and every placement above went with it because it lived only in memory.
+# Wiring is cheap to re-run and cheap to revert (git); an unsaved editor is neither. Save first,
+# review after - and PIE only ever runs against something already on disk.
+try:
+    les.save_current_level()
+    say("\nSAVED L_Tutorial_Island.")
+except Exception as exc:
+    say("\nSAVE FAILED: %r - the placements above exist only in memory, save manually NOW." % (exc,))
+
 flush()

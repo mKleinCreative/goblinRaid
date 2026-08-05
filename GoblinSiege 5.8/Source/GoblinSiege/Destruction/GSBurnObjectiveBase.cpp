@@ -148,7 +148,19 @@ void AGSBurnObjectiveBase::SetCompletion01(float NewCompletion01)
 	}
 
 	const float Clamped = FMath::Clamp(NewCompletion01, 0.f, 1.f);
-	if (FMath::IsNearlyEqual(Clamped, Completion01, KINDA_SMALL_NUMBER))
+
+	// A value that REACHES THE THRESHOLD must always be processed, however small the step that got
+	// it there. Skipping it is not a missed cosmetic update - it is a missed completion, forever.
+	//
+	// The windmill is the case that exposed this (2026-08-05). Its threshold is exactly 1.0 and its
+	// progress is BuildupElapsed / DustBuildupSeconds, which lands on ~0.9999997 on the tick before
+	// the ratio exceeds 1 and clamps. That is a difference of ~3e-7 - far inside KINDA_SMALL_NUMBER
+	// (1e-4) - so the guard below returned early on that tick AND on every tick after it, because
+	// the clamped value never moved again. The mill sat at "100%", stage Smouldering, fuse at 0.0s,
+	// and never detonated: one of the three burn types was quietly impossible to complete, which
+	// made the raid unwinnable without a single error anywhere.
+	const bool bReachesThreshold = Clamped >= CompletionThreshold01;
+	if (!bReachesThreshold && FMath::IsNearlyEqual(Clamped, Completion01, KINDA_SMALL_NUMBER))
 	{
 		return;
 	}

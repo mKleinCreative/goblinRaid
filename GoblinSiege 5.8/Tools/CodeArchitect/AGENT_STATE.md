@@ -22,6 +22,38 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
 
 ## NEXT
 
+### VERIFIED IN PIE 2026-08-05 (raid-loop-001)
+*From `Saved/Logs/MyProject.log`, live PIE on L_Tutorial_Island - the level is now wired and SAVED:*
+- `LogGSRaid: Raid starting in 'UEDPIE_0_L_Tutorial_Island': 4 carriers across 3 types.`
+- `LogGSRaid: 'GSFieldFireObjective_1' completed type Objective.Burn.Field - demoted 1 sibling(s) to Optional.`
+  ← **the Q-37 demotion pass, which was a 21-line comment, firing in a live raid**
+- Raid clock RUNNING (t-1699s of 1800) — `StartRaidClock()` had zero callers before this.
+- `Market objective 'GSMarketObjective_0' adopted 64 stalls (64 flammable).` (was 7 before the fix)
+- Mill: stage DETONATED, completion 1.0, is_complete TRUE — after the `SetCompletion01` fix below.
+- HUD unbound-widget warnings naming all four missing widgets, exactly as designed.
+
+### BUG FIXED: the windmill could never be completed (pre-existing, 2026-08-05)
+`AGSBurnObjectiveBase::SetCompletion01` early-returned when the new value was within
+KINDA_SMALL_NUMBER of the current one. The mill's threshold is exactly 1.0 and its progress is
+`BuildupElapsed / DustBuildupSeconds` with a 0.1 s tick over 9 s — 90 float additions that land on
+~0.9999997, three parts in ten million short of 1.0. That failed `>= 1.0`, and every later tick
+clamped to exactly 1.0, which the near-equal guard then swallowed **forever**. The mill sat at
+"100%", stage Smouldering, fuse 0.0 s, and never detonated: one of the three required burn types was
+silently impossible, with no error anywhere. Fix: a value that reaches the threshold is always
+processed, however small the step. **Verified detonating after the fix.**
+
+### OPEN: the market cannot complete - fire does not spread stall to stall
+Ignited stalls burn out alone; the market sticks at 1/64 = 1.6% and never grows, so the third
+required type is still unreachable and the raid is not yet winnable end to end. Ruled OUT already:
+- adoption (64/64 adopted, confirmed in log), flammable components present on 67/67
+- `SpreadRadius` (raised 450 → 600; irrelevant, nearest-neighbour gap is **26 uu median**)
+- collision (all 67 stalls are QUERY_AND_PHYSICS, so the spread overlap can see them)
+- the gating defaults are all permissive: `bCanBeLitBySpread=true`, `SpreadAtProgress01=0.35`,
+  `SpreadAttemptInterval=1.5`, `SpreadChance=0.5`, `FireResistance=0`, overlap uses AllObjects
+Next suspect: whether `UGSFlammableComponent`'s burn timer actually runs on a component created via
+`AddInstanceComponent` and then duplicated into PIE - i.e. does `Ignite()`'s tick ever fire for
+these, so `TrySpread()` is reached at all. Instrument `TrySpread` before changing tuning.
+
 ### Queue: Tutorial Island content (raid-loop-001 follow-on, 2026-08-05)
 *The C++ loop is done and committed; what remains is MAP CONTENT. A survey of L_Tutorial_Island found
 it far thinner than "Tutorial_Island playable" implied: ONE burn objective (`GS_MillField`, 33x33 @640,
