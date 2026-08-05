@@ -1,9 +1,11 @@
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Combat/GSGE_WeaponDamage.h"
 #include "Combat/GSGameplayTags.h"
+#include "Characters/GSCharacterBase.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/Engine.h"
@@ -41,6 +43,10 @@ UGSGA_SwordLight::UGSGA_SwordLight()
 	ActivationBlockedTags.AddTag(GSTags::State_Dead);
 	ActivationBlockedTags.AddTag(GSTags::State_Dodging);
 
+	// Hands full, or hands busy mid-channel (GDD §8, ruling 2026-08-04).
+	ActivationBlockedTags.AddTag(GSTags::State_Carrying);
+	ActivationBlockedTags.AddTag(GSTags::State_Interacting);
+
 	// One default stage so a freshly-made Blueprint child swings before anyone fills the array in.
 	Stages.Add(FGSSwingStage());
 }
@@ -49,6 +55,63 @@ const FGSSwingStage& UGSGA_SwordLight::GetStage() const
 {
 	static const FGSSwingStage Fallback;
 	return Stages.IsValidIndex(CurrentStage) ? Stages[CurrentStage] : Fallback;
+}
+
+void UGSGA_SwordLight::ApplyMoveSpeedScale(float Scale)
+{
+	ACharacter* Char = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	UCharacterMovementComponent* Move = Char ? Char->GetCharacterMovement() : nullptr;
+	if (!Move)
+	{
+		return;
+	}
+
+	// Cache ONCE per ability activation, not once per stage. Re-caching on stage 2 would capture
+	// the already-scaled speed and multiply it again, so a three-hit chain would end at
+	// 0.55^3 = 17% speed and the restore would put back a wrong value.
+	if (CachedMaxWalkSpeed <= 0.f)
+	{
+		CachedMaxWalkSpeed = Move->MaxWalkSpeed;
+	}
+
+	Move->MaxWalkSpeed = CachedMaxWalkSpeed * FMath::Max(Scale, 0.f);
+}
+
+void UGSGA_SwordLight::RestoreMoveSpeed()
+{
+	if (CachedMaxWalkSpeed <= 0.f)
+	{
+		return;
+	}
+
+	if (ACharacter* Char = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+	{
+		if (UCharacterMovementComponent* Move = Char->GetCharacterMovement())
+		{
+			Move->MaxWalkSpeed = CachedMaxWalkSpeed;
+		}
+	}
+	CachedMaxWalkSpeed = 0.f;
+}
+
+void UGSGA_SwordLight::ApplyLunge(const FGSSwingStage& S)
+{
+	if (S.LungeSpeed <= 0.f)
+	{
+		return;
+	}
+
+	ACharacter* Char = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	if (!Char)
+	{
+		return;
+	}
+
+	// XY only: a lunge that touches Z would launch a kick off a slope or cancel a fall. Override
+	// rather than add, so the shove reads the same whether the character was standing still or
+	// already running in - otherwise a sprinting attacker gets a much bigger lunge than a
+	// stationary one from the identical input.
+	Char->LaunchCharacter(Char->GetActorForwardVector() * S.LungeSpeed, true, false);
 }
 
 void UGSGA_SwordLight::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -90,6 +153,10 @@ void UGSGA_SwordLight::RunStage()
 
 	const FGSSwingStage& S = GetStage();
 
+	// Committing to the swing costs mobility but never removes it. Re-applied per stage so a
+	// combo can accelerate or plant harder as it chains.
+	ApplyMoveSpeedScale(S.MoveSpeedScale);
+
 	if (S.Montage)
 	{
 		if (ACharacter* Char = Cast<ACharacter>(Avatar))
@@ -127,6 +194,10 @@ void UGSGA_SwordLight::OpenDamageWindow()
 	}
 
 	bBufferOpen = true;
+
+	// The step and the strike start on the same frame, so the lunge reads as part of the attack
+	// rather than a separate hop into it.
+	ApplyLunge(GetStage());
 
 	// Sweep immediately AND on an interval. Without the immediate one, any window shorter than
 	// the sweep interval would never fire - a bug you would misdiagnose as bad damage numbers.
@@ -217,12 +288,19 @@ void UGSGA_SwordLight::DoSweep()
 			continue;
 		}
 
+		// A guard break has to be resolved BEFORE the damage is applied, because dropping the
+		// target's guard is what decides whether UGSDamageExecCalculation mitigates this same hit.
+		// Break first and the kick lands on an open target; break after and the kick is politely
+		// blocked by the guard it just destroyed.
+		const bool bBrokeGuard = S.bBreaksGuard && BreakGuard(Target, TargetASC, S);
+
 		// The Damage.* tag is BOTH the type marker and the SetByCaller key, and it must go on the
 		// SPEC - the same tag sitting in a Blueprint effect's asset tags is invisible to
 		// UGSDamageExecCalculation and silently deals zero. The sword rides Damage.Dagger because
 		// no Damage.Sword tag exists yet; logged in the decision queue.
 		SpecHandle.Data->AddDynamicAssetTag(GSTags::Damage_Dagger);
-		SpecHandle.Data->SetSetByCallerMagnitude(GSTags::Damage_Dagger, S.Damage);
+		SpecHandle.Data->SetSetByCallerMagnitude(GSTags::Damage_Dagger,
+			bBrokeGuard ? S.Damage * S.GuardBreakDamageScale : S.Damage);
 
 		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data, TargetASC);
 
@@ -232,6 +310,59 @@ void UGSGA_SwordLight::DoSweep()
 				FColor::Red, false, 0.6f, 0, 3.f);
 		}
 	}
+}
+
+bool UGSGA_SwordLight::BreakGuard(AActor* Target, UAbilitySystemComponent* TargetASC,
+	const FGSSwingStage& S)
+{
+	if (!Target || !TargetASC || !TargetASC->HasMatchingGameplayTag(GSTags::State_Blocking))
+	{
+		// Nothing to break. A guard break against an unguarded target is just a weak hit, which is
+		// the correct answer - it should not become a universal stagger tool.
+		return false;
+	}
+
+	// Cancel by TAG, never by class. The blocker may be a player running UGSGA_Block or a human
+	// running something else entirely, and CancelAbilities(nullptr) would take their swing, their
+	// dodge and everything else with it.
+	FGameplayTagContainer CancelTags;
+	CancelTags.AddTag(GSTags::State_Blocking);
+
+	// A broken guard rips open a hold-E channel too: ActivationBlockedTags only refuses a START, so
+	// without this a goblin who was already looting would loot straight through the stagger.
+	CancelTags.AddTag(GSTags::State_Interacting);
+	TargetASC->CancelAbilities(&CancelTags);
+
+	if (S.GuardBreakStaggerSeconds > 0.f)
+	{
+		TargetASC->AddLooseGameplayTag(GSTags::State_GuardBroken);
+
+		// Weak lambda against the TARGET's ASC, not this ability: the swing that broke the guard
+		// will have ended long before the stagger expires, and a timer owned by a dead ability
+		// instance would leave the victim permanently unable to block.
+		TWeakObjectPtr<UAbilitySystemComponent> WeakASC(TargetASC);
+		FTimerHandle Handle;
+		Target->GetWorldTimerManager().SetTimer(Handle,
+			FTimerDelegate::CreateWeakLambda(TargetASC, [WeakASC]()
+			{
+				if (UAbilitySystemComponent* ASC = WeakASC.Get())
+				{
+					ASC->RemoveLooseGameplayTag(GSTags::State_GuardBroken);
+				}
+			}),
+			S.GuardBreakStaggerSeconds, false);
+	}
+
+	// Make the break legible. Without a distinct reaction the victim's guard silently evaporates
+	// and the attacker has no idea the kick did anything.
+	if (AGSCharacterBase* TargetCharacter = Cast<AGSCharacterBase>(Target))
+	{
+		TargetCharacter->PlayHitReact(GetAvatarActorFromActorInfo()
+			? GetAvatarActorFromActorInfo()->GetActorLocation() - Target->GetActorLocation()
+			: FVector::ZeroVector);
+	}
+
+	return true;
 }
 
 void UGSGA_SwordLight::CloseDamageWindow()
@@ -244,6 +375,10 @@ void UGSGA_SwordLight::CloseDamageWindow()
 	}
 
 	World->GetTimerManager().ClearTimer(SweepTimer);
+
+	// The blade is coming back: ease the slow off for the tail so the character can start
+	// repositioning before the ability actually ends.
+	ApplyMoveSpeedScale(GetStage().RecoveryMoveSpeedScale);
 
 	const float Recovery = GetStage().RecoverySeconds;
 	if (Recovery > 0.f)
@@ -292,8 +427,10 @@ void UGSGA_SwordLight::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
 	// Every exit runs through here, including cancellation by death or a dodge. A leaked sweep
-	// timer would keep dealing damage from a corpse.
+	// timer would keep dealing damage from a corpse, and a leaked speed scale would leave the
+	// character permanently slowed after a swing that got interrupted.
 	ClearAllTimers();
+	RestoreMoveSpeed();
 
 	if (bWasCancelled)
 	{

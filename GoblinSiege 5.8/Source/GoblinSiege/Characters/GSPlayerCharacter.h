@@ -12,11 +12,16 @@
 
 class UGSWeaponComponent;
 class UGSTargetingComponent;
+class UGSInteractionComponent;
+class UGSCarryComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UGameplayAbility;
+
+/** 0..1, reaching 1 at HeavyHoldSeconds. Broadcast every frame while the attack button is held. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnHeavyChargeChanged, float, ChargeAlpha);
 
 UCLASS()
 class GOBLINSIEGE_API AGSPlayerCharacter : public AGSCharacterBase
@@ -34,6 +39,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Targeting")
 	UGSTargetingComponent* GetTargetingComponent() const { return TargetingComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
+	UGSInteractionComponent* GetInteractionComponent() const { return InteractionComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
+	UGSCarryComponent* GetCarryComponent() const { return CarryComponent; }
+
 	/** World-space direction the dodge roll should launch toward: the last held movement input
 	 *  resolved against camera yaw, or forward if the player dodges from a standstill. Used by
 	 *  UGSGA_DodgeRoll so the roll reads as "where I was going," not always forward. */
@@ -50,10 +61,24 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 	void Input_Dodge(const FInputActionValue& Value);
+
+	/** Light and heavy share one button (2026-08-03 ruling: tap for light, hold 1.5s for heavy).
+	 *  Pressed starts the charge timer; Released fires the light UNLESS the charge already
+	 *  matured into a heavy. The light therefore resolves on RELEASE, which is the unavoidable
+	 *  cost of putting two attacks on one key - a press cannot know yet whether it is a tap. */
+	void Input_AttackPressed(const FInputActionValue& Value);
+	void Input_AttackReleased(const FInputActionValue& Value);
+
+	/** Fired by the charge timer at HeavyHoldSeconds, while the button is still down. */
+	void TriggerHeavyAttack();
+
 	void Input_Attack(const FInputActionValue& Value);
 	void Input_HeavyAttack(const FInputActionValue& Value);
 	void Input_BlockStart(const FInputActionValue& Value);
 	void Input_BlockStop(const FInputActionValue& Value);
+
+	/** Guard break (X). Low damage on its own - the payoff is the opening it makes. */
+	void Input_GuardBreak(const FInputActionValue& Value);
 
 	/** Torch is now press-to-aim, release-to-throw. Started begins the aim arc; Completed and
 	 *  Canceled both throw, so letting go anywhere - including alt-tabbing - resolves the throw
@@ -71,8 +96,23 @@ protected:
 	void Input_AimStop(const FInputActionValue& Value);
 	void Input_ToggleCrouch(const FInputActionValue& Value);
 
+	/** Hold E to channel, release to abort. Release is routed straight at the interaction component
+	 *  because the ability is activated by class rather than through an ASC input ID, so GAS's own
+	 *  InputReleased never fires for it. */
+	void Input_InteractStart(const FInputActionValue& Value);
+	void Input_InteractStop(const FInputActionValue& Value);
+
 	UFUNCTION()
 	void HandleWeaponModeChanged(bool bRangedMode);
+
+	/** MoveSpeedMultiplier is the single source of truth for walk speed: the carry slow, the block
+	 *  slow, and every root/slow after them are GameplayEffects on that attribute, aggregated by GAS.
+	 *  Nothing writes MaxWalkSpeed directly any more - that pattern cannot stack, and OnStartCrouch
+	 *  reassigned MaxWalkSpeedCrouched out from under whoever had cached it. */
+	void HandleMoveSpeedMultiplierChanged(const FOnAttributeChangeData& Data);
+
+	/** Re-derives both walk speeds from BaseWalkSpeed and the current multiplier. */
+	void ApplyMoveSpeed();
 
 	/** Switches between movement-facing (default) and aim-facing (holding Aim, or a ranged weapon
 	 *  mode equipped) rotation, per tech doc §16: "the character faces movement, and faces the aim
@@ -85,6 +125,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Targeting")
 	TObjectPtr<UGSTargetingComponent> TargetingComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
+	TObjectPtr<UGSInteractionComponent> InteractionComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
+	TObjectPtr<UGSCarryComponent> CarryComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -109,13 +155,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> AttackAction;
 
+	/** Optional dedicated heavy key. The primary route is holding the light-attack button; this
+	 *  stays so a controller face button or a rebind can drive the heavy directly. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> HeavyAttackAction;
+
+	/** How long the attack button must be held before it becomes a heavy. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input", meta = (ClampMin = "0.2"))
+	float HeavyHoldSeconds = 1.5f;
 
 	/** Hold to guard. Bound to Started and Completed/Canceled - the guard is up exactly as long as
 	 *  the button is down. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> BlockAction;
+
+	/** Guard break - X. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> GuardBreakAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> ThrowTorchAction;
@@ -130,6 +186,11 @@ protected:
 	/** The stealth stance toggle - universal kit (design doc §7). */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> CrouchAction;
+
+	/** Hold-E interact (GDD §8). Bound to Started and Completed/Canceled - the channel runs exactly
+	 *  as long as the key is down. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> InteractAction;
 
 	/** Universal torch toss (racial trait) - granted in BeginPlay regardless of weapon kit. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
@@ -150,6 +211,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> BlockAbilityClass;
 
+	/** Guard break. Another UGSGA_SwordLight Blueprint child - one stage, low damage, with
+	 *  bBreaksGuard set. Not C++-defaulted, for the same reason as the heavy: a default would
+	 *  silently hand it the light's stage array and it would behave like a second light attack. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> GuardBreakAbilityClass;
+
+	/** Universal interact channel - C++-defaulted to UGSGA_Interact, same reasoning as
+	 *  SwordLightAbilityClass: a framework verb nobody remembers to fill in is a framework nobody
+	 *  can test. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> InteractAbilityClass;
+
 	// ---- torch aiming (2026-08-03) --------------------------------------------------------
 	/** Draw the predicted arc while the throw button is held. Off makes the torch an instant
 	 *  press-to-throw again, which is the pre-aiming behaviour. */
@@ -165,6 +238,24 @@ protected:
 	/** True between the throw button going down and coming back up. */
 	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Torch")
 	bool bAimingTorch = false;
+
+private:
+	FTimerHandle HeavyChargeTimer;
+	float AttackPressedTime = -1.f;
+	bool bAttackHeld = false;
+	bool bHeavyFiredThisHold = false;
+
+public:
+	/** 0..1 while the attack button is held, reaching 1 at HeavyHoldSeconds. Broadcast so a HUD
+	 *  can draw a charge ring - without some feedback, a 1.5s threshold is pure guesswork for the
+	 *  player, and "I held it and got a light attack" is the complaint that follows. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnHeavyChargeChanged OnHeavyChargeChanged;
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	float GetHeavyChargeAlpha() const;
+
+protected:
 
 	/** Universal dodge roll (racial trait, design doc §7) - set to UGSGA_DodgeRoll in the character
 	 *  Blueprint defaults. */

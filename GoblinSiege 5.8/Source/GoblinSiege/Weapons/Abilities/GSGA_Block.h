@@ -11,6 +11,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "ActiveGameplayEffectHandle.h"
 #include "GSGA_Block.generated.h"
 
 class UAnimMontage;
@@ -47,5 +48,8 @@ protected:
 	float BlockMoveSpeedScale = 0.45f;
 
 private:
-	float CachedMaxWalkSpeed = 0.f;
+	/** Was a cached MaxWalkSpeed. Cache-and-restore could not stack with the carry slow, and
+	 *  OnStartCrouch reassigned MaxWalkSpeedCrouched out from under it - the slow is a
+	 *  UGSGE_MoveSpeedScalar on the MoveSpeedMultiplier attribute now, removed by handle. */
+	FActiveGameplayEffectHandle BlockSlowHandle;
 };

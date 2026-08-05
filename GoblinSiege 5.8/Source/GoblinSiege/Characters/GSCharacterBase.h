@@ -171,6 +171,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
 	bool bEnableHitReact = true;
 
+public:
+	/** Called by UGSAttributeSetBase immediately before it drains IncomingDamage into Health.
+	 *  The attribute-change delegate that drives HandleHealthChanged cannot see the effect
+	 *  context - on the base-value write path GAS passes GEModData as null - so the attacker has
+	 *  to be handed over from the one place that still has it. Without this, FromDirection is
+	 *  always zero and the left/right flinch variants are unreachable dead code. */
+	void SetPendingDamageInstigator(AActor* InInstigator) { PendingDamageInstigator = InInstigator; }
+
 private:
 	float LastHitReactTime = -1000.f;
+
+	/** Attacker for the damage event currently being applied. Consumed and cleared by
+	 *  HandleHealthChanged; weak so a killed attacker cannot keep itself alive here. */
+	TWeakObjectPtr<AActor> PendingDamageInstigator;
+
+	/** Previous Health, tracked here because FOnAttributeChangeData::OldValue is unusable on the
+	 *  base-value write path damage actually takes. Negative means "no sample yet". */
+	float LastKnownHealth = -1.f;
 };

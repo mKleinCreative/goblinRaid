@@ -1,6 +1,11 @@
 #include "Characters/GSPlayerCharacter.h"
 #include "Characters/GSTargetingComponent.h"
+#include "Attributes/GSAttributeSetBase.h"
+#include "GameplayEffectExtension.h"
+#include "Interaction/GSCarryComponent.h"
+#include "Interaction/GSInteractionComponent.h"
 #include "Weapons/GSWeaponComponent.h"
+#include "Weapons/Abilities/GSGA_Interact.h"
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Weapons/Abilities/GSGA_Block.h"
 #include "Destruction/GSTorchProjectile.h"
@@ -20,11 +25,14 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 {
 	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
 	TargetingComponent = CreateDefaultSubobject<UGSTargetingComponent>(TEXT("TargetingComponent"));
+	InteractionComponent = CreateDefaultSubobject<UGSInteractionComponent>(TEXT("InteractionComponent"));
+	CarryComponent = CreateDefaultSubobject<UGSCarryComponent>(TEXT("CarryComponent"));
 
 	// Defaulted in C++ so a character Blueprint swings out of the box. An unset ability class is a
 	// silent failure - you press attack, nothing happens, and nothing tells you why.
 	SwordLightAbilityClass = UGSGA_SwordLight::StaticClass();
 	BlockAbilityClass = UGSGA_Block::StaticClass();
+	InteractAbilityClass = UGSGA_Interact::StaticClass();
 	// SwordHeavyAbilityClass is deliberately NOT defaulted: it and the light share a class, so a
 	// C++ default would silently give the heavy the light's stage array and the two would feel
 	// identical for no visible reason. Better to have the heavy do nothing until it is pointed at
@@ -113,7 +121,44 @@ void AGSPlayerCharacter::BeginPlay()
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(BlockAbilityClass, 1, INDEX_NONE, this));
 		}
+		if (GuardBreakAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(GuardBreakAbilityClass, 1, INDEX_NONE, this));
+		}
+		if (InteractAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(InteractAbilityClass, 1, INDEX_NONE, this));
+		}
+
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute())
+			.AddUObject(this, &AGSPlayerCharacter::HandleMoveSpeedMultiplierChanged);
 	}
+
+	// After BaseWalkSpeed is captured above: every slow in the game is a GameplayEffect on
+	// MoveSpeedMultiplier now, and this is the one place that turns that attribute into walk speeds.
+	ApplyMoveSpeed();
+}
+
+void AGSPlayerCharacter::HandleMoveSpeedMultiplierChanged(const FOnAttributeChangeData& /*Data*/)
+{
+	ApplyMoveSpeed();
+}
+
+void AGSPlayerCharacter::ApplyMoveSpeed()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp || !AbilitySystemComponent)
+	{
+		return;
+	}
+
+	// UGSAttributeSetBase::PreAttributeChange already clamps this to [0.1, 3.0], so a stack of slows
+	// can never hard-freeze the goblin.
+	const float Multiplier = AbilitySystemComponent->GetNumericAttribute(
+		UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute());
+
+	MoveComp->MaxWalkSpeed = BaseWalkSpeed * Multiplier;
+	MoveComp->MaxWalkSpeedCrouched = BaseWalkSpeed * CrouchSpeedMultiplier * Multiplier;
 }
 
 void AGSPlayerCharacter::Tick(float DeltaSeconds)
@@ -123,6 +168,14 @@ void AGSPlayerCharacter::Tick(float DeltaSeconds)
 	if (bAimingTorch && bTorchAimEnabled)
 	{
 		DrawTorchAimArc();
+	}
+
+	// A 1.5s hold threshold with no visible fill is guesswork for the player - "I held it and got
+	// a light attack" is the complaint that follows. Broadcast every frame while charging so a HUD
+	// can draw the ring; stop once the heavy has fired so the ring doesn't sit full afterwards.
+	if (bAttackHeld && !bHeavyFiredThisHold)
+	{
+		OnHeavyChargeChanged.Broadcast(GetHeavyChargeAlpha());
 	}
 }
 
@@ -191,17 +244,33 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(DodgeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Dodge);
 		if (AttackAction)
 		{
-			EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Attack);
+			// Tap for light, hold for heavy - so the press only starts a clock and the release
+			// decides. Canceled is bound as well as Completed: a focus loss mid-hold fires only
+			// Canceled, and without it the charge timer would keep running against a button that
+			// is no longer down.
+			EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_AttackPressed);
+			EIC->BindAction(AttackAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_AttackReleased);
+			EIC->BindAction(AttackAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_AttackReleased);
 		}
 		if (HeavyAttackAction)
 		{
 			EIC->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_HeavyAttack);
+		}
+		if (GuardBreakAction)
+		{
+			EIC->BindAction(GuardBreakAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_GuardBreak);
 		}
 		if (BlockAction)
 		{
 			EIC->BindAction(BlockAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_BlockStart);
 			EIC->BindAction(BlockAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_BlockStop);
 			EIC->BindAction(BlockAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_BlockStop);
+		}
+		if (InteractAction)
+		{
+			EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_InteractStart);
+			EIC->BindAction(InteractAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_InteractStop);
+			EIC->BindAction(InteractAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_InteractStop);
 		}
 
 		// Torch: hold to aim, release to throw. Canceled is bound as well as Completed because a
@@ -297,6 +366,54 @@ void AGSPlayerCharacter::Input_Attack(const FInputActionValue& Value)
 	}
 }
 
+float AGSPlayerCharacter::GetHeavyChargeAlpha() const
+{
+	if (!bAttackHeld || AttackPressedTime < 0.f || HeavyHoldSeconds <= 0.f)
+	{
+		return 0.f;
+	}
+	const UWorld* World = GetWorld();
+	return World ? FMath::Clamp((World->GetTimeSeconds() - AttackPressedTime) / HeavyHoldSeconds, 0.f, 1.f) : 0.f;
+}
+
+void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
+{
+	bAttackHeld = true;
+	bHeavyFiredThisHold = false;
+	AttackPressedTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+
+	// The heavy fires ON the threshold while the button is still down, rather than waiting for
+	// release. Holding past 1.5s and then having to let go before anything happens feels like the
+	// input was dropped; firing at the moment the charge completes is what makes the hold legible.
+	GetWorldTimerManager().SetTimer(HeavyChargeTimer, this,
+		&AGSPlayerCharacter::TriggerHeavyAttack, HeavyHoldSeconds, false);
+}
+
+void AGSPlayerCharacter::Input_AttackReleased(const FInputActionValue& Value)
+{
+	GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
+	bAttackHeld = false;
+	AttackPressedTime = -1.f;
+	OnHeavyChargeChanged.Broadcast(0.f);
+
+	// A release after the heavy already went off is just the end of that input, not a second
+	// attack. Without this guard every heavy would be chased by a light swing.
+	if (bHeavyFiredThisHold)
+	{
+		bHeavyFiredThisHold = false;
+		return;
+	}
+
+	Input_Attack(Value);
+}
+
+void AGSPlayerCharacter::TriggerHeavyAttack()
+{
+	bHeavyFiredThisHold = true;
+	OnHeavyChargeChanged.Broadcast(1.f);
+	Input_HeavyAttack(FInputActionValue());
+}
+
 void AGSPlayerCharacter::Input_HeavyAttack(const FInputActionValue& Value)
 {
 	if (!AbilitySystemComponent)
@@ -314,6 +431,23 @@ void AGSPlayerCharacter::Input_HeavyAttack(const FInputActionValue& Value)
 		return;
 	}
 	AbilitySystemComponent->TryActivateAbilityByClass(SwordHeavyAbilityClass);
+}
+
+void AGSPlayerCharacter::Input_GuardBreak(const FInputActionValue& Value)
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+	if (!GuardBreakAbilityClass)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Guard break pressed but GuardBreakAbilityClass is unset on %s. "
+				 "Point it at a UGSGA_SwordLight Blueprint child with bBreaksGuard on its stage."),
+			*GetName());
+		return;
+	}
+	AbilitySystemComponent->TryActivateAbilityByClass(GuardBreakAbilityClass);
 }
 
 void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)
@@ -399,14 +533,32 @@ void AGSPlayerCharacter::Input_ToggleCrouch(const FInputActionValue& Value)
 	}
 }
 
+void AGSPlayerCharacter::Input_InteractStart(const FInputActionValue& /*Value*/)
+{
+	if (AbilitySystemComponent && InteractAbilityClass)
+	{
+		AbilitySystemComponent->TryActivateAbilityByClass(InteractAbilityClass);
+	}
+}
+
+void AGSPlayerCharacter::Input_InteractStop(const FInputActionValue& /*Value*/)
+{
+	// Interruptible always (stealth spec): letting go cancels, including on an alt-tab (Canceled).
+	if (InteractionComponent)
+	{
+		InteractionComponent->ReleaseInteractInput();
+	}
+}
+
 void AGSPlayerCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
 {
 	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-	{
-		MoveComp->MaxWalkSpeedCrouched = BaseWalkSpeed * CrouchSpeedMultiplier;
-	}
+	// Was: MaxWalkSpeedCrouched = BaseWalkSpeed * CrouchSpeedMultiplier. That reassignment ignored
+	// any active slow, so crouch-walking while carrying a sack silently cancelled the carry penalty
+	// and putting the sack down then restored a stale value. ApplyMoveSpeed folds the multiplier in.
+	ApplyMoveSpeed();
+
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->AddLooseGameplayTag(GSTags::State_Crouching);

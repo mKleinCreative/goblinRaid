@@ -1,4 +1,5 @@
 #include "Weapons/Abilities/GSGA_TorchToss.h"
+#include "Combat/GSGameplayTags.h"
 #include "Destruction/GSTorchProjectile.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -13,6 +14,9 @@ UGSGA_TorchToss::UGSGA_TorchToss()
 	// committed its cost and spawned nothing, which made fire (the only closed damage loop in the
 	// project) unreachable in play.
 	TorchProjectileClass = AGSTorchProjectile::StaticClass();
+
+	// A full-handed goblin has to drop what it is holding before it can throw (ruling 2026-08-04).
+	ActivationBlockedTags.AddTag(GSTags::State_Carrying);
 }
 
 void UGSGA_TorchToss::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

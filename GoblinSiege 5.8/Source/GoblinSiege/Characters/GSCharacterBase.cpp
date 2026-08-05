@@ -10,6 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "HAL/IConsoleManager.h"
 
 AGSCharacterBase::AGSCharacterBase()
 {
@@ -87,10 +88,26 @@ bool AGSCharacterBase::IsBlocking() const
 	return AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_Blocking);
 }
 
+// GS.Combat.LogHitReact 1 makes every flinch decision say what it decided and why. A flinch that
+// does not appear is otherwise indistinguishable from one that played and ended before you looked,
+// which cost most of an evening on 2026-08-03.
+static TAutoConsoleVariable<int32> CVarGSLogHitReact(
+	TEXT("GS.Combat.LogHitReact"), 0,
+	TEXT("Log every hit-reaction decision, including why one was skipped."),
+	ECVF_Cheat);
+
+#define GS_HITREACT_LOG(Format, ...) \
+	if (CVarGSLogHitReact.GetValueOnGameThread() != 0) \
+	{ \
+		UE_LOG(LogTemp, Warning, TEXT("[GS.HitReact] %s: ") Format, *GetName(), ##__VA_ARGS__); \
+	}
+
 void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
 {
 	if (!bEnableHitReact || bIsDead)
 	{
+		GS_HITREACT_LOG(TEXT("disabled (bEnableHitReact %d, bIsDead %d)"),
+			bEnableHitReact ? 1 : 0, bIsDead ? 1 : 0);
 		return;
 	}
 
@@ -105,10 +122,13 @@ void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
 	// tag check stops a flinch interrupting itself mid-play, which looks worse than no flinch.
 	if (World->GetTimeSeconds() - LastHitReactTime < HitReactCooldownSeconds)
 	{
+		GS_HITREACT_LOG(TEXT("cooldown: %.2fs since last, need %.2f"),
+			World->GetTimeSeconds() - LastHitReactTime, HitReactCooldownSeconds);
 		return;
 	}
 	if (AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_HitReact))
 	{
+		GS_HITREACT_LOG(TEXT("already flinching (State.HitReact held)"));
 		return;
 	}
 
@@ -146,11 +166,14 @@ void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
 
 	if (!Chosen)
 	{
+		GS_HITREACT_LOG(TEXT("no montage assigned"));
 		return; // no montage authored yet - silently fine, the damage still landed
 	}
 
 	LastHitReactTime = World->GetTimeSeconds();
 	const float Length = PlayAnimMontage(Chosen, HitReactPlayRate);
+	GS_HITREACT_LOG(TEXT("playing %s at %.2fx -> length %.3f"),
+		*Chosen->GetName(), HitReactPlayRate, Length);
 
 	if (AbilitySystemComponent && Length > 0.f)
 	{
@@ -170,7 +193,17 @@ void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
 
 void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 {
-	const float Delta = Data.NewValue - Data.OldValue;
+	// Do NOT trust Data.OldValue here. Damage reaches Health through the IncomingDamage meta
+	// attribute, which UGSAttributeSetBase drains with SetHealth() inside PostGameplayEffectExecute
+	// - a base-value write. On that path GAS broadcasts the change with OldValue already equal to
+	// NewValue, so Data-derived Delta is a constant zero. Death still worked because it tests
+	// NewValue <= 0 absolutely; hit reactions did not, and neither would any damage-flash bound to
+	// Delta. Measured 2026-08-03: dummy took 25 damage, died correctly at 0, never once flinched.
+	// Tracking the previous value ourselves is correct regardless of how GAS fills the struct.
+	const float Previous = (LastKnownHealth < 0.f) ? Data.OldValue : LastKnownHealth;
+	const float Delta = Data.NewValue - Previous;
+	LastKnownHealth = Data.NewValue;
+
 	const float MaxHealth = GetMaxHealth();
 
 	// The dynamic mirror of GAS's non-dynamic attribute delegate. Everything Blueprint-side - the
@@ -188,16 +221,23 @@ void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 	// from making everyone standing in it twitch four times a second.
 	if (Delta < 0.f && MaxHealth > 0.f && (-Delta / MaxHealth) >= HitReactMinDamageFraction)
 	{
+		// Prefer the attacker handed over by UGSAttributeSetBase. Data.GEModData is null on the
+		// path damage actually takes (SetHealth is a base-value write), so it is only a fallback
+		// for any future effect that modifies Health directly. Not named "Instigator": AActor
+		// already has a member of that name and this module builds with warnings-as-errors.
 		FVector FromAttacker = FVector::ZeroVector;
-		if (Data.GEModData)
+		const AActor* Attacker = PendingDamageInstigator.Get();
+		if (!Attacker && Data.GEModData)
 		{
-			// Not named "Instigator": AActor already has a member of that name and this module
-			// builds with warnings-as-errors, so the shadow is a hard build failure.
-			if (const AActor* Attacker = Data.GEModData->EffectSpec.GetContext().GetInstigator())
-			{
-				FromAttacker = Attacker->GetActorLocation() - GetActorLocation();
-			}
+			Attacker = Data.GEModData->EffectSpec.GetContext().GetInstigator();
 		}
+		if (Attacker)
+		{
+			FromAttacker = Attacker->GetActorLocation() - GetActorLocation();
+		}
+		PendingDamageInstigator = nullptr;
+		GS_HITREACT_LOG(TEXT("damage %.1f of %.0f -> requesting flinch (attacker dir %s)"),
+			-Delta, MaxHealth, *FromAttacker.ToCompactString());
 		PlayHitReact(FromAttacker);
 	}
 }
@@ -283,6 +323,9 @@ void AGSCharacterBase::HandleDeath()
 void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float InvulnerabilitySeconds)
 {
 	bIsDead = false;
+
+	// Drop the health sample so the respawn refill is not measured against the corpse's zero.
+	LastKnownHealth = -1.f;
 
 	if (AttributeSetBase)
 	{

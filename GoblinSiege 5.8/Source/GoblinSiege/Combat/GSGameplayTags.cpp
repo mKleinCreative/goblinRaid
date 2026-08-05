@@ -17,6 +17,18 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Aiming, "State.Aiming", "Facing camera/aim direction instead of movement direction (tech doc §16)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Blocking, "State.Blocking", "Guard up - frontal hits are mitigated in GSDamageExecCalculation and stagger the blocker instead of wounding them");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_HitReact, "State.HitReact", "Flinching. Present only for the length of a hit-react montage; blocks a second flinch from stacking");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_GuardBroken, "State.GuardBroken", "Guard has been kicked open. Blocks re-raising the guard for the stagger window, which is what makes turtling punishable rather than merely interrupted");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Interacting, "State.Interacting", "Hold-E channel in progress.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Carrying, "State.Carrying", "Carrying an object - slower, cannot attack, cannot throw a torch.");
+
+	// Interaction verbs (GDD §8). Data, not subclasses - see GSGameplayTags.h.
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Loot, "Interact.Loot", "Loot a container or a corpse.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Takedown, "Interact.Takedown", "Stealth takedown on an unaware defender.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_FoulWell, "Interact.FoulWell", "Foul a village well.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Carry, "Interact.Carry", "Pick up / put down a carryable object.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Extract, "Interact.Extract", "RESERVED - extraction auto-banks on a circle for now, not a channel.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_MoveSpeedScalar, "Data.MoveSpeedScalar", "SetByCaller key: multiplier fed to UGSGE_MoveSpeedScalar.");
 
 	// Burn-objective types (burn-types spec §5, added 2026-07-31 for Q-37). The win needs one burn
 	// of each of these; see GSGameplayTags.h and AGSBurnObjectiveBase::ObjectiveTypeTag.

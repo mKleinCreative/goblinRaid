@@ -1,6 +1,7 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
+#include "Characters/GSCharacterBase.h"
 
 UGSAttributeSetBase::UGSAttributeSetBase()
 {
@@ -39,6 +40,18 @@ void UGSAttributeSetBase::PostGameplayEffectExecute(const FGameplayEffectModCall
 
 		if (Damage > 0.f)
 		{
+			// Hand the attacker to the target before the write. This is the last point where the
+			// effect context still exists - the Health attribute-change delegate that drives
+			// hit reactions receives GEModData as null on a base-value write, so anything that
+			// needs to know WHO hit you has to be captured here or not at all.
+			if (AGSCharacterBase* TargetCharacter =
+					Cast<AGSCharacterBase>(Data.Target.AbilityActorInfo.IsValid()
+						? Data.Target.AbilityActorInfo->AvatarActor.Get() : nullptr))
+			{
+				TargetCharacter->SetPendingDamageInstigator(
+					const_cast<AActor*>(Data.EffectSpec.GetContext().GetInstigator()));
+			}
+
 			SetHealth(FMath::Clamp(GetHealth() - Damage, 0.f, GetMaxHealth()));
 			// Death detection lives in AGSCharacterBase::HandleHealthChanged via the Health
 			// attribute-changed delegate - not here - so AI and players share one code path.

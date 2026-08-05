@@ -56,6 +56,38 @@ namespace GSTags
 	 *  flinch every frame, which reads as a seizure rather than a stagger. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_HitReact);
 
+	/** Guard kicked open. Held for the stagger window, during which UGSGA_Block refuses to
+	 *  activate - that refusal is the whole point: an interrupt that lets you immediately re-block
+	 *  punishes nothing, so the opening has to persist for long enough to be exploited. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_GuardBroken);
+
+	/** Hold-E channel in progress (GDD §8). Owned by UGSGA_Interact's ActivationOwnedTags, so GAS
+	 *  adds and removes it for exactly the channel's lifetime - nothing else should set it. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Interacting);
+
+	/** Hands full. Applied as a loose tag by UGSCarryComponent for exactly as long as the object is
+	 *  held; attack abilities and the torch toss block on it. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Carrying);
+
+	// ------------------------------------------------------------------ interaction verbs
+	// The slice's channelled verbs plus the carry pick-up/put-down channel. These are DATA: an
+	// interactable advertises one through UGSInteractableComponent::VerbTag, no C++ branches on
+	// them, and a fifth verb costs a tag rather than a subclass.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Loot);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Takedown);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_FoulWell);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Carry);
+
+	/** RESERVED, deliberately unused as of 2026-08-04: extraction is an auto-bank circle (GDD §9),
+	 *  not a hold-E channel. Kept declared because §12.1 lists extract among the slice verbs and the
+	 *  ruling was "for now" - if it becomes channelled, this is the tag and nothing else changes. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Extract);
+
+	// ------------------------------------------------------------------ SetByCaller data keys
+	/** Magnitude key for UGSGE_MoveSpeedScalar. Same convention as the Damage.* tags, which double
+	 *  as SetByCaller keys on the damage spec: one effect class, many callers, no GE per source. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_MoveSpeedScalar);
+
 	// ------------------------------------------------------------------ burn objective types
 	/**
 	 * The three burn-objective TYPE tags the burn-types spec §5 has owed since it was written,

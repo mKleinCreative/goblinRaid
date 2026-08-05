@@ -316,4 +316,31 @@ It still succeeds, but it wastes most of the build time (and 20s per retry, twic
 user full control on `C:\ProgramData\Epic\UnrealBuildAccelerator`.** Until then, expect ~6-minute
 builds that should take under a minute. Machine has 32 GB RAM; close browsers during big builds.
 
+## BuildAndLaunchGame.ps1 on this machine
+
+- **Engine auto-detect only works because the install is registered.** The script probes
+  `E:` / `C:` / `D:\Program Files\Epic Games\UE_5.8`, and this engine lives at `D:\Epic Games\UE_5.8`
+  (no "Program Files"), so auto-detect used to fail with *"Non-interactive session - cannot prompt
+  for a path"*. Fixed 2026-08-04 by registering the install, which is the script's FIRST lookup:
+  `HKCU:\SOFTWARE\Epic Games\Unreal Engine\Builds`, value `5.8` = `D:\Epic Games\UE_5.8`. If a build
+  ever fails that way again, check that value still exists. There is no `-EnginePath` parameter.
+- **`-SkipBuild` still kills the editor.** The `taskkill /F /IM UnrealEditor.exe` is above the
+  `if (-not $SkipBuild)` branch, so it runs on every invocation. To launch without disturbing a
+  running editor, start `UnrealEditor.exe` with the .uproject directly instead.
+
+## GAS gotchas (this engine version)
+
+- **`EGameplayModOp::Multiplicitive` is a lie in 5.8.** It is a back-compat alias for
+  `MultiplyAdditive`, which *adds* multipliers before applying them: two 0.55 slows aggregate to
+  1.10 and make a doubly-slowed character FASTER. For real multiplicative stacking use
+  `EGameplayModOp::MultiplyCompound` (0.55 * 0.55 = 0.30). The aggregation equation is in
+  `GameplayEffectTypes.h`: `((Base + AddBase) * MultiplyAdditive / DivideAdditive * MultiplyCompound) + AddFinal`.
+- **`UGameplayAbility::AbilityTags` is deprecated (C4996)** — compiles in 5.8, will not after the
+  next upgrade. New abilities should use `SetAssetTags()` in the constructor.
+- **Never write `MaxWalkSpeed` directly.** Cache-and-restore cannot stack, and
+  `AGSPlayerCharacter::OnStartCrouch` reassigns `MaxWalkSpeedCrouched` out from under anyone holding
+  a cached value. Apply a `UGSGE_MoveSpeedScalar` with a SetByCaller magnitude and remove it by
+  handle; `AGSPlayerCharacter::ApplyMoveSpeed` is the single place that derives speed from the
+  `MoveSpeedMultiplier` attribute.
+
 <!-- END PROJECT-LOCAL -->

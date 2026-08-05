@@ -45,6 +45,38 @@ struct FGSSwingStage
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Timing", meta = (ClampMin = "0.0"))
 	float RecoverySeconds = 0.30f;
 
+	/**
+	 * MaxWalkSpeed multiplier held from the swing starting until the damage window closes.
+	 *
+	 * Attacking never stops the character - being rooted mid-swing is what makes melee feel like
+	 * a turn-based exchange rather than a fight - but committing to a swing should cost mobility
+	 * in proportion to what the swing is worth. A light attack stays mobile enough to chase; a
+	 * heavy should feel like it plants you. 1.0 disables the slow entirely.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MoveSpeedScale = 0.55f;
+
+	/**
+	 * MaxWalkSpeed multiplier for the recovery tail, applied when the damage window closes.
+	 *
+	 * Separate from the swing scale because the two do different jobs: the swing slow is the
+	 * commitment, the recovery slow is how long that commitment keeps costing you. Setting this
+	 * above MoveSpeedScale lets a character start peeling away as the blade comes back.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float RecoveryMoveSpeedScale = 0.75f;
+
+	/**
+	 * Forward launch speed in uu/s, fired the instant the damage window opens. 0 = no lunge.
+	 *
+	 * Deliberately tied to the damage window rather than the windup, so the step and the strike
+	 * land together and it reads as one committed motion instead of a hop followed by a swing.
+	 * The character's braking bleeds it off, so this is a shove, not a dash - a value near the
+	 * character's walk speed moves them roughly a body's width.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0"))
+	float LungeSpeed = 0.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit", meta = (ClampMin = "0.0"))
 	float Damage = 25.f;
 
@@ -61,6 +93,25 @@ struct FGSSwingStage
 	/** Total arc in front that counts as hittable. 360 for a spin finisher. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit", meta = (ClampMin = "10.0", ClampMax = "360.0"))
 	float SweepArcDegrees = 160.f;
+
+	/** Whether a hit rips the target's guard open. A guard break is not a damage stat - a kick
+	 *  that merely hurts a bit is a worse light attack, not a new verb - so damage stays low and
+	 *  the value is entirely in the opening it creates. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bBreaksGuard = false;
+
+	/** How long State.GuardBroken is held on the target. This is the whole mechanic: it is the
+	 *  window in which they cannot re-raise the guard, so it should be long enough to land a real
+	 *  punish and short enough that a whiffed guard break is not a free combo. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat",
+		meta = (ClampMin = "0.0", EditCondition = "bBreaksGuard"))
+	float GuardBreakStaggerSeconds = 1.2f;
+
+	/** Damage multiplier applied to a target whose guard this hit actually broke. 1.0 keeps the
+	 *  break purely tactical; above 1 makes turtling into a kick genuinely costly. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat",
+		meta = (ClampMin = "1.0", EditCondition = "bBreaksGuard"))
+	float GuardBreakDamageScale = 1.f;
 };
 
 UCLASS()
@@ -115,10 +166,31 @@ private:
 	void RunStage();
 	void OpenDamageWindow();
 	void DoSweep();
+	/** Rips a blocking target's guard open: cancels the block by tag and holds State.GuardBroken
+	 *  for the stagger window. Returns true only if there was actually a guard to break, which is
+	 *  what lets the caller decide whether the damage scale applies. */
+	bool BreakGuard(AActor* Target, UAbilitySystemComponent* TargetASC, const FGSSwingStage& S);
+
 	void CloseDamageWindow();
 	void FinishRecovery();
 	void ClearAllTimers();
 	const FGSSwingStage& GetStage() const;
+
+	/** Scales MaxWalkSpeed off the speed the character had when the ability STARTED, caching it
+	 *  once on first use. Caching per stage would compound: stage 2 would scale an already-scaled
+	 *  value and a three-hit combo would grind to a halt by the end of it. */
+	void ApplyMoveSpeedScale(float Scale);
+
+	/** Restores rather than recomputes, so any buff or slow applied mid-swing survives the swing.
+	 *  Same reasoning as UGSGA_Block::EndAbility. */
+	void RestoreMoveSpeed();
+
+	/** Forward shove at the strike. No-op when the stage's LungeSpeed is 0. */
+	void ApplyLunge(const FGSSwingStage& S);
+
+	/** 0 means "nothing cached yet", which is also the reset value - so a restore that runs
+	 *  without a matching apply cannot zero the character's walk speed. */
+	float CachedMaxWalkSpeed = 0.f;
 
 	/** Cleared per STAGE, not per ability: each swing in a chain gets its own fresh hit set, so a
 	 *  three-hit combo lands three times on one target - but one swing never double-hits. */
