@@ -1,5 +1,6 @@
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Core/GSGameState.h"
+#include "Raid/GSRaidDirector.h"
 #include "Components/SceneComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
@@ -48,6 +49,16 @@ void AGSBurnObjectiveBase::BeginPlay()
 	{
 		World->GetTimerManager().SetTimer(DebugTimerHandle, this,
 			&AGSBurnObjectiveBase::DebugTick, 0.25f, true);
+	}
+
+	// Announce ourselves to the raid director (2026-08-05). It also sweeps the world at
+	// OnWorldBeginPlay, so this is the second of two paths on purpose: the ordering between a world
+	// subsystem's OnWorldBeginPlay and an actor's BeginPlay is not contractually fixed, and this is
+	// the ONLY path by which a carrier spawned mid-raid can join the roster and learn it was born
+	// Optional. RegisterCarrier is idempotent, so being registered twice costs one list scan.
+	if (UGSRaidDirector* Director = UGSRaidDirector::Get(this))
+	{
+		Director->RegisterCarrier(this);
 	}
 }
 
@@ -136,27 +147,12 @@ void AGSBurnObjectiveBase::SetCompletion01(float NewCompletion01)
 		// below.
 		SetListState(EGSObjectiveListState::Complete);
 
-		// ------------------------------------------------------------------------------------
-		// RAID LOOP HOOK - Q-32 demotion goes HERE, and is deliberately NOT implemented (Q-37).
-		//
-		// The ruling (2026-07-31): the win needs one burn of each TYPE, so the moment the first
-		// carrier of a type completes, every OTHER carrier of that same type drops from Required to
-		// Optional. The market is never demoted - only one exists, so it has no siblings.
-		//
-		// Not written here because this actor cannot see its siblings, and any version that could
-		// would be the wrong shape: iterating every AGSBurnObjectiveBase in the world from inside
-		// one objective's completion path puts an O(n) level scan on a gameplay beat, gives late-
-		// spawned carriers (the hamlet generator builds fields at runtime) no way to learn they were
-		// born Optional, and leaves nothing that can answer "is the raid won" - which is the same
-		// question from the other side. That wants a subsystem holding the per-type completion set,
-		// and it belongs to Raid Loop.
-		//
-		// What that pass needs already exists and is stable:
-		//     GetObjectiveTypeTag()  - Objective.Burn.Mill / .Field / .Market, per placed instance
-		//     SetListState(...)      - authority-only, replicated, refuses to demote a Complete one
-		//     OnBurnObjectiveCompleted - the "a carrier of some type just finished" signal to hang
-		//                                the pass off, so it never has to poll
-		// ------------------------------------------------------------------------------------
+		// RAID LOOP HOOK - Q-32 demotion (Q-37). IMPLEMENTED 2026-08-05, and deliberately NOT here:
+		// it lives in UGSRaidDirector, which binds OnBurnObjectiveCompleted below. This actor still
+		// cannot see its siblings and still should not try - the director holds the per-type
+		// completion set, runs the demotion, and answers "is the raid won" from the same state.
+		// Nothing was added to this function; the delegate broadcast further down is the whole
+		// coupling.
 
 		if (UWorld* World = GetWorld())
 		{

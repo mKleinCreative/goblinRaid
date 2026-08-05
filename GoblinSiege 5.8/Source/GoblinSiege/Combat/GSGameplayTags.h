@@ -123,4 +123,28 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Mill);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Field);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Market);
+
+	// ------------------------------------------------------------------ raid markers
+	/**
+	 * The marker set (added 2026-08-05 with AGSRaidMarker) - the placement contract between
+	 * whoever decides WHERE things go and whoever decides how they behave. See GSRaidMarker.h for
+	 * the boundary this encodes; in short: the marker says where, and nothing else.
+	 *
+	 * Tags rather than an enum for the same reason the Objective.Burn.* set is tagged: a ninth
+	 * marker type should cost a tag and a placed actor, not a recompile - which on this machine is
+	 * a six-minute editor-closed build.
+	 *
+	 * Marker.ObjectiveAnchor.* is a hierarchy on purpose: AGSRaidMarker::GatherByType uses
+	 * MatchesTag, so a query for the parent finds every objective anchor while a query for
+	 * .Field finds only the fields.
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_GuardPost);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_PatrolNode);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_CivilianAnchor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_CoverProp);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_HordeArrival);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Field);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Mill);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Market);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Granary);
 }
