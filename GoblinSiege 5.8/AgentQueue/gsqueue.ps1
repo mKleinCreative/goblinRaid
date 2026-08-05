@@ -29,10 +29,16 @@ param(
     [ValidateSet('queued', 'active', 'review', 'done', 'blocked', 'abandoned')]
     [string]$Status,
     [switch]$Build,
-    [string]$Note
+    [string]$Note,
+    [string]$WaitingOn
 )
 
 $ErrorActionPreference = 'Stop'
+
+# $PSBoundParameters inside a function is that FUNCTION's bound parameters, not the
+# script's - and every Invoke-* here is parameterless, so it always reads empty.
+# Capture the script's at script scope and test against this instead.
+$PassedArgs = $PSBoundParameters
 
 $QueueDir  = $PSScriptRoot
 $TicketDir = Join-Path $QueueDir 'tickets'
@@ -247,7 +253,9 @@ function Update-Board {
     if ($bi -lt 0 -or $ei -lt $bi) { return }
     $head = $text.Substring(0, $bi + $begin.Length)
     $tail = $text.Substring($ei)
-    Set-Content -LiteralPath $BoardFile -Value ($head + (Format-Board) + $tail) -Encoding UTF8
+    # TrimEnd matters: Set-Content appends its own trailing newline, so without it every
+    # render grows the file by one blank line.
+    Set-Content -LiteralPath $BoardFile -Value (($head + (Format-Board) + $tail).TrimEnd()) -Encoding UTF8
 }
 
 # ----------------------------------------------------------------- commands --
@@ -392,10 +400,24 @@ function Invoke-Check {
 }
 
 function Invoke-Set {
-    if (-not $Id)     { throw 'set needs -Id.' }
-    if (-not $Status) { throw 'set needs -Status.' }
+    if (-not $Id) { throw 'set needs -Id.' }
+    if (-not $Status -and -not $PassedArgs.ContainsKey('WaitingOn')) {
+        throw 'set needs -Status, -WaitingOn, or both.'
+    }
     $t = Get-TicketById $Id
     if (-not $t) { throw "No ticket #$Id." }
+
+    # -WaitingOn takes a ticket number or plain prose. Setting it alone (no -Status)
+    # is legal, so nobody has to hand-edit frontmatter to explain a stall.
+    if ($PassedArgs.ContainsKey('WaitingOn')) {
+        Set-TicketField -Path $t.Path -Key 'waiting_on' -Value $WaitingOn
+        if (-not $Status) {
+            Update-Board
+            if ($WaitingOn) { Write-Output "#$($t.Id) waiting on: $WaitingOn" }
+            else { Write-Output "#$($t.Id) no longer waiting on anything" }
+            return
+        }
+    }
 
     if ($Status -eq 'active' -and $t.Files.Count -gt 0) {
         $blockers = @(Get-Blockers -Paths $t.Files -MyNum $t.Num)
@@ -490,6 +512,7 @@ gsqueue.ps1 - Goblin Siege agent work queue
                                                 take the next queue position
   check -Id <n> | -Files a,b                    who is ahead of me on these files?
   set -Id <n> -Status <s> [-Note "..."]         queued|active|review|done|blocked|abandoned
+  set -Id <n> -WaitingOn "<#n or prose>"        say what is stalling you (shows on the board)
   done -Id <n>                                  close (refuses unless G/E/R are written)
   buildgate                                     exit 0 only if nothing is open
   render                                        rewrite the board in QUEUE.md

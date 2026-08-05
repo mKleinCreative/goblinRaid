@@ -1,5 +1,0 @@
-# Tickets are live coordination state, not history. They churn while agents work and
-# would collide constantly. QUEUE.md's rule stands: the ticket is scratch, AGENT_STATE.md
-# is memory - fold anything durable out of a finished ticket before it disappears.
-tickets/*.md
-!tickets/.gitkeep
