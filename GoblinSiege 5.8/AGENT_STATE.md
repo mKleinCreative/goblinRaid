@@ -148,7 +148,19 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
   than six Blueprints. Player and horde goblins are `Race.Goblin` in C++. **An unset race still hits
   everything** - opt-in, so nothing silently became invulnerable. Fire deliberately does NOT check
   race: the torch is the goblin equalizer and burns its owner too.
-- 2026-08-04 **`GOB_Scout_v3` is wearing another mesh's physics asset — CONTENT FIX STILL OWED.**
+- 2026-08-05 ~~`GOB_Scout_v3` is wearing another mesh's physics asset~~ **FIXED, and six more with it.**
+  `unreal.get_editor_subsystem(unreal.SkeletalMeshEditorSubsystem).create_physics_asset(mesh, True, 0)`
+  generates a fitted asset with FBX-import settings and assigns it in one call - the earlier "not
+  scriptable" note was wrong, it was `PhysicsAssetFactory` that is useless from Python, not the
+  subsystem. `GOB_Scout_v3` now uses `/Game/Characters/ScoutV3/GOB_Scout_v3_PhysicsAsset` instead of
+  the `_Import` asset built for another body: ragdoll bones now sit a median 112uu / max 186uu from
+  the pawn, against 1850-3700uu before. The six human `SK_*_baked` meshes had **no physics asset at
+  all**, so defenders froze in their last pose instead of ragdolling; each now has one beside it and
+  a killed PeasantMan simulates properly (median 114uu, max 193uu, bounds 125x215x189). Backups:
+  `D:\goblinRaid\ScoutV3_Backup_20260805\` and `HumanMesh_Backup_20260805\`.
+  **Careful:** `is_physics_asset_compatible` only checks bone names, so it returned True for the
+  wrong-body asset too - it will not catch a mis-fitted one.
+- 2026-08-04 ~~**`GOB_Scout_v3` is wearing another mesh's physics asset — CONTENT FIX STILL OWED.**~~
   `GOB_Scout_v3.PhysicsAsset` = `/Game/_Import/SK_GoblinScout_Rigged_v2_PhysicsAsset`, authored for a
   different body and living in import staging. Bodies that do not fit start interpenetrating and
   depenetration throws them, which is why a corpse measured 1881x1252x609 of bounds centred 1850uu
