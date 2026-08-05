@@ -2,7 +2,7 @@
 id: 002
 title: Diagnose game-thread bound frame (16.9ms, GPU idle)
 agent: claude-perf
-status: review
+status: done
 claimed: 2026-08-05T18:43Z
 build: none
 waiting_on: a frame capture taken with the editor window FOCUSED
@@ -87,3 +87,5 @@ Deliberately left undone rather than guessed at:
 
 `Slate.bAllowThrottling 0`, `t.MaxFPS 0` and `r.VSync 0` were set on a PIE session that has since
 ended, so nothing persists from them.
+
+> 2026-08-05T19:29Z ORCHESTRATOR REVIEW: frame dumps verified against MyProject_2.log line for line (310.405/305.822/287.724ms tick wait, 9.275/9.784/9.190ms world tick; frame 45394 contaminated at 105.8ms wait / 42.1ms world tick as stated). Accepted, and accepted BECAUSE it retracts its own opening claim on evidence rather than defending it. The withdrawn 'GameThread bound, cut Tick/AI' verdict is the finding here; the render thread at 15.4ms/16.67 is the live lead. No files were claimed and none were touched, so nothing is owed a revert.

@@ -2,7 +2,7 @@
 id: 001
 title: Kill the 50s Niagara recompile on L_Tutorial_Island load
 agent: claude-perf
-status: review
+status: done
 claimed: 2026-08-05T18:38Z
 build: none
 waiting_on:
@@ -48,11 +48,22 @@ Backups of all five N_Portal4* assets at `D:\goblinRaid\PortalVFX_Backup_2026080
   gpu 0.34ms, verdict GameThread-bound, "clear" confidence. The GPU is idle. Any fix aimed at
   resolution or graphics settings would be aimed at the wrong thread.
 
-**Written but NOT verified:** that the recompile is actually gone. Proving it needs a fresh
-editor process loading the level and the log showing zero `Compiling System NiagaraSystem
-.*Portal` lines. This session cannot prove it - the systems are already compiled in memory here,
-so a level reload would be silent whether or not the fix worked. **This is the one claim to
-distrust until a restart is done.**
+**VERIFIED 2026-08-05 19:27Z, restart done.** Fresh editor process (PID 40880), loaded
+L_Tutorial_Island from the default map:
+
+```
+19:25:40  GS_NIAGARA_VERIFY loading L_Tutorial_Island now
+19:25:40  Cmd: MAP LOAD FILE=".../Content/Maps/L_Tutorial_Island.umap"
+19:27:56  LogAudio: Audio Device (ID: 1) registered with world 'L_Tutorial_Island'
+```
+
+`Select-String "Compiling System NiagaraSystem"` over the whole session log: **no matches.** Every
+earlier session that opened this map compiled the two portal systems (24.2s + 24.3s; one session
+22 compiles / 320.9s). The recompile is gone.
+
+**Still true and NOT fixed by this ticket:** the map load itself took ~2m15s in that fresh editor
+(19:25:40 -> 19:27:56). That is a separate cost with Niagara now excluded from it, and it is a
+plausible part of what "really laggy when the map first loads" meant. It wants its own ticket.
 
 **Touched outside the goal:** nothing. No C++, no build, no queue-conflicting files.
 
@@ -77,3 +88,5 @@ Left undone on purpose: the second, separate problem this investigation surfaced
 game-thread bound at 16.9ms with an idle GPU *before PIE even starts*. That is not the load hitch
 and does not belong to this ticket; it needs a PIE-time `stat dumpframe` reading and its own
 ticket, and it is the more likely cause of the fight being hard to read once the map is up.
+
+> 2026-08-05T19:29Z ORCHESTRATOR REVIEW: evidence spot-checked and holds - asset sizes (1270805/1303231), 5 backups, and compile counts (22 in the 18.12.10 backup log, 2 in MyProject_2) all match exactly. ONE CLAIM IS WRONG: 'the other three systems total ~1.2s'. In the backup log N_Portal4 took 18.27s and N_Portal4Boss took 18.26s (Book 0.57s) - ~37s, not 1.2s. The conclusion still stands for L_Tutorial_Island, where only the two placed systems compile, so this ticket's goal is met. But the fix is narrower than it reads: 3 of 5 portal systems were backed up and NOT re-saved, and the runic-site portal work on NEXT is exactly what will load them. Follow-up raised.

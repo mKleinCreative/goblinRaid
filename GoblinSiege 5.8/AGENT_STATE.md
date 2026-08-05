@@ -8,7 +8,9 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
 **Coordination lives in `AgentQueue/QUEUE.md`, not here.** Before editing any file, claim it:
 `& ".\AgentQueue\gsqueue.ps1" claim -Agent <slug> -Title "<t>" -Files "a,b"`. Lower ticket number
 has right of way on a shared file; nobody compiles until `gsqueue.ps1 buildgate` exits 0. Tickets
-are scratch — fold anything durable from a finished ticket into BUILT / DECISIONS / FAILED below.
+are committed and keep their Generate/Evaluate/Refine as the review record, but **nothing reads
+old tickets at run start** — fold anything durable into BUILT / DECISIONS / FAILED below, or the
+next agent rediscovers it.
 
 ## BUILT
 - pre-seed: player character complete (third-person rig, soft-lock, crouch, sprint/stamina, dodge, block, guard-break, hit-reacts, ragdoll death), traversal (vault/mantle/climb) PIE-verified, sword combat vs target dummy (GSGA_SwordLight/Heavy, weapon component, DA_Weapon_Scout), fire system large (flammable, fire volumes, field-fire grid, mill dust-fuse, market, burn-mask/char materials village-wide), burn objective base with Required/Optional/Complete, alarm types, GA_GS_* ability BPs, adversary BPs placed (CastleGuard/Archer/Knight/Peasant), Tutorial_Island playable with BP_GSGameMode.
@@ -137,6 +139,38 @@ are scratch — fold anything durable from a finished ticket into BUILT / DECISI
 *(ranking from run live-003, 2026-08-04)*
 
 ## FAILED
+
+- 2026-08-05 **Marketplace Niagara systems recompile on EVERY load until re-saved once.**
+  `N_Portal4_V2` and `N_Portal4Elemental` cost 24.2s + 24.3s every time `L_Tutorial_Island` opened
+  (one session paid 320.9s across 22 compiles) because the compiled result was never serialised
+  back into the asset. Loading each and re-saving fixed it - verified by a fresh editor showing
+  zero `Compiling System NiagaraSystem` lines. **Before blaming gameplay code for a load hitch,
+  run `Select-String "Compiling System NiagaraSystem" Saved/Logs/MyProject*.log`.** Backups at
+  `D:\goblinRaid\PortalVFX_Backup_20260805\`.
+  (Verification confirmed at review: the re-save ran 18:40:07 UTC in the process logging to
+  `MyProject_2.log`; the clean load ran 19:25:40 UTC in a *different* process that opened at
+  19:15:29 and compiled zero Niagara systems. Different process, so the reading is real and not
+  the systems merely being warm in memory.)
+  **STILL OWED - the fix reached 2 systems; the folder holds 25.** Within the `N_Portal4*` family
+  alone, `N_Portal4` (18.27s) and `N_Portal4Boss` (18.26s) carry the identical latent cost (only
+  `N_Portal4Book`, 0.57s, is cheap). They escaped because they are not placed in
+  `L_Tutorial_Island`, and ticket 001's "the other three total ~1.2s" was wrong - it is ~37s for
+  those two alone. **The runic-site / portal work on NEXT is precisely what will load them**, so
+  they must be re-saved before a portal is placed or that cost reappears as a "new" hitch nobody
+  connects to this. Ticket 003 is auditing the full 25.
+  Note `Content/*` is gitignored (`GoblinSiege 5.8/.gitignore:32`), so these assets have **no git
+  history** - the backup folder is the only way back.
+- 2026-08-05 **You cannot measure performance by driving PIE from `gs_run.ps1`.** With the editor
+  window in the background it throttles to ~3 FPS, and `PerformanceService.frame_timing()` counts
+  the idle as game-thread time - it reported a confident "GameThread bound, clear confidence"
+  verdict twice while `stat dumpframe` showed `Game thread tick wait time` 287-310ms of a 333ms
+  frame and real `World Tick Time` of only 9.2-9.8ms. Setting `Slate.bAllowThrottling 0` did not
+  fix the verdict. A real reading needs the window FOCUSED, via
+  `PerformanceService.start_trace` -> play -> `stop_trace` -> `analyse`.
+- 2026-08-05 `is_actor_tick_enabled()` is the tick census, NOT
+  `primary_actor_tick.start_with_tick_enabled` - the latter is true even when `can_ever_tick` is
+  false, which made 8,034 non-ticking `StaticMeshActor`s look like 8,034 ticking ones.
+  L_Tutorial_Island really has **19** ticking actors out of 9,076.
 - pre-seed (from build log / decision queue — do not rediscover): Live Coding cannot register new UCLASS/UPROPERTY — full editor-closed build required. In-editor Compile gives zero feedback; stranded-UBT bug = `Launching UnrealBuildTool...` with no `HotReload took` → kill orphaned dotnet. `.bat` written from a Linux sandbox needs CRLF. PowerShell over the MCP bridge: no `$`, quote every path, `--%` for native args. VibeUE `list_expressions` inlines nested material functions — connecting to an inlined node writes an illegal cross-package ref that blocks saving. `NS_GS_SmokeColumn` must use `M_Smoke_01`, never `M_Smoke_02` (broken). Content/GoblinSiege + DreamscapeSeries paths are untracked in git — agent-side edits there have no backup.
 - 2026-08-04 [live-002] generation of interact_framework failed: no JSON object in model output
 - 2026-08-04 [live-002] generation of interact_framework failed: Unterminated string starting at: line 20 column 12 (char 44113)

@@ -122,10 +122,16 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 001 | review | claude-perf | Kill the 50s Niagara recompile on L_Tutorial_Island load | Content/PortalVFXEnhanced/VFX/Systems/PortalsV2/N_Portal4_V2.uasset<br>Content/PortalVFXEnhanced/VFX/Systems/Elemental/N_Portal4Elemental.uasset | none |
-| 002 | review (waiting on: a frame capture taken with the editor window FOCUSED) | claude-perf | Diagnose game-thread bound frame (16.9ms, GPU idle) | DIAGNOSIS-ONLY-no-files-claimed-yet | none |
+| 003 | active | claude-perf | Re-save the remaining 18 PortalVFX Niagara systems (001 fixed only 2 of 20) | Content/PortalVFXEnhanced/VFX/Systems | none |
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+
+### Closed
+
+| # | status | agent | title |
+|---|--------|-------|-------|
+| 001 | done | claude-perf | Kill the 50s Niagara recompile on L_Tutorial_Island load |
+| 002 | done | claude-perf | Diagnose game-thread bound frame (16.9ms, GPU idle) |
 
 <!-- BOARD:END -->
 
