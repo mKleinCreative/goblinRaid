@@ -84,6 +84,25 @@ void AGSCharacterBase::ApplyMoveSpeed()
 		UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute());
 }
 
+bool AGSCharacterBase::IsHostileTo(const AActor* Other) const
+{
+	const AGSCharacterBase* OtherChar = Cast<AGSCharacterBase>(Other);
+	if (!OtherChar)
+	{
+		// Not a GS character - a destructible, a barrel, a prop. Nothing to be friendly with.
+		return true;
+	}
+
+	// An unset race on either side means "no opinion", and no opinion must not silently make a
+	// pawn immune. Only two DECLARED and EQUAL races count as friendly.
+	if (!RaceTag.IsValid() || !OtherChar->RaceTag.IsValid())
+	{
+		return true;
+	}
+
+	return RaceTag != OtherChar->RaceTag;
+}
+
 void AGSCharacterBase::SetBaseWalkSpeed(float NewBaseWalkSpeed)
 {
 	BaseWalkSpeed = NewBaseWalkSpeed;

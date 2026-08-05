@@ -83,6 +83,16 @@ namespace GSTags
 	 *  ruling was "for now" - if it becomes channelled, this is the tag and nothing else changes. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Extract);
 
+	// ------------------------------------------------------------------ races / factions
+	// Who counts as "us". Melee refuses to damage a target sharing the attacker's race, which is
+	// what stops a patrol of militia from cutting each other down the first time they crowd a
+	// doorway. Deliberately NOT applied to fire: the torch is the goblin equalizer (design doc §6)
+	// and burns everyone, including the goblin holding it.
+	//
+	// An unset race hits everything, so anything that has not opted in behaves exactly as before.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Race_Goblin);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Race_Human);
+
 	// ------------------------------------------------------------------ SetByCaller data keys
 	/** Magnitude key for UGSGE_MoveSpeedScalar. Same convention as the Damage.* tags, which double
 	 *  as SetByCaller keys on the damage spec: one effect class, many callers, no GE per source. */

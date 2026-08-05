@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "GSCharacterBase.generated.h"
 
 class UAbilitySystemComponent;
@@ -56,6 +57,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Movement")
 	float GetTurnRateRadPerSec() const { return TurnRateRadPerSec; }
 
+	/** Which race this character fights for. Melee refuses to damage a target sharing it.
+	 *
+	 *  Unset = hits everything, which is the pre-2026-08-04 behaviour and the safe default for
+	 *  anything that has not opted in. AGSEnemyCharacter adopts its race data's RaceTag, so the six
+	 *  human defenders inherit Race.Human from DA_Race_Human without touching a single Blueprint. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	FGameplayTag GetRaceTag() const { return RaceTag; }
+
+	/** False when both sides share a race (or either is unset - see GetRaceTag). Checked by the
+	 *  melee sweep; NOT by fire, which burns everyone on purpose. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool IsHostileTo(const AActor* Other) const;
+
 	/** Sets the unmodified walk speed and re-derives the effective one. For anything that owns a
 	 *  character's baseline rather than a temporary slow - archetype init, a weapon's identity.
 	 *  Temporary slows must NOT come through here; they are GameplayEffects on MoveSpeedMultiplier. */
@@ -88,6 +102,10 @@ protected:
 	/** Walk speed before any multiplier - captured from the movement component in BeginPlay, and
 	 *  replaced by SetBaseWalkSpeed when something authoritative (an archetype row) supplies one. */
 	float BaseWalkSpeed = 600.f;
+
+	/** See GetRaceTag. EditAnywhere so a one-off placed actor can override what its race data says. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Combat")
+	FGameplayTag RaceTag;
 
 public:
 	/** Broadcast on every Health change, damage or heal. Exists because the attribute delegate GAS

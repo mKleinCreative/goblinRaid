@@ -28,6 +28,9 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Carry, "Interact.Carry", "Pick up / put down a carryable object.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Extract, "Interact.Extract", "RESERVED - extraction auto-banks on a circle for now, not a channel.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Race_Goblin, "Race.Goblin", "Player, allied goblins and the horde - melee will not hit its own race.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Race_Human, "Race.Human", "Village defenders - militia, archers, knights, civilians.");
+
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_MoveSpeedScalar, "Data.MoveSpeedScalar", "SetByCaller key: multiplier fed to UGSGE_MoveSpeedScalar.");
 
 	// Burn-objective types (burn-types spec §5, added 2026-07-31 for Q-37). The win needs one burn

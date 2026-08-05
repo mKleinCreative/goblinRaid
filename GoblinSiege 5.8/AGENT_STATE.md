@@ -34,6 +34,57 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
   defender chases the player at HU_Speed 1210.4** (DoD #2 needed >10), and melee fires autonomously.
   Archetype `MoveSpeed=0` now means "no opinion", so each BP keeps its height-derived speed.
 
+- 2026-08-04 **Ranged combat framework — BUILDS CLEAN, UNTESTED.** Interactive session with Michael
+  (branch `interact-framework`), plan approved before implementation. New: `Combat/GSAimComponent`
+  (aim state + trajectory prediction + the arc ribbon + the aim-rotation RPC),
+  `Weapons/GSArrowProjectile`, `Weapons/Abilities/GSGA_BowShot`. Patched:
+  `Characters/GSPlayerCharacter`, `Weapons/Abilities/GSGA_TorchToss`, `Combat/GSDebugCommands`.
+  Editor-closed Build.bat, zero errors, the same two pre-existing C4996s (Block, Interact) and no new
+  ones. Built twice (89.63s, then 62.83s): the `RaceTag` / friendly-fire pass landed on
+  `GSCharacterBase`, `GSEnemyCharacter`, `GSPlayerCharacter`, `GSGA_SwordLight` and `GSGameplayTags`
+  four minutes after the first link, so the first result described a tree that no longer existed. The
+  second build is the one that counts — **the two passes coexist and compile clean together.** Worth
+  knowing for next time: two agents were editing `GSPlayerCharacter.cpp` in the same window, and the
+  only reason it was caught was comparing source mtimes against the DLL.
+  - **The muzzle has one definition now.** `GSGA_TorchToss::ThrowTorch` and the arc preview both call
+    `UGSAimComponent::GetMuzzleTransform()`. `SpawnForwardOffset` and the `+50` hand-height literal
+    are deleted; they previously existed in two files kept in step by a comment.
+  - **The arc ships.** `PredictProjectilePath` + `DrawDebug*` (compiled out of a packaged build)
+    replaced by a pooled `USplineMeshComponent` ribbon and a `UDecalComponent` landing marker — a
+    decal so the marker lies on a slope instead of hovering over it. Built only on the locally
+    controlled pawn, never replicated. Old debug draw survives behind `GS.Aim.Debug` (default 0).
+  - **Bow is on the attack button**, reinterpreted by `IsInRangedMode()` — press to draw, release to
+    loose, heavy-charge timer suppressed in ranged mode. Arrow is a real projectile (6000uu/s, 0.2
+    gravity) so it can be dodged, so one arc system serves both verbs, and so AI archers get it free
+    (`BP_ErikaArcher` wants exactly this). Damage via the existing `GSGA_SwordLight` path:
+    `UGSGE_WeaponDamage` + `Damage.Bow` as both dynamic asset tag and SetByCaller key.
+  - **Aim camera** blends to the left shoulder over 0.2s — arm 450→250, SocketOffset +55→−55,
+    FOV 90→70 — on an explicit eased alpha, not `FInterpTo` (asymptotic, so the Tick early-out could
+    never fire). Hip values captured from the components in `BeginPlay`, not duplicated as constants.
+    Also deleted the dead `CameraBoom->SetRelativeRotation(-10 pitch)`: `bUsePawnControlRotation`
+    overwrites it every tick, so the "low pitch by default" its comment promised was never in effect.
+  - **Fixed a live bug**: the torch aim never called `UpdateRotationMode()`, so the arc was drawn
+    along the control rotation while the goblin faced his movement direction.
+  - **Ruling made during implementation**: facing and camera are now two predicates, not one.
+    `WantsAimFacing()` keeps the ranged-mode term (unchanged §16 behaviour); `WantsAimCamera()` drops
+    it, because pinning the camera at 250/70° for as long as the bow is equipped means the player
+    never sees the hamlet again. Zoom is something you do while aiming a shot, not a property of what
+    you are holding.
+  - **Multiplayer**: ranged abilities no longer trust the server's `GetControlRotation()` for a
+    remote pawn — `APawn::RemoteViewPitch` is byte-quantised (~1.4°), which is metres of drift across
+    a 3s torch lob and would make the preview lie. `UGSAimComponent::Server_SetAimRotation` sends the
+    exact rotation, pushed BEFORE activation; falls back to control rotation for standalone/AI.
+    `EGSAimMode` replicates for remote aim poses; the arc never does.
+  - **Still untested — nothing has run.** Blocked on editor-side work: author `M_GS_AimArc`,
+    `M_GS_AimLanding` and an arc segment mesh (`/Engine/BasicShapes/Cylinder` is fine to start) and
+    assign all three plus `BowShotAbilityClass` on `BP_GSPlayerCharacter`. Without the materials the
+    aim works and warns once but draws nothing; without the ability class ranged mode falls through
+    to melee rather than dead-keying the attack button. Then PIE on `L_CombatArena`: torch lands on
+    its decal (test on a slope), body faces the aim while strafing, camera returns on release, bow
+    hits `BP_GS_TargetDummy` — verify with `GS.Combat.LogDamage 1`, NOT `GS.Combat.Debug`.
+  - Also added the two toggles that were silently missing from the `GS.PlayerView` table
+    (`GS.Combat.LogHitReact`, `GS.Interact.Debug`) alongside the new `GS.Aim.Debug`.
+
 ## DECISIONS
 
 - Canonical class name is SCOUT (amends decision 36); sword ⇄ bow.
@@ -89,15 +140,22 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
   blocked while carrying so the common case is safe, and `ApplyMoveSpeed` self-heals on the next
   attribute change — but a slow starting or ending MID-SWING makes the swing's restore write a stale
   speed that persists until the next change. Fix is converting it to the GE like Block.
-- 2026-08-04 **Defenders kill each other.** `[GS.Damage] BP_PeasantMan_C_0 -> BP_CastleGuard01_C_0
-  ... 25.0 (HP 30/30)` - the sword sweep has no friend/foe test, and with Militia on 30 HP two swings
-  is a corpse. This is why placed defenders vanish from the level mid-PIE. Needs a team check in
-  `UGSDamageExecCalculation` (or in the sweep) before defenders can be placed in groups.
-- 2026-08-04 **`BP_GSPlayerCharacter`'s collision is broken for AI.** Its `CollisionCylinder` is
-  `NO_COLLISION` and its colliding bounds are ~5385x4748 units, so `MoveToActor` targeting the player
-  returns `AlreadyAtGoal` for any AI within ~50m and the AI never takes a step. Worked around by
-  chasing a `TargetLocation` vector instead of the actor; the player BP itself is still wrong and
-  will break anything else that navigates to the player as an actor.
+- 2026-08-04 ~~**Defenders kill each other.**~~ **FIXED.** The sword sweep had no friend/foe test and
+  Militia on 30 HP died in two swings, which is why placed defenders vanished mid-PIE. There is a
+  race concept now: `Race.Goblin` / `Race.Human`, `AGSCharacterBase::RaceTag` +
+  `IsHostileTo()`, checked by `UGSGA_SwordLight::DoSweep`. Defenders inherit `Race.Human` from
+  `DA_Race_Human`'s RaceTag via `InitializeFromArchetype`, so it is one field on one asset rather
+  than six Blueprints. Player and horde goblins are `Race.Goblin` in C++. **An unset race still hits
+  everything** - opt-in, so nothing silently became invulnerable. Fire deliberately does NOT check
+  race: the torch is the goblin equalizer and burns its owner too.
+- 2026-08-04 ~~`BP_GSPlayerCharacter`'s collision is broken for AI.~~ **CORRECTED, and the real
+  cause is worse.** The player Blueprint is fine - a freshly spawned one has a QUERY_AND_PHYSICS
+  capsule and bounds of (75,58,120). The `NO_COLLISION` capsule and ~5385x4748 bounds were measured
+  on a pawn that was **dead**: `AGSCharacterBase::HandleDeath` disables the capsule and ragdolls the
+  mesh, and the ragdoll's bounds explode. So `MoveToActor` returns `AlreadyAtGoal` for anything
+  within ~50m *of a corpse*, and defenders were mobbing a body forever. FIXED: the acquire service
+  ignores targets holding State.Dead. Measuring a live actor and blaming its Blueprint was the
+  mistake - check `bIsDead` before trusting any bounds reading off a character.
 - 2026-08-04 `BT_Militia` was authored by setting `RootNode` from Python; it has **no editor
   EdGraph**. Opening it in the Behaviour Tree editor and saving may regenerate an empty graph and
   wipe the tree. Rebuild it by hand there if you want to edit it visually.

@@ -94,6 +94,13 @@ void AGSEnemyCharacter::InitializeFromArchetype(UGSRaceDataAsset* InRaceData, FN
 	RaceData = InRaceData;
 	ArchetypeRowName = InArchetypeRowName;
 
+	// Adopt the race so melee knows who not to hit. Doing it here rather than per-Blueprint means
+	// one field on the data asset covers every defender that references it.
+	if (RaceData->RaceTag.IsValid())
+	{
+		RaceTag = RaceData->RaceTag;
+	}
+
 	if (const FGSArchetypeDefinition* Archetype = RaceData->FindArchetype(ArchetypeRowName))
 	{
 		AttributeSetBase->InitHealth(Archetype->Health);

@@ -31,10 +31,12 @@ protected:
 	/** The same target as a plain location, written alongside TargetActor.
 	 *
 	 *  Not redundant: MoveTo against an ACTOR goal resolves "have I arrived" against that actor's
-	 *  collision extent, and BP_GSPlayerCharacter's colliding bounds are ~5385x4748 units (its
-	 *  CollisionCylinder is NO_COLLISION and something attached is enormous). Every defender inside
-	 *  ~50m therefore gets PathFollowingRequestResult::AlreadyAtGoal and never takes a step.
-	 *  Chasing the location sidesteps that entirely, and keeps working if the bounds are ever fixed. */
+	 *  collision extent, and a RAGDOLLED character's extent is enormous - a dead player measured
+	 *  ~5385x4748 units, against ~75x58 alive - so every defender within ~50m of a corpse gets
+	 *  PathFollowingRequestResult::AlreadyAtGoal and never takes a step. (A live player is fine;
+	 *  the original diagnosis blamed the player Blueprint and was wrong.) The dead-target check in
+	 *  TickNode is the real cure, and chasing a location rather than an actor keeps the tree honest
+	 *  regardless of what any goal actor's bounds happen to be doing. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege")
 	FBlackboardKeySelector TargetLocationKey;
 

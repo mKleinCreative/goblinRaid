@@ -1,7 +1,10 @@
 #include "AI/Tasks/BTService_AcquireTarget.h"
 
 #include "AIController.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Combat/GSGameplayTags.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -35,7 +38,20 @@ void UBTService_AcquireTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
 	}
 
 	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
-	const bool bInRange = Player
+
+	// A corpse is not a target. Without this the whole patrol stands over the body swinging, which
+	// also parks them on the PlayerStart and blocks the respawn that would end the situation.
+	bool bAlive = Player != nullptr;
+	if (Player)
+	{
+		if (const UAbilitySystemComponent* TargetASC =
+				UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Player))
+		{
+			bAlive = !TargetASC->HasMatchingGameplayTag(GSTags::State_Dead);
+		}
+	}
+
+	const bool bInRange = bAlive
 		&& FVector::Dist(Player->GetActorLocation(), Self->GetActorLocation()) <= AcquireRadius;
 
 	// Clearing rather than leaving a stale target is what lets the tree's Selector fall through to

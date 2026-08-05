@@ -30,6 +30,16 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	CarryComponent = CreateDefaultSubobject<UGSCarryComponent>(TEXT("CarryComponent"));
 	AimComponent = CreateDefaultSubobject<UGSAimComponent>(TEXT("AimComponent"));
 
+	// The player is a goblin, so allied goblins and the horde cannot cut him down by standing too
+	// close. Set here rather than on the Blueprint for the same reason the ability classes are.
+	RaceTag = GSTags::Race_Goblin;
+
+	// Respawn must not be refusable. The default handling aborts the spawn on any overlap, and the
+	// thing most likely to be overlapping a PlayerStart is the pack of defenders that just killed
+	// you standing on it - observed 2026-08-04: "SpawnActor failed because of collision at the spawn
+	// location for [BP_GSPlayerCharacter_C]", after which the session had no player pawn at all.
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
 	// Defaulted in C++ so a character Blueprint swings out of the box. An unset ability class is a
 	// silent failure - you press attack, nothing happens, and nothing tells you why.
 	SwordLightAbilityClass = UGSGA_SwordLight::StaticClass();

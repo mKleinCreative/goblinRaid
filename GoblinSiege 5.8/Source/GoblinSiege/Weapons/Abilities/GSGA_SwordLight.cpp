@@ -263,6 +263,17 @@ void UGSGA_SwordLight::DoSweep()
 			}
 		}
 
+		// Same race, no hit. Without this a patrol of militia crowding a doorway cuts itself down -
+		// two swings kills at 30 HP, and placed defenders were quietly deleting each other before
+		// the player ever arrived (observed 2026-08-04 in L_Tutorial_Island).
+		if (const AGSCharacterBase* SelfChar = Cast<AGSCharacterBase>(Avatar))
+		{
+			if (!SelfChar->IsHostileTo(Target))
+			{
+				continue;
+			}
+		}
+
 		UAbilitySystemComponent* TargetASC =
 			UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 		if (!TargetASC || !SourceASC)
