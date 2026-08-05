@@ -351,6 +351,26 @@ void AGSCharacterBase::HandleDeath()
 			MeshComp->WakeAllRigidBodies();
 			MeshComp->bBlendPhysics = true;
 
+			// A simulating skeletal mesh normally derives its bounds from where the physics bodies
+			// actually are. That is correct right up until the physics asset does not fit the mesh -
+			// GOB_Scout_v3 currently points at /Game/_Import/SK_GoblinScout_Rigged_v2_PhysicsAsset,
+			// authored for a different body - and then the bodies start interpenetrating, depenetration
+			// throws them, and the corpse's bounds measured 1881x1252x609 centred 1850uu away from the
+			// pawn (2026-08-04).
+			//
+			// That is not just ugly. Bounds are what MoveToActor resolves "have I arrived" against, so
+			// every AI within ~50m of a corpse got AlreadyAtGoal, and they are what SpawnActor's
+			// collision test sees, so a body lying on the PlayerStart refused the respawn. Fixed
+			// bounds keep a broken ragdoll's blast radius to itself. The physics asset is still the
+			// real fix and the corpse may cull early if it slides a long way; a mis-culled corpse is a
+			// far cheaper bug than an unspawnable player.
+			MeshComp->bComponentUseFixedSkelBounds = true;
+
+			// Nothing should inherit the living pawn's velocity into the ragdoll - that is a separate
+			// source of first-frame launch, and it is free to rule out.
+			MeshComp->SetAllPhysicsLinearVelocity(FVector::ZeroVector);
+			MeshComp->SetAllPhysicsAngularVelocityInRadians(FVector::ZeroVector);
+
 			if (DeathImpulse > 0.f)
 			{
 				MeshComp->AddImpulse(GetActorForwardVector() * -DeathImpulse, NAME_None, true);

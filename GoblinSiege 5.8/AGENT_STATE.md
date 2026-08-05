@@ -148,6 +148,18 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
   than six Blueprints. Player and horde goblins are `Race.Goblin` in C++. **An unset race still hits
   everything** - opt-in, so nothing silently became invulnerable. Fire deliberately does NOT check
   race: the torch is the goblin equalizer and burns its owner too.
+- 2026-08-04 **`GOB_Scout_v3` is wearing another mesh's physics asset — CONTENT FIX STILL OWED.**
+  `GOB_Scout_v3.PhysicsAsset` = `/Game/_Import/SK_GoblinScout_Rigged_v2_PhysicsAsset`, authored for a
+  different body and living in import staging. Bodies that do not fit start interpenetrating and
+  depenetration throws them, which is why a corpse measured 1881x1252x609 of bounds centred 1850uu
+  away. Mitigated in C++ (`bComponentUseFixedSkelBounds` on death, verified: extent now ~(120,120,130),
+  centre within ~100uu) but the ragdoll itself is still simulating on wrong-shaped bodies and will
+  look wrong. **Real fix, needs a human in the Physics Asset editor:** generate a physics asset from
+  `GOB_Scout_v3` itself (it rides `GOB_Scout_v2_Skeleton`, so `GOB_Scout_v3_240u_PhysicsAsset` is NOT
+  a drop-in - that one targets `GOB_Scout_v3_240u_Skeleton`), save it beside the mesh in
+  `/Game/Characters/ScoutV3/`, and stop referencing anything under `/Game/_Import/`. Not scriptable:
+  `unreal.PhysicsAssetFactory` exposes no target-mesh property and physics asset bodies are unreadable
+  from Python.
 - 2026-08-04 ~~`BP_GSPlayerCharacter`'s collision is broken for AI.~~ **CORRECTED, and the real
   cause is worse.** The player Blueprint is fine - a freshly spawned one has a QUERY_AND_PHYSICS
   capsule and bounds of (75,58,120). The `NO_COLLISION` capsule and ~5385x4748 bounds were measured
