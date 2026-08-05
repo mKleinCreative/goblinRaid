@@ -191,34 +191,69 @@ def market():
         say("  spread_radius -> %.0f on %d components (default 450 could not bridge any gap)"
             % (spread, len(comps)))
 
+    # THE MARKET IS ONE SQUARE, NOT EVERY MARKET-ISH PROP ON THE MAP.
+    #
+    # Getting this wrong makes the objective mathematically impossible, silently. The market
+    # completes at 75% of the stalls it ADOPTED, and fire only travels between stalls within
+    # SpreadRadius of each other - so adopting scattered props inflates the denominator with stalls
+    # the fire can never reach. On this map the 67 stall actors form SEVENTEEN disconnected clusters:
+    # the largest is 24 stalls, and even a 4000 uu spread links at most 30 of them. Adopting all 64
+    # meant needing 48 to burn when at most ~30 were reachable. Nothing reports that; the market
+    # simply sits below threshold forever.
+    #
+    # So: find the connected clusters at the spread distance, take the largest, and make THAT the
+    # market. 75% of one connected cluster is reachable by definition.
+    link = spread if nn else 600.0
+    pts = [(a.get_actor_location().x, a.get_actor_location().y, a.get_actor_location().z)
+           for a in stalls]
+
+    seen, comps = set(), []
+    for i in range(len(pts)):
+        if i in seen:
+            continue
+        stack, comp = [i], []
+        seen.add(i)
+        while stack:
+            k = stack.pop()
+            comp.append(k)
+            for j in range(len(pts)):
+                if j not in seen and math.dist(pts[k], pts[j]) <= link:
+                    seen.add(j)
+                    stack.append(j)
+        comps.append(comp)
+    comps.sort(key=len, reverse=True)
+
+    big = comps[0]
+    cx = sum(pts[i][0] for i in big) / len(big)
+    cy = sum(pts[i][1] for i in big) / len(big)
+    cz = sum(pts[i][2] for i in big) / len(big)
+    spanr = max(math.hypot(pts[i][0] - cx, pts[i][1] - cy) for i in big)
+    say("  clusters at link=%.0f: %d total, sizes %s" % (link, len(comps), [len(c) for c in comps[:5]]))
+
     existing = [a for a in actors() if isinstance(a, unreal.GSMarketObjective)]
     if existing:
         mk = existing[0]
         say("  SKIP create: a market objective already exists")
     else:
-        sx = sum(a.get_actor_location().x for a in stalls) / float(len(stalls))
-        sy = sum(a.get_actor_location().y for a in stalls) / float(len(stalls))
-        sz = sum(a.get_actor_location().z for a in stalls) / float(len(stalls))
         mk = eas.spawn_actor_from_class(unreal.GSMarketObjective,
-                                        unreal.Vector(sx, sy, sz), unreal.Rotator(0, 0, 0))
+                                        unreal.Vector(cx, cy, cz), unreal.Rotator(0, 0, 0))
         mk.set_actor_label("GS_Market")
         lib.set_objective_identity(mk, "Objective.Burn.Market", "The Market")
-        say("  CREATED GS_Market at (%.0f, %.0f, %.0f)" % (sx, sy, sz))
+        say("  CREATED GS_Market")
 
-    # AutoAdoptRadius defaults to 3000, which on this map reaches only 9 of 67 stall actors - the
-    # market square is far wider than the default assumes, and the shortfall is invisible except as
-    # one log line. Size it from the actual spread instead of hardcoding.
-    #
-    # p90 rather than max: one stray market table 21,000 uu away should not stretch the cluster
-    # across half the hamlet and drag unrelated props into the objective.
-    c = mk.get_actor_location()
-    dists = sorted(math.hypot(a.get_actor_location().x - c.x, a.get_actor_location().y - c.y)
-                   for a in stalls)
-    radius = min(12000.0, max(4000.0, dists[int(len(dists) * 0.9)] * 1.15))
+    # Centre it ON the cluster every run, not on the centroid of all stalls. The centroid of
+    # seventeen scattered clusters lands in empty ground between them, which is why the first stall
+    # GS.Burn.IgniteAll lit was an isolated straggler 1307 uu from anything: it burned out alone and
+    # the market never moved off 1/64.
+    mk.set_actor_location(unreal.Vector(cx, cy, cz), False, True)
+
+    radius = spanr * 1.25
     mk.set_editor_property("auto_adopt_radius", radius)
-    say("  auto_adopt_radius -> %.0f (reaches %d of %d stalls; default 3000 reached %d)"
-        % (radius, sum(1 for d in dists if d <= radius), len(dists),
-           sum(1 for d in dists if d <= 3000.0)))
+    reach = sum(1 for p in pts if math.hypot(p[0] - cx, p[1] - cy) <= radius)
+    say("  centred on the largest cluster (%d stalls, span %.0f) at (%.0f, %.0f, %.0f)"
+        % (len(big), spanr, cx, cy, cz))
+    say("  auto_adopt_radius -> %.0f, adopting ~%d stalls; needs 75%% = ~%d to burn"
+        % (radius, reach, int(reach * 0.75 + 0.5)))
 
 
 # ------------------------------------------------------------------ 5. the runic site

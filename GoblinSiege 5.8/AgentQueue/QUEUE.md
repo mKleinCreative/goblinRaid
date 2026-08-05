@@ -136,9 +136,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 007 | queued | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) | GoblinSiege 5.8/.gitignore | none |
+| 007 | blocked (waiting on: Michael to run the push - 'git push -u origin interact-framework' was denied by the Claude Code permission classifier. Commit 8216b05 is made locally; only the push is outstanding.) | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) | GoblinSiege 5.8/.gitignore | none |
+| 008 | active | claude-perf | PIE-verify defender crowding, tune stand-off dials if they do not hold | Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.h<br>Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.cpp<br>Content/AI/BT_Militia.uasset | required |
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 

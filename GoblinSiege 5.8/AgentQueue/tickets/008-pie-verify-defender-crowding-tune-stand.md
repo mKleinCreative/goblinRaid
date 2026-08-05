@@ -1,18 +1,20 @@
 ﻿---
-id: 007
-title: Commit and push the session's work to origin (repo-wide git operation)
-agent: claude-ranged
-status: blocked
-claimed: 2026-08-05T20:35Z
-build: none
-waiting_on: Michael to run the push - 'git push -u origin interact-framework' was denied by the Claude Code permission classifier. Commit 8216b05 is made locally; only the push is outstanding.
+id: 008
+title: PIE-verify defender crowding, tune stand-off dials if they do not hold
+agent: claude-perf
+status: active
+claimed: 2026-08-05T20:41Z
+build: required
+waiting_on:
 files: 
-  - GoblinSiege 5.8/.gitignore
+  - Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.h
+  - Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.cpp
+  - Content/AI/BT_Militia.uasset
 ---
 
 ## Goal
 
-Commit and push the session's work to origin (repo-wide git operation)
+PIE-verify defender crowding, tune stand-off dials if they do not hold
 
 ## Generate
 
