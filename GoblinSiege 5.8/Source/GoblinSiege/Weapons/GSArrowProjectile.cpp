@@ -48,6 +48,22 @@ void AGSArrowProjectile::BeginPlay()
 	Super::BeginPlay();
 	CollisionSphere->OnComponentHit.AddDynamic(this, &AGSArrowProjectile::OnProjectileHit);
 
+	// Never collide with the archer who loosed it - see AGSTorchProjectile::BeginPlay for the
+	// full argument. The arrow had a milder version of the same bug: the damage block already
+	// skipped OtherActor == Shooter, so it never shot its owner, but it still latched bHasHit,
+	// stopped dead and attached. A self-hit therefore produced an arrow that harmlessly welded
+	// itself to the goblin - which looks like a graphical glitch rather than a collision bug,
+	// and is correspondingly harder to trace.
+	AActor* Shooter = GetInstigator();
+	if (!Shooter)
+	{
+		Shooter = GetOwner();
+	}
+	if (Shooter)
+	{
+		CollisionSphere->IgnoreActorWhenMoving(Shooter, true);
+	}
+
 	SetLifeSpan(MaxFlightSeconds);
 
 	// Resolved here rather than in the constructor: the constructor runs on the CDO during module
@@ -77,6 +93,14 @@ void AGSArrowProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 	{
 		return;
 	}
+
+	// Before bHasHit is latched, for the same reason as the torch: an arrow that brushed its
+	// own archer must carry on and still be able to hit the thing it was aimed at.
+	if (OtherActor && (OtherActor == GetInstigator() || OtherActor == GetOwner()))
+	{
+		return;
+	}
+
 	bHasHit = true;
 
 	// Stop dead the moment it lands, on every machine. Doing this outside the authority check means a

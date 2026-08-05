@@ -607,9 +607,31 @@ void AGSPlayerCharacter::Input_ThrowTorch(const FInputActionValue& Value)
 
 void AGSPlayerCharacter::Input_SwapWeaponMode(const FInputActionValue& Value)
 {
-	if (WeaponComponent)
+	if (!WeaponComponent)
 	{
-		WeaponComponent->ToggleRangedMode();
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Weapon swap pressed on %s but there is no WeaponComponent."),
+			*GetName());
+		return;
+	}
+
+	// ToggleRangedMode reports its own three refusal reasons; this only adds the one gate it
+	// cannot see, because the ability class lives on the character rather than the weapon.
+	WeaponComponent->ToggleRangedMode();
+
+	// The nastiest silent failure in the whole ranged path, and it is reported HERE - the moment
+	// the player asked for the bow - rather than on the attack press, because on the attack press
+	// it would fire once per swing forever. With no bow ability assigned, IsRangedAttackMode()
+	// returns false and Input_AttackPressed falls straight through to the MELEE branch: you stand
+	// there holding a bow, swinging a sword, and the symptom reads as "the swap did not work"
+	// rather than as "an ability class is unset".
+	if (WeaponComponent->IsInRangedMode() && !BowShotAbilityClass)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] %s is now in RANGED mode but BowShotAbilityClass is unset - the "
+				 "attack button will swing the sword instead of drawing the bow. Point it at "
+				 "UGSGA_BowShot (or a Blueprint child) on the character Blueprint."),
+			*GetName());
 	}
 }
 

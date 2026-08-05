@@ -3,6 +3,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/GSEnemyCharacter.h"
+#include "Combat/GSRaceDataAsset.h"
+#include "Engine/World.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UBTTask_MeleeAttack::UBTTask_MeleeAttack()
@@ -14,12 +16,22 @@ UBTTask_MeleeAttack::UBTTask_MeleeAttack()
 	TargetKey.SelectedKeyName = TEXT("TargetActor");
 }
 
-EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* /*NodeMemory*/)
+EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	AAIController* Controller = OwnerComp.GetAIOwner();
 	if (!BB || !Controller)
 	{
+		return EBTNodeResult::Failed;
+	}
+
+	FGSMeleeAttackMemory* Memory = CastInstanceNodeMemory<FGSMeleeAttackMemory>(NodeMemory);
+	const UWorld* World = OwnerComp.GetWorld();
+	const float Now = World ? World->GetTimeSeconds() : 0.f;
+	if (Memory && Now < Memory->NextAllowedAttackTime)
+	{
+		// Still on cooldown. Failing lets the Selector fall through to the chase branch, which keeps
+		// the defender repositioning between swings instead of standing frozen mid-cooldown.
 		return EBTNodeResult::Failed;
 	}
 
@@ -46,5 +58,29 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 	// already running, and UGSGA_SwordLight treats that refusal as its combo buffer. Reporting
 	// Failed lets the Selector fall through to the chase branch instead of the tree stalling on a
 	// task waiting for an ability that will never start.
-	return Self->TryLightAttack() ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
+	if (!Self->TryLightAttack())
+	{
+		return EBTNodeResult::Failed;
+	}
+
+	// Pace the NEXT swing, and only after one actually started - a refused activation must not
+	// silently start a cooldown. The archetype owns the rate where it has an opinion; the jitter is
+	// what breaks a patrol that arrived together out of lockstep.
+	if (Memory)
+	{
+		float Cooldown = DefaultAttackCooldownSeconds;
+		if (const UGSRaceDataAsset* Race = Self->GetRaceData())
+		{
+			if (const FGSArchetypeDefinition* Archetype = Race->FindArchetype(Self->GetArchetypeRowName()))
+			{
+				if (Archetype->AttackCooldownSeconds > 0.f)
+				{
+					Cooldown = Archetype->AttackCooldownSeconds;
+				}
+			}
+		}
+		Memory->NextAllowedAttackTime = Now + Cooldown + FMath::FRandRange(0.f, AttackCooldownJitter);
+	}
+
+	return EBTNodeResult::Succeeded;
 }

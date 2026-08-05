@@ -178,8 +178,21 @@ FTransform UGSAimComponent::GetMuzzleTransform() const
 	}
 
 	const FRotator AimRotation = GetAimRotation();
+
+	// HORIZONTAL-ONLY forward offset (fixed 2026-08-05). This used to be
+	// AimRotation.Vector() * MuzzleForwardOffset, which is the full aim direction -
+	// and the full aim direction has its horizontal component collapse as you pitch.
+	// Aiming 70 degrees down put the muzzle 27uu forward and 25uu BELOW the actor
+	// origin, which is inside the capsule: the torch spawned inside the goblin, hit
+	// him on its first frame, and stuck to him. Aiming down at the ground to set it
+	// alight is the most natural torch throw in the game, so this was not an edge case.
+	//
+	// The hand does not move to a different place depending on where you throw, so
+	// the muzzle should not either. Position comes from yaw only; the aim's PITCH
+	// lives in the rotation below, which is what the velocity is taken from.
+	const FVector HorizontalForward = FRotator(0.f, AimRotation.Yaw, 0.f).Vector();
 	const FVector Location = Owner->GetActorLocation()
-		+ AimRotation.Vector() * MuzzleForwardOffset
+		+ HorizontalForward * MuzzleForwardOffset
 		+ FVector(0.f, 0.f, MuzzleHeightOffset);
 
 	return FTransform(AimRotation, Location);

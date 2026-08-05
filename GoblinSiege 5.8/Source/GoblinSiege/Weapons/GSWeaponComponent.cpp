@@ -148,8 +148,35 @@ void UGSWeaponComponent::GrantAbilitiesFromWeapon()
 
 void UGSWeaponComponent::ToggleRangedMode()
 {
-	if (bSwapLocked || !EquippedWeapon || !EquippedWeapon->bHasRangedMode)
+	// Split out of one silent early-out on 2026-08-05. Three completely different causes used to
+	// share this line and produce the identical symptom - "I pressed swap and nothing happened" -
+	// with nothing in the log to tell them apart. Two of the three are misconfigurations a person
+	// has to go and fix, so they say so and name the field.
+	if (bSwapLocked)
 	{
+		// Not a misconfiguration: the anti-cancel lock doing exactly its job on a double tap.
+		// Log, not Warning - this one is supposed to happen.
+		UE_LOG(LogTemp, Log,
+			TEXT("[GoblinSiege] Weapon swap ignored on %s - the %.2fs anti-cancel lock is still up. "
+				 "Normal on a fast double tap."),
+			*GetNameSafe(GetOwner()), SwapInputLockSeconds);
+		return;
+	}
+	if (!EquippedWeapon)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Weapon swap refused on %s - no weapon equipped. Set EquippedWeapon "
+				 "on the character Blueprint's WeaponComponent."),
+			*GetNameSafe(GetOwner()));
+		return;
+	}
+	if (!EquippedWeapon->bHasRangedMode)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Weapon swap refused on %s - '%s' has bHasRangedMode unticked, so it "
+				 "has no ranged half to swap to. Tick it under GoblinSiege|Weapon|RangedMode on the "
+				 "data asset; it is data, so no recompile is needed."),
+			*GetNameSafe(GetOwner()), *GetNameSafe(EquippedWeapon));
 		return;
 	}
 
@@ -162,6 +189,10 @@ void UGSWeaponComponent::ToggleRangedMode()
 	RefreshWeaponMeshPlacement();
 
 	OnWeaponModeChanged.Broadcast(bRangedMode);
+
+	UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] %s swapped to %s mode."),
+		*GetNameSafe(GetOwner()),
+		bRangedMode ? TEXT("RANGED (bow)") : TEXT("MELEE (sword)"));
 
 	bSwapLocked = true;
 	if (UWorld* World = GetWorld())

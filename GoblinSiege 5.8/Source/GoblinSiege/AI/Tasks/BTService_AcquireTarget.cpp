@@ -58,12 +58,37 @@ void UBTService_AcquireTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
 	// its idle branch - a decorator testing "is set" cannot tell a stale value from a live one.
 	BB->SetValueAsObject(TargetKey.SelectedKeyName, bInRange ? Player : nullptr);
 
-	if (bInRange)
-	{
-		BB->SetValueAsVector(TargetLocationKey.SelectedKeyName, Player->GetActorLocation());
-	}
-	else
+	if (!bInRange)
 	{
 		BB->ClearValue(TargetLocationKey.SelectedKeyName);
+		return;
 	}
+
+	// Walk to a slot on the ring around the target, not to the target itself. Approaching from the
+	// bearing this defender is ALREADY on means nobody crosses the pack to reach their slot, and
+	// three defenders coming from three sides naturally end up spread around it.
+	const FVector TargetLoc = Player->GetActorLocation();
+	FVector Bearing = Self->GetActorLocation() - TargetLoc;
+	Bearing.Z = 0.f;
+
+	if (Bearing.IsNearlyZero())
+	{
+		// Standing exactly on the target - any direction beats a zero vector.
+		Bearing = -Self->GetActorForwardVector();
+		Bearing.Z = 0.f;
+	}
+	Bearing = Bearing.GetSafeNormal();
+
+	// Same bearing, same slot, same pile. A stable per-pawn offset separates them; FName hashing
+	// keeps it deterministic, so a defender does not wander around the ring every tick.
+	if (SlotAngleJitterDegrees > 0.f)
+	{
+		const uint32 Hash = GetTypeHash(Self->GetFName());
+		const float Frac = static_cast<float>(Hash % 1024) / 1024.f;   // 0..1, stable per pawn
+		Bearing = Bearing.RotateAngleAxis((Frac * 2.f - 1.f) * SlotAngleJitterDegrees,
+			FVector::UpVector);
+	}
+
+	BB->SetValueAsVector(TargetLocationKey.SelectedKeyName,
+		TargetLoc + Bearing * StandoffRadius);
 }

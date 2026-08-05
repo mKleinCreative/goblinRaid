@@ -136,7 +136,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 006 | blocked (waiting on: build gate - #004 and #005 (claude-ranged) are ahead and both require a build) | claude-perf | Defender crowding: stand-off slots so they stop converging on one point | Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.h<br>Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.cpp<br>Source/GoblinSiege/Characters/GSEnemyCharacter.cpp<br>Content/AI/BT_Militia.uasset | required |
+| 007 | queued | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) | GoblinSiege 5.8/.gitignore | none |
 
 **BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
@@ -149,6 +149,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 003 | done | claude-perf | Re-save the remaining 18 PortalVFX Niagara systems (001 fixed only 2 of 20) |
 | 004 | done | claude-ranged | Ranged combat: aim framework, bow, torch collision fixes, swap diagnostics |
 | 005 | done | claude-ranged | Supplement to #004 - files missed in that claim (same body of work) |
+| 006 | done | claude-perf | Defender crowding: stand-off slots so they stop converging on one point |
 
 <!-- BOARD:END -->
 

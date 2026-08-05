@@ -44,4 +44,22 @@ protected:
 	 *  defender jogging at a player on the far side of the village. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege")
 	float AcquireRadius = 3000.f;
+
+	/** How far from the target each defender actually walks TO.
+	 *
+	 *  This is the crowding fix. Writing the target's own location made every defender path to one
+	 *  identical point, so three of them arrived on the same spot and shoved - capsules block, so
+	 *  they never interpenetrate, but they pile into a single knot and read as one merged blob.
+	 *  Each now aims at a point this far out on ITS OWN side of the target, which spreads them
+	 *  around the ring without any of them needing to know the others exist.
+	 *
+	 *  Keep it under BTTask_MeleeAttack's AttackRange (250) or they stand off and never swing. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0"))
+	float StandoffRadius = 170.f;
+
+	/** Two defenders approaching from the same bearing would still pick the same slot. A stable
+	 *  per-pawn angular offset breaks that tie without a shared slot registry - derived from the
+	 *  pawn's name, so it is deterministic and does not jitter frame to frame. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float SlotAngleJitterDegrees = 30.f;
 };

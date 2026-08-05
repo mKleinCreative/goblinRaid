@@ -15,6 +15,20 @@ AGSEnemyCharacter::AGSEnemyCharacter()
 	// enemy class simply never got the same two lines.
 	AIControllerClass = AGSAIControllerBase::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// Capsules already block each other, so defenders never literally interpenetrate - but without
+	// avoidance the pathfinder does not know the other two exist. Three of them steer at the same
+	// point, arrive shoulder to shoulder and shove, which reads as a single merged blob of guards.
+	// RVO makes them steer around each other on the way in and settle in an arc instead of a pile.
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->bUseRVOAvoidance = true;
+
+		// Weight is how much this agent yields. 0.5 = everyone gives way equally; at 0 (the default,
+		// which is what made avoidance a no-op even if it had been switched on) nobody yields.
+		Move->AvoidanceWeight = 0.5f;
+		Move->AvoidanceConsiderationRadius = 600.f;
+	}
 }
 
 void AGSEnemyCharacter::BeginPlay()
