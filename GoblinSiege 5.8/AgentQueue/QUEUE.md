@@ -116,6 +116,12 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 ## Orchestrator's side
 
+- **The orchestrator is not exempt from rule 1.** Closing a ticket, rendering the board and
+  running `buildgate` are queue operations and need no ticket of their own — **writing any repo
+  file does.** This is written down because it was breached: the agent that built this queue
+  edited seven files across a whole session without a ticket, including `AGENT_STATE.md` while
+  ticket #005 held a claim on it. The collision was caught by an editor's staleness check, not
+  by the queue. Ticket #010 is the record.
 - Read the board before assigning anything; hand overlapping work to one agent instead of two
   where you can.
 - When a ticket hits `review`, read Evaluate first — an agent that cannot find a weakness in its
@@ -136,9 +142,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 009 | blocked (waiting on: 008 - build gate closed. Spawn-in-geometry fix is written but uncompiled and unverified.) | claude-raid | Raid loop: director, runic site, extraction; fix player spawning inside geometry | Source/GoblinSiege/Raid/GSRunicSite.cpp<br>Source/GoblinSiege/Raid/GSRunicSite.h<br>Source/GoblinSiege/Core/GSGameMode.cpp<br>Source/GoblinSiege/Core/GSGameMode.h<br>Source/GoblinSiege/Raid/GSRaidDirector.cpp<br>Source/GoblinSiege/Raid/GSRaidDirector.h<br>Source/GoblinSiege/Raid/GSRaidLibrary.cpp<br>Source/GoblinSiege/Raid/GSRaidLibrary.h<br>Source/GoblinSiege/Raid/GSRaidMarker.cpp<br>Source/GoblinSiege/Raid/GSRaidMarker.h<br>Source/GoblinSiege/Raid/GSRaidTypes.h<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.cpp<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp<br>Source/GoblinSiege/Combat/GSGameplayTags.h<br>Content/Maps/L_Tutorial_Island.umap | required |
+| 009 | review **STALE 2.3h** | claude-raid | Raid loop: director, runic site, extraction; fix player spawning inside geometry | Source/GoblinSiege/Raid/GSRunicSite.cpp<br>Source/GoblinSiege/Raid/GSRunicSite.h<br>Source/GoblinSiege/Core/GSGameMode.cpp<br>Source/GoblinSiege/Core/GSGameMode.h<br>Source/GoblinSiege/Raid/GSRaidDirector.cpp<br>Source/GoblinSiege/Raid/GSRaidDirector.h<br>Source/GoblinSiege/Raid/GSRaidLibrary.cpp<br>Source/GoblinSiege/Raid/GSRaidLibrary.h<br>Source/GoblinSiege/Raid/GSRaidMarker.cpp<br>Source/GoblinSiege/Raid/GSRaidMarker.h<br>Source/GoblinSiege/Raid/GSRaidTypes.h<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.cpp<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp<br>Source/GoblinSiege/Combat/GSGameplayTags.h<br>Content/Maps/L_Tutorial_Island.umap | required |
+| 010 | review | claude-queue | Agent work queue: gsqueue.ps1, protocol, build gate, decision-queue board | GoblinSiege 5.8/AgentQueue/gsqueue.ps1<br>GoblinSiege 5.8/AgentQueue/QUEUE.md<br>GoblinSiege 5.8/CLAUDE.md<br>GoblinSiege 5.8/AGENT_STATE.md<br>CLAUDE.md<br>Build-GoblinSiege.ps1<br>decision-queue-kanban.html | none |
+| 011 | queued | claude-raid | Portal 4 visuals on BP_GS_RunicSite, and the four missing HUD widgets | Content/Blueprints/BP_GS_RunicSite.uasset<br>Content/UI/WBP_GSPlayerHUD.uasset | none |
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
