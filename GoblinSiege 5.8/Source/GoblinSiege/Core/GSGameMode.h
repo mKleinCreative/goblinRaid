@@ -31,6 +31,19 @@ public:
 	 */
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 
+	/**
+	 * Spawn OFFSET from a runic site rather than on it.
+	 *
+	 * The site's own transform is the PORTAL. Spawning on it drops the player inside the extraction
+	 * sphere, and then the raid ends itself as a win the instant the portal opens - which is exactly
+	 * what happened on the first full playtest: portal-open and "extracted" landed in the same
+	 * millisecond, with the player never having moved.
+	 *
+	 * This is the single choke point for it. Every spawn path - initial spawn, respawn, a Blueprint
+	 * calling RestartPlayer - ends up here, so the offset cannot be forgotten by one of them.
+	 */
+	virtual void RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot) override;
+
 protected:
 	void RespawnPlayer(AController* Controller);
 
