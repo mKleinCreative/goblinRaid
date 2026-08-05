@@ -316,6 +316,29 @@ It still succeeds, but it wastes most of the build time (and 20s per retry, twic
 user full control on `C:\ProgramData\Epic\UnrealBuildAccelerator`.** Until then, expect ~6-minute
 builds that should take under a minute. Machine has 32 GB RAM; close browsers during big builds.
 
+## Editor Python gotchas (5.8, confirmed 2026-08-04)
+
+- **`unreal.EditorAssetLibrary` is a silent no-op in this build.** `does_asset_exist()` returns
+  `False` and `load_asset()` returns `None` for assets that demonstrably exist and that the asset
+  registry lists. It does not raise - it just lies, which reads as "the asset is missing". **Use
+  `unreal.get_editor_subsystem(unreal.EditorAssetSubsystem)`** for exists/load/save. (This supersedes
+  the `EditorAssetLibrary` suggestion in §2 above.)
+- **Component transforms are properties, not getters.** `get_relative_scale3d()` /
+  `get_relative_location()` do not exist on components here; use
+  `get_editor_property('relative_scale3d' | 'relative_location' | 'relative_rotation')`.
+- **`unreal.AbilitySystemBlueprintLibrary` does not exist**, and `ASC.get_editor_property(
+  'spawned_attributes')` fails - there is no easy Python path to a live attribute value. To verify
+  damage, enable **`GS.Combat.LogDamage 1`** (NOT `GS.Combat.Debug`, which is the trace/marker
+  switch) and read `Saved/Logs/MyProject.log` for `[GS.Damage]` lines.
+- **`EditorAppToolset.StartPIE` needs an options object and is asynchronous.** Required keys:
+  `{"options":{"bSimulate":false,"playMode":"PlayMode_InViewPort","warmupSeconds":3.0}}`. It returns
+  `is_complete=False` immediately - PIE is not up when the call returns, so query the game world in a
+  *later* script run, not the same one.
+- **Reparenting a Blueprint preserves inherited component defaults.** Six adversary BPs were
+  reparented `Character` -> `AGSEnemyCharacter` with capsule half-height/radius, mesh relative
+  transform, skeletal mesh, anim class and max walk speed all byte-identical afterwards. Re-fetch the
+  CDO after `reparent_blueprint` + `compile_blueprint` though - the old pointer is stale.
+
 ## BuildAndLaunchGame.ps1 on this machine
 
 - **Engine auto-detect only works because the install is registered.** The script probes

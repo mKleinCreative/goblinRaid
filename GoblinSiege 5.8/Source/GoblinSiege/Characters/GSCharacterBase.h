@@ -56,6 +56,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Movement")
 	float GetTurnRateRadPerSec() const { return TurnRateRadPerSec; }
 
+	/** Sets the unmodified walk speed and re-derives the effective one. For anything that owns a
+	 *  character's baseline rather than a temporary slow - archetype init, a weapon's identity.
+	 *  Temporary slows must NOT come through here; they are GameplayEffects on MoveSpeedMultiplier. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Movement")
+	void SetBaseWalkSpeed(float NewBaseWalkSpeed);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Movement")
+	float GetBaseWalkSpeed() const { return BaseWalkSpeed; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -65,6 +74,20 @@ protected:
 
 	/** Bound to the Health attribute's OnAttributeChanged delegate in BeginPlay. */
 	virtual void HandleHealthChanged(const FOnAttributeChangeData& Data);
+
+	/** Bound to MoveSpeedMultiplier in BeginPlay. Lives on the BASE, not on the player: every slow in
+	 *  the game is a GameplayEffect on that attribute now (UGSGE_MoveSpeedScalar), and a defender that
+	 *  did not listen would raise its guard with no mobility cost at all. */
+	void HandleMoveSpeedMultiplierChanged(const FOnAttributeChangeData& Data);
+
+	/** Turns BaseWalkSpeed and the MoveSpeedMultiplier attribute into the movement component's
+	 *  effective speed. The one place walk speed is written. Subclasses override to derive their own
+	 *  extra speeds from the same multiplier (the player adds MaxWalkSpeedCrouched). */
+	virtual void ApplyMoveSpeed();
+
+	/** Walk speed before any multiplier - captured from the movement component in BeginPlay, and
+	 *  replaced by SetBaseWalkSpeed when something authoritative (an archetype row) supplies one. */
+	float BaseWalkSpeed = 600.f;
 
 public:
 	/** Broadcast on every Health change, damage or heal. Exists because the attribute delegate GAS

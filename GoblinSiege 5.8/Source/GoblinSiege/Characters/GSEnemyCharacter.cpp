@@ -101,7 +101,18 @@ void AGSEnemyCharacter::InitializeFromArchetype(UGSRaceDataAsset* InRaceData, FN
 		AttributeSetBase->InitArmor(Archetype->Armor);
 		AttributeSetBase->InitMoveSpeedMultiplier(1.f);
 
-		GetCharacterMovement()->MaxWalkSpeed = Archetype->MoveSpeed;
+		// Through SetBaseWalkSpeed, not straight onto MaxWalkSpeed: the archetype owns this pawn's
+		// BASELINE speed, while blocks, carries and future roots are multipliers on top of it. Writing
+		// the movement component directly would erase any slow already active and be erased by the
+		// next one.
+		//
+		// Zero means the archetype has no opinion and the Blueprint's own value stands. Roles are
+		// shared by bodies of different sizes - the six human defenders each derive walk speed from
+		// their height - and one row's number would flatten all of them.
+		if (Archetype->MoveSpeed > 0.f)
+		{
+			SetBaseWalkSpeed(Archetype->MoveSpeed);
+		}
 		TurnRateRadPerSec = Archetype->TurnRateRadPerSec;
 
 		bAttributesInitialized = true;

@@ -48,11 +48,46 @@ void AGSCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		BaseWalkSpeed = MoveComp->MaxWalkSpeed;
+	}
+
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UGSAttributeSetBase::GetHealthAttribute())
 			.AddUObject(this, &AGSCharacterBase::HandleHealthChanged);
+
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute())
+			.AddUObject(this, &AGSCharacterBase::HandleMoveSpeedMultiplierChanged);
 	}
+
+	ApplyMoveSpeed();
+}
+
+void AGSCharacterBase::HandleMoveSpeedMultiplierChanged(const FOnAttributeChangeData& /*Data*/)
+{
+	ApplyMoveSpeed();
+}
+
+void AGSCharacterBase::ApplyMoveSpeed()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp || !AbilitySystemComponent)
+	{
+		return;
+	}
+
+	// UGSAttributeSetBase::PreAttributeChange clamps this to [0.1, 3.0], so a stack of slows can
+	// never hard-freeze a character.
+	MoveComp->MaxWalkSpeed = BaseWalkSpeed * AbilitySystemComponent->GetNumericAttribute(
+		UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute());
+}
+
+void AGSCharacterBase::SetBaseWalkSpeed(float NewBaseWalkSpeed)
+{
+	BaseWalkSpeed = NewBaseWalkSpeed;
+	ApplyMoveSpeed();
 }
 
 void AGSCharacterBase::InitializeAttributesFromEffect(TSubclassOf<UGameplayEffect> InitEffectClass, float Level)

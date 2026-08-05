@@ -17,6 +17,23 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
   IA_Interact + E in IMC_Default, CarrySocket on GOB_Scout_v2_Skeleton, HUD channel-bar bindings, a
   test chest in L_CombatArena, then PIE.
 
+- 2026-08-04 **Defender handoff GOAL 1 DONE, PIE-verified.** All six `/Game/Blueprints/Adversaries/BP_*`
+  reparented `Character` -> `AGSEnemyCharacter`; capsule/mesh/anim/max_walk_speed all survived
+  byte-identical; `ai_controller_class` corrected from stock `AIController` to `GSAIControllerBase`
+  and `auto_possess_ai` to `PLACED_IN_WORLD_OR_SPAWNED` (the BPs were overriding the C++ defaults);
+  four ability classes assigned from `BP_GS_TargetDummy`'s set. In PIE on L_Tutorial_Island all three
+  placed defenders are possessed by `GSAIControllerBase`, `TryLightAttack()` returns True, and the
+  log shows `[GS.Damage] BP_CastleGuard01_C_0 -> BP_GSPlayerCharacter_C_0 ... = 25.0 (HP 50/100)`.
+  Backups of all seven adversary BPs at `D:\goblinRaid\BP_Backup_20260804\`.
+
+- 2026-08-04 **Defender handoff GOAL 2 (movement) DONE, PIE-verified.** Correct path taken: new
+  `/Game/AI/DA_Race_Human` (Militia 30HP, Archer 20HP, Knight 75HP/armor 6 - GDD canon), `BB_Human`
+  (TargetActor Object + TargetLocation Vector), `BT_Militia` (Selector: MeleeAttack -> MoveTo ->
+  Wait, with an AcquireTarget service), and two new C++ nodes in `AI/Tasks/`
+  (`BTService_AcquireTarget`, `BTTask_MeleeAttack`). All six BPs carry RaceData + row. **PIE: a
+  defender chases the player at HU_Speed 1210.4** (DoD #2 needed >10), and melee fires autonomously.
+  Archetype `MoveSpeed=0` now means "no opinion", so each BP keeps its height-derived speed.
+
 ## DECISIONS
 
 - Canonical class name is SCOUT (amends decision 36); sword ⇄ bow.
@@ -72,6 +89,21 @@ from the status-and-rebaseline doc, the decision queue, and a live scan.*
   blocked while carrying so the common case is safe, and `ApplyMoveSpeed` self-heals on the next
   attribute change — but a slow starting or ending MID-SWING makes the swing's restore write a stale
   speed that persists until the next change. Fix is converting it to the GE like Block.
+- 2026-08-04 **Defenders kill each other.** `[GS.Damage] BP_PeasantMan_C_0 -> BP_CastleGuard01_C_0
+  ... 25.0 (HP 30/30)` - the sword sweep has no friend/foe test, and with Militia on 30 HP two swings
+  is a corpse. This is why placed defenders vanish from the level mid-PIE. Needs a team check in
+  `UGSDamageExecCalculation` (or in the sweep) before defenders can be placed in groups.
+- 2026-08-04 **`BP_GSPlayerCharacter`'s collision is broken for AI.** Its `CollisionCylinder` is
+  `NO_COLLISION` and its colliding bounds are ~5385x4748 units, so `MoveToActor` targeting the player
+  returns `AlreadyAtGoal` for any AI within ~50m and the AI never takes a step. Worked around by
+  chasing a `TargetLocation` vector instead of the actor; the player BP itself is still wrong and
+  will break anything else that navigates to the player as an actor.
+- 2026-08-04 `BT_Militia` was authored by setting `RootNode` from Python; it has **no editor
+  EdGraph**. Opening it in the Behaviour Tree editor and saving may regenerate an empty graph and
+  wipe the tree. Rebuild it by hand there if you want to edit it visually.
+- 2026-08-04 `TryLightAttack()` returning False right after a swing is NOT a bug - GAS refuses
+  re-activation while the ability runs, which UGSGA_SwordLight uses as its combo buffer. Sampling it
+  mid-swing looks like a failure and is not one.
 - 2026-08-04 `UGameplayAbility::AbilityTags` is deprecated in 5.8 (C4996) — used by `GSGA_Block` and
   `GSGA_Interact`. Compiles today, will NOT compile after the next engine upgrade. Migrate both to
   `SetAssetTags()` in the constructor when that comes.

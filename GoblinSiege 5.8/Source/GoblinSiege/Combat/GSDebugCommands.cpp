@@ -30,6 +30,14 @@ namespace
 		{ TEXT("GS.Combat.Debug"),    0, 1 },  // melee trace spheres, hit markers, combo stage text
 		{ TEXT("GS.Combat.LogDamage"), 0, 2 }, // per-hit damage breakdown (2 = also on screen)
 		{ TEXT("GS.Burn.Debug"),      0, 1 },  // fire grid overlay and per-character HP readout
+		// Added 2026-08-04 with the aim framework. Note what this does NOT hide: the arc RIBBON is a
+		// shipping feature drawn with real spline meshes, and a player view is exactly where it
+		// belongs. This only silences the raw predicted-path debug lines drawn alongside it.
+		{ TEXT("GS.Aim.Debug"),       0, 1 },  // raw PredictProjectilePath lines behind the arc ribbon
+		// These two existed before today and were simply never listed here, so GS.PlayerView 1 left
+		// them talking. Found while adding the line above.
+		{ TEXT("GS.Combat.LogHitReact"), 0, 1 }, // per-flinch selection log
+		{ TEXT("GS.Interact.Debug"),  0, 1 },  // focus traces and channel progress readout
 	};
 
 	void GSSetPlayerView(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)

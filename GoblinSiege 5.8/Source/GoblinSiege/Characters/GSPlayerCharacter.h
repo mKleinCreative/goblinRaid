@@ -14,6 +14,7 @@ class UGSWeaponComponent;
 class UGSTargetingComponent;
 class UGSInteractionComponent;
 class UGSCarryComponent;
+class UGSAimComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
@@ -45,6 +46,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
 	UGSCarryComponent* GetCarryComponent() const { return CarryComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Aim")
+	UGSAimComponent* GetAimComponent() const { return AimComponent; }
+
 	/** World-space direction the dodge roll should launch toward: the last held movement input
 	 *  resolved against camera yaw, or forward if the player dodges from a standstill. Used by
 	 *  UGSGA_DodgeRoll so the roll reads as "where I was going," not always forward. */
@@ -72,6 +76,12 @@ protected:
 	/** Fired by the charge timer at HeavyHoldSeconds, while the button is still down. */
 	void TriggerHeavyAttack();
 
+	/** True when the attack button should draw the bow instead of swinging - ranged mode with a bow
+	 *  ability actually assigned. The null check is deliberate: without it, swapping to ranged on a
+	 *  character whose BowShotAbilityClass was never filled in would silently disable the attack
+	 *  button entirely, which looks exactly like a broken input binding. */
+	bool IsRangedAttackMode() const;
+
 	void Input_Attack(const FInputActionValue& Value);
 	void Input_HeavyAttack(const FInputActionValue& Value);
 	void Input_BlockStart(const FInputActionValue& Value);
@@ -85,10 +95,6 @@ protected:
 	 *  rather than leaving the goblin permanently aiming. */
 	void Input_ThrowTorchStart(const FInputActionValue& Value);
 	void Input_ThrowTorchRelease(const FInputActionValue& Value);
-
-	/** Draws the predicted torch arc. Reads speed and gravity off the projectile CDO rather than
-	 *  duplicating them, so the line the player aims with is the line the torch actually flies. */
-	void DrawTorchAimArc();
 
 	void Input_ThrowTorch(const FInputActionValue& Value);
 	void Input_SwapWeaponMode(const FInputActionValue& Value);
@@ -105,14 +111,26 @@ protected:
 	UFUNCTION()
 	void HandleWeaponModeChanged(bool bRangedMode);
 
-	/** MoveSpeedMultiplier is the single source of truth for walk speed: the carry slow, the block
-	 *  slow, and every root/slow after them are GameplayEffects on that attribute, aggregated by GAS.
-	 *  Nothing writes MaxWalkSpeed directly any more - that pattern cannot stack, and OnStartCrouch
-	 *  reassigned MaxWalkSpeedCrouched out from under whoever had cached it. */
-	void HandleMoveSpeedMultiplierChanged(const FOnAttributeChangeData& Data);
+	/** Bound to UGSAimComponent::OnAimStateChanged. Aiming changes both what the camera does and
+	 *  which way the body faces, and before this existed the torch aim changed neither. */
+	UFUNCTION()
+	void HandleAimStateChanged(bool bIsAimingNow);
 
-	/** Re-derives both walk speeds from BaseWalkSpeed and the current multiplier. */
-	void ApplyMoveSpeed();
+	/** "The body should point where the camera points" - the Aim key, an active ranged aim, or simply
+	 *  having the bow equipped (tech doc §16). Consumed by UpdateRotationMode. */
+	bool WantsAimFacing() const;
+
+	/** "The camera should be over the left shoulder and tight" - only while a shot is actually being
+	 *  aimed. Narrower than WantsAimFacing on purpose; see the definition. */
+	bool WantsAimCamera() const;
+
+	/** Advances CameraAimAlpha and writes the boom/FOV. Early-outs entirely once the blend has
+	 *  arrived, so a goblin standing still costs nothing per frame. */
+	void UpdateAimCamera(float DeltaSeconds);
+
+	/** Adds MaxWalkSpeedCrouched to the base class's derivation - the crouch speed has to scale with
+	 *  the same multiplier, or crouch-walking silently ignores whatever is slowing you. */
+	virtual void ApplyMoveSpeed() override;
 
 	/** Switches between movement-facing (default) and aim-facing (holding Aim, or a ranged weapon
 	 *  mode equipped) rotation, per tech doc §16: "the character faces movement, and faces the aim
@@ -131,6 +149,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
 	TObjectPtr<UGSCarryComponent> CarryComponent;
+
+	/** Owns the aim state, the predicted trajectory and the arc ribbon for every ranged verb. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Aim")
+	TObjectPtr<UGSAimComponent> AimComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -223,27 +245,65 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> InteractAbilityClass;
 
-	// ---- torch aiming (2026-08-03) --------------------------------------------------------
-	/** Draw the predicted arc while the throw button is held. Off makes the torch an instant
-	 *  press-to-throw again, which is the pre-aiming behaviour. */
+	/** The Scout's ranged half. Routed from the ATTACK button while the weapon component reports
+	 *  ranged mode - "sword <-> bow, live-swap" means one attack key whose meaning follows the mode,
+	 *  not a second key the player has to remember. Not C++-defaulted, matching SwordHeavyAbilityClass:
+	 *  point it at UGSGA_BowShot or a Blueprint child of it. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> BowShotAbilityClass;
+
+	// ---- torch aiming (2026-08-03, moved to UGSAimComponent 2026-08-04) --------------------
+	// TorchAimMaxSimSeconds and TorchAimArcColour now live on UGSAimComponent (as MaxSimSeconds and
+	// TorchArcColour), and bAimingTorch is UGSAimComponent::IsAiming(). Only the input-policy switch
+	// stayed here, because it decides what the BUTTON does, not what the arc looks like.
+
+	/** Hold the throw button to aim, release to throw. Off makes the torch an instant press-to-throw
+	 *  again, which is the pre-2026-08-03 behaviour. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
 	bool bTorchAimEnabled = true;
 
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch", meta = (ClampMin = "0.2"))
-	float TorchAimMaxSimSeconds = 3.f;
+	// ---- aim camera (2026-08-04) -----------------------------------------------------------
+	// Over the LEFT shoulder while aiming, back to the right at rest. The hip values are captured
+	// from the components in BeginPlay rather than duplicated here as constants, so retuning the
+	// boom on BP_GSPlayerCharacter is not silently undone by C++ on the first aim.
 
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
-	FLinearColor TorchAimArcColour = FLinearColor(1.f, 0.45f, 0.1f, 1.f);
+	/** Boom length while aiming. Pulling in from 450 is most of what makes an aim read as an aim. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera|Aim", meta = (ClampMin = "0.0"))
+	float AimArmLength = 250.f;
 
-	/** True between the throw button going down and coming back up. */
-	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Torch")
-	bool bAimingTorch = false;
+	/** Negative Y is the goblin's LEFT. The hip rig sits at +55 (right shoulder), so this is a swap
+	 *  across the body rather than a nudge, and the swing itself is a large part of the feedback. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera|Aim")
+	FVector AimSocketOffset = FVector(0.f, -55.f, 45.f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera|Aim", meta = (ClampMin = "20.0", ClampMax = "170.0"))
+	float AimFOV = 70.f;
+
+	/**
+	 * Seconds for the full blend, in BOTH directions.
+	 *
+	 * Driven as an explicit 0..1 alpha rather than an FInterpTo, deliberately: FInterpTo is
+	 * asymptotic, so it never actually arrives, and "never actually arrives" on a camera means the
+	 * boom keeps being written every frame forever and the Tick early-out below can never fire.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera|Aim", meta = (ClampMin = "0.01"))
+	float AimBlendSeconds = 0.2f;
 
 private:
 	FTimerHandle HeavyChargeTimer;
 	float AttackPressedTime = -1.f;
 	bool bAttackHeld = false;
 	bool bHeavyFiredThisHold = false;
+
+	// ---- aim camera runtime state ----------------------------------------------------------
+	/** 0 = hip, 1 = aiming. Advanced linearly by AimBlendSeconds and eased on read. */
+	float CameraAimAlpha = 0.f;
+
+	/** Captured from the spring arm and camera in BeginPlay - see AimArmLength's comment for why
+	 *  these are read from the components rather than written as constants. */
+	float HipArmLength = 450.f;
+	FVector HipSocketOffset = FVector(0.f, 55.f, 65.f);
+	float HipFOV = 90.f;
 
 public:
 	/** 0..1 while the attack button is held, reaching 1 at HeavyHoldSeconds. Broadcast so a HUD
@@ -272,9 +332,6 @@ protected:
 	 *  decide movement-facing vs. aim-facing. */
 	bool bIsAiming = false;
 
-	/** MaxWalkSpeed captured in BeginPlay, before any crouch adjustment - the baseline
-	 *  CrouchSpeedMultiplier scales from. */
-	float BaseWalkSpeed = 600.f;
 
 	/** Last non-zero 2D move input, used by GetDodgeDirection() so a dodge reads as "where I was
 	 *  heading" rather than always forward. */
