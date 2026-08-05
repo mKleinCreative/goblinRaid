@@ -14,7 +14,7 @@ cd "D:\goblinRaid\GoblinSiege 5.8"
 
 ---
 
-## The five rules
+## The six rules
 
 **1. Claim before you edit.** Name every file you intend to write, up front. A file you did not
 claim is a file another agent may be holding.
@@ -82,6 +82,20 @@ and only after the gate opens.
 **5. Close your ticket.** An open ticket holds its files hostage and keeps the build gate shut.
 If you abandon work, say so — `set -Status abandoned` — and revert your edits first.
 
+**6. A STALE ticket is a question for Michael, never a decision you make.** `list`, `claim` and
+`buildgate` flag any open ticket older than **2 hours** (`-StaleHours <n>` to change it) and print
+the exact question to put to him. From inside the repo a long-running job and a session that
+crashed look identical — you cannot tell them apart, and abandoning live work is far worse than
+waiting. So ask, then do only what he says:
+
+| he says | you do |
+|---------|--------|
+| still live | nothing — carry on with unblocked work |
+| finished | `set -Id <n> -Status done` (needs G/E/R written) |
+| dead session | `set -Id <n> -Status abandoned` — revert its edits first |
+
+**Never abandon a ticket that is not yours without being told to.**
+
 ---
 
 ## Status meanings
@@ -122,7 +136,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 003 | active | claude-perf | Re-save the remaining 18 PortalVFX Niagara systems (001 fixed only 2 of 20) | Content/PortalVFXEnhanced/VFX/Systems | none |
+| 006 | blocked (waiting on: build gate - #004 and #005 (claude-ranged) are ahead and both require a build) | claude-perf | Defender crowding: stand-off slots so they stop converging on one point | Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.h<br>Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.cpp<br>Source/GoblinSiege/Characters/GSEnemyCharacter.cpp<br>Content/AI/BT_Militia.uasset | required |
 
 **BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
@@ -132,6 +146,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 |---|--------|-------|-------|
 | 001 | done | claude-perf | Kill the 50s Niagara recompile on L_Tutorial_Island load |
 | 002 | done | claude-perf | Diagnose game-thread bound frame (16.9ms, GPU idle) |
+| 003 | done | claude-perf | Re-save the remaining 18 PortalVFX Niagara systems (001 fixed only 2 of 20) |
+| 004 | done | claude-ranged | Ranged combat: aim framework, bow, torch collision fixes, swap diagnostics |
+| 005 | done | claude-ranged | Supplement to #004 - files missed in that claim (same body of work) |
 
 <!-- BOARD:END -->
 

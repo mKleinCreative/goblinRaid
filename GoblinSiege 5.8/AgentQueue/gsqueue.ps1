@@ -30,7 +30,8 @@ param(
     [string]$Status,
     [switch]$Build,
     [string]$Note,
-    [string]$WaitingOn
+    [string]$WaitingOn,
+    [double]$StaleHours
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,6 +50,11 @@ $RepoRoot  = (Get-Item -LiteralPath $QueueDir).Parent.Parent.FullName
 # Closed = releases its claims and lets the build through.
 $OpenStatuses   = @('queued', 'active', 'review', 'blocked')
 $ClosedStatuses = @('done', 'abandoned')
+
+# How long an open ticket may sit before agents must raise it with Michael. Deliberately
+# not shorter: real work routinely runs an hour, and an advisory that cries wolf gets
+# ignored, which is worse than not having one. Override per-call with -StaleHours.
+$StaleHoursDefault = 2.0
 
 if (-not (Test-Path -LiteralPath $TicketDir)) {
     New-Item -ItemType Directory -Path $TicketDir | Out-Null
@@ -110,6 +116,16 @@ function Read-Ticket {
     $num = 0
     [void][int]::TryParse($id, [ref]$num)
 
+    # 'claimed' is written as UTC with a Z suffix; TryParse hands back Kind=Local, so
+    # ToUniversalTime on both sides is what keeps this honest across time zones.
+    $ageHours = -1.0
+    if ($claimed) {
+        $dt = [datetime]::MinValue
+        if ([datetime]::TryParse($claimed, [ref]$dt)) {
+            $ageHours = ((Get-Date).ToUniversalTime() - $dt.ToUniversalTime()).TotalHours
+        }
+    }
+
     return [pscustomobject]@{
         Path      = $Path
         Id        = $id
@@ -121,6 +137,7 @@ function Read-Ticket {
         Build     = $buildNeed
         WaitingOn = $waiting
         Files     = $fileList
+        AgeHours  = $ageHours
         IsOpen    = ($OpenStatuses -contains $status)
     }
 }
@@ -184,6 +201,61 @@ function Get-Blockers {
     return @($hits)
 }
 
+# -------------------------------------------------------------------- stale --
+
+function Get-StaleLimit {
+    if ($PassedArgs.ContainsKey('StaleHours')) { return $StaleHours }
+    return $StaleHoursDefault
+}
+
+function Get-StaleTickets {
+    $limit = Get-StaleLimit
+    return @(Get-Tickets | Where-Object { $_.IsOpen -and $_.AgeHours -ge $limit })
+}
+
+# Printed by list / claim / buildgate - the commands an agent runs anyway. The agent is
+# told to ASK, never to decide: from inside the repo a long-open ticket and a session
+# that died look identical, and abandoning live work is far worse than waiting.
+function Write-StaleAdvisory {
+    $stale = Get-StaleTickets
+    if ($stale.Count -eq 0) { return }
+    $limit = Get-StaleLimit
+
+    Write-Output ''
+    Write-Output '======================================================================'
+    Write-Output " STALE TICKET - ASK MICHAEL. Do not decide this on your own."
+    Write-Output '======================================================================'
+    foreach ($t in $stale) {
+        $age = '{0:N1}' -f $t.AgeHours
+        Write-Output "  #$($t.Id) [$($t.Status)] $($t.Agent): $($t.Title)"
+        Write-Output "      open ${age}h (claimed $($t.Claimed)), past the ${limit}h mark"
+        if ($t.Files.Count -gt 0 -and $t.Files[0] -notlike '*no-files*') {
+            Write-Output "      still holding:"
+            foreach ($f in $t.Files) { Write-Output "        $f" }
+        }
+        if ($t.WaitingOn) { Write-Output "      says it is waiting on: $($t.WaitingOn)" }
+    }
+    Write-Output ''
+    Write-Output ' An open ticket holds its file claims and keeps the build gate shut. From'
+    Write-Output ' here you CANNOT tell live work from a session that crashed - they look'
+    Write-Output ' identical. Michael can. So stop and put the question to him:'
+    Write-Output ''
+    foreach ($t in $stale) {
+        $age = '{0:N1}' -f $t.AgeHours
+        Write-Output "   `"Ticket #$($t.Id) ($($t.Agent), $($t.Title)) has been open ${age}h."
+        Write-Output "    Is it still being worked on, or should it be closed? Until it"
+        Write-Output "    closes I can't build, or touch the files it holds.`""
+    }
+    Write-Output ''
+    Write-Output ' Then do what he says, and nothing else:'
+    Write-Output '   still live   -> leave it alone; carry on with unblocked work'
+    Write-Output "   finished     -> set -Id <n> -Status done       (needs G/E/R written)"
+    Write-Output '   dead session -> set -Id <n> -Status abandoned  (revert its edits FIRST)'
+    Write-Output ''
+    Write-Output ' Never abandon a ticket that is not yours without being told to.'
+    Write-Output '======================================================================'
+}
+
 # ------------------------------------------------------------------- render --
 
 function Format-Board {
@@ -211,10 +283,20 @@ function Format-Board {
                 if ($t.WaitingOn -match '^\s*#?\d+\s*$') { $w = " (waiting on #$($t.WaitingOn.Trim('#',' ')))" }
                 else { $w = " (waiting on: $($t.WaitingOn))" }
             }
-            [void]$sb.AppendLine("| $($t.Id) | $($t.Status)$w | $($t.Agent) | $($t.Title) | $f | $($t.Build) |")
+            $s = ''
+            if ($t.AgeHours -ge (Get-StaleLimit)) { $s = " **STALE {0:N1}h**" -f $t.AgeHours }
+            [void]$sb.AppendLine("| $($t.Id) | $($t.Status)$w$s | $($t.Agent) | $($t.Title) | $f | $($t.Build) |")
         }
     }
     [void]$sb.AppendLine('')
+
+    $staleNow = Get-StaleTickets
+    if ($staleNow.Count -gt 0) {
+        $ids = ($staleNow | ForEach-Object { "#$($_.Id)" }) -join ', '
+        [void]$sb.AppendLine("**STALE - $ids open longer than $(Get-StaleLimit)h.** Ask Michael whether each is")
+        [void]$sb.AppendLine('still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.')
+        [void]$sb.AppendLine('')
+    }
 
     $needBuild = @($tickets | Where-Object { $_.Build -eq 'required' -and $_.Status -eq 'done' })
     if ($open.Count -eq 0) {
@@ -262,6 +344,7 @@ function Update-Board {
 
 function Invoke-List {
     Write-Output (Format-Board)
+    Write-StaleAdvisory
 }
 
 function Invoke-Claim {
@@ -364,6 +447,7 @@ survives scrutiny" is a valid answer; silence is not. -->
             Write-Output 'No conflicts. You have right of way on every file you claimed.'
         }
     }
+    Write-StaleAdvisory
 }
 
 function Invoke-Check {
@@ -487,8 +571,13 @@ function Invoke-BuildGate {
     $open = @(Get-Tickets | Where-Object IsOpen)
     if ($open.Count -gt 0) {
         Write-Output "BUILD GATE CLOSED - $($open.Count) ticket(s) still open:"
-        foreach ($t in $open) { Write-Output "  #$($t.Id) [$($t.Status)] $($t.Agent): $($t.Title)" }
-        Write-Output 'Do not build. Wait for these, or have them abandon.'
+        foreach ($t in $open) {
+            $age = ''
+            if ($t.AgeHours -ge 0) { $age = ' - open {0:N1}h' -f $t.AgeHours }
+            Write-Output "  #$($t.Id) [$($t.Status)] $($t.Agent): $($t.Title)$age"
+        }
+        Write-Output 'Do not build. Wait for these to close.'
+        Write-StaleAdvisory
         exit 1
     }
     $want = @(Get-Tickets | Where-Object { $_.Build -eq 'required' -and $_.Status -eq 'done' })
@@ -516,6 +605,10 @@ gsqueue.ps1 - Goblin Siege agent work queue
   done -Id <n>                                  close (refuses unless G/E/R are written)
   buildgate                                     exit 0 only if nothing is open
   render                                        rewrite the board in QUEUE.md
+
+  -StaleHours <n>   on list/claim/buildgate, flag open tickets older than n hours
+                    (default 2). A flagged ticket is a question for Michael, never
+                    something you close yourself.
 
 Queue position is the ticket id. Lower id wins every file conflict.
 Read QUEUE.md for the full protocol.

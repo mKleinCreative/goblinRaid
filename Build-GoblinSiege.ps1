@@ -34,7 +34,8 @@
 param(
     [switch]$Force,
     [switch]$Rebuild,
-    [switch]$Wait
+    [switch]$Wait,
+    [switch]$IgnoreQueue
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,12 +45,39 @@ $BuildBat    = Join-Path $EngineRoot 'Engine\Build\BatchFiles\Build.bat'
 $ProjectFile = 'D:\goblinRaid\GoblinSiege 5.8\MyProject.uproject'
 $Target      = 'MyProjectEditor'
 $UbaCache    = 'C:\ProgramData\Epic\UnrealBuildAccelerator'
+$QueueScript = 'D:\goblinRaid\GoblinSiege 5.8\AgentQueue\gsqueue.ps1'
 
 function Write-Step { param($Text) Write-Host "`n=== $Text" -ForegroundColor Cyan }
 
 # --- sanity -----------------------------------------------------------------
 if (-not (Test-Path -LiteralPath $BuildBat))    { throw "Build.bat not found: $BuildBat" }
 if (-not (Test-Path -LiteralPath $ProjectFile)) { throw "Project not found: $ProjectFile" }
+
+# --- the agent work queue ---------------------------------------------------
+# Several Claude sessions run against this repo at once. On 2026-08-04 two of them were
+# editing GSPlayerCharacter.cpp inside one build window: the first link produced a DLL
+# describing a source tree that no longer existed, and the only reason anyone noticed was
+# comparing source mtimes against the DLL. A build is the one operation where a half-written
+# file from someone else's session becomes a binary you then trust. So the gate is checked
+# here, structurally, rather than left as a rule agents have to remember.
+Write-Step 'Checking the agent work queue'
+if ($IgnoreQueue) {
+    Write-Host 'SKIPPED - -IgnoreQueue was given.' -ForegroundColor Yellow
+    Write-Host 'Whatever another agent has half-written will be compiled into this build.' -ForegroundColor Yellow
+}
+elseif (-not (Test-Path -LiteralPath $QueueScript)) {
+    Write-Host "Queue script not found at $QueueScript - cannot check." -ForegroundColor Yellow
+    Write-Host 'Continuing, but nothing is protecting this build from a concurrent edit.' -ForegroundColor Yellow
+}
+else {
+    & $QueueScript buildgate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`nBuild refused: the queue is not empty." -ForegroundColor Red
+        Write-Host 'Wait for those tickets to close, or pass -IgnoreQueue if you know the'
+        Write-Host 'open tickets cannot affect this build.'
+        exit 4
+    }
+}
 
 # --- editor must be closed --------------------------------------------------
 Write-Step 'Checking for a running editor'
