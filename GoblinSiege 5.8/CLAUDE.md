@@ -231,6 +231,37 @@ When asked to rebuild / relaunch / test, use the project script — not manual `
      VibeUE.GenerateAgentConfig overwrites everything between its BEGIN/END markers.
      Anything down here survives a regeneration. -->
 
+# READ FIRST — the agent work queue
+
+**If more than one agent may be working, you take a ticket before you edit anything.**
+
+```powershell
+cd "D:\goblinRaid\GoblinSiege 5.8"
+& ".\AgentQueue\gsqueue.ps1" list                                          # what is being worked on
+& ".\AgentQueue\gsqueue.ps1" claim -Agent <slug> -Title "<t>" -Files "a,b" # take a position
+& ".\AgentQueue\gsqueue.ps1" check -Id <n>                                 # is anyone ahead of me?
+& ".\AgentQueue\gsqueue.ps1" set -Id <n> -Status active                    # start editing
+& ".\AgentQueue\gsqueue.ps1" set -Id <n> -Status review                    # G/E/R written, hand back
+& ".\AgentQueue\gsqueue.ps1" buildgate                                     # exit 0 = safe to compile
+```
+
+Four rules, in full in `AgentQueue/QUEUE.md`:
+
+1. **Claim the files you intend to write, before you write them.**
+2. **The lower ticket number has right of way.** If an open ticket ahead of you claims your file,
+   you wait for it to close. Work your unblocked files, or go `blocked` and report.
+3. **Report Generate → Evaluate → Refine** in your ticket before handing back. Evaluate is
+   adversarial self-review with evidence; `done` refuses a ticket still holding placeholders.
+4. **Nobody compiles until the queue is empty.** Run `buildgate` before any `Build.bat`,
+   `BuildAndLaunchGame.ps1`, Live Coding, or in-editor Compile. Exit 1 means stop, however ready
+   your own work is. Only the orchestrator triggers the build.
+
+This exists because two agents edited `GSPlayerCharacter.cpp` inside one build window on
+2026-08-04 and the first build described a source tree that no longer existed (`AGENT_STATE.md`,
+Ranged combat entry).
+
+---
+
 # Goblin Siege — this machine, this shell
 
 ## The environment (assume none of this; it is all confirmed)
@@ -275,6 +306,19 @@ When asked to rebuild / relaunch / test, use the project script — not manual `
 
 6. **Desktop Commander's `start_process` times out at 60s.** Keep `Start-Sleep` under ~50s and poll
    repeatedly instead of one long wait.
+
+7. **`.Count` on a function's return value lies when the result has exactly one element.**
+   `return @($items)` unrolls on the way out, so the caller holds a bare `PSCustomObject` whose
+   `.Count` is **`$null`** — and `$null -gt 0` is `False`, so a one-element result tests as empty.
+   **Always wrap at the call site: `$r = @(Get-Thing ...)`.** Do not instead "fix" it in the callee
+   with `return ,@($items)`: on an empty result that returns an array *containing* an empty array,
+   `.Count` 1, and you get a phantom element. Both directions were live bugs in `gsqueue.ps1` on
+   2026-08-05, and the first one silently passed the exact conflict check it existed to enforce.
+
+8. **A `.ps1` saved as UTF-8 *without* a BOM is read as ANSI by PowerShell 5.1.** Any non-ASCII
+   character (an em-dash in a string literal is enough) arrives mangled and breaks the *parse* —
+   you get `Missing ')' in method call` pointing at a line that is perfectly valid. **Keep script
+   source ASCII-only**; put the typography in the markdown it writes, not in the script.
 
 ## Compiling
 

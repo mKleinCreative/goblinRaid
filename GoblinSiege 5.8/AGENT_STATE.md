@@ -5,6 +5,11 @@ Human-editable; the agent reads it at run start and rewrites NEXT + appends BUIL
 end. Deep context lives in the Claude project docs; this is the distillation. Seeded 2026-08-04
 from the status-and-rebaseline doc, the decision queue, and a live scan.*
 
+**Coordination lives in `AgentQueue/QUEUE.md`, not here.** Before editing any file, claim it:
+`& ".\AgentQueue\gsqueue.ps1" claim -Agent <slug> -Title "<t>" -Files "a,b"`. Lower ticket number
+has right of way on a shared file; nobody compiles until `gsqueue.ps1 buildgate` exits 0. Tickets
+are scratch — fold anything durable from a finished ticket into BUILT / DECISIONS / FAILED below.
+
 ## BUILT
 - pre-seed: player character complete (third-person rig, soft-lock, crouch, sprint/stamina, dodge, block, guard-break, hit-reacts, ragdoll death), traversal (vault/mantle/climb) PIE-verified, sword combat vs target dummy (GSGA_SwordLight/Heavy, weapon component, DA_Weapon_Scout), fire system large (flammable, fire volumes, field-fire grid, mill dust-fuse, market, burn-mask/char materials village-wide), burn objective base with Required/Optional/Complete, alarm types, GA_GS_* ability BPs, adversary BPs placed (CastleGuard/Archer/Knight/Peasant), Tutorial_Island playable with BP_GSGameMode.
 - 2026-08-04 [mvp-001] STAGED Interact framework — hold-E channels + carry: 8 files at out/runs/mvp-001/staging/ — awaiting Michael's review, then an editor-closed full build (new UCLASS types; Live Coding cannot register them)
