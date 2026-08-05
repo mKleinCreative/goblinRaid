@@ -67,6 +67,11 @@ public:
 	static void GatherLoop(const UObject* WorldContextObject, FName InGroupId,
 		TArray<AGSRaidMarker*>& OutMarkers);
 
+	/** Placement-time setter for scripted layout - editor Python cannot build an FGameplayTag in
+	 *  this build, so a placed marker could otherwise never be typed. See UGSRaidLibrary. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Marker")
+	void Configure(FGameplayTag InMarkerType, FName InGroupId, int32 InOrderIndex, float InRadius);
+
 protected:
 	/**
 	 * Which kind of marker this is - one of the Marker.* tags (see Combat/GSGameplayTags.h).

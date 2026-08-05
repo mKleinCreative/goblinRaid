@@ -79,6 +79,27 @@ void AGSBurnObjectiveBase::DebugTick()
 	}
 }
 
+void AGSBurnObjectiveBase::SetObjectiveIdentity(FGameplayTag InTypeTag, FText InDisplayName)
+{
+	// Placement-time only - see the header. Once BeginPlay has run, this carrier is already filed
+	// under its old tag in UGSRaidDirector's per-type buckets, and re-typing it there would leave
+	// the demotion pass and the win check disagreeing about what it is.
+	if (HasActorBegunPlay())
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] SetObjectiveIdentity refused on '%s': the raid has already begun. ")
+			TEXT("Type tags are placement-time data."), *GetName());
+		return;
+	}
+
+	ObjectiveTypeTag = InTypeTag;
+
+	if (!InDisplayName.IsEmpty())
+	{
+		ObjectiveDisplayName = InDisplayName;
+	}
+}
+
 void AGSBurnObjectiveBase::IgniteAtLocation(const FVector& /*WorldLocation*/)
 {
 	// Base does nothing. Subclasses that accept exterior fire override; the mill deliberately

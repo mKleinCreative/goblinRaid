@@ -37,6 +37,14 @@ AGSRaidMarker::AGSRaidMarker()
 #endif
 }
 
+void AGSRaidMarker::Configure(FGameplayTag InMarkerType, FName InGroupId, int32 InOrderIndex, float InRadius)
+{
+	MarkerType = InMarkerType;
+	GroupId = InGroupId;
+	OrderIndex = InOrderIndex;
+	Radius = FMath::Max(0.f, InRadius);
+}
+
 void AGSRaidMarker::GatherByType(const UObject* WorldContextObject, FGameplayTag InMarkerType,
 	TArray<AGSRaidMarker*>& OutMarkers)
 {

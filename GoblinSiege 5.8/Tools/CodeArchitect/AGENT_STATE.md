@@ -31,7 +31,12 @@ no spawners, 3 loose enemies. Landmarks to build against: 4x SM_WIndmill_Base ~(
 1 NavMeshBoundsVolume; 1 Landscape.*
 
 - [BLOCKED-ON-BUILD] u=10.0 **Editor-closed rebuild** — `UGSRaidLibrary` + `SetObjectiveIdentity` +
-  `AGSRaidMarker::Configure` are written but NOT compiled. Everything below needs them.
+  `AGSRaidMarker::Configure` are written and **UHT-validated** (UHT processed the module and wrote
+  10 generated files, so the reflection declarations are good) but the C++ bodies are **NOT
+  compiled**: UBT stops with *"Unable to build while Live Coding is active. Exit the editor and
+  game"*. Exit the editor, then the standard Build.bat line. Everything below needs this.
+  The wiring script is already written and waiting: `tools/hamlet/gs_wire_tutorial.py`
+  (idempotent, refuses to run during PIE, and deliberately does NOT save the level).
 - [QUEUED] u=9.0 **Tag the carriers** — `GS_MillField` → `Objective.Burn.Field` "The Wheat Field".
   Nothing in C++ sets this tag; an untagged carrier is invisible to the demotion pass, so the map is
   literally unwinnable until this is done. The director logs an Error naming it on Play.
