@@ -274,8 +274,83 @@ def runic_site():
     say("        N_Portal4_V2). Bare C++ actor has no mesh assigned, so the portal is invisible.")
 
 
+def orient_runic_site():
+    """Point the site's forward vector at open ground.
+
+    The spawn is placed a fixed distance along the site's FORWARD vector, so the site's yaw decides
+    where the player materialises. Left at yaw 0 here it aimed straight into a house: the spawn
+    landed 122 uu *below* SM_House_Floor_5x4_662 - i.e. in the basement.
+
+    Picking a bearing needs two tests, not one. "Does a capsule fit" is not enough: the bearing at
+    45 deg fits fine and puts the player inside the house on SM_Rug_8. So also require OPEN SKY -
+    nothing overhead - which is what actually separates outdoors from a tidy living room.
+    """
+    say("\n[6] Orienting the runic site so the spawn lands outdoors")
+    site = next((a for a in actors() if isinstance(a, unreal.GSRunicSite)), None)
+    if not site:
+        say("  SKIP: no runic site")
+        return
+
+    loc = site.get_actor_location()
+    try:
+        safe = max(site.get_editor_property("spawn_forward_offset"),
+                   site.get_editor_property("extraction_radius") + 200.0)
+    except Exception:
+        safe = 1400.0
+
+    world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
+    TQ = unreal.TraceTypeQuery.TRACE_TYPE_QUERY1
+
+    def evaluate(yaw):
+        d = unreal.Rotator(0.0, yaw, 0.0).get_forward_vector()
+        px, py = loc.x + d.x * safe, loc.y + d.y * safe
+        down = unreal.SystemLibrary.line_trace_single(
+            world, unreal.Vector(px, py, loc.z + 500.0), unreal.Vector(px, py, loc.z - 5000.0),
+            TQ, True, [], unreal.DrawDebugTrace.NONE, True)
+        if not down:
+            return None
+        g = down.to_tuple()[4]
+        hit_actor = down.to_tuple()[9]
+        # Open sky? Anything overhead means indoors - a floor above, a roof, a bridge.
+        up = unreal.SystemLibrary.line_trace_single(
+            world, unreal.Vector(px, py, g.z + 120.0), unreal.Vector(px, py, g.z + 3000.0),
+            TQ, True, [], unreal.DrawDebugTrace.NONE, True)
+        return {"yaw": yaw, "x": px, "y": py, "z": g.z, "indoors": bool(up),
+                "on": hit_actor.get_actor_label() if hit_actor else "?"}
+
+    cands = [c for c in (evaluate(y) for y in range(0, 360, 15)) if c]
+    outdoor = [c for c in cands if not c["indoors"]]
+    if not outdoor:
+        say("  WARNING: every bearing is indoors - move the runic site, not just its rotation.")
+        return
+
+    # Among outdoor bearings prefer the one facing the village, so the player spawns looking at
+    # what they came to burn rather than at empty countryside.
+    stalls = [a for a in actors()
+              if (a.get_component_by_class(unreal.StaticMeshComponent)
+                  and a.get_component_by_class(unreal.StaticMeshComponent).static_mesh
+                  and a.get_component_by_class(unreal.StaticMeshComponent).static_mesh.get_name()
+                  == "SM_MarketStallStructure")]
+    if stalls:
+        vx = sum(a.get_actor_location().x for a in stalls) / len(stalls)
+        vy = sum(a.get_actor_location().y for a in stalls) / len(stalls)
+        want = math.degrees(math.atan2(vy - loc.y, vx - loc.x))
+        def score(c):
+            diff = abs((c["yaw"] - want + 180.0) % 360.0 - 180.0)
+            return diff
+        outdoor.sort(key=score)
+        say("  village bearing is %.0f deg" % want)
+
+    best = outdoor[0]
+    site.set_actor_rotation(unreal.Rotator(0.0, best["yaw"], 0.0), False)
+    say("  yaw -> %.0f ; spawn lands at (%.0f, %.0f) on %s, ground z=%.0f, open sky"
+        % (best["yaw"], best["x"], best["y"], best["on"], best["z"]))
+    say("  (%d of %d bearings were outdoors)" % (len(outdoor), len(cands)))
+
+
 for label, fn in (("tag_existing", tag_existing), ("second_field", second_field),
-                  ("windmill", windmill), ("market", market), ("runic_site", runic_site)):
+                  ("windmill", windmill), ("market", market), ("runic_site", runic_site),
+                  ("orient_runic_site", orient_runic_site)):
     step(label, fn)
 
 # ------------------------------------------------------------------ report

@@ -46,13 +46,23 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Runic Site")
 	FGSOnPortalOpenChanged OnPortalOpenChanged;
 
-	/** Where AGSGameMode::ChoosePlayerStart sends a respawning goblin (GDD §1: "respawn is at the
-	 *  runic site"). Offset from the portal plane so a respawn does not immediately re-trigger
-	 *  extraction on an open portal. */
+	/**
+	 * Where every spawn at this site lands (GDD §1: "respawn is at the runic site").
+	 *
+	 * Offset OUTSIDE the extraction sphere, and - since 2026-08-05 - actually validated against the
+	 * world. The first version just walked SpawnForwardOffset along the site's forward vector and
+	 * kept the site's Z, which is only correct on flat open ground: point it at a building and the
+	 * player spawns inside it, which is exactly what happened (spawning in a basement instead of
+	 * the starting zone). It now traces for ground and rejects any spot where the player's capsule
+	 * would be buried, trying several bearings around the site before giving up.
+	 */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Runic Site")
 	FTransform GetSpawnTransform() const;
 
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+
+	/** Arms a pawn for extraction - see ArmedPawns. */
+	virtual void NotifyActorEndOverlap(AActor* OtherActor) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
@@ -86,6 +96,16 @@ protected:
 
 	void TryExtract(AActor* OtherActor);
 
+	/**
+	 * Ground-trace a candidate and confirm a player capsule fits there.
+	 *
+	 * Returns false for the two ways a spawn point goes wrong: nothing under it (a candidate out
+	 * over a cliff or the sea), or something already occupying it (the basement case - the point is
+	 * inside a building's volume, which a naive position offset cannot detect because it never
+	 * asks the world anything).
+	 */
+	bool FindStandableSpot(const FVector& Candidate, FVector& OutSpot) const;
+
 	// ------------------------------------------------------------------ components
 
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Runic Site")
@@ -110,9 +130,40 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning", meta = (ClampMin = "100.0"))
 	float ExtractionRadius = 1200.f;
 
-	/** How far in front of the portal plane a respawn lands. */
+	/** How far in front of the portal plane a respawn lands. Always clamped to sit outside
+	 *  ExtractionRadius - see GetSpawnTransform. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning")
 	float SpawnForwardOffset = 900.f;
+
+	/**
+	 * How many bearings to try around the site before giving up, starting with the site's own
+	 * facing. One direction is not enough: the site faces wherever a designer left it, and the
+	 * hamlet is full of buildings, so the forward vector alone will eventually point into a wall.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning", meta = (ClampMin = "1", ClampMax = "32"))
+	int32 SpawnBearingCount = 8;
+
+	/** Player capsule used to test whether a candidate spot is actually standable. Defaults match
+	 *  the Scout; a smaller value would happily approve a spot the real capsule cannot fit. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning")
+	float SpawnCapsuleRadius = 42.f;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning")
+	float SpawnCapsuleHalfHeight = 96.f;
+
+	/**
+	 * How far ABOVE the site's own height to begin the ground trace.
+	 *
+	 * Deliberately small. Tracing from far overhead would find the roof of whatever building stands
+	 * near the site and call that ground - trading a player stuck in a basement for a player stood
+	 * on a rooftop. The site itself sits on walkable ground, so ground near the site is near the
+	 * site's own Z.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning")
+	float SpawnTraceUpDistance = 500.f;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Runic Site|Tuning")
+	float SpawnTraceDownDistance = 5000.f;
 
 	/**
 	 * If true, the site opens itself the moment every objective type has burned. Off would mean
@@ -127,4 +178,22 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_PortalOpen)
 	bool bPortalOpen = false;
+
+	/**
+	 * Pawns that have LEFT the circle at least once, and so may be extracted by a portal opening
+	 * around them.
+	 *
+	 * The player now spawns ON the site (Michael, 2026-08-05), which means they begin the raid
+	 * standing in the extraction circle. Without this, the moment the last objective burned the
+	 * portal would open around whoever was still parked there and end the raid instantly - which is
+	 * exactly what the first successful playtest did, all three log lines landing in the same
+	 * millisecond with the player never having moved.
+	 *
+	 * Walking out arms you. Walking back in extracts you. A pawn that has never left is a pawn that
+	 * has not gone raiding yet, so opening a portal underneath it should do nothing.
+	 *
+	 * Note this only gates the open-the-portal-around-you path; a normal BeginOverlap already
+	 * implies the pawn came from outside, so it needs no such check.
+	 */
+	TSet<TWeakObjectPtr<APawn>> ArmedPawns;
 };

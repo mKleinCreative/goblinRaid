@@ -136,10 +136,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 007 | blocked (waiting on: Michael to run the push - 'git push -u origin interact-framework' was denied by the Claude Code permission classifier. Commit 8216b05 is made locally; only the push is outstanding.) | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) | GoblinSiege 5.8/.gitignore | none |
-| 008 | active | claude-perf | PIE-verify defender crowding, tune stand-off dials if they do not hold | Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.h<br>Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.cpp<br>Content/AI/BT_Militia.uasset | required |
+| 009 | blocked (waiting on: 008 - build gate closed. Spawn-in-geometry fix is written but uncompiled and unverified.) | claude-raid | Raid loop: director, runic site, extraction; fix player spawning inside geometry | Source/GoblinSiege/Raid/GSRunicSite.cpp<br>Source/GoblinSiege/Raid/GSRunicSite.h<br>Source/GoblinSiege/Core/GSGameMode.cpp<br>Source/GoblinSiege/Core/GSGameMode.h<br>Source/GoblinSiege/Raid/GSRaidDirector.cpp<br>Source/GoblinSiege/Raid/GSRaidDirector.h<br>Source/GoblinSiege/Raid/GSRaidLibrary.cpp<br>Source/GoblinSiege/Raid/GSRaidLibrary.h<br>Source/GoblinSiege/Raid/GSRaidMarker.cpp<br>Source/GoblinSiege/Raid/GSRaidMarker.h<br>Source/GoblinSiege/Raid/GSRaidTypes.h<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.cpp<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp<br>Source/GoblinSiege/Combat/GSGameplayTags.h<br>Content/Maps/L_Tutorial_Island.umap | required |
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -151,6 +150,8 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 004 | done | claude-ranged | Ranged combat: aim framework, bow, torch collision fixes, swap diagnostics |
 | 005 | done | claude-ranged | Supplement to #004 - files missed in that claim (same body of work) |
 | 006 | done | claude-perf | Defender crowding: stand-off slots so they stop converging on one point |
+| 007 | done | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) |
+| 008 | done | claude-perf | PIE-verify defender crowding, tune stand-off dials if they do not hold |
 
 <!-- BOARD:END -->
 

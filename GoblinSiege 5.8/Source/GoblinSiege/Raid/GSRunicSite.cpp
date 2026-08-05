@@ -168,13 +168,36 @@ void AGSRunicSite::NotifyActorBeginOverlap(AActor* OtherActor)
 	TryExtract(OtherActor);
 }
 
+void AGSRunicSite::NotifyActorEndOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorEndOverlap(OtherActor);
+
+	// Left the circle: from now on, a portal opening around this pawn counts. See ArmedPawns.
+	if (APawn* Pawn = Cast<APawn>(OtherActor))
+	{
+		ArmedPawns.Add(Pawn);
+	}
+}
+
 void AGSRunicSite::TryExtractOverlappingPawns()
 {
 	TArray<AActor*> Overlapping;
 	ExtractionSphere->GetOverlappingActors(Overlapping, APawn::StaticClass());
 	for (AActor* Actor : Overlapping)
 	{
-		TryExtract(Actor);
+		// ONLY pawns that have been away. A pawn still standing where it spawned has not raided
+		// anything yet, and opening the portal underneath it must not end the raid for it.
+		APawn* Pawn = Cast<APawn>(Actor);
+		if (Pawn && ArmedPawns.Contains(Pawn))
+		{
+			TryExtract(Actor);
+		}
+		else if (Pawn)
+		{
+			UE_LOG(LogGSRunicSite, Log,
+				TEXT("[GoblinSiege] Portal opened around '%s', which has not left the circle yet - ")
+				TEXT("not extracting. Step out and back in."), *Pawn->GetName());
+		}
 	}
 }
 
@@ -199,17 +222,84 @@ void AGSRunicSite::TryExtract(AActor* OtherActor)
 
 // ====================================================================== spawning
 
+bool AGSRunicSite::FindStandableSpot(const FVector& Candidate, FVector& OutSpot) const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(GSRunicSiteSpawn), false, this);
+
+	// Ground first. Starting only just above the site's own height, not far overhead - see
+	// SpawnTraceUpDistance for why a high start finds rooftops.
+	FHitResult Hit;
+	const FVector Start = Candidate + FVector(0.f, 0.f, SpawnTraceUpDistance);
+	const FVector End = Candidate - FVector(0.f, 0.f, SpawnTraceDownDistance);
+	if (!World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		return false; // nothing under it at all
+	}
+
+	const FVector Centre = Hit.Location + FVector(0.f, 0.f, SpawnCapsuleHalfHeight + 10.f);
+
+	// Then: would the player actually FIT? This is the check the original code lacked entirely, and
+	// the only one that can catch a point buried inside a building.
+	const FCollisionShape Capsule = FCollisionShape::MakeCapsule(SpawnCapsuleRadius, SpawnCapsuleHalfHeight);
+	if (World->OverlapBlockingTestByChannel(Centre, FQuat::Identity, ECC_Pawn, Capsule, Params))
+	{
+		return false; // occupied - a wall, a floor above, the inside of a basement
+	}
+
+	OutSpot = Centre;
+	return true;
+}
+
 FTransform AGSRunicSite::GetSpawnTransform() const
 {
-	// In front of the portal plane, facing away from it, and always OUTSIDE the extraction sphere.
+	// ON THE SITE, on solid ground. Michael's call, 2026-08-05: "spawn me on the mesh that I gave
+	// you, not underneath the map."
 	//
-	// The clamp is the load-bearing part. Spawning inside an open circle would extract the player
-	// the instant they respawned - so dying once with the objectives already burned would end the
-	// raid as a win the player never chose. Deriving the distance from ExtractionRadius rather
-	// than trusting the authored offset means a designer widening the circle cannot reintroduce
-	// that by editing one number and not the other.
-	const FVector Forward = GetActorForwardVector();
-	const float SafeOffset = FMath::Max(SpawnForwardOffset, ExtractionRadius + 200.f);
-	const FVector Location = GetActorLocation() + Forward * SafeOffset;
-	return FTransform(Forward.Rotation(), Location);
+	// The previous version pushed the spawn SpawnForwardOffset along the site's forward vector to
+	// keep it outside the extraction sphere. That was solving the wrong problem in the worst way:
+	// it took a point that is known-good by construction (the site, which a designer placed on
+	// walkable ground) and threw it 1400 uu in whatever direction the site happened to face -
+	// straight into a house, 122 uu below SM_House_Floor_5x4_662. The instant-extraction case it
+	// was guarding is handled properly now by the arming rule in TryExtractOverlappingPawns, which
+	// is where it belonged: a spawn position is a bad place to encode a rule about overlaps.
+	//
+	// The ground trace is what makes "not underneath the map" a guarantee rather than a hope: the
+	// site's Z is used only as the search origin, never as the answer.
+	const FVector Origin = GetActorLocation();
+	const FRotator Facing(0.f, GetActorRotation().Yaw, 0.f);
+
+	FVector Spot;
+	if (FindStandableSpot(Origin, Spot))
+	{
+		return FTransform(Facing, Spot);
+	}
+
+	// The site itself is blocked - something was built on top of it. Fan outward rather than give
+	// up, still preferring to stay close, and only then accept the raw location.
+	const int32 Bearings = FMath::Max(1, SpawnBearingCount);
+	for (float Ring : { 300.f, 700.f, 1200.f })
+	{
+		for (int32 Step = 0; Step < Bearings; ++Step)
+		{
+			const FVector Dir = FRotator(0.f, Facing.Yaw + (360.f / Bearings) * Step, 0.f).Vector();
+			if (FindStandableSpot(Origin + Dir * Ring, Spot))
+			{
+				UE_LOG(LogGSRunicSite, Warning,
+					TEXT("[GoblinSiege] '%s' is obstructed; spawning %.0f uu away instead. ")
+					TEXT("Move the site onto clear ground."), *GetName(), Ring);
+				return FTransform(Facing, Spot);
+			}
+		}
+	}
+
+	UE_LOG(LogGSRunicSite, Error,
+		TEXT("[GoblinSiege] '%s' found NO standable ground anywhere near it. Spawning on the site ")
+		TEXT("itself - if that is inside geometry, the site is placed badly."), *GetName());
+	return FTransform(Facing, Origin);
 }
