@@ -42,17 +42,39 @@ clamped to exactly 1.0, which the near-equal guard then swallowed **forever**. T
 silently impossible, with no error anywhere. Fix: a value that reaches the threshold is always
 processed, however small the step. **Verified detonating after the fix.**
 
-### OPEN: the market cannot complete - fire does not spread stall to stall
-Ignited stalls burn out alone; the market sticks at 1/64 = 1.6% and never grows, so the third
-required type is still unreachable and the raid is not yet winnable end to end. Ruled OUT already:
-- adoption (64/64 adopted, confirmed in log), flammable components present on 67/67
-- `SpreadRadius` (raised 450 → 600; irrelevant, nearest-neighbour gap is **26 uu median**)
-- collision (all 67 stalls are QUERY_AND_PHYSICS, so the spread overlap can see them)
-- the gating defaults are all permissive: `bCanBeLitBySpread=true`, `SpreadAtProgress01=0.35`,
-  `SpreadAttemptInterval=1.5`, `SpreadChance=0.5`, `FireResistance=0`, overlap uses AllObjects
-Next suspect: whether `UGSFlammableComponent`'s burn timer actually runs on a component created via
-`AddInstanceComponent` and then duplicated into PIE - i.e. does `Ignite()`'s tick ever fire for
-these, so `TrySpread()` is reached at all. Instrument `TrySpread` before changing tuning.
+### THE RAID IS WINNABLE END TO END (verified 2026-08-05)
+```
+LogGSRunicSite: Portal at 'GSRunicSite_0' is now OPEN.
+LogGSRunicSite: 'BP_GSPlayerCharacter_C_0' extracted through 'GSRunicSite_0'.
+LogGSRaid:      RAID ENDED: Extracted (3/3 objective types burned).
+```
+Burn one of each type -> portal opens -> step in -> raid ends Extracted.
+
+### RESOLVED: the market could not complete - and the spread system was never the problem
+Fire spread works fine. Two placement mistakes made it look broken, both of which fail SILENTLY:
+
+1. **The market was centred on the centroid of every market-ish prop**, which on this map is empty
+   ground between clusters. `GS.Burn.IgniteAll` lights the stall nearest the objective's centre, so
+   it lit an isolated straggler 1307 uu from anything, which burned out alone. Fix: centre the
+   market on the largest CONNECTED cluster of stalls, not on the mean position of scattered ones.
+
+2. **75% of the adopted stalls was mathematically unreachable.** The market completes at 75% of what
+   it ADOPTED, and fire only crosses gaps under `SpreadRadius` - so adopting scattered props inflates
+   the denominator with stalls fire can never reach. The 67 stall actors form **17 disconnected
+   clusters**; the largest is 24, and even a 4000 uu spread links at most 30. Adopting all 64 meant
+   needing 48 to burn when ~30 were reachable. Fix: adopt one cluster (29 stalls, needs ~22).
+
+   **The general rule, which the settlement generator will need too: a cluster objective's adopt
+   radius must not exceed what its own spread distance can traverse.** Adopting more stalls makes
+   the objective HARDER, not richer, and nothing anywhere reports the shortfall.
+
+### BUG FIXED: the player spawned inside the extraction circle (2026-08-05)
+`ChoosePlayerStart` returned the runic site, so UE spawned the player on the site's own transform -
+which IS the portal. On the first full playtest, portal-open and "extracted" landed in the same
+millisecond with the player never having moved. Respawn had been guarded against exactly this;
+the initial spawn had not, because the offset was applied in `RespawnPlayer` instead of at the
+choke point. Now in `RestartPlayerAtPlayerStart`, which every spawn path routes through, so no path
+can forget it. Verified: the player now spawns 1400 uu out (radius 1200 + 200), portal closed.
 
 ### Queue: Tutorial Island content (raid-loop-001 follow-on, 2026-08-05)
 *The C++ loop is done and committed; what remains is MAP CONTENT. A survey of L_Tutorial_Island found

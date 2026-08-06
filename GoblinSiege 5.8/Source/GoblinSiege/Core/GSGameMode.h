@@ -31,6 +31,32 @@ public:
 	 */
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 
+	/**
+	 * Spawn OFFSET from a runic site rather than on it.
+	 *
+	 * The site's own transform is the PORTAL. Spawning on it drops the player inside the extraction
+	 * sphere, and then the raid ends itself as a win the instant the portal opens - which is exactly
+	 * what happened on the first full playtest: portal-open and "extracted" landed in the same
+	 * millisecond, with the player never having moved.
+	 *
+	 * This is the single choke point for it. Every spawn path - initial spawn, respawn, a Blueprint
+	 * calling RestartPlayer - ends up here, so the offset cannot be forgotten by one of them.
+	 */
+	virtual void RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot) override;
+
+	/**
+	 * DEBUG. When set, every spawn AND respawn lands here instead of the runic site.
+	 *
+	 * Set by GS.Raid.SpawnAt, cleared by GS.Raid.SpawnAt off. It exists because playtesting one
+	 * corner of a 3 km hamlet otherwise starts with a two-minute walk from the portal, every single
+	 * time - and a test you have to walk to is a test that gets skipped.
+	 *
+	 * A plain static rather than a UPROPERTY on purpose: it must survive PIE restarts (each PIE gets
+	 * a fresh GameMode instance), and it must never be saved into an asset where it could follow
+	 * someone into a real playthrough.
+	 */
+	static TOptional<FVector> DebugSpawnOverride;
+
 protected:
 	void RespawnPlayer(AController* Controller);
 

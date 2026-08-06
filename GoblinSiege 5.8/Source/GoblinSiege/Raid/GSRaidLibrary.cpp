@@ -2,6 +2,8 @@
 #include "Raid/GSRaidMarker.h"
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSBreakableComponent.h"
+#include "Destruction/GSBurnFXComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagsManager.h"
 
@@ -69,12 +71,44 @@ bool UGSRaidLibrary::ConfigureMarker(AGSRaidMarker* Marker, FName MarkerTypeName
 	return true;
 }
 
+namespace
+{
+	/**
+	 * Give an actor its char, if it has none.
+	 *
+	 * Separated out and called on BOTH paths below, because the first version of this put it after
+	 * MakeActorFlammable's idempotency guard - so an actor that ALREADY had a flammable component
+	 * returned early and never got char. Re-running the dressing script on the 67 market stalls
+	 * therefore fixed nothing, silently, which is the exact failure mode this whole area keeps
+	 * producing.
+	 */
+	void EnsureBurnFX(AActor* Actor)
+	{
+		if (!Actor || Actor->FindComponentByClass<UGSBurnFXComponent>())
+		{
+			return;
+		}
+
+		UGSBurnFXComponent* FX = NewObject<UGSBurnFXComponent>(Actor, UGSBurnFXComponent::StaticClass(),
+			TEXT("GSBurnFX"), RF_Transactional);
+		if (FX)
+		{
+			Actor->AddInstanceComponent(FX);
+			FX->RegisterComponent();
+			Actor->MarkPackageDirty();
+		}
+	}
+}
+
 UGSFlammableComponent* UGSRaidLibrary::MakeActorFlammable(AActor* Actor)
 {
 	if (!Actor)
 	{
 		return nullptr;
 	}
+
+	// Char first, and unconditionally - see EnsureBurnFX.
+	EnsureBurnFX(Actor);
 
 	// Idempotent. A dressing script gets re-run - after a crash, after a tweak, after a second pass
 	// over a wider radius - and stacking a second flammable component on a stall would double every
@@ -99,6 +133,47 @@ UGSFlammableComponent* UGSRaidLibrary::MakeActorFlammable(AActor* Actor)
 	Actor->MarkPackageDirty();
 
 	return Comp;
+}
+
+UGSBreakableComponent* UGSRaidLibrary::MakeActorBreakable(AActor* Actor, bool bOpensBuilding)
+{
+	if (!Actor)
+	{
+		return nullptr;
+	}
+
+	if (UGSBreakableComponent* Existing = Actor->FindComponentByClass<UGSBreakableComponent>())
+	{
+		return Existing;
+	}
+
+	UGSBreakableComponent* Comp = NewObject<UGSBreakableComponent>(Actor, UGSBreakableComponent::StaticClass(),
+		TEXT("GSBreakable"), RF_Transactional);
+	if (!Comp)
+	{
+		return nullptr;
+	}
+
+	// AddInstanceComponent is the whole point - see the header.
+	Actor->AddInstanceComponent(Comp);
+	Comp->RegisterComponent();
+	Comp->SetOpensBuilding(bOpensBuilding);
+
+	Actor->MarkPackageDirty();
+	return Comp;
+}
+
+int32 UGSRaidLibrary::CountBreakable(const TArray<AActor*>& Actors)
+{
+	int32 Count = 0;
+	for (const AActor* Actor : Actors)
+	{
+		if (Actor && Actor->FindComponentByClass<UGSBreakableComponent>())
+		{
+			++Count;
+		}
+	}
+	return Count;
 }
 
 int32 UGSRaidLibrary::CountFlammable(const TArray<AActor*>& Actors)

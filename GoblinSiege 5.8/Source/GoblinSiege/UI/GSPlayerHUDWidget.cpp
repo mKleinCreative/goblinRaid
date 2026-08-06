@@ -267,44 +267,98 @@ void UGSPlayerHUDWidget::RebuildObjectiveList()
 
 	// Names only - no arrows, no distances, no waypoints (GDD §2.1, decision 11). The player is
 	// told WHAT to burn and finds it themselves; that search is the scouting half of the game.
-	TArray<FString> Lines;
-	Lines.Reserve(Rows.Num());
-
+	//
+	// GROUPED BY TYPE (2026-08-05). Eleven houses arrived in the level and named every one of them
+	// individually, which made the list longer than the screen and stopped it being read at all.
+	// Naming is only useful while the names distinguish things: "The Windmill" tells you where to
+	// go, "A House" eleven times tells you nothing. So a type with more carriers than
+	// CollapseTypeAbove becomes ONE row with a count, and small types keep their names.
+	//
+	// Types are kept in first-seen order rather than sorted, so the list does not reshuffle itself
+	// as objectives complete - a list that reorders under the player is worse than a long one.
+	TArray<FGameplayTag> TypeOrder;
+	TMap<FGameplayTag, TArray<const FGSObjectiveRow*>> ByType;
 	for (const FGSObjectiveRow& Row : Rows)
 	{
-		const EGSObjectiveListState State = static_cast<EGSObjectiveListState>(Row.ListState);
-		const FString Name = Row.DisplayName.IsEmpty()
-			? TEXT("(unnamed objective)")   // an unset ObjectiveDisplayName, visible rather than blank
-			: Row.DisplayName.ToString();
-
-		switch (State)
+		TArray<const FGSObjectiveRow*>& Group = ByType.FindOrAdd(Row.TypeTag);
+		if (Group.Num() == 0)
 		{
-		case EGSObjectiveListState::Complete:
-			Lines.Add(FString::Printf(TEXT("  [x] %s"), *Name));
-			break;
+			TypeOrder.Add(Row.TypeTag);
+		}
+		Group.Add(&Row);
+	}
 
-		case EGSObjectiveListState::Optional:
-			// Demoted: a carrier of this type has already burned. Still worth points, no longer
-			// required - and the player has to be able to see that, or Q-32's "one of each type"
-			// rule is invisible.
-			Lines.Add(FString::Printf(TEXT("  [ ] %s  (bonus)"), *Name));
-			break;
+	TArray<FString> Lines;
+	Lines.Reserve(TypeOrder.Num() + Rows.Num());
 
-		case EGSObjectiveListState::Required:
-		default:
-			if (Row.Completion01 > 0.01f)
+	for (const FGameplayTag& TypeTag : TypeOrder)
+	{
+		const TArray<const FGSObjectiveRow*>& Group = ByType[TypeTag];
+
+		if (Group.Num() > CollapseTypeAbove)
+		{
+			int32 Done = 0;
+			for (const FGSObjectiveRow* Row : Group)
 			{
-				Lines.Add(FString::Printf(TEXT("  [ ] %s  %d%%"), *Name,
-					FMath::FloorToInt(Row.Completion01 * 100.f)));
+				if (static_cast<EGSObjectiveListState>(Row->ListState) == EGSObjectiveListState::Complete)
+				{
+					++Done;
+				}
 			}
-			else
+
+			// The leaf of the tag, pluralised: Objective.Burn.House -> "Houses". Derived rather than
+			// authored because a fifth burn type should cost a tag and nothing else - the same
+			// argument that made ObjectiveTypeTag a tag instead of an enum.
+			FString Leaf = TypeTag.IsValid() ? TypeTag.ToString() : TEXT("Other");
+			int32 Dot = INDEX_NONE;
+			if (Leaf.FindLastChar(TEXT('.'), Dot))
 			{
-				Lines.Add(FString::Printf(TEXT("  [ ] %s"), *Name));
+				Leaf = Leaf.RightChop(Dot + 1);
 			}
-			break;
+
+			Lines.Add(FString::Printf(TEXT("  %s %ss  %d / %d"),
+				Done > 0 ? TEXT("[x]") : TEXT("[ ]"), *Leaf, Done, Group.Num()));
+			continue;
+		}
+
+		for (const FGSObjectiveRow* Row : Group)
+		{
+			const EGSObjectiveListState State = static_cast<EGSObjectiveListState>(Row->ListState);
+			const FString Name = Row->DisplayName.IsEmpty()
+				? TEXT("(unnamed objective)")  // an unset ObjectiveDisplayName, visible rather than blank
+				: Row->DisplayName.ToString();
+
+			switch (State)
+			{
+			case EGSObjectiveListState::Complete:
+				Lines.Add(FString::Printf(TEXT("  [x] %s"), *Name));
+				break;
+
+			case EGSObjectiveListState::Optional:
+				// Demoted: a carrier of this type has already burned. Still worth points, no longer
+				// required - and the player has to be able to see that, or Q-32's "one of each type"
+				// rule is invisible.
+				Lines.Add(FString::Printf(TEXT("  [ ] %s  (bonus)"), *Name));
+				break;
+
+			case EGSObjectiveListState::Required:
+			default:
+				if (Row->Completion01 > 0.01f)
+				{
+					Lines.Add(FString::Printf(TEXT("  [ ] %s  %d%%"), *Name,
+						FMath::FloorToInt(Row->Completion01 * 100.f)));
+				}
+				else
+				{
+					Lines.Add(FString::Printf(TEXT("  [ ] %s"), *Name));
+				}
+				break;
+			}
 		}
 	}
 
+	// The header counts TYPES, not carriers - it is the win condition, and the win is one of each
+	// type. With eleven houses on the map the two numbers diverge badly, so this has to stay typed.
 	const FString Header = FString::Printf(TEXT("BURN  (%d / %d)"),
 		Director->GetCompletedTypeCount(), Director->GetRequiredTypeCount());
 

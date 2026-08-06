@@ -23,6 +23,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Lives")
 	void ResetLivesForNewRaid();
 
+	/** DEBUG ONLY. Drop straight to the last life so OutOfLives can be reached in one death rather
+	 *  than five, which is the difference between a testable lose path and an untested one. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Lives|Debug")
+	void DebugSetLives(int32 NewLives);
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Lives")
 	int32 GetLives() const { return Lives; }
 

@@ -18,6 +18,17 @@ int32 AGSPlayerState::LoseLife()
 	return Lives;
 }
 
+void AGSPlayerState::DebugSetLives(int32 NewLives)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Lives = FMath::Clamp(NewLives, 0, MaxLives);
+	OnRep_Lives();
+	UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Raid.SetLives -> %d"), Lives);
+}
+
 void AGSPlayerState::ResetLivesForNewRaid()
 {
 	if (!HasAuthority())

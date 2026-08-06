@@ -116,6 +116,12 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 ## Orchestrator's side
 
+- **The orchestrator is not exempt from rule 1.** Closing a ticket, rendering the board and
+  running `buildgate` are queue operations and need no ticket of their own — **writing any repo
+  file does.** This is written down because it was breached: the agent that built this queue
+  edited seven files across a whole session without a ticket, including `AGENT_STATE.md` while
+  ticket #005 held a claim on it. The collision was caught by an editor's staleness check, not
+  by the queue. Ticket #010 is the record.
 - Read the board before assigning anything; hand overlapping work to one agent instead of two
   where you can.
 - When a ticket hits `review`, read Evaluate first — an agent that cannot find a weakness in its
@@ -134,12 +140,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 007 | blocked (waiting on: Michael to run the push - 'git push -u origin interact-framework' was denied by the Claude Code permission classifier. Commit 8216b05 is made locally; only the push is outstanding.) | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) | GoblinSiege 5.8/.gitignore | none |
-| 008 | active | claude-perf | PIE-verify defender crowding, tune stand-off dials if they do not hold | Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.h<br>Source/GoblinSiege/AI/Tasks/BTService_AcquireTarget.cpp<br>Content/AI/BT_Militia.uasset | required |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 12 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -151,6 +154,20 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 004 | done | claude-ranged | Ranged combat: aim framework, bow, torch collision fixes, swap diagnostics |
 | 005 | done | claude-ranged | Supplement to #004 - files missed in that claim (same body of work) |
 | 006 | done | claude-perf | Defender crowding: stand-off slots so they stop converging on one point |
+| 007 | done | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) |
+| 008 | done | claude-perf | PIE-verify defender crowding, tune stand-off dials if they do not hold |
+| 009 | done | claude-raid | Raid loop: director, runic site, extraction; fix player spawning inside geometry |
+| 010 | done | claude-queue | Agent work queue: gsqueue.ps1, protocol, build gate, decision-queue board |
+| 011 | done | claude-raid | Portal 4 visuals on BP_GS_RunicSite, and the four missing HUD widgets |
+| 012 | done | claude-raid | Kill the per-frame GSDBG|CLIMB print spam on BP_GSPlayerCharacter |
+| 013 | done | claude-raid | Burnable buildings: torch through a window or onto the roof sets the house alight |
+| 014 | done | claude-raid | Invisible meshes still present in L_Tutorial_Island |
+| 015 | done | claude-raid | Objective.Burn.House tag, then build and place burnable buildings |
+| 016 | done | claude-raid | Fix building clustering scale and breakable-component persistence |
+| 017 | done | claude-raid | Collapse the HUD objective list by type so 11 houses do not fill the screen |
+| 018 | done | claude-raid | GS.Raid.* debug commands so the two lose paths can be driven and verified |
+| 019 | done | claude-raid | GS.Raid.Goto / GotoActor / SpawnAt teleport debug commands |
+| 020 | done | claude-raid | Burning houses need to LOOK like it: char, smoulder and flames |
 
 <!-- BOARD:END -->
 

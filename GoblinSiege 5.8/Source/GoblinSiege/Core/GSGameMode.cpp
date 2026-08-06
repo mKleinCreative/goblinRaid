@@ -83,8 +83,6 @@ void AGSGameMode::HandleGoblinDeath(AGSCharacterBase* DeadCharacter, AController
 
 AActor* AGSGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
-	// Initial spawn only - respawns go through RespawnPlayer's RestartPlayerAtTransform, which
-	// needs the site's forward offset and so cannot express itself as "an actor to stand on".
 	if (AGSRunicSite* Site = FindRunicSite(GetWorld()))
 	{
 		return Site;
@@ -92,6 +90,31 @@ AActor* AGSGameMode::ChoosePlayerStart_Implementation(AController* Player)
 
 	// No site: stock selection. A test map or a combat arena is allowed not to have one.
 	return Super::ChoosePlayerStart_Implementation(Player);
+}
+
+TOptional<FVector> AGSGameMode::DebugSpawnOverride;
+
+void AGSGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot)
+{
+	// Debug override wins over everything, including the runic site - that is the point of it.
+	if (DebugSpawnOverride.IsSet())
+	{
+		const FVector Where = DebugSpawnOverride.GetValue();
+		UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] Spawn overridden by GS.Raid.SpawnAt -> (%.0f, %.0f, %.0f)"),
+			Where.X, Where.Y, Where.Z);
+		RestartPlayerAtTransform(NewPlayer, FTransform(FRotator::ZeroRotator, Where));
+		return;
+	}
+
+	// See the header: the site's transform is the portal, so standing on it is standing in the
+	// extraction circle. GetSpawnTransform() is the offset one, clamped outside the sphere.
+	if (const AGSRunicSite* Site = Cast<AGSRunicSite>(StartSpot))
+	{
+		RestartPlayerAtTransform(NewPlayer, Site->GetSpawnTransform());
+		return;
+	}
+
+	Super::RestartPlayerAtPlayerStart(NewPlayer, StartSpot);
 }
 
 void AGSGameMode::RespawnPlayer(AController* Controller)
@@ -115,19 +138,11 @@ void AGSGameMode::RespawnPlayer(AController* Controller)
 		}
 	}
 
-	// Respawn at the runic site (design doc §1). RestartPlayerAtTransform rather than
-	// RestartPlayer + ChoosePlayerStart, because the site's spawn point is OFFSET from the site's
-	// own transform - it has to land outside the extraction sphere, or respawning while the portal
-	// stands open would instantly extract the player and end the raid as a win they never chose.
-	// An actor return value cannot carry that offset; a transform can.
-	if (const AGSRunicSite* Site = FindRunicSite(GetWorld()))
-	{
-		RestartPlayerAtTransform(Controller, Site->GetSpawnTransform());
-	}
-	else
-	{
-		RestartPlayer(Controller);
-	}
+	// Respawn at the runic site (design doc §1). Plain RestartPlayer: it routes through
+	// ChoosePlayerStart -> RestartPlayerAtPlayerStart, and THAT is where the site's spawn offset is
+	// applied, for every spawn path at once. Duplicating the offset here as well was how the
+	// initial spawn ended up missing it.
+	RestartPlayer(Controller);
 
 	if (AGSCharacterBase* NewCharacter = Controller->GetPawn<AGSCharacterBase>())
 	{

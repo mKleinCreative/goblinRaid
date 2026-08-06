@@ -97,6 +97,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Clock")
 	EGSRaidClockPhase GetRaidClockPhase() const { return RaidClockPhase; }
 
+	/**
+	 * DEBUG ONLY. Fast-forward the clock to the edge of whatever phase it is in.
+	 *
+	 * Exists because the LeftBehind lose path is otherwise untestable: it needs a 30-minute raid
+	 * plus a 90-second collapse window to elapse honestly, so nobody ever ran it, and a lose
+	 * condition nobody has run is a lose condition nobody knows works. This drives the REAL
+	 * transition - it only moves the counter, and TickRaidClock still decides every phase change.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Clock|Debug")
+	void DebugExpireClock();
+
 	/** Seconds until 0:00. Zero once the clock has expired into the collapse window. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Clock")
 	float GetRaidSecondsRemaining() const { return FMath::Max(0.f, RaidSecondsRemaining); }

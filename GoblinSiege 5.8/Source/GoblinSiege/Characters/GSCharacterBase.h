@@ -47,6 +47,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
 	virtual void ApplyRespawnState(float HealthFraction, float InvulnerabilitySeconds);
 
+	/**
+	 * DEBUG ONLY. Kill outright by driving the Health attribute to zero.
+	 *
+	 * Deliberately NOT a call to HandleDeath. Setting the attribute is what a real killing blow
+	 * does, so this runs the whole genuine chain - HandleHealthChanged, the death tags, the ragdoll,
+	 * the GameMode's life accounting - rather than testing a shortcut that skips the parts most
+	 * likely to be broken. UGameplayStatics::ApplyDamage cannot be used here: damage in this project
+	 * is a GameplayEffect, so ApplyDamage leaves Health untouched (confirmed 2026-08-06 - six calls,
+	 * HP stayed 100).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Debug")
+	void DebugKill();
+
 	/** Per-archetype/per-weapon turn-rate identity (Brute turns like a barge, Slasher/Scout turns
 	 *  sharp - design doc "Turn rate"). Pushes the value into CharacterMovementComponent::RotationRate
 	 *  so bOrientRotationToMovement-driven turning actually uses it. Called by UGSWeaponComponent on

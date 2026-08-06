@@ -140,6 +140,18 @@ next agent rediscovers it.
 
 ## FAILED
 
+- 2026-08-05 **The work queue is ADVISORY - it protects only against agents that actually run
+  it, and the first one to breach it was the agent that built it.** `AgentQueue/` was created,
+  its rules written, and other agents' tickets reviewed against them, across a session in which
+  the author claimed nothing and edited seven files. `AGENT_STATE.md` was among them while
+  ticket #005 held a claim on it; the collision surfaced as an editor "File has been modified
+  since read" rejection, i.e. caught by a tool, not by the queue - the same shape as the
+  2026-08-04 `GSPlayerCharacter.cpp` near-miss the queue exists to prevent. Ticket #010 is the
+  record. QUEUE.md now states that the orchestrator is not exempt: queue operations need no
+  ticket, **writing any repo file does**. Nothing in the system detects an unticketed writer -
+  the only reason to trust the board is that every session chooses to use it, so a window that
+  never adopted it is invisible. Symptom to watch for: files with recent mtimes that no open
+  ticket claims (`gsqueue.ps1 list` against the working tree).
 - 2026-08-05 **Marketplace Niagara systems recompile on EVERY load until re-saved once.**
   `N_Portal4_V2` and `N_Portal4Elemental` cost 24.2s + 24.3s every time `L_Tutorial_Island` opened
   (one session paid 320.9s across 22 compiles) because the compiled result was never serialised

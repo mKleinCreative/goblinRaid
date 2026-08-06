@@ -394,6 +394,19 @@ void AGSCharacterBase::HandleDeath()
 	}
 }
 
+void AGSCharacterBase::DebugKill()
+{
+	if (!HasAuthority() || !AbilitySystemComponent || !AttributeSetBase || bIsDead)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Raid.Kill: %s (hp %.0f -> 0)"),
+		*GetName(), GetHealth());
+
+	AbilitySystemComponent->SetNumericAttributeBase(UGSAttributeSetBase::GetHealthAttribute(), 0.f);
+}
+
 void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float InvulnerabilitySeconds)
 {
 	bIsDead = false;

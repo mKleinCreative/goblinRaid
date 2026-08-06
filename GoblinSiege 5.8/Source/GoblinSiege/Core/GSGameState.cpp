@@ -209,6 +209,30 @@ void AGSGameState::HandleUnseenFireFuse()
 
 // ====================================================================== raid clock
 
+void AGSGameState::DebugExpireClock()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	// Leave a sliver rather than zeroing: TickRaidClock owns every phase transition, and handing it
+	// a value it can decrement is what keeps this a test of the real code rather than of this
+	// function. Collapsing is driven the same way, so one command walks Running -> Collapsing ->
+	// Expired across three calls.
+	if (RaidClockPhase == EGSRaidClockPhase::Collapsing)
+	{
+		CollapseSecondsRemaining = 0.05f;
+	}
+	else
+	{
+		RaidSecondsRemaining = 0.05f;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Raid.ExpireClock: phase=%d raid=%.2fs collapse=%.2fs"),
+		static_cast<int32>(RaidClockPhase), RaidSecondsRemaining, CollapseSecondsRemaining);
+}
+
 void AGSGameState::StartRaidClock()
 {
 	if (!HasAuthority() || RaidClockPhase != EGSRaidClockPhase::NotStarted)
