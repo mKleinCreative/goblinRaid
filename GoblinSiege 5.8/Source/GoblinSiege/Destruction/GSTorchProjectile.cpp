@@ -2,6 +2,8 @@
 #include "Destruction/GSFireVolume.h"
 #include "Destruction/GSFlammableComponent.h"
 #include "Destruction/GSBurnObjectiveBase.h"
+#include "Destruction/GSBuildingObjective.h"
+#include "Destruction/GSBreakableComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -133,6 +135,46 @@ void AGSTorchProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 			AGSBurnObjectiveBase::FindObjectiveAtLocation(this, Hit.ImpactPoint))
 		{
 			Objective->IgniteAtLocation(Hit.ImpactPoint);
+		}
+
+		// ---------------------------------------------------------------- buildings (2026-08-05)
+		//
+		// Two ways into a house, and nothing else works - a torch against a plaster wall is a torch
+		// against a wall. AGSBuildingObjective::ContainsWorldLocation returns false precisely so the
+		// sweep above cannot light a building by splashing its facade; getting in is decided here.
+		//
+		// Order matters. The window is tried first because a window IS a wall piece as far as the
+		// roof/entry naming goes, and breaking it is the more specific outcome: it opens the
+		// building AND removes the pane, so the torch is not left stuck to glass that no longer
+		// exists.
+		if (OtherActor)
+		{
+			// The torch's own velocity is already spent by the time we get here (the hit is what
+			// stopped it), so fall back to the surface normal reversed - which IS the direction of
+			// travel for anything that hit a flat pane square on.
+			FVector ImpactVelocity = GetVelocity();
+			if (ImpactVelocity.IsNearlyZero())
+			{
+				ImpactVelocity = -Hit.ImpactNormal * 500.f;
+			}
+
+			if (UGSBreakableComponent* Breakable = OtherActor->FindComponentByClass<UGSBreakableComponent>())
+			{
+				// ImpactVelocity, not the hit normal: shards and the torch should carry on the way
+				// the throw was going, into the room.
+				Breakable->Break(Hit.ImpactPoint, ImpactVelocity);
+			}
+			else if (AGSBuildingObjective* Building =
+				AGSBuildingObjective::FindBuildingOwning(this, OtherActor))
+			{
+				// Not a window, but it belongs to a building - so it only counts if it is the roof.
+				// Anything else is a wall and is refused, which is what keeps "torch the outside of
+				// a house" from being a valid strategy.
+				if (Building->IsRoofPiece(OtherActor))
+				{
+					Building->IgniteInterior(EGSBuildingIgnitionSource::Roof);
+				}
+			}
 		}
 
 		if (FireVolumeClass)

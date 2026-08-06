@@ -1,0 +1,343 @@
+#include "Destruction/GSBuildingObjective.h"
+#include "Destruction/GSFlammableComponent.h"
+#include "Core/GSGameState.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
+#include "Net/UnrealNetwork.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogGSBuilding, Log, All);
+
+AGSBuildingObjective::AGSBuildingObjective()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	// A house is mostly gone once two thirds of it has burned; holding out for every last floor
+	// plank would leave a blackened shell reading as "not done". Same reasoning as the market's
+	// 0.75, one notch more forgiving because a building has far more small pieces than a market
+	// has stalls, and the awkward ones are floor planks under furniture.
+	CompletionThreshold01 = 0.66f;
+
+	// Name-based classification, because the kit carries no metadata to ask. Both lists are
+	// EditAnywhere so a designer can correct a misfiled piece without a recompile.
+	EntryNameFilters.Add(TEXT("Window"));
+	EntryNameFilters.Add(TEXT("Roof"));
+
+	RoofNameFilters.Add(TEXT("Roof"));
+
+	PieceNameFilters.Add(TEXT("House"));
+	PieceNameFilters.Add(TEXT("Roof"));
+	PieceNameFilters.Add(TEXT("Wall"));
+	PieceNameFilters.Add(TEXT("Window"));
+	PieceNameFilters.Add(TEXT("Door"));
+	PieceNameFilters.Add(TEXT("Foundation"));
+	PieceNameFilters.Add(TEXT("Barn"));
+	PieceNameFilters.Add(TEXT("Tavern"));
+}
+
+void AGSBuildingObjective::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AGSBuildingObjective, bAlight);
+}
+
+void AGSBuildingObjective::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	AdoptPieces();
+	EnsurePiecesFlammable();
+
+	if (InitialPieceCount == 0)
+	{
+		// The same failure the market had, and it is silent everywhere else: a building that adopted
+		// nothing can never complete, and looks identical to one that simply has not been lit.
+		UE_LOG(LogGSBuilding, Error,
+			TEXT("[GoblinSiege] Building '%s' adopted ZERO pieces within %.0f uu. It can never burn ")
+			TEXT("or complete. Check AdoptRadius and PieceNameFilters against the kit meshes here."),
+			*GetName(), AdoptRadius);
+	}
+	else
+	{
+		UE_LOG(LogGSBuilding, Log,
+			TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) within %.0f uu; needs %d burnt (%.0f%%)."),
+			*GetName(), InitialPieceCount, AdoptRadius,
+			FMath::CeilToInt(InitialPieceCount * CompletionThreshold01), CompletionThreshold01 * 100.f);
+	}
+}
+
+// ====================================================================== adoption
+
+void AGSBuildingObjective::AdoptPieces()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const FVector Origin = GetActorLocation();
+	const float RadiusSq = AdoptRadius * AdoptRadius;
+
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* Other = *It;
+		if (!Other || Other == this || Other->IsA<AGSBurnObjectiveBase>())
+		{
+			continue;
+		}
+
+		if (FVector::DistSquared(Other->GetActorLocation(), Origin) > RadiusSq)
+		{
+			continue;
+		}
+
+		// Match on the MESH name, not the actor label. Labels are whatever the level author typed;
+		// the mesh is what the art actually is, and it is the same signal the market's stall filter
+		// and the burn mask's crop filter already rely on.
+		UStaticMeshComponent* MeshComp = Other->FindComponentByClass<UStaticMeshComponent>();
+		if (!MeshComp || !MeshComp->GetStaticMesh())
+		{
+			continue;
+		}
+
+		const FString MeshName = MeshComp->GetStaticMesh()->GetName();
+		bool bMatches = PieceNameFilters.Num() == 0;
+		for (const FString& Filter : PieceNameFilters)
+		{
+			if (!Filter.IsEmpty() && MeshName.Contains(Filter))
+			{
+				bMatches = true;
+				break;
+			}
+		}
+
+		if (bMatches)
+		{
+			Pieces.Add(Other);
+		}
+	}
+
+	InitialPieceCount = Pieces.Num();
+}
+
+void AGSBuildingObjective::EnsurePiecesFlammable()
+{
+	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
+	{
+		AActor* Piece = Weak.Get();
+		if (!Piece)
+		{
+			continue;
+		}
+
+		UGSFlammableComponent* Flam = Piece->FindComponentByClass<UGSFlammableComponent>();
+		if (!Flam)
+		{
+			// Kit pieces are plain StaticMeshActors and cannot catch on their own. AddInstanceComponent
+			// is what makes this survive a level save; without it the house looks dressed until the
+			// next reload. Same lesson as UGSRaidLibrary::MakeActorFlammable.
+			Flam = NewObject<UGSFlammableComponent>(Piece, UGSFlammableComponent::StaticClass(),
+				TEXT("GSFlammable_Building"), RF_Transactional);
+			if (Flam)
+			{
+				Piece->AddInstanceComponent(Flam);
+				Flam->RegisterComponent();
+			}
+		}
+
+		if (Flam)
+		{
+			Flam->OnBurnedDown.AddDynamic(this, &AGSBuildingObjective::HandlePieceBurnedDown);
+			PieceFlammables.Add(Flam);
+		}
+	}
+}
+
+// ====================================================================== ignition
+
+namespace
+{
+	/** Does this actor's static mesh name match any of these substrings? */
+	bool MeshNameMatches(const AActor* Piece, const TArray<FString>& Filters)
+	{
+		if (!Piece)
+		{
+			return false;
+		}
+
+		const UStaticMeshComponent* MeshComp = Piece->FindComponentByClass<UStaticMeshComponent>();
+		if (!MeshComp || !MeshComp->GetStaticMesh())
+		{
+			return false;
+		}
+
+		const FString MeshName = MeshComp->GetStaticMesh()->GetName();
+		for (const FString& Filter : Filters)
+		{
+			if (!Filter.IsEmpty() && MeshName.Contains(Filter))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+bool AGSBuildingObjective::IsEntryPiece(const AActor* Piece) const
+{
+	return MeshNameMatches(Piece, EntryNameFilters);
+}
+
+bool AGSBuildingObjective::IsRoofPiece(const AActor* Piece) const
+{
+	return MeshNameMatches(Piece, RoofNameFilters);
+}
+
+bool AGSBuildingObjective::ContainsWorldLocation(const FVector& /*WorldLocation*/) const
+{
+	// Never. A building owns no ground, so the torch's FindObjectiveAtLocation sweep cannot light a
+	// house by splashing its outside wall. Getting in is the window's job and the roof's job, and
+	// routing it through those keeps the rule in one place instead of two.
+	return false;
+}
+
+void AGSBuildingObjective::IgniteAtLocation(const FVector& /*WorldLocation*/)
+{
+	// Intentionally empty - see the header. Exterior fire is refused.
+}
+
+void AGSBuildingObjective::IgniteInterior(EGSBuildingIgnitionSource Source)
+{
+	if (!HasAuthority() || bAlight || IsComplete())
+	{
+		return;
+	}
+
+	bAlight = true;
+	IgnitionSource = Source;
+	OnRep_Alight();
+
+	// Light the entry pieces themselves and let UGSFlammableComponent's spread carry it through the
+	// rest of the house. Lighting every piece at once would be cheaper to write and completely wrong
+	// to watch: a house should go up from where the torch landed, not everywhere simultaneously.
+	int32 Seeded = 0;
+	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
+	{
+		UGSFlammableComponent* Flam = Weak.Get();
+		if (!Flam)
+		{
+			continue;
+		}
+
+		if (IsEntryPiece(Flam->GetOwner()))
+		{
+			Flam->Ignite();
+			++Seeded;
+		}
+	}
+
+	// A building with no roof or window pieces still has to be lightable once something has decided
+	// it should burn - otherwise a torch through the window achieves nothing and says nothing.
+	if (Seeded == 0)
+	{
+		for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
+		{
+			if (UGSFlammableComponent* Flam = Weak.Get())
+			{
+				Flam->Ignite();
+				++Seeded;
+				break;
+			}
+		}
+	}
+
+	UE_LOG(LogGSBuilding, Log, TEXT("[GoblinSiege] Building '%s' is alight (source %d), seeded %d piece(s)."),
+		*GetName(), static_cast<int32>(Source), Seeded);
+
+	if (UWorld* World = GetWorld())
+	{
+		if (AGSGameState* GS = World->GetGameState<AGSGameState>())
+		{
+			GS->AddAlarm(AlarmOnIgnite, EGSAlarmSource::FireDamage);
+			GS->ReportFireStarted();
+		}
+	}
+
+	OnBuildingIgnited.Broadcast();
+}
+
+void AGSBuildingObjective::OnRep_Alight()
+{
+	// Presentation hook only; the Blueprint decides what a burning house looks like.
+}
+
+// ====================================================================== progress
+
+void AGSBuildingObjective::HandlePieceBurnedDown()
+{
+	RecomputeCompletion();
+}
+
+void AGSBuildingObjective::RecomputeCompletion()
+{
+	if (!HasAuthority() || InitialPieceCount <= 0)
+	{
+		return;
+	}
+
+	int32 Burnt = 0;
+	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
+	{
+		const UGSFlammableComponent* Flam = Weak.Get();
+		if (Flam && Flam->HasBurnedDown())
+		{
+			++Burnt;
+		}
+	}
+
+	BurntPieceCount = Burnt;
+	SetCompletion01(static_cast<float>(Burnt) / static_cast<float>(InitialPieceCount));
+}
+
+// ====================================================================== lookup
+
+AGSBuildingObjective* AGSBuildingObjective::FindBuildingOwning(const UObject* WorldContextObject, AActor* Piece)
+{
+	if (!WorldContextObject || !Piece)
+	{
+		return nullptr;
+	}
+
+	UWorld* World = WorldContextObject->GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	// Ask the buildings, rather than storing a back-pointer on 1,413 kit pieces. Buildings are tens
+	// of actors per level; the same trade AGSBurnObjectiveBase::FindObjectiveAtLocation already made.
+	for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+	{
+		AGSBuildingObjective* Building = *It;
+		if (!Building)
+		{
+			continue;
+		}
+
+		for (const TWeakObjectPtr<AActor>& Weak : Building->Pieces)
+		{
+			if (Weak.Get() == Piece)
+			{
+				return Building;
+			}
+		}
+	}
+	return nullptr;
+}
