@@ -36,6 +36,21 @@ Content/*
 !Content/Input/
 !Content/Maps/
 !Content/VFX/
+# 2026-08-04: BB_Human / BT_Militia / DA_Race_Human live here. Without this negation the entire
+# defender AI layer was untracked and would have been lost on any clean checkout.
+!Content/AI/
+
+# 2026-08-05: the same class of bug as Content/AI above, found while pushing the ranged-combat
+# work. Both of these are project-authored and neither was versioned.
+#
+#   Content/Python/  the editor authoring scripts (gs_build_burn_material.py builds the whole burn
+#                    material stack; gs_build_aim_materials.py builds the aim arc + reticle). Plain
+#                    text, no LFS. These GENERATE assets, so losing them means losing the ability to
+#                    rebuild or retune what they made - strictly worse than losing an asset.
+#   Content/Data/    DA_Weapon_Scout and friends. Weapon identity is a data operation in this
+#                    project (design doc §5), so this folder is gameplay design, not imported art.
+!Content/Python/
+!Content/Data/
 
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.

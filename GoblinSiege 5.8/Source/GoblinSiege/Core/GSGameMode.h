@@ -21,6 +21,16 @@ public:
 	 *  a PlayerState spend a life and respawn on a short timer. */
 	void HandleGoblinDeath(AGSCharacterBase* DeadCharacter, AController* Controller);
 
+	/**
+	 * Respawn at the runic site (design doc §1 - "respawn is at the runic site"), falling back to
+	 * stock PlayerStart selection when a map has no site.
+	 *
+	 * This override is the whole implementation of that rule: RespawnPlayer already called
+	 * RestartPlayer, which already routed through here - it just had nothing to say, so every
+	 * respawn landed on whichever PlayerStart the engine happened to pick.
+	 */
+	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+
 protected:
 	void RespawnPlayer(AController* Controller);
 

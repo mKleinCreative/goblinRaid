@@ -1,0 +1,126 @@
+{
+  "comment": "Feature knowledge for the Code Architect. Each entry joins a GDD §12.1 system (or block-B item) to VERIFIABLE evidence in the live tree. evidence.classes = UCLASS names perception must find WIRED; evidence.symbols = load-bearing symbols; evidence.content = asset-name prefixes in Content/. impact 1-5 (never-cut five = 5), effort 1-5, urgency 1-5. unblocks = feature keys that cannot proceed until this exists. requires_editor = needs a supervised editor/MCP session (data assets, maps, retargeting) and is therefore NEVER selected for headless generation. depends_on = hard gates: keys that must be at least partially present before generating this.",
+  "blocks_order": ["A", "B", "C", "D", "E", "F", "G", "H"],
+  "features": [
+    {
+      "key": "breach_set", "gdd_system": "9", "block": "?", "name": "Breach set (tier-2, Appendix A)",
+      "deferred": true, "evidence": {}, "impact": 0, "effort": 5, "urgency": 0, "unblocks": [], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "wood_economy", "gdd_system": "10", "block": "?", "name": "Wood economy (tier-2, Appendix A)",
+      "deferred": true, "evidence": {}, "impact": 0, "effort": 5, "urgency": 0, "unblocks": [], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "gas_pipeline", "gdd_system": "1", "block": "A", "name": "GAS combat pipeline",
+      "evidence": {"classes": ["UGSAttributeSetBase", "UGSDamageExecCalculation"]},
+      "impact": 4, "effort": 3, "urgency": 2, "unblocks": [], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "weapon_kits", "gdd_system": "2", "block": "B", "name": "Weapon kit + torch toss (Scout)",
+      "evidence": {"classes": ["UGSWeaponComponent", "UGSWeaponDataAsset", "UGSGA_SwordLight", "UGSGA_TorchToss"], "content": ["DA_Weapon_Scout"]},
+      "impact": 4, "effort": 3, "urgency": 3, "unblocks": [], "depends_on": ["gas_pipeline"], "requires_editor": false
+    },
+    {
+      "key": "fire_burn_types", "gdd_system": "3", "block": "C", "name": "Fire / flammable / three burn types",
+      "evidence": {"classes": ["UGSFlammableComponent", "AGSFireVolume", "AGSFieldFireObjective", "AGSMillObjective", "AGSMarketObjective", "AGSBurnObjectiveBase"]},
+      "impact": 5, "effort": 4, "urgency": 3, "unblocks": ["raid_loop"], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "alarm_phases", "gdd_system": "4", "block": "C", "name": "Alarm meter + phases",
+      "evidence": {"classes": ["AGSGameState"], "symbols": ["AlarmPhase"]},
+      "impact": 4, "effort": 2, "urgency": 3, "unblocks": ["patrol_director"], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "player_control", "gdd_system": "5", "block": "A", "name": "Third-person camera & control",
+      "evidence": {"classes": ["AGSPlayerCharacter", "UGSTargetingComponent", "UGSGA_DodgeRoll"]},
+      "impact": 4, "effort": 3, "urgency": 1, "unblocks": [], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "traversal", "gdd_system": "5b", "block": "A", "name": "Traversal — vault / mantle / climb",
+      "evidence": {"content": ["BP_GSPlayerCharacter"]},
+      "impact": 3, "effort": 3, "urgency": 1, "unblocks": [], "depends_on": [], "requires_editor": true,
+      "note": "Implemented inside BP_GSPlayerCharacter (PIE-verified 2026-07-28/30) — headless perception cannot see inside .uasset, so evidence is the BP's existence and requires_editor is true; residue (anim polish, T-12 visual pass) is tracked in the decision queue. Reading BP internals via a VibeUE session is the planned perception upgrade."
+    },
+    {
+      "key": "horde", "gdd_system": "6", "block": "D", "name": "Horn & horde (subsystem, pool, BT, point command)",
+      "evidence": {"classes": ["UGSHordeSubsystem", "AGSHordeGoblin", "AGSHordeSpawnMarker", "UGSGA_Horn"], "content": ["BT_HordeGoblin"]},
+      "impact": 5, "effort": 5, "urgency": 3, "unblocks": ["loot_couriers"], "depends_on": ["militia_enemy"], "requires_editor": false
+    },
+    {
+      "key": "stealth_five", "gdd_system": "7", "block": "F", "name": "The stealth five (noise, crouch-detect, takedown, corpse-suspicion, coin toss)",
+      "evidence": {"symbols": ["ReportGSNoise", "Takedown", "CoinToss"], "content": ["DT_NoiseEvents"]},
+      "impact": 5, "effort": 4, "urgency": 2, "unblocks": [], "depends_on": ["interact_framework", "militia_enemy"], "requires_editor": false
+    },
+    {
+      "key": "interact_framework", "gdd_system": "8", "block": "A", "name": "Interact framework — hold-E channels + carry",
+      "evidence": {"classes": ["UGSInteractableComponent", "UGSInteractionComponent", "UGSGA_Interact", "UGSCarryComponent"]},
+      "impact": 5, "effort": 3, "urgency": 5,
+      "unblocks": ["stealth_five", "runic_site", "loot_couriers", "score_system", "civilians_livestock"],
+      "depends_on": [], "requires_editor": false,
+      "note": "GDD §12.1: 'Blocking five other systems' — loot, takedown, foul-well, extract, carry all ride this channel."
+    },
+    {
+      "key": "militia_enemy", "gdd_system": null, "block": "B", "name": "Someone to fight — human race data, BT_Militia, enemy attack path",
+      "evidence": {"classes": ["AGSEnemyCharacter"], "content": ["DA_Race_Human", "BT_Militia", "DA_Weapon_Greatclub"]},
+      "impact": 5, "effort": 4, "urgency": 4, "unblocks": ["horde", "stealth_five", "patrol_director"], "depends_on": ["weapon_kits"], "requires_editor": false,
+      "note": "Block B. The status doc's 'hidden prerequisite nobody scheduled'. C++ half (BT tasks, enemy ability path) is headless; data assets + BT graphs are editor-side."
+    },
+    {
+      "key": "death_anims", "gdd_system": null, "block": "B", "name": "Death & hit-reaction clips retargeted ('nothing can die on screen')",
+      "evidence": {"content": ["AM_GS_Death"]},
+      "impact": 4, "effort": 2, "urgency": 4, "unblocks": [], "depends_on": [], "requires_editor": true
+    },
+    {
+      "key": "civilians_livestock", "gdd_system": "11", "block": "G", "name": "Civilians + livestock (routines, disbelief, brigade, flee)",
+      "evidence": {"classes": ["UBTTask_Firefight"], "content": ["BT_Civilian", "DA_Race_Livestock"]},
+      "impact": 3, "effort": 4, "urgency": 1, "unblocks": [], "depends_on": ["militia_enemy", "interact_framework"], "requires_editor": false
+    },
+    {
+      "key": "score_system", "gdd_system": "12", "block": "G", "name": "Score system — deeds/loot two-kind tally + end screen",
+      "evidence": {"symbols": ["GSScore"], "classes": ["UGSScoreSubsystem"]},
+      "impact": 5, "effort": 3, "urgency": 2, "unblocks": [], "depends_on": ["interact_framework"], "requires_editor": false
+    },
+    {
+      "key": "runic_site", "gdd_system": "13", "block": "E", "name": "Runic site — spawn/respawn, objective-gated portal, staging, 90s collapse",
+      "evidence": {"classes": ["AGSRunicSite"], "symbols": ["Portal"]},
+      "impact": 5, "effort": 3, "urgency": 2, "unblocks": [], "depends_on": ["interact_framework", "fire_burn_types"], "requires_editor": false
+    },
+    {
+      "key": "lives_respawn", "gdd_system": "14", "block": "E", "name": "Lives / respawn on PlayerState",
+      "evidence": {"classes": ["AGSPlayerState"], "symbols": ["Lives"]},
+      "impact": 3, "effort": 2, "urgency": 2, "unblocks": [], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "barks", "gdd_system": "15", "block": "H", "name": "Barks + Overlord whispers (runtime side)",
+      "evidence": {"classes": ["UGSBarkSubsystem"], "content": ["DT_Barks"]},
+      "impact": 2, "effort": 2, "urgency": 1, "unblocks": [], "depends_on": [], "requires_editor": false,
+      "note": "Bark Foundry already produces engine-ready tables; the runtime consumer is the missing half."
+    },
+    {
+      "key": "gore_gibs", "gdd_system": "16", "block": "G", "name": "Gore/gib system (intensity scalar, feather-poof)",
+      "evidence": {"classes": ["UGSGibComponent"]},
+      "impact": 2, "effort": 2, "urgency": 1, "unblocks": [], "depends_on": ["militia_enemy"], "requires_editor": false
+    },
+    {
+      "key": "loot_couriers", "gdd_system": "17", "block": "G", "name": "Loot couriers — sacks + livestock cargo, point-to-courier",
+      "evidence": {"classes": ["UGSCarryComponent"], "symbols": ["Courier"]},
+      "impact": 4, "effort": 4, "urgency": 1, "unblocks": [], "depends_on": ["interact_framework", "horde"], "requires_editor": false
+    },
+    {
+      "key": "raid_clock", "gdd_system": "18", "block": "E", "name": "Raid clock — 30-min cap, 90s collapse, left-behind rule",
+      "evidence": {"symbols": ["RaidClock"]},
+      "impact": 3, "effort": 1, "urgency": 2, "unblocks": [], "depends_on": [], "requires_editor": false
+    },
+    {
+      "key": "patrol_director", "gdd_system": "19", "block": "F", "name": "Patrol director — 5-7 min cadence + castle reinforcements",
+      "evidence": {"classes": ["UGSPatrolDirector"]},
+      "impact": 3, "effort": 3, "urgency": 1, "unblocks": [], "depends_on": ["militia_enemy", "alarm_phases"], "requires_editor": false
+    },
+    {
+      "key": "tutorial_map_setup", "gdd_system": "20", "block": "E", "name": "Tutorial_Island in /Game/Maps (T-08; setup pass tracked in decision queue)",
+      "evidence": {"content": ["L_Tutorial_Island"]},
+      "impact": 5, "effort": 3, "urgency": 3, "unblocks": [], "depends_on": [], "requires_editor": true,
+      "note": "File existence is what a headless sweep can verify; the gameplay-layer setup (objectives placed, navmesh extension, walk-and-fix) is editor work tracked as T-02/T-09 residue in the decision queue."
+    }
+  ]
+}

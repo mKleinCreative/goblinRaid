@@ -98,6 +98,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Objective")
 	FGameplayTag GetObjectiveTypeTag() const { return ObjectiveTypeTag; }
 
+	/**
+	 * Set this carrier's type tag and HUD name (2026-08-05).
+	 *
+	 * For SCRIPTED PLACEMENT only - a designer sets both in the Details panel, and that remains the
+	 * normal path. This exists because editor Python cannot construct an FGameplayTag in this build
+	 * at all (see UGSRaidLibrary), so without it a script can place a burn objective but can never
+	 * make it count toward the win condition.
+	 *
+	 * Deliberately NOT callable once the raid is under way: retyping a carrier mid-raid would
+	 * strand it in the director's per-type bucket under its old tag, so the demotion pass and the
+	 * win check would disagree about what it is. Placement-time only.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Objective")
+	void SetObjectiveIdentity(FGameplayTag InTypeTag, FText InDisplayName);
+
 	/** Display name for the HUD objective list. No arrows, ever - names only (decision 11). */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Objective")
 	FText GetObjectiveDisplayName() const { return ObjectiveDisplayName; }

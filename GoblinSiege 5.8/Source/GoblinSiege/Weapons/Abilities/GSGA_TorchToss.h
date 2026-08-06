@@ -25,6 +25,12 @@ class GOBLINSIEGE_API UGSGA_TorchToss : public UGameplayAbility
 public:
 	UGSGA_TorchToss();
 
+	/** What this ability will actually spawn. Exists so the aim arc can predict the SAME class the
+	 *  throw spawns instead of the character keeping a second copy of the reference - one place owns
+	 *  "which torch", and it is the ability that throws it. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Torch")
+	TSubclassOf<AGSTorchProjectile> GetTorchProjectileClass() const { return TorchProjectileClass; }
+
 protected:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,
@@ -59,8 +65,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
 	TSubclassOf<AGSTorchProjectile> TorchProjectileClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
-	float SpawnForwardOffset = 80.f;
+	// SpawnForwardOffset was removed on 2026-08-04. The muzzle - forward offset and hand height
+	// both - now lives on UGSAimComponent, which is the single thing that defines where a ranged
+	// verb comes from, so the arc preview and the spawn cannot describe different points. Retune it
+	// there (MuzzleForwardOffset / MuzzleHeightOffset), where the torch and the bow share it.
 
 	/**
 	 * How long the torch is visibly HELD before it leaves the hand.

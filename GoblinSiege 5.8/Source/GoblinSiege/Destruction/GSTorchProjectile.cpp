@@ -45,6 +45,23 @@ void AGSTorchProjectile::BeginPlay()
 	Super::BeginPlay();
 	CollisionSphere->OnComponentHit.AddDynamic(this, &AGSTorchProjectile::OnProjectileHit);
 
+	// NEVER collide with the goblin who threw it (2026-08-05). The collision profile is
+	// BlockAllDynamic, which blocks the Pawn channel, so before this the thrower was just
+	// another thing to stick to - and the projectile's whole hit response is "attach to what
+	// you hit", so a torch that clipped its thrower welded itself to him for its full 15s
+	// lifespan. Note the aim arc has ignored the owner since it was written
+	// (Params.ActorsToIgnore.Add(Owner)); this makes the actual throw agree with the preview,
+	// which is the property the whole aim framework exists to guarantee.
+	AActor* Thrower = GetInstigator();
+	if (!Thrower)
+	{
+		Thrower = GetOwner();
+	}
+	if (Thrower)
+	{
+		CollisionSphere->IgnoreActorWhenMoving(Thrower, true);
+	}
+
 	// Resolved here rather than in the constructor: the constructor runs on the CDO during module
 	// load, which is the one place a synchronous package load is genuinely unwelcome. Warn once,
 	// then fly on invisibly - the torch's job is fire, not looks.
@@ -73,6 +90,18 @@ void AGSTorchProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 	{
 		return;
 	}
+
+	// Belt and braces against the same bug the IgnoreActorWhenMoving in BeginPlay covers.
+	// That call only suppresses SWEEP hits from this component's own movement; a hit
+	// generated the other way round - the goblin's capsule sweeping into a torch that is
+	// already in flight, which is exactly what running forward after a throw does - still
+	// arrives here. Returning BEFORE bStuck is set matters: latching it would leave a torch
+	// that brushed its thrower permanently unable to stick to anything else.
+	if (OtherActor && (OtherActor == GetInstigator() || OtherActor == GetOwner()))
+	{
+		return;
+	}
+
 	bStuck = true;
 
 	// "Sticks on impact" - freeze in place and ride along with whatever we hit.

@@ -231,6 +231,37 @@ When asked to rebuild / relaunch / test, use the project script — not manual `
      VibeUE.GenerateAgentConfig overwrites everything between its BEGIN/END markers.
      Anything down here survives a regeneration. -->
 
+# READ FIRST — the agent work queue
+
+**If more than one agent may be working, you take a ticket before you edit anything.**
+
+```powershell
+cd "D:\goblinRaid\GoblinSiege 5.8"
+& ".\AgentQueue\gsqueue.ps1" list                                          # what is being worked on
+& ".\AgentQueue\gsqueue.ps1" claim -Agent <slug> -Title "<t>" -Files "a,b" # take a position
+& ".\AgentQueue\gsqueue.ps1" check -Id <n>                                 # is anyone ahead of me?
+& ".\AgentQueue\gsqueue.ps1" set -Id <n> -Status active                    # start editing
+& ".\AgentQueue\gsqueue.ps1" set -Id <n> -Status review                    # G/E/R written, hand back
+& ".\AgentQueue\gsqueue.ps1" buildgate                                     # exit 0 = safe to compile
+```
+
+Four rules, in full in `AgentQueue/QUEUE.md`:
+
+1. **Claim the files you intend to write, before you write them.**
+2. **The lower ticket number has right of way.** If an open ticket ahead of you claims your file,
+   you wait for it to close. Work your unblocked files, or go `blocked` and report.
+3. **Report Generate → Evaluate → Refine** in your ticket before handing back. Evaluate is
+   adversarial self-review with evidence; `done` refuses a ticket still holding placeholders.
+4. **Nobody compiles until the queue is empty.** Run `buildgate` before any `Build.bat`,
+   `BuildAndLaunchGame.ps1`, Live Coding, or in-editor Compile. Exit 1 means stop, however ready
+   your own work is. Only the orchestrator triggers the build.
+
+This exists because two agents edited `GSPlayerCharacter.cpp` inside one build window on
+2026-08-04 and the first build described a source tree that no longer existed (`AGENT_STATE.md`,
+Ranged combat entry).
+
+---
+
 # Goblin Siege — this machine, this shell
 
 ## The environment (assume none of this; it is all confirmed)
@@ -276,6 +307,19 @@ When asked to rebuild / relaunch / test, use the project script — not manual `
 6. **Desktop Commander's `start_process` times out at 60s.** Keep `Start-Sleep` under ~50s and poll
    repeatedly instead of one long wait.
 
+7. **`.Count` on a function's return value lies when the result has exactly one element.**
+   `return @($items)` unrolls on the way out, so the caller holds a bare `PSCustomObject` whose
+   `.Count` is **`$null`** — and `$null -gt 0` is `False`, so a one-element result tests as empty.
+   **Always wrap at the call site: `$r = @(Get-Thing ...)`.** Do not instead "fix" it in the callee
+   with `return ,@($items)`: on an empty result that returns an array *containing* an empty array,
+   `.Count` 1, and you get a phantom element. Both directions were live bugs in `gsqueue.ps1` on
+   2026-08-05, and the first one silently passed the exact conflict check it existed to enforce.
+
+8. **A `.ps1` saved as UTF-8 *without* a BOM is read as ANSI by PowerShell 5.1.** Any non-ASCII
+   character (an em-dash in a string literal is enough) arrives mangled and breaks the *parse* —
+   you get `Missing ')' in method call` pointing at a line that is perfectly valid. **Keep script
+   source ASCII-only**; put the typography in the markdown it writes, not in the script.
+
 ## Compiling
 
 **Full build, editor CLOSED** — the clean path, and the one to use after adding any new `UCLASS`:
@@ -315,5 +359,55 @@ UbaStorageServer - Can't move ...\cas\casdb.tmp to ...\cas\casdb (Access is deni
 It still succeeds, but it wastes most of the build time (and 20s per retry, twice). **Fix: grant the
 user full control on `C:\ProgramData\Epic\UnrealBuildAccelerator`.** Until then, expect ~6-minute
 builds that should take under a minute. Machine has 32 GB RAM; close browsers during big builds.
+
+## Editor Python gotchas (5.8, confirmed 2026-08-04)
+
+- **`unreal.EditorAssetLibrary` is a silent no-op in this build.** `does_asset_exist()` returns
+  `False` and `load_asset()` returns `None` for assets that demonstrably exist and that the asset
+  registry lists. It does not raise - it just lies, which reads as "the asset is missing". **Use
+  `unreal.get_editor_subsystem(unreal.EditorAssetSubsystem)`** for exists/load/save. (This supersedes
+  the `EditorAssetLibrary` suggestion in §2 above.)
+- **Component transforms are properties, not getters.** `get_relative_scale3d()` /
+  `get_relative_location()` do not exist on components here; use
+  `get_editor_property('relative_scale3d' | 'relative_location' | 'relative_rotation')`.
+- **`unreal.AbilitySystemBlueprintLibrary` does not exist**, and `ASC.get_editor_property(
+  'spawned_attributes')` fails - there is no easy Python path to a live attribute value. To verify
+  damage, enable **`GS.Combat.LogDamage 1`** (NOT `GS.Combat.Debug`, which is the trace/marker
+  switch) and read `Saved/Logs/MyProject.log` for `[GS.Damage]` lines.
+- **`EditorAppToolset.StartPIE` needs an options object and is asynchronous.** Required keys:
+  `{"options":{"bSimulate":false,"playMode":"PlayMode_InViewPort","warmupSeconds":3.0}}`. It returns
+  `is_complete=False` immediately - PIE is not up when the call returns, so query the game world in a
+  *later* script run, not the same one.
+- **Reparenting a Blueprint preserves inherited component defaults.** Six adversary BPs were
+  reparented `Character` -> `AGSEnemyCharacter` with capsule half-height/radius, mesh relative
+  transform, skeletal mesh, anim class and max walk speed all byte-identical afterwards. Re-fetch the
+  CDO after `reparent_blueprint` + `compile_blueprint` though - the old pointer is stale.
+
+## BuildAndLaunchGame.ps1 on this machine
+
+- **Engine auto-detect only works because the install is registered.** The script probes
+  `E:` / `C:` / `D:\Program Files\Epic Games\UE_5.8`, and this engine lives at `D:\Epic Games\UE_5.8`
+  (no "Program Files"), so auto-detect used to fail with *"Non-interactive session - cannot prompt
+  for a path"*. Fixed 2026-08-04 by registering the install, which is the script's FIRST lookup:
+  `HKCU:\SOFTWARE\Epic Games\Unreal Engine\Builds`, value `5.8` = `D:\Epic Games\UE_5.8`. If a build
+  ever fails that way again, check that value still exists. There is no `-EnginePath` parameter.
+- **`-SkipBuild` still kills the editor.** The `taskkill /F /IM UnrealEditor.exe` is above the
+  `if (-not $SkipBuild)` branch, so it runs on every invocation. To launch without disturbing a
+  running editor, start `UnrealEditor.exe` with the .uproject directly instead.
+
+## GAS gotchas (this engine version)
+
+- **`EGameplayModOp::Multiplicitive` is a lie in 5.8.** It is a back-compat alias for
+  `MultiplyAdditive`, which *adds* multipliers before applying them: two 0.55 slows aggregate to
+  1.10 and make a doubly-slowed character FASTER. For real multiplicative stacking use
+  `EGameplayModOp::MultiplyCompound` (0.55 * 0.55 = 0.30). The aggregation equation is in
+  `GameplayEffectTypes.h`: `((Base + AddBase) * MultiplyAdditive / DivideAdditive * MultiplyCompound) + AddFinal`.
+- **`UGameplayAbility::AbilityTags` is deprecated (C4996)** — compiles in 5.8, will not after the
+  next upgrade. New abilities should use `SetAssetTags()` in the constructor.
+- **Never write `MaxWalkSpeed` directly.** Cache-and-restore cannot stack, and
+  `AGSPlayerCharacter::OnStartCrouch` reassigns `MaxWalkSpeedCrouched` out from under anyone holding
+  a cached value. Apply a `UGSGE_MoveSpeedScalar` with a SetByCaller magnitude and remove it by
+  handle; `AGSPlayerCharacter::ApplyMoveSpeed` is the single place that derives speed from the
+  `MoveSpeedMultiplier` attribute.
 
 <!-- END PROJECT-LOCAL -->

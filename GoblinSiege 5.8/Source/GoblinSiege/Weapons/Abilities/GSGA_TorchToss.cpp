@@ -1,4 +1,6 @@
 #include "Weapons/Abilities/GSGA_TorchToss.h"
+#include "Combat/GSAimComponent.h"
+#include "Combat/GSGameplayTags.h"
 #include "Destruction/GSTorchProjectile.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -13,6 +15,9 @@ UGSGA_TorchToss::UGSGA_TorchToss()
 	// committed its cost and spawned nothing, which made fire (the only closed damage loop in the
 	// project) unreachable in play.
 	TorchProjectileClass = AGSTorchProjectile::StaticClass();
+
+	// A full-handed goblin has to drop what it is holding before it can throw (ruling 2026-08-04).
+	ActivationBlockedTags.AddTag(GSTags::State_Carrying);
 }
 
 void UGSGA_TorchToss::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -69,22 +74,42 @@ void UGSGA_TorchToss::OnTorchWindupFinished()
 void UGSGA_TorchToss::ThrowTorch()
 {
 	ACharacter* Avatar = Cast<ACharacter>(GetAvatarActorFromActorInfo());
-	if (Avatar && TorchProjectileClass && Avatar->HasAuthority())
+	if (!Avatar || !TorchProjectileClass || !Avatar->HasAuthority())
 	{
-		// Aim along control rotation (camera-forward for players, controller focal for AI).
-		const FRotator AimRotation = Avatar->GetControlRotation();
-		const FVector SpawnLocation = Avatar->GetActorLocation()
-			+ AimRotation.Vector() * SpawnForwardOffset
-			+ FVector(0.f, 0.f, 50.f); // roughly hand height on the goblin rig
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = Avatar;
-		SpawnParams.Instigator = Avatar;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		Avatar->GetWorld()->SpawnActor<AGSTorchProjectile>(
-			TorchProjectileClass, SpawnLocation, AimRotation, SpawnParams);
+		return;
 	}
+
+	// 2026-08-04: the spawn transform now comes from UGSAimComponent, which is also what drew the
+	// arc the player aimed with. Before this, these constants existed HERE and again in
+	// AGSPlayerCharacter::DrawTorchAimArc, kept in step by a comment reading "Must match
+	// UGSGA_TorchToss::ThrowTorch exactly, including the +50 hand-height fudge" - and a preview that
+	// drifts out of step with the spawn is an aim indicator that lies about where the torch lands,
+	// which is the one thing an aim indicator must never do.
+	//
+	// FindComponentByClass rather than a cast to AGSPlayerCharacter, matching this file's existing
+	// reasoning for SetTorchReadied: torch toss is a RACIAL verb every goblin has, and AI-controlled
+	// goblins are not AGSPlayerCharacters.
+	FTransform Muzzle;
+	if (const UGSAimComponent* AimComp = Avatar->FindComponentByClass<UGSAimComponent>())
+	{
+		Muzzle = AimComp->GetMuzzleTransform();
+	}
+	else
+	{
+		// A pawn with no aim component throws from control rotation at roughly hand height - the
+		// pre-2026-08-04 behaviour exactly. Degradation, not an error.
+		const FRotator AimRotation = Avatar->GetControlRotation();
+		Muzzle = FTransform(AimRotation,
+			Avatar->GetActorLocation() + AimRotation.Vector() * 80.f + FVector(0.f, 0.f, 50.f));
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = Avatar;
+	SpawnParams.Instigator = Avatar;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	Avatar->GetWorld()->SpawnActor<AGSTorchProjectile>(
+		TorchProjectileClass, Muzzle.GetLocation(), Muzzle.GetRotation().Rotator(), SpawnParams);
 }
 
 void UGSGA_TorchToss::EndAbility(const FGameplayAbilitySpecHandle Handle,

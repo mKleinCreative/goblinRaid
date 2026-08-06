@@ -1,11 +1,34 @@
 #include "Characters/GSEnemyCharacter.h"
 #include "Combat/GSRaceDataAsset.h"
+#include "AI/GSAIControllerBase.h"
 #include "AbilitySystemComponent.h"
+#include "Combat/GSGameplayTags.h"
+#include "Abilities/GameplayAbility.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 AGSEnemyCharacter::AGSEnemyCharacter()
 {
+	// 2026-08-02: until today this constructor was empty, which meant every defender was possessed
+	// by a stock AAIController - so AGSAIControllerBase's perception setup had never actually run on
+	// an enemy in this project, ever. AGSHordeGoblin already did this (GSHordeGoblin.cpp:6-7); the
+	// enemy class simply never got the same two lines.
+	AIControllerClass = AGSAIControllerBase::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// Capsules already block each other, so defenders never literally interpenetrate - but without
+	// avoidance the pathfinder does not know the other two exist. Three of them steer at the same
+	// point, arrive shoulder to shoulder and shove, which reads as a single merged blob of guards.
+	// RVO makes them steer around each other on the way in and settle in an arc instead of a pile.
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->bUseRVOAvoidance = true;
+
+		// Weight is how much this agent yields. 0.5 = everyone gives way equally; at 0 (the default,
+		// which is what made avoidance a no-op even if it had been switched on) nobody yields.
+		Move->AvoidanceWeight = 0.5f;
+		Move->AvoidanceConsiderationRadius = 600.f;
+	}
 }
 
 void AGSEnemyCharacter::BeginPlay()
@@ -16,6 +39,63 @@ void AGSEnemyCharacter::BeginPlay()
 	{
 		InitializeFromArchetype(RaceData, ArchetypeRowName);
 	}
+
+	if (HasAuthority())
+	{
+		GrantIfSet(LightAttackAbilityClass);
+		GrantIfSet(HeavyAttackAbilityClass);
+		GrantIfSet(GuardBreakAbilityClass);
+		GrantIfSet(BlockAbilityClass);
+	}
+}
+
+void AGSEnemyCharacter::GrantIfSet(TSubclassOf<UGameplayAbility> AbilityClass)
+{
+	if (AbilityClass && AbilitySystemComponent)
+	{
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this));
+	}
+}
+
+bool AGSEnemyCharacter::TryActivate(TSubclassOf<UGameplayAbility> AbilityClass)
+{
+	return AbilityClass && AbilitySystemComponent
+		&& AbilitySystemComponent->TryActivateAbilityByClass(AbilityClass);
+}
+
+bool AGSEnemyCharacter::TryLightAttack()
+{
+	// No extra gating here on purpose. GAS already refuses to re-activate an ability that is
+	// running, and UGSGA_SwordLight treats that refusal as the combo buffer - so an AI that
+	// spams this gets the same chained combo a player gets by mashing, for free.
+	return TryActivate(LightAttackAbilityClass);
+}
+
+bool AGSEnemyCharacter::TryHeavyAttack()
+{
+	return TryActivate(HeavyAttackAbilityClass);
+}
+
+bool AGSEnemyCharacter::TryGuardBreak()
+{
+	return TryActivate(GuardBreakAbilityClass);
+}
+
+bool AGSEnemyCharacter::StartBlocking()
+{
+	return TryActivate(BlockAbilityClass);
+}
+
+void AGSEnemyCharacter::StopBlocking()
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+	// By tag, never CancelAbilities(nullptr) - that would also kill a swing or a dodge in flight.
+	FGameplayTagContainer BlockTags;
+	BlockTags.AddTag(GSTags::State_Blocking);
+	AbilitySystemComponent->CancelAbilities(&BlockTags);
 }
 
 void AGSEnemyCharacter::InitializeFromArchetype(UGSRaceDataAsset* InRaceData, FName InArchetypeRowName)
@@ -28,6 +108,13 @@ void AGSEnemyCharacter::InitializeFromArchetype(UGSRaceDataAsset* InRaceData, FN
 	RaceData = InRaceData;
 	ArchetypeRowName = InArchetypeRowName;
 
+	// Adopt the race so melee knows who not to hit. Doing it here rather than per-Blueprint means
+	// one field on the data asset covers every defender that references it.
+	if (RaceData->RaceTag.IsValid())
+	{
+		RaceTag = RaceData->RaceTag;
+	}
+
 	if (const FGSArchetypeDefinition* Archetype = RaceData->FindArchetype(ArchetypeRowName))
 	{
 		AttributeSetBase->InitHealth(Archetype->Health);
@@ -35,7 +122,18 @@ void AGSEnemyCharacter::InitializeFromArchetype(UGSRaceDataAsset* InRaceData, FN
 		AttributeSetBase->InitArmor(Archetype->Armor);
 		AttributeSetBase->InitMoveSpeedMultiplier(1.f);
 
-		GetCharacterMovement()->MaxWalkSpeed = Archetype->MoveSpeed;
+		// Through SetBaseWalkSpeed, not straight onto MaxWalkSpeed: the archetype owns this pawn's
+		// BASELINE speed, while blocks, carries and future roots are multipliers on top of it. Writing
+		// the movement component directly would erase any slow already active and be erased by the
+		// next one.
+		//
+		// Zero means the archetype has no opinion and the Blueprint's own value stands. Roles are
+		// shared by bodies of different sizes - the six human defenders each derive walk speed from
+		// their height - and one row's number would flatten all of them.
+		if (Archetype->MoveSpeed > 0.f)
+		{
+			SetBaseWalkSpeed(Archetype->MoveSpeed);
+		}
 		TurnRateRadPerSec = Archetype->TurnRateRadPerSec;
 
 		bAttributesInitialized = true;

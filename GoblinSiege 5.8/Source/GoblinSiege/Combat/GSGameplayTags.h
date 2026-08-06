@@ -48,6 +48,56 @@ namespace GSTags
 	 *  query it without reaching into player-only state. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Aiming);
 
+	/** Guard up. Read by UGSDamageExecCalculation, which mitigates frontal hits only - a block
+	 *  that protects your back is not a block. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Blocking);
+
+	/** Present only while a hit-react montage is playing. Exists so a flurry cannot restart the
+	 *  flinch every frame, which reads as a seizure rather than a stagger. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_HitReact);
+
+	/** Guard kicked open. Held for the stagger window, during which UGSGA_Block refuses to
+	 *  activate - that refusal is the whole point: an interrupt that lets you immediately re-block
+	 *  punishes nothing, so the opening has to persist for long enough to be exploited. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_GuardBroken);
+
+	/** Hold-E channel in progress (GDD §8). Owned by UGSGA_Interact's ActivationOwnedTags, so GAS
+	 *  adds and removes it for exactly the channel's lifetime - nothing else should set it. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Interacting);
+
+	/** Hands full. Applied as a loose tag by UGSCarryComponent for exactly as long as the object is
+	 *  held; attack abilities and the torch toss block on it. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Carrying);
+
+	// ------------------------------------------------------------------ interaction verbs
+	// The slice's channelled verbs plus the carry pick-up/put-down channel. These are DATA: an
+	// interactable advertises one through UGSInteractableComponent::VerbTag, no C++ branches on
+	// them, and a fifth verb costs a tag rather than a subclass.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Loot);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Takedown);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_FoulWell);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Carry);
+
+	/** RESERVED, deliberately unused as of 2026-08-04: extraction is an auto-bank circle (GDD §9),
+	 *  not a hold-E channel. Kept declared because §12.1 lists extract among the slice verbs and the
+	 *  ruling was "for now" - if it becomes channelled, this is the tag and nothing else changes. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Extract);
+
+	// ------------------------------------------------------------------ races / factions
+	// Who counts as "us". Melee refuses to damage a target sharing the attacker's race, which is
+	// what stops a patrol of militia from cutting each other down the first time they crowd a
+	// doorway. Deliberately NOT applied to fire: the torch is the goblin equalizer (design doc §6)
+	// and burns everyone, including the goblin holding it.
+	//
+	// An unset race hits everything, so anything that has not opted in behaves exactly as before.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Race_Goblin);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Race_Human);
+
+	// ------------------------------------------------------------------ SetByCaller data keys
+	/** Magnitude key for UGSGE_MoveSpeedScalar. Same convention as the Damage.* tags, which double
+	 *  as SetByCaller keys on the damage spec: one effect class, many callers, no GE per source. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_MoveSpeedScalar);
+
 	// ------------------------------------------------------------------ burn objective types
 	/**
 	 * The three burn-objective TYPE tags the burn-types spec §5 has owed since it was written,
@@ -73,4 +123,28 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Mill);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Field);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Market);
+
+	// ------------------------------------------------------------------ raid markers
+	/**
+	 * The marker set (added 2026-08-05 with AGSRaidMarker) - the placement contract between
+	 * whoever decides WHERE things go and whoever decides how they behave. See GSRaidMarker.h for
+	 * the boundary this encodes; in short: the marker says where, and nothing else.
+	 *
+	 * Tags rather than an enum for the same reason the Objective.Burn.* set is tagged: a ninth
+	 * marker type should cost a tag and a placed actor, not a recompile - which on this machine is
+	 * a six-minute editor-closed build.
+	 *
+	 * Marker.ObjectiveAnchor.* is a hierarchy on purpose: AGSRaidMarker::GatherByType uses
+	 * MatchesTag, so a query for the parent finds every objective anchor while a query for
+	 * .Field finds only the fields.
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_GuardPost);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_PatrolNode);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_CivilianAnchor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_CoverProp);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_HordeArrival);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Field);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Mill);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Market);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Granary);
 }

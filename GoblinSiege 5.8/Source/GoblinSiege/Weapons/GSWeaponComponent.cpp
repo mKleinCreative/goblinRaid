@@ -27,6 +27,35 @@ void UGSWeaponComponent::BeginPlay()
 		EquippedWeapon = nullptr;
 		EquipWeapon(Initial);
 	}
+	else
+	{
+		// 2026-08-02: this was the only failure in this component with NO diagnostic at all - every
+		// mesh/socket problem warns, but a null data asset just silently skipped the whole equip.
+		// It costs an afternoon because the symptom (no weapon, no abilities, default attributes)
+		// looks exactly like a broken socket or a bad mesh path. It is also the single most likely
+		// state for a freshly-made character Blueprint, which is why it is a Warning and not a Log.
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] %s has no EquippedWeapon data asset - no weapon meshes, no granted "
+				 "abilities, and no InitialAttributesEffect, so this character keeps the attribute "
+				 "set's constructor defaults (100/100/0). Assign one on the owning Blueprint."),
+			*GetNameSafe(GetOwner()));
+	}
+}
+
+void UGSWeaponComponent::RefreshWeaponVisuals()
+{
+	// 2026-08-02. The header has long promised that weapon offsets can be tuned by re-equipping,
+	// but RebuildWeaponMeshes is protected and non-UFUNCTION, so in practice the only ways to see an
+	// offset change were a PIE restart or a weapon-mode toggle. Feel-tuning a sword's placement is a
+	// twenty-iteration job; at ~3 minutes of editor start per iteration that is an afternoon.
+	// CallInEditor puts a button on the details panel instead.
+	if (!EquippedWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] RefreshWeaponVisuals: no EquippedWeapon to refresh."));
+		return;
+	}
+
+	RebuildWeaponMeshes();
 }
 
 void UGSWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -119,8 +148,35 @@ void UGSWeaponComponent::GrantAbilitiesFromWeapon()
 
 void UGSWeaponComponent::ToggleRangedMode()
 {
-	if (bSwapLocked || !EquippedWeapon || !EquippedWeapon->bHasRangedMode)
+	// Split out of one silent early-out on 2026-08-05. Three completely different causes used to
+	// share this line and produce the identical symptom - "I pressed swap and nothing happened" -
+	// with nothing in the log to tell them apart. Two of the three are misconfigurations a person
+	// has to go and fix, so they say so and name the field.
+	if (bSwapLocked)
 	{
+		// Not a misconfiguration: the anti-cancel lock doing exactly its job on a double tap.
+		// Log, not Warning - this one is supposed to happen.
+		UE_LOG(LogTemp, Log,
+			TEXT("[GoblinSiege] Weapon swap ignored on %s - the %.2fs anti-cancel lock is still up. "
+				 "Normal on a fast double tap."),
+			*GetNameSafe(GetOwner()), SwapInputLockSeconds);
+		return;
+	}
+	if (!EquippedWeapon)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Weapon swap refused on %s - no weapon equipped. Set EquippedWeapon "
+				 "on the character Blueprint's WeaponComponent."),
+			*GetNameSafe(GetOwner()));
+		return;
+	}
+	if (!EquippedWeapon->bHasRangedMode)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Weapon swap refused on %s - '%s' has bHasRangedMode unticked, so it "
+				 "has no ranged half to swap to. Tick it under GoblinSiege|Weapon|RangedMode on the "
+				 "data asset; it is data, so no recompile is needed."),
+			*GetNameSafe(GetOwner()), *GetNameSafe(EquippedWeapon));
 		return;
 	}
 
@@ -133,6 +189,10 @@ void UGSWeaponComponent::ToggleRangedMode()
 	RefreshWeaponMeshPlacement();
 
 	OnWeaponModeChanged.Broadcast(bRangedMode);
+
+	UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] %s swapped to %s mode."),
+		*GetNameSafe(GetOwner()),
+		bRangedMode ? TEXT("RANGED (bow)") : TEXT("MELEE (sword)"));
 
 	bSwapLocked = true;
 	if (UWorld* World = GetWorld())

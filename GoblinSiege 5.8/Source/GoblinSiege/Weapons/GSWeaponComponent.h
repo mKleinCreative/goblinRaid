@@ -38,6 +38,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon")
 	void EquipWeapon(UGSWeaponDataAsset* NewWeapon);
 
+	/** Rebuild every weapon mesh from the current data asset. CallInEditor so socket offsets and
+	 *  scales can be tuned from the details panel instead of via a PIE restart per attempt
+	 *  (2026-08-02 - the offset-tuning loop this unblocks is worth an afternoon). */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "GoblinSiege|Weapon")
+	void RefreshWeaponVisuals();
+
 	/** Scout sword⇄bow toggle. Brief input lock so the swap can't be used as a frame-perfect
 	 *  combat cancel (race-design-goblins.md weapon-swap rule).
 	 *

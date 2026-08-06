@@ -7,12 +7,18 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "GSCharacterBase.generated.h"
 
 class UAbilitySystemComponent;
 class UGSAttributeSetBase;
 class UGameplayEffect;
+class UAnimMontage;
 struct FOnAttributeChangeData;
+
+/** New, Max, Delta. Delta is negative for damage. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnHealthChanged, float, NewHealth, float, MaxHealth, float, Delta);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnDied);
 
 UCLASS(Abstract)
 class GOBLINSIEGE_API AGSCharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -51,6 +57,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Movement")
 	float GetTurnRateRadPerSec() const { return TurnRateRadPerSec; }
 
+	/** Which race this character fights for. Melee refuses to damage a target sharing it.
+	 *
+	 *  Unset = hits everything, which is the pre-2026-08-04 behaviour and the safe default for
+	 *  anything that has not opted in. AGSEnemyCharacter adopts its race data's RaceTag, so the six
+	 *  human defenders inherit Race.Human from DA_Race_Human without touching a single Blueprint. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	FGameplayTag GetRaceTag() const { return RaceTag; }
+
+	/** False when both sides share a race (or either is unset - see GetRaceTag). Checked by the
+	 *  melee sweep; NOT by fire, which burns everyone on purpose. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool IsHostileTo(const AActor* Other) const;
+
+	/** Sets the unmodified walk speed and re-derives the effective one. For anything that owns a
+	 *  character's baseline rather than a temporary slow - archetype init, a weapon's identity.
+	 *  Temporary slows must NOT come through here; they are GameplayEffects on MoveSpeedMultiplier. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Movement")
+	void SetBaseWalkSpeed(float NewBaseWalkSpeed);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Movement")
+	float GetBaseWalkSpeed() const { return BaseWalkSpeed; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -60,6 +88,46 @@ protected:
 
 	/** Bound to the Health attribute's OnAttributeChanged delegate in BeginPlay. */
 	virtual void HandleHealthChanged(const FOnAttributeChangeData& Data);
+
+	/** Bound to MoveSpeedMultiplier in BeginPlay. Lives on the BASE, not on the player: every slow in
+	 *  the game is a GameplayEffect on that attribute now (UGSGE_MoveSpeedScalar), and a defender that
+	 *  did not listen would raise its guard with no mobility cost at all. */
+	void HandleMoveSpeedMultiplierChanged(const FOnAttributeChangeData& Data);
+
+	/** Turns BaseWalkSpeed and the MoveSpeedMultiplier attribute into the movement component's
+	 *  effective speed. The one place walk speed is written. Subclasses override to derive their own
+	 *  extra speeds from the same multiplier (the player adds MaxWalkSpeedCrouched). */
+	virtual void ApplyMoveSpeed();
+
+	/** Walk speed before any multiplier - captured from the movement component in BeginPlay, and
+	 *  replaced by SetBaseWalkSpeed when something authoritative (an archetype row) supplies one. */
+	float BaseWalkSpeed = 600.f;
+
+	/** See GetRaceTag. EditAnywhere so a one-off placed actor can override what its race data says. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Combat")
+	FGameplayTag RaceTag;
+
+public:
+	/** Broadcast on every Health change, damage or heal. Exists because the attribute delegate GAS
+	 *  gives us is non-dynamic and therefore invisible to Blueprint and UMG - this is the version a
+	 *  health bar can actually bind to. Delta is negative for damage. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnHealthChanged OnHealthChanged;
+
+	/** Broadcast once, when this character dies. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnDied OnDied;
+
+	/** Play a flinch. Direction is the world-space vector from this character to whatever hit them;
+	 *  pass zero if unknown and the front reaction is used. Safe to call every frame - it self-gates
+	 *  on the cooldown and on State.HitReact. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	void PlayHitReact(const FVector& FromDirection);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool IsBlocking() const;
+
+protected:
 
 	/** Called once when Health first reaches 0. Notifies GSGameMode::HandleGoblinDeath. */
 	virtual void HandleDeath();
@@ -80,4 +148,86 @@ protected:
 	bool bIsDead = false;
 
 	bool bAttributesInitialized = false;
+
+	// ---- Death presentation (2026-08-02) -------------------------------------------------
+	// Ragdoll moved from "skip" to "adopt" - the physics comedy is on-brand for a comedy game
+	// (Michael's ruling, see claude/goblin-siege-acf-integration-plan.md). This does NOT replace
+	// UGSGibComponent when that lands: gib is for lethal overkill, ragdoll for ordinary death.
+	// Exposed as EditDefaultsOnly rather than hard-coded because death feel is a tuning pass, and
+	// with Live Coding unable to add UPROPERTYs, a knob you forgot costs a full rebuild.
+
+	/** Simulate physics on the mesh when Health hits 0. Off for anything that should stay standing. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death")
+	bool bRagdollOnDeath = true;
+
+	/** Collision profile applied to the mesh before simulating. "Ragdoll" is the engine default. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death")
+	FName RagdollCollisionProfile = TEXT("Ragdoll");
+
+	/** Extra shove along the killing blow's direction, so a corpse sells the hit. 0 = limp drop. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death")
+	float DeathImpulse = 0.f;
+
+	/** Seconds before the corpse is destroyed. 0 = never (correct for a playtest - you want to see
+	 *  what you killed). Set non-zero once a raid has enough bodies to matter. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Death", meta = (ClampMin = "0.0"))
+	float CorpseLifespan = 0.f;
+
+	// ---- Hit reactions (2026-08-03) ------------------------------------------------------
+	// Combat read as stiff because nothing acknowledged a hit: health dropped and the victim
+	// carried on as though nothing had happened. A flinch is the cheapest possible feedback and
+	// it does most of the work.
+
+	/** Flinch played when the hit lands in front. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> HitReactFront;
+
+	/** Optional. Used when the hit comes from the character's left; falls back to HitReactFront. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> HitReactLeft;
+
+	/** Optional. Used when the hit comes from the character's right; falls back to HitReactFront. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> HitReactRight;
+
+	/** Played instead of a flinch when the hit was blocked - the guard absorbs it. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	TObjectPtr<UAnimMontage> BlockReact;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact", meta = (ClampMin = "0.1"))
+	float HitReactPlayRate = 1.4f;
+
+	/** Minimum gap between flinches. Without this a three-hit combo restarts the montage on every
+	 *  contact and the victim vibrates instead of staggering. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact", meta = (ClampMin = "0.0"))
+	float HitReactCooldownSeconds = 0.45f;
+
+	/** Fraction of MaxHealth a single hit must exceed to flinch. Stops a burning field or a
+	 *  damage-over-time tick from making a character flinch continuously. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float HitReactMinDamageFraction = 0.04f;
+
+	/** Whether a flinch is even attempted on this character. Off for anything that should look
+	 *  unshakeable - a Brute mid-charge, say. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|HitReact")
+	bool bEnableHitReact = true;
+
+public:
+	/** Called by UGSAttributeSetBase immediately before it drains IncomingDamage into Health.
+	 *  The attribute-change delegate that drives HandleHealthChanged cannot see the effect
+	 *  context - on the base-value write path GAS passes GEModData as null - so the attacker has
+	 *  to be handed over from the one place that still has it. Without this, FromDirection is
+	 *  always zero and the left/right flinch variants are unreachable dead code. */
+	void SetPendingDamageInstigator(AActor* InInstigator) { PendingDamageInstigator = InInstigator; }
+
+private:
+	float LastHitReactTime = -1000.f;
+
+	/** Attacker for the damage event currently being applied. Consumed and cleared by
+	 *  HandleHealthChanged; weak so a killed attacker cannot keep itself alive here. */
+	TWeakObjectPtr<AActor> PendingDamageInstigator;
+
+	/** Previous Health, tracked here because FOnAttributeChangeData::OldValue is unusable on the
+	 *  base-value write path damage actually takes. Negative means "no sample yet". */
+	float LastKnownHealth = -1.f;
 };

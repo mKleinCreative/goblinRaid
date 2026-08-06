@@ -34,7 +34,8 @@
 param(
     [switch]$Force,
     [switch]$Rebuild,
-    [switch]$Wait
+    [switch]$Wait,
+    [switch]$IgnoreQueue
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,12 +45,39 @@ $BuildBat    = Join-Path $EngineRoot 'Engine\Build\BatchFiles\Build.bat'
 $ProjectFile = 'D:\goblinRaid\GoblinSiege 5.8\MyProject.uproject'
 $Target      = 'MyProjectEditor'
 $UbaCache    = 'C:\ProgramData\Epic\UnrealBuildAccelerator'
+$QueueScript = 'D:\goblinRaid\GoblinSiege 5.8\AgentQueue\gsqueue.ps1'
 
 function Write-Step { param($Text) Write-Host "`n=== $Text" -ForegroundColor Cyan }
 
 # --- sanity -----------------------------------------------------------------
 if (-not (Test-Path -LiteralPath $BuildBat))    { throw "Build.bat not found: $BuildBat" }
 if (-not (Test-Path -LiteralPath $ProjectFile)) { throw "Project not found: $ProjectFile" }
+
+# --- the agent work queue ---------------------------------------------------
+# Several Claude sessions run against this repo at once. On 2026-08-04 two of them were
+# editing GSPlayerCharacter.cpp inside one build window: the first link produced a DLL
+# describing a source tree that no longer existed, and the only reason anyone noticed was
+# comparing source mtimes against the DLL. A build is the one operation where a half-written
+# file from someone else's session becomes a binary you then trust. So the gate is checked
+# here, structurally, rather than left as a rule agents have to remember.
+Write-Step 'Checking the agent work queue'
+if ($IgnoreQueue) {
+    Write-Host 'SKIPPED - -IgnoreQueue was given.' -ForegroundColor Yellow
+    Write-Host 'Whatever another agent has half-written will be compiled into this build.' -ForegroundColor Yellow
+}
+elseif (-not (Test-Path -LiteralPath $QueueScript)) {
+    Write-Host "Queue script not found at $QueueScript - cannot check." -ForegroundColor Yellow
+    Write-Host 'Continuing, but nothing is protecting this build from a concurrent edit.' -ForegroundColor Yellow
+}
+else {
+    & $QueueScript buildgate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "`nBuild refused: the queue is not empty." -ForegroundColor Red
+        Write-Host 'Wait for those tickets to close, or pass -IgnoreQueue if you know the'
+        Write-Host 'open tickets cannot affect this build.'
+        exit 4
+    }
+}
 
 # --- editor must be closed --------------------------------------------------
 Write-Step 'Checking for a running editor'
@@ -73,6 +101,24 @@ if ($staleUbt) {
     Write-Host "`nA UnrealBuildTool process is already running (PID $($staleUbt.ProcessId -join ', '))." -ForegroundColor Yellow
     Write-Host 'If no build is in progress this is the stranded-UBT bug; kill it before continuing:'
     Write-Host "  Stop-Process -Id $($staleUbt.ProcessId -join ',') -Force"
+}
+
+# --- the phantom build lock, SOLVED 2026-08-02 ------------------------------
+# For weeks this script has intermittently sat forever on
+#   "Build.bat is already running, waiting for existing script to terminate..."
+# with no compiler running and no other Build.bat process anywhere. It was never
+# a stale lock. Epic's Build.bat computes its lock path as
+#     set LockFile=%tmp%\<mangled-path-to-Build.bat>.lock
+# and then holds it open on handle 9. Agent/MCP shells inherit an environment
+# that has TEMP but NOT TMP, so %tmp% expands to nothing, the lock path collapses
+# to "\D-Epic Games-...lock" at the root of the current drive, the redirect is
+# denied, and Build.bat misreports that failure as "already running" - forever,
+# because retrying cannot fix a missing environment variable.
+# It never reproduced in an interactive console because those always define TMP.
+# One line fixes it. Do not remove it.
+if (-not (Test-Path Env:TMP)) {
+    Set-Item -Path Env:TMP -Value (Get-Item Env:TEMP).Value
+    Write-Host 'TMP was unset (agent shell); set it from TEMP so Build.bat can create its lock file.' -ForegroundColor Yellow
 }
 
 # --- stale Build.bat holding the mutex --------------------------------------

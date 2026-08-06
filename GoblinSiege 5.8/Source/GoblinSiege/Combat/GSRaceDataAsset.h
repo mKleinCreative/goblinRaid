@@ -27,6 +27,12 @@ struct FGSArchetypeDefinition
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float Armor = 0.f;
 
+	/** Baseline walk speed for this archetype. **Set to 0 to keep whatever the Blueprint already has.**
+	 *  An archetype row is shared by every character playing that role, but the six human defenders
+	 *  derive their speed from their own height (355uu Guard01 -> 1210, 300uu Erika -> 1023), so a
+	 *  single row's number would flatten six carefully derived values into one. Zero means "the
+	 *  archetype has no opinion about speed", which is the honest answer for a role that spans
+	 *  differently-sized bodies. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float MoveSpeed = 95.f;
 

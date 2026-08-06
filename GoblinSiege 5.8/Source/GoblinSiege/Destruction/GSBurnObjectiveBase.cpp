@@ -1,5 +1,6 @@
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Core/GSGameState.h"
+#include "Raid/GSRaidDirector.h"
 #include "Components/SceneComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
@@ -49,6 +50,16 @@ void AGSBurnObjectiveBase::BeginPlay()
 		World->GetTimerManager().SetTimer(DebugTimerHandle, this,
 			&AGSBurnObjectiveBase::DebugTick, 0.25f, true);
 	}
+
+	// Announce ourselves to the raid director (2026-08-05). It also sweeps the world at
+	// OnWorldBeginPlay, so this is the second of two paths on purpose: the ordering between a world
+	// subsystem's OnWorldBeginPlay and an actor's BeginPlay is not contractually fixed, and this is
+	// the ONLY path by which a carrier spawned mid-raid can join the roster and learn it was born
+	// Optional. RegisterCarrier is idempotent, so being registered twice costs one list scan.
+	if (UGSRaidDirector* Director = UGSRaidDirector::Get(this))
+	{
+		Director->RegisterCarrier(this);
+	}
 }
 
 void AGSBurnObjectiveBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -65,6 +76,27 @@ void AGSBurnObjectiveBase::DebugTick()
 	if (IsBurnDebugEnabled())
 	{
 		DrawDebugState();
+	}
+}
+
+void AGSBurnObjectiveBase::SetObjectiveIdentity(FGameplayTag InTypeTag, FText InDisplayName)
+{
+	// Placement-time only - see the header. Once BeginPlay has run, this carrier is already filed
+	// under its old tag in UGSRaidDirector's per-type buckets, and re-typing it there would leave
+	// the demotion pass and the win check disagreeing about what it is.
+	if (HasActorBegunPlay())
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] SetObjectiveIdentity refused on '%s': the raid has already begun. ")
+			TEXT("Type tags are placement-time data."), *GetName());
+		return;
+	}
+
+	ObjectiveTypeTag = InTypeTag;
+
+	if (!InDisplayName.IsEmpty())
+	{
+		ObjectiveDisplayName = InDisplayName;
 	}
 }
 
@@ -116,7 +148,19 @@ void AGSBurnObjectiveBase::SetCompletion01(float NewCompletion01)
 	}
 
 	const float Clamped = FMath::Clamp(NewCompletion01, 0.f, 1.f);
-	if (FMath::IsNearlyEqual(Clamped, Completion01, KINDA_SMALL_NUMBER))
+
+	// A value that REACHES THE THRESHOLD must always be processed, however small the step that got
+	// it there. Skipping it is not a missed cosmetic update - it is a missed completion, forever.
+	//
+	// The windmill is the case that exposed this (2026-08-05). Its threshold is exactly 1.0 and its
+	// progress is BuildupElapsed / DustBuildupSeconds, which lands on ~0.9999997 on the tick before
+	// the ratio exceeds 1 and clamps. That is a difference of ~3e-7 - far inside KINDA_SMALL_NUMBER
+	// (1e-4) - so the guard below returned early on that tick AND on every tick after it, because
+	// the clamped value never moved again. The mill sat at "100%", stage Smouldering, fuse at 0.0s,
+	// and never detonated: one of the three burn types was quietly impossible to complete, which
+	// made the raid unwinnable without a single error anywhere.
+	const bool bReachesThreshold = Clamped >= CompletionThreshold01;
+	if (!bReachesThreshold && FMath::IsNearlyEqual(Clamped, Completion01, KINDA_SMALL_NUMBER))
 	{
 		return;
 	}
@@ -136,27 +180,12 @@ void AGSBurnObjectiveBase::SetCompletion01(float NewCompletion01)
 		// below.
 		SetListState(EGSObjectiveListState::Complete);
 
-		// ------------------------------------------------------------------------------------
-		// RAID LOOP HOOK - Q-32 demotion goes HERE, and is deliberately NOT implemented (Q-37).
-		//
-		// The ruling (2026-07-31): the win needs one burn of each TYPE, so the moment the first
-		// carrier of a type completes, every OTHER carrier of that same type drops from Required to
-		// Optional. The market is never demoted - only one exists, so it has no siblings.
-		//
-		// Not written here because this actor cannot see its siblings, and any version that could
-		// would be the wrong shape: iterating every AGSBurnObjectiveBase in the world from inside
-		// one objective's completion path puts an O(n) level scan on a gameplay beat, gives late-
-		// spawned carriers (the hamlet generator builds fields at runtime) no way to learn they were
-		// born Optional, and leaves nothing that can answer "is the raid won" - which is the same
-		// question from the other side. That wants a subsystem holding the per-type completion set,
-		// and it belongs to Raid Loop.
-		//
-		// What that pass needs already exists and is stable:
-		//     GetObjectiveTypeTag()  - Objective.Burn.Mill / .Field / .Market, per placed instance
-		//     SetListState(...)      - authority-only, replicated, refuses to demote a Complete one
-		//     OnBurnObjectiveCompleted - the "a carrier of some type just finished" signal to hang
-		//                                the pass off, so it never has to poll
-		// ------------------------------------------------------------------------------------
+		// RAID LOOP HOOK - Q-32 demotion (Q-37). IMPLEMENTED 2026-08-05, and deliberately NOT here:
+		// it lives in UGSRaidDirector, which binds OnBurnObjectiveCompleted below. This actor still
+		// cannot see its siblings and still should not try - the director holds the per-type
+		// completion set, runs the demotion, and answers "is the raid won" from the same state.
+		// Nothing was added to this function; the delegate broadcast further down is the whole
+		// coupling.
 
 		if (UWorld* World = GetWorld())
 		{
