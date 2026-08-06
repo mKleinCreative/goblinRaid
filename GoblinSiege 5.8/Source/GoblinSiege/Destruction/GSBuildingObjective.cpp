@@ -30,6 +30,12 @@ AGSBuildingObjective::AGSBuildingObjective()
 
 	RoofNameFilters.Add(TEXT("Roof"));
 
+	// A piece that IS a whole building - walls, roof and windows baked into one mesh. This map's
+	// ordinary houses are all of these (SM_MERGED_House_*), and they own no roof piece to aim at, so
+	// their roof is a REGION of their own bounds instead. Name-based like every other filter here,
+	// because the kit carries no metadata to ask.
+	MonolithicNameFilters.Add(TEXT("MERGED"));
+
 	// See InteriorNameFilters in the header. "Beam" is in here because the roof beams are structural
 	// interior geometry - they are named Roof_Beam and would otherwise be counted as roof.
 	InteriorNameFilters.Add(TEXT("Interior"));
@@ -162,22 +168,38 @@ void AGSBuildingObjective::AdoptPieces()
 	//
 	// Kitbashed -> it owns roof actors, so the roof is a thing you can hit.
 	// Merged     -> it does not, so its roof is the top of its own bounds. See ContainsWorldLocation.
+	// How can a torch get into this building? Answered from the pieces themselves rather than a flag
+	// someone has to remember to set - and reported, because a building with NEITHER kind of entry is
+	// an objective the player cannot complete and nothing else would say so.
 	int32 RoofPieceCount = 0;
+	int32 MonolithicCount = 0;
 	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
 	{
-		if (IsRoofPiece(Weak.Get()))
+		const AActor* Piece = Weak.Get();
+		if (IsRoofPiece(Piece))
 		{
 			++RoofPieceCount;
 		}
+		if (IsMonolithicPiece(Piece))
+		{
+			++MonolithicCount;
+		}
 	}
-	bHasRoofPieces = RoofPieceCount > 0;
 
-	UE_LOG(LogGSBuilding, Log,
-		TEXT("[GoblinSiege] Building '%s' is %s (%d piece(s), %d of them roof)."),
-		*GetName(),
-		bHasRoofPieces ? TEXT("KITBASHED - enter via a roof piece or a window")
-					   : TEXT("MERGED - enter via the top of its own mesh"),
-		Pieces.Num(), RoofPieceCount);
+	if (RoofPieceCount == 0 && MonolithicCount == 0)
+	{
+		UE_LOG(LogGSBuilding, Warning,
+			TEXT("[GoblinSiege] Building '%s' has NO WAY IN - %d piece(s), no roof piece and no "
+				 "monolithic mesh. A torch cannot light it. Check MonolithicNameFilters and "
+				 "RoofNameFilters against the kit meshes here."),
+			*GetName(), Pieces.Num());
+	}
+	else
+	{
+		UE_LOG(LogGSBuilding, Log,
+			TEXT("[GoblinSiege] Building '%s': %d piece(s), %d roof piece(s), %d monolithic mesh(es)."),
+			*GetName(), Pieces.Num(), RoofPieceCount, MonolithicCount);
+	}
 }
 
 void AGSBuildingObjective::EnsurePiecesFlammable()
@@ -275,28 +297,31 @@ bool AGSBuildingObjective::IsInteriorPiece(const AActor* Piece) const
 	return MeshNameMatches(Piece, InteriorNameFilters);
 }
 
+bool AGSBuildingObjective::IsMonolithicPiece(const AActor* Piece) const
+{
+	return MeshNameMatches(Piece, MonolithicNameFilters);
+}
+
 bool AGSBuildingObjective::ContainsWorldLocation(const FVector& WorldLocation) const
 {
-	// A KITBASHED building owns no ground: the torch's FindObjectiveAtLocation sweep must not light a
-	// house by splashing its outside wall. Getting in is the window's job and the roof piece's job.
-	if (bHasRoofPieces)
-	{
-		return false;
-	}
-
-	// A MERGED building has no roof piece to throw a torch at (2026-08-06). 61 of this map's 67
-	// buildings are single SM_MERGED_House_* meshes - walls, roof and windows baked into one actor -
-	// so IsRoofPiece can never be true for them and there is no window actor to break either. Refusing
-	// here would leave nine buildings in ten unlightable, which is the exact bug this whole feature
-	// exists to fix.
+	// A MERGED piece has no roof ACTOR to throw a torch at (2026-08-06). This map's ordinary houses
+	// are single SM_MERGED_House_* meshes - walls, roof and windows baked into one actor - so
+	// IsRoofPiece can never be true for them and there is no window actor to break either. Refusing
+	// here would leave nine buildings in ten unlightable, which is the exact bug this feature exists
+	// to fix.
 	//
-	// So for those, the roof is not an actor, it is a REGION: the top of the mesh's own bounds. That
-	// keeps the ignition rule intact rather than weakening it - a torch into the wall still fails,
-	// because the wall is the lower two thirds.
+	// For those the roof is not an actor, it is a REGION: the top of the mesh's own bounds. That keeps
+	// the ignition rule intact rather than weakening it - a torch into the wall still fails, because
+	// the wall is the lower two thirds.
+	//
+	// Asked PER PIECE, not per building. Gating this on "the building owns no roof piece at all" was
+	// wrong and PIE proved it: 14 of the 61 merged houses adopt a stray roof tile from a neighbouring
+	// shed, which flipped them to kitbashed and left them with no way in - a torch on their own roof
+	// did nothing. A building can hold both kinds, and each piece answers for itself.
 	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
 	{
 		const AActor* Piece = Weak.Get();
-		if (!Piece || IsInteriorPiece(Piece))
+		if (!Piece || IsInteriorPiece(Piece) || !IsMonolithicPiece(Piece))
 		{
 			continue;
 		}

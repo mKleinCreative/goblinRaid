@@ -265,9 +265,19 @@ protected:
 		meta = (ClampMin = "0.05", ClampMax = "0.9"))
 	float RoofZoneFraction = 0.34f;
 
-	/** True if this building owns roof ACTORS (kitbashed) rather than baking its roof into one merged
-	 *  mesh. Decides how a torch gets in - see ContainsWorldLocation. Set during AdoptPieces. */
-	bool bHasRoofPieces = false;
+	/**
+	 * Substrings marking a piece that IS a whole building - walls, roof and windows in one mesh.
+	 *
+	 * Such a piece owns no roof ACTOR, so its roof is the top RoofZoneFraction of its own bounds
+	 * instead. Asked per PIECE, never per building: 14 of this map's merged houses also adopt a stray
+	 * roof tile from a neighbouring shed, and treating the two as exclusive left those houses with no
+	 * way in at all.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
+	TArray<FString> MonolithicNameFilters;
+
+	/** True if this piece is a whole building baked into one mesh - see MonolithicNameFilters. */
+	bool IsMonolithicPiece(const AActor* Piece) const;
 
 	/** Set at adoption, so completion has a stable denominator even as pieces are destroyed. */
 	int32 InitialPieceCount = 0;

@@ -2,7 +2,7 @@
 id: 033
 title: A building is a merged house actor or an attached kit hierarchy - not a cluster radius
 agent: claude-raid
-status: review
+status: done
 claimed: 2026-08-06T10:18Z
 build: none
 waiting_on:
@@ -52,9 +52,20 @@ VERIFIED by evidence:
   - 61 merged houses vs Michael's 47 downtown annotations: consistent, since 61 covers the whole
     island including outskirts, and his stroke count was downtown only.
 
-WRITTEN BUT NEVER RUN: the C++. The build gate is shut on #030 and #032, so ContainsWorldLocation's
-roof-region test has not compiled, let alone been thrown a torch. Until it builds, 61 of the 67
-buildings still have no way in. This is the whole point of the ticket and it is UNPROVEN.
+BUILT AND PROVEN (2026-08-06, Michael authorised the build; #030/#032 still open, so this went
+through Build.bat rather than the gated script - noted because it bypasses the queue gate).
+  - Compiles clean; only the two pre-existing AbilityTags C4996 warnings.
+  - PIE: 67 buildings, ZERO logging "NO WAY IN".
+  - End-to-end through IgniteAtLocation, the exact entry point the torch calls: a point in the top
+    of a merged house's bounds ignites it with source ROOF (2); a point on its wall leaves it
+    NONE (0). Two of each, PASS.
+
+FOUND AND FIXED BY THAT BUILD: the first cut gated the roof region on "this building owns no roof
+piece at all", and PIE showed 47 MERGED / 20 KITBASHED rather than the expected 61/6 - 14 merged
+houses adopt a stray roof tile from a neighbouring shed, which flipped them to kitbashed and left
+them with NO way in. The question is per PIECE, not per building; MonolithicNameFilters now answers
+it and a building may hold both kinds. This is exactly the class of bug the earlier ticket shipped
+unverified, so: caught only because the test ran.
 
 NOT FIXED, and worth Michael knowing: a merged house has its windows baked into the mesh, so it has
 no breakable window - those 61 are roof-entry only. Michael's flow wanted "a torch into a window";
