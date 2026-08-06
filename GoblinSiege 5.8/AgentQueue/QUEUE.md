@@ -142,7 +142,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 10 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 12 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -166,6 +166,8 @@ _Queue is empty. The build gate is OPEN._
 | 016 | done | claude-raid | Fix building clustering scale and breakable-component persistence |
 | 017 | done | claude-raid | Collapse the HUD objective list by type so 11 houses do not fill the screen |
 | 018 | done | claude-raid | GS.Raid.* debug commands so the two lose paths can be driven and verified |
+| 019 | done | claude-raid | GS.Raid.Goto / GotoActor / SpawnAt teleport debug commands |
+| 020 | done | claude-raid | Burning houses need to LOOK like it: char, smoulder and flames |
 
 <!-- BOARD:END -->
 

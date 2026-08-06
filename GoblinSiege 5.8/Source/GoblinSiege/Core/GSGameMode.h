@@ -44,6 +44,19 @@ public:
 	 */
 	virtual void RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot) override;
 
+	/**
+	 * DEBUG. When set, every spawn AND respawn lands here instead of the runic site.
+	 *
+	 * Set by GS.Raid.SpawnAt, cleared by GS.Raid.SpawnAt off. It exists because playtesting one
+	 * corner of a 3 km hamlet otherwise starts with a two-minute walk from the portal, every single
+	 * time - and a test you have to walk to is a test that gets skipped.
+	 *
+	 * A plain static rather than a UPROPERTY on purpose: it must survive PIE restarts (each PIE gets
+	 * a fresh GameMode instance), and it must never be saved into an asset where it could follow
+	 * someone into a real playthrough.
+	 */
+	static TOptional<FVector> DebugSpawnOverride;
+
 protected:
 	void RespawnPlayer(AController* Controller);
 

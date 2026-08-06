@@ -39,6 +39,8 @@
 #include "GSBuildingObjective.generated.h"
 
 class UGSFlammableComponent;
+class UNiagaraSystem;
+class UNiagaraComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnBuildingIgnited);
 
@@ -132,6 +134,13 @@ protected:
 	UFUNCTION()
 	void HandlePieceBurnedDown();
 
+	/** A piece caught. Spawns the close-up flame on it, up to MaxFireFX. */
+	UFUNCTION()
+	void HandlePieceIgnited();
+
+	/** Attach fire to a piece that is currently burning, respecting the cap. */
+	void SpawnFireFXOn(AActor* Piece);
+
 	void RecomputeCompletion();
 
 	/** True if this piece reads as a way in (roof or window) rather than a wall. Name-based, like
@@ -171,6 +180,44 @@ protected:
 	/** Alarm the moment the house goes up. A burning building is unmissable; louder than a field. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
 	float AlarmOnIgnite = 15.f;
+
+	// ------------------------------------------------------------------ visuals
+	//
+	// A house that burns invisibly is a house that did not burn, as far as the player is concerned.
+	// This is the GDD's burn mandate applied to buildings: "anything burnable chars black +
+	// smoulders". Three layers, because they answer three different questions:
+	//
+	//   char + smoulder  - is this thing damaged?      (per piece, free via UGSBurnFXComponent)
+	//   surface fire     - is this thing ON FIRE now?  (per piece, capped)
+	//   smoke column     - is something burning over THERE? (one per building, reads from range)
+	//
+	// The column is the one the raid actually needs. GDD 2.1 wants a fire to be findable from the
+	// treeline - "lights the map for a mile" - and per-piece flames are invisible past a hundred
+	// metres.
+
+	/** Close-up flame, attached per burning piece. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX")
+	TSoftObjectPtr<UNiagaraSystem> FireSystem;
+
+	/** The distant tell. One per building, at its centre, for as long as it burns. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX")
+	TSoftObjectPtr<UNiagaraSystem> SmokeColumnSystem;
+
+	/**
+	 * How many pieces may show flames at once.
+	 *
+	 * Capped because a 66-piece house would otherwise light 66 Niagara systems in one second, on a
+	 * render thread already measured at 15.4ms of its 16.67ms budget (perf ticket 002). Eight reads
+	 * as a burning house; sixty-six reads as a dropped frame.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX", meta = (ClampMin = "0"))
+	int32 MaxFireFX = 8;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireFX;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> SmokeColumn;
 
 	// ------------------------------------------------------------------ state
 

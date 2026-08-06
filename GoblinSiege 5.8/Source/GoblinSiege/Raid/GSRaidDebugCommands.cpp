@@ -22,9 +22,11 @@
 #include "Characters/GSCharacterBase.h"
 #include "Raid/GSRaidDirector.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Core/GSGameMode.h"
 
 namespace GSRaidDebug
 {
@@ -149,4 +151,158 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSetLivesCmd(
 		{
 			GSRaidDebug::Log(TEXT("GS.Raid.SetLives: no AGSPlayerState"));
 		}
+	}));
+
+// ============================================================================== teleport commands
+//
+// Playtesting one corner of a 3 km hamlet otherwise begins with a two-minute walk from the portal,
+// every single time - and a test you have to walk to is a test that quietly stops being run.
+//
+// All three snap to ground rather than honouring the requested Z literally. That is deliberate and
+// it is the lesson from the spawn bug: a position offset applied without asking the world anything
+// put the player 122 uu under a house floor. Exact coordinates are what you asked for; standing on
+// the floor is what you meant.
+
+namespace GSRaidDebug
+{
+	/** Ground-snap a requested point and confirm a player capsule fits. Falls back to the raw
+	 *  point (loudly) rather than refusing, since a debug teleport into the void is recoverable and
+	 *  a teleport that silently does nothing is not. */
+	static FVector GroundSnap(UWorld* World, const FVector& Wanted)
+	{
+		if (!World)
+		{
+			return Wanted;
+		}
+
+		FHitResult Hit;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(GSRaidGoto), false);
+		if (APawn* P = UGameplayStatics::GetPlayerPawn(World, 0))
+		{
+			Params.AddIgnoredActor(P);
+		}
+
+		// Start only 500 above the asked-for height, not far overhead - a high start finds the roof
+		// of whatever building is there and lands you on it.
+		const FVector Start = Wanted + FVector(0.f, 0.f, 500.f);
+		const FVector End = Wanted - FVector(0.f, 0.f, 5000.f);
+		if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+		{
+			return Hit.Location + FVector(0.f, 0.f, 106.f); // capsule half-height + margin
+		}
+
+		Log(FString::Printf(TEXT("no ground under (%.0f, %.0f, %.0f) - teleporting there anyway"),
+			Wanted.X, Wanted.Y, Wanted.Z));
+		return Wanted;
+	}
+
+	static void TeleportPlayer(UWorld* World, const FVector& Wanted)
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		if (!Pawn)
+		{
+			Log(TEXT("no player pawn (mid-respawn?)"));
+			return;
+		}
+
+		const FVector Where = GroundSnap(World, Wanted);
+		Pawn->TeleportTo(Where, Pawn->GetActorRotation());
+		Log(FString::Printf(TEXT("teleported to (%.0f, %.0f, %.0f)"), Where.X, Where.Y, Where.Z));
+	}
+}
+
+// ------------------------------------------------------------------------------------ GS.Raid.Goto
+
+static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoCmd(
+	TEXT("GS.Raid.Goto"),
+	TEXT("Teleport the player to X Y Z, snapped to the ground there. e.g. GS.Raid.Goto -3471 49012 -514"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World)
+		{
+			return;
+		}
+		if (Args.Num() < 3)
+		{
+			GSRaidDebug::Log(TEXT("usage: GS.Raid.Goto <X> <Y> <Z>"));
+			return;
+		}
+		GSRaidDebug::TeleportPlayer(World, FVector(FCString::Atof(*Args[0]),
+			FCString::Atof(*Args[1]), FCString::Atof(*Args[2])));
+	}));
+
+// ------------------------------------------------------------------------------- GS.Raid.GotoActor
+
+static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoActorCmd(
+	TEXT("GS.Raid.GotoActor"),
+	TEXT("Teleport to the first actor whose label contains this text, standing just outside it. "
+		 "e.g. GS.Raid.GotoActor GS_Building_01"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World || Args.Num() < 1)
+		{
+			GSRaidDebug::Log(TEXT("usage: GS.Raid.GotoActor <part of the actor name>"));
+			return;
+		}
+
+		const FString Needle = Args[0];
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			AActor* A = *It;
+			if (!A || !A->GetName().Contains(Needle))
+			{
+				continue;
+			}
+
+			// Stand back a little, so teleporting to a wall does not embed you in it.
+			const FVector Target = A->GetActorLocation() + FVector(300.f, 300.f, 0.f);
+			GSRaidDebug::Log(FString::Printf(TEXT("GotoActor matched '%s'"), *A->GetName()));
+			GSRaidDebug::TeleportPlayer(World, Target);
+			return;
+		}
+		GSRaidDebug::Log(FString::Printf(TEXT("no actor matching '%s'"), *Needle));
+	}));
+
+// --------------------------------------------------------------------------------- GS.Raid.SpawnAt
+
+static FAutoConsoleCommandWithWorldAndArgs GSRaidSpawnAtCmd(
+	TEXT("GS.Raid.SpawnAt"),
+	TEXT("Make every spawn AND respawn land at X Y Z instead of the runic site. "
+		 "'GS.Raid.SpawnAt off' restores normal spawning. Survives PIE restarts."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* World)
+	{
+		if (Args.Num() >= 1 && (Args[0].Equals(TEXT("off"), ESearchCase::IgnoreCase)
+			|| Args[0].Equals(TEXT("clear"), ESearchCase::IgnoreCase)))
+		{
+			AGSGameMode::DebugSpawnOverride.Reset();
+			GSRaidDebug::Log(TEXT("SpawnAt cleared - spawning returns to the runic site"));
+			return;
+		}
+
+		if (Args.Num() < 3)
+		{
+			if (AGSGameMode::DebugSpawnOverride.IsSet())
+			{
+				const FVector V = AGSGameMode::DebugSpawnOverride.GetValue();
+				GSRaidDebug::Log(FString::Printf(TEXT("SpawnAt is (%.0f, %.0f, %.0f)"), V.X, V.Y, V.Z));
+			}
+			else
+			{
+				GSRaidDebug::Log(TEXT("SpawnAt is off. usage: GS.Raid.SpawnAt <X> <Y> <Z> | off"));
+			}
+			return;
+		}
+
+		// Snap once, here, so the stored value is already standable and every later respawn reuses
+		// it without re-tracing.
+		const FVector Wanted(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2]));
+		AGSGameMode::DebugSpawnOverride = GSRaidDebug::GroundSnap(World, Wanted);
+
+		const FVector V = AGSGameMode::DebugSpawnOverride.GetValue();
+		GSRaidDebug::Log(FString::Printf(
+			TEXT("SpawnAt set to (%.0f, %.0f, %.0f) - every spawn lands here until 'GS.Raid.SpawnAt off'"),
+			V.X, V.Y, V.Z));
 	}));

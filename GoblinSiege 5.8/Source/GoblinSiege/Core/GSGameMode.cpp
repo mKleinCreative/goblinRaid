@@ -92,8 +92,20 @@ AActor* AGSGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	return Super::ChoosePlayerStart_Implementation(Player);
 }
 
+TOptional<FVector> AGSGameMode::DebugSpawnOverride;
+
 void AGSGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot)
 {
+	// Debug override wins over everything, including the runic site - that is the point of it.
+	if (DebugSpawnOverride.IsSet())
+	{
+		const FVector Where = DebugSpawnOverride.GetValue();
+		UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] Spawn overridden by GS.Raid.SpawnAt -> (%.0f, %.0f, %.0f)"),
+			Where.X, Where.Y, Where.Z);
+		RestartPlayerAtTransform(NewPlayer, FTransform(FRotator::ZeroRotator, Where));
+		return;
+	}
+
 	// See the header: the site's transform is the portal, so standing on it is standing in the
 	// extraction circle. GetSpawnTransform() is the offset one, clamped outside the sphere.
 	if (const AGSRunicSite* Site = Cast<AGSRunicSite>(StartSpot))

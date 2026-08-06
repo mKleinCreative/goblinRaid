@@ -1,5 +1,9 @@
 #include "Destruction/GSBuildingObjective.h"
 #include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSBurnFXComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "Core/GSGameState.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -25,6 +29,13 @@ AGSBuildingObjective::AGSBuildingObjective()
 	EntryNameFilters.Add(TEXT("Roof"));
 
 	RoofNameFilters.Add(TEXT("Roof"));
+
+	// Soft paths: these are real assets today (Content/VFX), but soft-loading keeps a level holding
+	// eleven buildings from pulling in Niagara nobody has lit yet.
+	FireSystem = TSoftObjectPtr<UNiagaraSystem>(
+		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_SurfaceFire.NS_GS_SurfaceFire")));
+	SmokeColumnSystem = TSoftObjectPtr<UNiagaraSystem>(
+		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_SmokeColumn.NS_GS_SmokeColumn")));
 
 	PieceNameFilters.Add(TEXT("House"));
 	PieceNameFilters.Add(TEXT("Roof"));
@@ -155,7 +166,23 @@ void AGSBuildingObjective::EnsurePiecesFlammable()
 		if (Flam)
 		{
 			Flam->OnBurnedDown.AddDynamic(this, &AGSBuildingObjective::HandlePieceBurnedDown);
+			Flam->OnIgnited.AddDynamic(this, &AGSBuildingObjective::HandlePieceIgnited);
 			PieceFlammables.Add(Flam);
+		}
+
+		// Char and smoulder. UGSBurnFXComponent finds the sibling flammable itself and binds to its
+		// ignite/extinguish/burned-down delegates, so this is the whole of "the house blackens" -
+		// which is exactly why the first pass showed nothing: the pieces got a flammable component
+		// and no FX component, so they burned correctly and looked untouched.
+		if (!Piece->FindComponentByClass<UGSBurnFXComponent>())
+		{
+			UGSBurnFXComponent* FX = NewObject<UGSBurnFXComponent>(Piece, UGSBurnFXComponent::StaticClass(),
+				TEXT("GSBurnFX_Building"), RF_Transactional);
+			if (FX)
+			{
+				Piece->AddInstanceComponent(FX);
+				FX->RegisterComponent();
+			}
 		}
 	}
 }
@@ -261,6 +288,24 @@ void AGSBuildingObjective::IgniteInterior(EGSBuildingIgnitionSource Source)
 	UE_LOG(LogGSBuilding, Log, TEXT("[GoblinSiege] Building '%s' is alight (source %d), seeded %d piece(s)."),
 		*GetName(), static_cast<int32>(Source), Seeded);
 
+	// The distant tell. One column per building, at its centre, so a burning house is findable from
+	// the treeline - GDD 2.1 wants a fire to read from a mile off, and per-piece flames do not carry
+	// past about a hundred metres.
+	if (!SmokeColumn)
+	{
+		if (UNiagaraSystem* Smoke = SmokeColumnSystem.LoadSynchronous())
+		{
+			SmokeColumn = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, Smoke,
+				GetActorLocation(), FRotator::ZeroRotator);
+		}
+		else
+		{
+			UE_LOG(LogGSBuilding, Warning,
+				TEXT("[GoblinSiege] '%s' has no smoke column asset - a burning house will be hard to "
+					 "spot from range."), *GetName());
+		}
+	}
+
 	if (UWorld* World = GetWorld())
 	{
 		if (AGSGameState* GS = World->GetGameState<AGSGameState>())
@@ -271,6 +316,58 @@ void AGSBuildingObjective::IgniteInterior(EGSBuildingIgnitionSource Source)
 	}
 
 	OnBuildingIgnited.Broadcast();
+}
+
+void AGSBuildingObjective::HandlePieceIgnited()
+{
+	// Which piece? The delegate carries no sender, so light whichever burning piece is not yet
+	// showing flames. Cheap - the cap keeps this loop short and it only runs on ignition events.
+	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
+	{
+		if (ActiveFireFX.Num() >= MaxFireFX)
+		{
+			return;
+		}
+
+		UGSFlammableComponent* Flam = Weak.Get();
+		if (Flam && Flam->IsBurning())
+		{
+			SpawnFireFXOn(Flam->GetOwner());
+		}
+	}
+}
+
+void AGSBuildingObjective::SpawnFireFXOn(AActor* Piece)
+{
+	if (!Piece || ActiveFireFX.Num() >= MaxFireFX)
+	{
+		return;
+	}
+
+	// Already burning visibly? Do not stack a second system on the same piece.
+	for (const TObjectPtr<UNiagaraComponent>& Existing : ActiveFireFX)
+	{
+		if (Existing && Existing->GetOwner() == Piece)
+		{
+			return;
+		}
+	}
+
+	UNiagaraSystem* Fire = FireSystem.LoadSynchronous();
+	if (!Fire)
+	{
+		return;
+	}
+
+	// Attached, so the flame follows the piece and dies with it rather than hanging in the air
+	// after the wall it belonged to has gone.
+	UNiagaraComponent* Comp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		Fire, Piece->GetRootComponent(), NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+		EAttachLocation::SnapToTarget, true);
+	if (Comp)
+	{
+		ActiveFireFX.Add(Comp);
+	}
 }
 
 void AGSBuildingObjective::OnRep_Alight()
