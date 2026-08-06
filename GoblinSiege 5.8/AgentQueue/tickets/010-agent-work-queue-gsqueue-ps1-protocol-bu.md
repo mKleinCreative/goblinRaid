@@ -2,7 +2,7 @@
 id: 010
 title: Agent work queue: gsqueue.ps1, protocol, build gate, decision-queue board
 agent: claude-queue
-status: review
+status: done
 claimed: 2026-08-05T23:23Z
 build: none
 waiting_on:

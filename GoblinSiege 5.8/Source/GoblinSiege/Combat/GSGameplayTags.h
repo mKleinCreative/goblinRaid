@@ -124,6 +124,18 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Field);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_Market);
 
+	/**
+	 * Houses (2026-08-05). The fourth burn type, and the first one added since the win condition
+	 * was written - which is the point ObjectiveTypeTag's own comment predicted: "a fourth burn type
+	 * (a granary, a tannery) should be able to answer by being placed and tagged in a level rather
+	 * than by editing an enum." Nothing in UGSRaidDirector changes to accept it.
+	 *
+	 * Consequence worth stating plainly: once houses are placed AND tagged, the raid needs one of
+	 * FOUR types burnt to win, not three. Leaving a building untagged is the safe half-step - it
+	 * burns and scores nothing rather than making the tutorial unwinnable.
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Objective_Burn_House);
+
 	// ------------------------------------------------------------------ raid markers
 	/**
 	 * The marker set (added 2026-08-05 with AGSRaidMarker) - the placement contract between

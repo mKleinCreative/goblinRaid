@@ -25,9 +25,28 @@ import math
 
 import unreal
 
-SAVE = False
-LINK = 600.0          # cluster link distance AND flammable spread radius - deliberately identical
-MIN_PIECES = 6        # below this it is a fence or a lone prop, not a building
+SAVE = True
+# 250, measured not guessed. A link sweep over the real map showed a sharp percolation threshold:
+# 180 -> 70 clusters, largest 17.  250 -> 81 clusters, largest 49.  320 -> largest 189.  600 -> 421.
+# Past ~320 neighbouring houses bridge and the whole village fuses into one "building" that would
+# need 278 pieces burnt to complete. 250 sits safely below that knee.
+#
+# This also corrects the rule I wrote first. I had link == spread; the real constraint is
+# link <= spread. Equality was over-tight: at 250 < 450 every piece in a cluster is still reachable
+# by fire (which is what the rule protects), and fire ALSO crossing between neighbouring houses is
+# a feature in a burning village, not a defect.
+LINK = 250.0
+# Two filters, both measured. At >=6 pieces with no span floor you get 81 "buildings", and the tail
+# of that list is nonsense: clusters of six co-located pieces with span 0-70 uu - a stack of window
+# frames, not a house. They matter because every one is a scoring objective, so the player could
+# complete "burn a house" by torching a pile of spare frames.
+#
+#   >=6  span>=0    -> 81   (includes the junk)
+#   >=10 span>=250  -> 22
+#   >=12 span>=300  -> 11   <- houses
+#   >=15 span>=350  ->  6
+MIN_PIECES = 12
+MIN_SPAN = 300.0
 LABEL = "GS_Building_%02d"
 
 OUT = []
@@ -98,7 +117,13 @@ for i in range(len(P)):
                 stack.append(j)
     comps.append(comp)
 
-comps = [c for c in comps if len(c) >= MIN_PIECES]
+def span_of(comp):
+    cx = sum(P[i][0] for i in comp) / len(comp)
+    cy = sum(P[i][1] for i in comp) / len(comp)
+    cz = sum(P[i][2] for i in comp) / len(comp)
+    return max(math.dist((cx, cy, cz), P[i]) for i in comp)
+
+comps = [c for c in comps if len(c) >= MIN_PIECES and span_of(c) >= MIN_SPAN]
 comps.sort(key=len, reverse=True)
 say("clusters at link=%.0f with >=%d pieces: %d" % (LINK, MIN_PIECES, len(comps)))
 say("  sizes: %s%s" % ([len(c) for c in comps[:12]], " ..." if len(comps) > 12 else ""))
@@ -138,15 +163,11 @@ added = 0
 for a in wins:
     if a.get_component_by_class(unreal.GSBreakableComponent):
         continue
-    try:
-        # AddInstanceComponent under the hood, or it evaporates on reload - the same trap the
-        # market's flammable components fell into.
-        c = a.add_component_by_class(unreal.GSBreakableComponent, False, unreal.Transform(), False)
-        if c:
-            added += 1
-    except Exception as exc:
-        say("  add failed on %s: %s" % (a.get_actor_label(), str(exc)[:70]))
-        break
+    # UGSRaidLibrary::MakeActorBreakable, NOT add_component_by_class - that method does not exist
+    # on a StaticMeshActor and silently added zero components on the first run. The C++ helper also
+    # routes through AddInstanceComponent, without which the component would not survive a save.
+    if lib.make_actor_breakable(a, True):
+        added += 1
 say("breakable components added: %d" % added)
 say("NOTE: BrokenCollection is left empty - windows hide + puff until fracture assets exist.")
 

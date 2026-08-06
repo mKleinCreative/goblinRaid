@@ -2,7 +2,7 @@
 id: 014
 title: Invisible meshes still present in L_Tutorial_Island
 agent: claude-raid
-status: queued
+status: done
 claimed: 2026-08-06T00:35Z
 build: none
 waiting_on:

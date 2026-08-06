@@ -30,6 +30,7 @@
 class AGSBurnObjectiveBase;
 class AGSRaidMarker;
 class UGSFlammableComponent;
+class UGSBreakableComponent;
 
 UCLASS()
 class GOBLINSIEGE_API UGSRaidLibrary : public UBlueprintFunctionLibrary
@@ -79,4 +80,23 @@ public:
 	 *  verify a dressing pass did what it claimed. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
 	static int32 CountFlammable(const TArray<AActor*>& Actors);
+
+	/**
+	 * Give an actor a UGSBreakableComponent - so a window can be smashed and become a way into a
+	 * building.
+	 *
+	 * Exists for the same reason MakeActorFlammable does, and was added after making the same
+	 * mistake a second time: the placement script tried `add_component_by_class` from Python and
+	 * that method does not exist on a StaticMeshActor, so 113 windows silently got zero components.
+	 * Even where a Python path exists it does not route through AddInstanceComponent, and a
+	 * component that skips that vanishes on the next level load - the level looks dressed until you
+	 * reopen it.
+	 *
+	 * Idempotent: returns the existing component rather than stacking a second one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
+	static UGSBreakableComponent* MakeActorBreakable(AActor* Actor, bool bOpensBuilding = true);
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
+	static int32 CountBreakable(const TArray<AActor*>& Actors);
 };

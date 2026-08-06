@@ -2,7 +2,7 @@
 id: 013
 title: Burnable buildings: torch through a window or onto the roof sets the house alight
 agent: claude-raid
-status: review
+status: done
 claimed: 2026-08-06T00:34Z
 build: required
 waiting_on:

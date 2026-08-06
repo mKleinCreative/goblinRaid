@@ -2,6 +2,7 @@
 #include "Raid/GSRaidMarker.h"
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSBreakableComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagsManager.h"
 
@@ -99,6 +100,47 @@ UGSFlammableComponent* UGSRaidLibrary::MakeActorFlammable(AActor* Actor)
 	Actor->MarkPackageDirty();
 
 	return Comp;
+}
+
+UGSBreakableComponent* UGSRaidLibrary::MakeActorBreakable(AActor* Actor, bool bOpensBuilding)
+{
+	if (!Actor)
+	{
+		return nullptr;
+	}
+
+	if (UGSBreakableComponent* Existing = Actor->FindComponentByClass<UGSBreakableComponent>())
+	{
+		return Existing;
+	}
+
+	UGSBreakableComponent* Comp = NewObject<UGSBreakableComponent>(Actor, UGSBreakableComponent::StaticClass(),
+		TEXT("GSBreakable"), RF_Transactional);
+	if (!Comp)
+	{
+		return nullptr;
+	}
+
+	// AddInstanceComponent is the whole point - see the header.
+	Actor->AddInstanceComponent(Comp);
+	Comp->RegisterComponent();
+	Comp->SetOpensBuilding(bOpensBuilding);
+
+	Actor->MarkPackageDirty();
+	return Comp;
+}
+
+int32 UGSRaidLibrary::CountBreakable(const TArray<AActor*>& Actors)
+{
+	int32 Count = 0;
+	for (const AActor* Actor : Actors)
+	{
+		if (Actor && Actor->FindComponentByClass<UGSBreakableComponent>())
+		{
+			++Count;
+		}
+	}
+	return Count;
 }
 
 int32 UGSRaidLibrary::CountFlammable(const TArray<AActor*>& Actors)

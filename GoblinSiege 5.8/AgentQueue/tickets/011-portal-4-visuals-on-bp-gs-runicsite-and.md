@@ -2,7 +2,7 @@
 id: 011
 title: Portal 4 visuals on BP_GS_RunicSite, and the four missing HUD widgets
 agent: claude-raid
-status: review
+status: done
 claimed: 2026-08-05T23:25Z
 build: none
 waiting_on:

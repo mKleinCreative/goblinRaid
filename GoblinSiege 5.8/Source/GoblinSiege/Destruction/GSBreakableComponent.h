@@ -73,6 +73,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Breakable")
 	FGSOnBroken OnBroken;
 
+	/** Placement-time setter. A window opens its building; a crate or a fence does not. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Breakable")
+	void SetOpensBuilding(bool bValue) { bOpensBuilding = bValue; }
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:

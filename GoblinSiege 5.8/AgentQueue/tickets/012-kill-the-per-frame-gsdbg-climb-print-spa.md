@@ -2,7 +2,7 @@
 id: 012
 title: Kill the per-frame GSDBG|CLIMB print spam on BP_GSPlayerCharacter
 agent: claude-raid
-status: review
+status: done
 claimed: 2026-08-05T23:39Z
 build: none
 waiting_on:

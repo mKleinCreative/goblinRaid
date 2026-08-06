@@ -38,6 +38,7 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_Mill, "Objective.Burn.Mill", "Windmill burn objective - dust-fuse detonation (design doc §6.3)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_Field, "Objective.Burn.Field", "Wheat field burn objective - grid spread, >=70% of cells (Q-03)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_Market, "Objective.Burn.Market", "Market burn objective - stall-to-stall cluster spread; never Optional, only one exists");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Objective_Burn_House, "Objective.Burn.House", "A house - lit through a broken window or across the roof, never from outside (2026-08-05)");
 
 	// Raid markers (added 2026-08-05 with AGSRaidMarker). Placement data only - a marker never
 	// carries counts or behaviour. See GSRaidMarker.h.
