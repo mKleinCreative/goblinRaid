@@ -2,7 +2,7 @@
 id: 025
 title: Buildings measured by pivot not geometry - 76 of 113 windows own nothing
 agent: claude-raid
-status: review
+status: done
 claimed: 2026-08-06T06:06Z
 build: required
 waiting_on:

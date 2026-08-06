@@ -2,7 +2,7 @@
 id: 024
 title: Stop tickets closing with a stale Evaluate
 agent: claude-queue
-status: active
+status: done
 claimed: 2026-08-06T05:31Z
 build: none
 waiting_on:

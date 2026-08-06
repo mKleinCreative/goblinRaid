@@ -2,7 +2,7 @@
 id: 023
 title: Torch throw feel: fix the giant arc square, show the reticle, more range, visible in flight
 agent: claude-ranged
-status: review
+status: done
 claimed: 2026-08-06T05:29Z
 build: required
 waiting_on: build gate

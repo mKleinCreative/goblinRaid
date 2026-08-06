@@ -140,13 +140,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 023 | review (waiting on: build gate) | claude-ranged | Torch throw feel: fix the giant arc square, show the reticle, more range, visible in flight | Source/GoblinSiege/Combat/GSAimComponent.h<br>Source/GoblinSiege/Combat/GSAimComponent.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.h<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp | required |
-| 024 | active | claude-queue | Stop tickets closing with a stale Evaluate | GoblinSiege 5.8/AgentQueue/gsqueue.ps1<br>GoblinSiege 5.8/AgentQueue/QUEUE.md<br>GoblinSiege 5.8/AGENT_STATE.md | none |
-| 025 | review | claude-raid | Buildings measured by pivot not geometry - 76 of 113 windows own nothing | Source/GoblinSiege/Destruction/GSBuildingObjective.cpp<br>tools/hamlet/gs_buildings.py | required |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 15 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -174,6 +170,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 020 | done | claude-raid | Burning houses need to LOOK like it: char, smoulder and flames |
 | 021 | done | claude-raid | GotoBuilding / BurnHere / BuildingStatus - and find out why char is not showing |
 | 022 | done | claude-perf | Delete empty gigantic Dreamscape blocking volumes from L_Tutorial_Island |
+| 023 | done | claude-ranged | Torch throw feel: fix the giant arc square, show the reticle, more range, visible in flight |
+| 024 | done | claude-queue | Stop tickets closing with a stale Evaluate |
+| 025 | done | claude-raid | Buildings measured by pivot not geometry - 76 of 113 windows own nothing |
+| 026 | done | claude-ranged | Editor-side torch/bow wiring: swapped aim materials, missing bow+quiver meshes, unset bow ability |
 
 <!-- BOARD:END -->
 
