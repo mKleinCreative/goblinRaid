@@ -27,6 +27,11 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Core/GSGameMode.h"
+#include "Destruction/GSBuildingObjective.h"
+#include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSBurnFXComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 namespace GSRaidDebug
 {
@@ -251,14 +256,17 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoActorCmd(
 		for (TActorIterator<AActor> It(World); It; ++It)
 		{
 			AActor* A = *It;
-			if (!A || !A->GetName().Contains(Needle))
+			// GetActorNameOrLabel: the editor label in editor builds, the object name otherwise.
+			// Matching GetName() alone was why 'GS_Building_00' never matched anything - at
+			// runtime that actor is called GSBuildingObjective_81.
+			if (!A || !A->GetActorNameOrLabel().Contains(Needle))
 			{
 				continue;
 			}
 
 			// Stand back a little, so teleporting to a wall does not embed you in it.
 			const FVector Target = A->GetActorLocation() + FVector(300.f, 300.f, 0.f);
-			GSRaidDebug::Log(FString::Printf(TEXT("GotoActor matched '%s'"), *A->GetName()));
+			GSRaidDebug::Log(FString::Printf(TEXT("GotoActor matched '%s'"), *A->GetActorNameOrLabel()));
 			GSRaidDebug::TeleportPlayer(World, Target);
 			return;
 		}
@@ -305,4 +313,196 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSpawnAtCmd(
 		GSRaidDebug::Log(FString::Printf(
 			TEXT("SpawnAt set to (%.0f, %.0f, %.0f) - every spawn lands here until 'GS.Raid.SpawnAt off'"),
 			V.X, V.Y, V.Z));
+	}));
+
+// ============================================================================== building commands
+
+namespace GSRaidDebug
+{
+	/** The building nearest the player, or the Nth largest if the player has no pawn. */
+	static AGSBuildingObjective* PickBuilding(UWorld* World, int32 Index)
+	{
+		TArray<AGSBuildingObjective*> All;
+		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+		{
+			if (*It)
+			{
+				All.Add(*It);
+			}
+		}
+		if (All.Num() == 0)
+		{
+			Log(TEXT("no AGSBuildingObjective in this level"));
+			return nullptr;
+		}
+
+		// Biggest first: a 54-piece house is a far better place to judge fire than a 13-piece shed.
+		All.Sort([](const AGSBuildingObjective& A, const AGSBuildingObjective& B)
+		{
+			return A.GetPieceCount() > B.GetPieceCount();
+		});
+		return All[FMath::Clamp(Index, 0, All.Num() - 1)];
+	}
+}
+
+// ---------------------------------------------------------------------------- GS.Raid.GotoBuilding
+
+static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoBuildingCmd(
+	TEXT("GS.Raid.GotoBuilding"),
+	TEXT("Teleport to a burnable building, standing back far enough to see the whole thing. "
+		 "Optional index, 0 = biggest. Buildings are sorted largest first."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World)
+		{
+			return;
+		}
+
+		const int32 Index = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+		AGSBuildingObjective* B = GSRaidDebug::PickBuilding(World, Index);
+		if (!B)
+		{
+			return;
+		}
+
+		const FVector L = B->GetActorLocation();
+		GSRaidDebug::Log(FString::Printf(TEXT("%s: %d pieces, alight=%s, %.0f%% burnt"),
+			*B->GetActorNameOrLabel(), B->GetPieceCount(),
+			B->IsAlight() ? TEXT("yes") : TEXT("no"), B->GetCompletion01() * 100.f));
+
+		// Stand off far enough that the whole house is in frame, not inside its front room.
+		GSRaidDebug::TeleportPlayer(World, L + FVector(1100.f, 1100.f, 0.f));
+	}));
+
+// -------------------------------------------------------------------------------- GS.Raid.BurnHere
+
+static FAutoConsoleCommandWithWorld GSRaidBurnHereCmd(
+	TEXT("GS.Raid.BurnHere"),
+	TEXT("Set the nearest building alight, as though a torch had gone through its window."),
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	{
+		if (!World)
+		{
+			return;
+		}
+
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		if (!Pawn)
+		{
+			GSRaidDebug::Log(TEXT("no player pawn"));
+			return;
+		}
+
+		AGSBuildingObjective* Nearest = nullptr;
+		float BestSq = TNumericLimits<float>::Max();
+		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+		{
+			AGSBuildingObjective* B = *It;
+			if (!B)
+			{
+				continue;
+			}
+			const float D = FVector::DistSquared(B->GetActorLocation(), Pawn->GetActorLocation());
+			if (D < BestSq)
+			{
+				BestSq = D;
+				Nearest = B;
+			}
+		}
+
+		if (!Nearest)
+		{
+			GSRaidDebug::Log(TEXT("no building nearby"));
+			return;
+		}
+
+		Nearest->IgniteInterior(EGSBuildingIgnitionSource::Window);
+		GSRaidDebug::Log(FString::Printf(TEXT("lit %s (%.0f m away, %d pieces)"),
+			*Nearest->GetActorNameOrLabel(), FMath::Sqrt(BestSq) / 100.f, Nearest->GetPieceCount()));
+	}));
+
+// -------------------------------------------------------------------------- GS.Raid.BuildingStatus
+
+static FAutoConsoleCommandWithWorld GSRaidBuildingStatusCmd(
+	TEXT("GS.Raid.BuildingStatus"),
+	TEXT("Report the nearest building's pieces: how many are burning, how many burnt, and the actual "
+		 "GS_BurnAmount on their materials - which is what decides whether char is VISIBLE."),
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	{
+		if (!World)
+		{
+			return;
+		}
+
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		AGSBuildingObjective* Nearest = nullptr;
+		float BestSq = TNumericLimits<float>::Max();
+		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+		{
+			if (AGSBuildingObjective* B = *It)
+			{
+				const float D = Pawn ? FVector::DistSquared(B->GetActorLocation(), Pawn->GetActorLocation()) : 0.f;
+				if (D < BestSq) { BestSq = D; Nearest = B; }
+			}
+		}
+		if (!Nearest)
+		{
+			GSRaidDebug::Log(TEXT("no building found"));
+			return;
+		}
+
+		// Walk the pieces around it and report the three things that can independently be wrong:
+		// no flammable (cannot burn), no FX component (burns invisibly), or a material with no
+		// GS_BurnAmount (FX runs and paints nothing).
+		int32 Pieces = 0, WithFlam = 0, WithFX = 0, Burning = 0, Burnt = 0, WithParam = 0;
+		float MaxBurn = 0.f;
+		const FVector Centre = Nearest->GetActorLocation();
+
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			AActor* A = *It;
+			if (!A || FVector::Dist(A->GetActorLocation(), Centre) > 2500.f)
+			{
+				continue;
+			}
+			UGSFlammableComponent* F = A->FindComponentByClass<UGSFlammableComponent>();
+			if (!F)
+			{
+				continue;
+			}
+			++Pieces; ++WithFlam;
+			if (A->FindComponentByClass<UGSBurnFXComponent>()) { ++WithFX; }
+			if (F->IsBurning()) { ++Burning; }
+			if (F->HasBurnedDown()) { ++Burnt; }
+
+			if (UStaticMeshComponent* M = A->FindComponentByClass<UStaticMeshComponent>())
+			{
+				for (int32 i = 0; i < M->GetNumMaterials(); ++i)
+				{
+					if (UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(M->GetMaterial(i)))
+					{
+						float V = 0.f;
+						if (MID->GetScalarParameterValue(FName("GS_BurnAmount"), V))
+						{
+							++WithParam;
+							MaxBurn = FMath::Max(MaxBurn, V);
+						}
+					}
+				}
+			}
+		}
+
+		GSRaidDebug::Log(FString::Printf(TEXT("%s alight=%s %.0f%% complete"),
+			*Nearest->GetActorNameOrLabel(), Nearest->IsAlight() ? TEXT("yes") : TEXT("no"),
+			Nearest->GetCompletion01() * 100.f));
+		GSRaidDebug::Log(FString::Printf(
+			TEXT("pieces=%d  flammable=%d  burnFX=%d  burning=%d  burnt=%d"),
+			Pieces, WithFlam, WithFX, Burning, Burnt));
+		GSRaidDebug::Log(FString::Printf(
+			TEXT("MIDs exposing GS_BurnAmount=%d   highest value seen=%.2f  %s"),
+			WithParam, MaxBurn,
+			WithParam == 0 ? TEXT("<- no MIDs: char CANNOT show")
+				: (MaxBurn <= 0.01f ? TEXT("<- param exists but is still 0: FX not driving it")
+					: TEXT("<- char is being applied"))));
 	}));
