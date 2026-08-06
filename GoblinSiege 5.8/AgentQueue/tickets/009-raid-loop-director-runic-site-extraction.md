@@ -2,7 +2,7 @@
 id: 009
 title: Raid loop: director, runic site, extraction; fix player spawning inside geometry
 agent: claude-raid
-status: review
+status: done
 claimed: 2026-08-05T21:05Z
 build: required
 waiting_on: 

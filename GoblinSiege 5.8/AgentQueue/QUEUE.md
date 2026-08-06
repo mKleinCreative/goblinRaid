@@ -142,14 +142,13 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 009 | review **STALE 3.5h** | claude-raid | Raid loop: director, runic site, extraction; fix player spawning inside geometry | Source/GoblinSiege/Raid/GSRunicSite.cpp<br>Source/GoblinSiege/Raid/GSRunicSite.h<br>Source/GoblinSiege/Core/GSGameMode.cpp<br>Source/GoblinSiege/Core/GSGameMode.h<br>Source/GoblinSiege/Raid/GSRaidDirector.cpp<br>Source/GoblinSiege/Raid/GSRaidDirector.h<br>Source/GoblinSiege/Raid/GSRaidLibrary.cpp<br>Source/GoblinSiege/Raid/GSRaidLibrary.h<br>Source/GoblinSiege/Raid/GSRaidMarker.cpp<br>Source/GoblinSiege/Raid/GSRaidMarker.h<br>Source/GoblinSiege/Raid/GSRaidTypes.h<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.cpp<br>Source/GoblinSiege/Destruction/GSBurnObjectiveBase.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp<br>Source/GoblinSiege/Combat/GSGameplayTags.h<br>Content/Maps/L_Tutorial_Island.umap | required |
 | 010 | review | claude-queue | Agent work queue: gsqueue.ps1, protocol, build gate, decision-queue board | GoblinSiege 5.8/AgentQueue/gsqueue.ps1<br>GoblinSiege 5.8/AgentQueue/QUEUE.md<br>GoblinSiege 5.8/CLAUDE.md<br>GoblinSiege 5.8/AGENT_STATE.md<br>CLAUDE.md<br>Build-GoblinSiege.ps1<br>decision-queue-kanban.html | none |
-| 011 | queued | claude-raid | Portal 4 visuals on BP_GS_RunicSite, and the four missing HUD widgets | Content/Blueprints/BP_GS_RunicSite.uasset<br>Content/UI/WBP_GSPlayerHUD.uasset | none |
-| 012 | queued | claude-raid | Kill the per-frame GSDBG|CLIMB print spam on BP_GSPlayerCharacter | Content/Blueprints/BP_GSPlayerCharacter.uasset | none |
-| 013 | queued | claude-raid | Burnable buildings: torch through a window or onto the roof sets the house alight | Source/GoblinSiege/Destruction/GSBuildingObjective.h<br>Source/GoblinSiege/Destruction/GSBuildingObjective.cpp<br>Source/GoblinSiege/Destruction/GSBreakableComponent.h<br>Source/GoblinSiege/Destruction/GSBreakableComponent.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.h<br>tools/hamlet/gs_buildings.py | required |
+| 011 | review | claude-raid | Portal 4 visuals on BP_GS_RunicSite, and the four missing HUD widgets | Content/Blueprints/BP_GS_RunicSite.uasset<br>Content/UI/WBP_GSPlayerHUD.uasset | none |
+| 012 | review | claude-raid | Kill the per-frame GSDBG|CLIMB print spam on BP_GSPlayerCharacter | Content/Blueprints/BP_GSPlayerCharacter.uasset | none |
+| 013 | review | claude-raid | Burnable buildings: torch through a window or onto the roof sets the house alight | Source/GoblinSiege/Destruction/GSBuildingObjective.h<br>Source/GoblinSiege/Destruction/GSBuildingObjective.cpp<br>Source/GoblinSiege/Destruction/GSBreakableComponent.h<br>Source/GoblinSiege/Destruction/GSBreakableComponent.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.h<br>tools/hamlet/gs_buildings.py | required |
 | 014 | queued | claude-raid | Invisible meshes still present in L_Tutorial_Island | DIAGNOSIS-ONLY-no-files-claimed-yet | none |
 
-**BUILD GATE: CLOSED - 6 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 5 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -163,6 +162,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 006 | done | claude-perf | Defender crowding: stand-off slots so they stop converging on one point |
 | 007 | done | claude-ranged | Commit and push the session's work to origin (repo-wide git operation) |
 | 008 | done | claude-perf | PIE-verify defender crowding, tune stand-off dials if they do not hold |
+| 009 | done | claude-raid | Raid loop: director, runic site, extraction; fix player spawning inside geometry |
 
 <!-- BOARD:END -->
 
