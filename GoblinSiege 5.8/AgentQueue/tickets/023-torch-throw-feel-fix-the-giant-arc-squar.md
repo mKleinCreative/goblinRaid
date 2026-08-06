@@ -5,13 +5,13 @@ agent: claude-ranged
 status: review
 claimed: 2026-08-06T05:29Z
 build: required
-waiting_on: build gate - and #022 may be chasing this same bug as a level actor; worth checking before more searching
+waiting_on: build gate
 files: 
   - Source/GoblinSiege/Combat/GSAimComponent.h
   - Source/GoblinSiege/Combat/GSAimComponent.cpp
   - Source/GoblinSiege/Destruction/GSTorchProjectile.h
   - Source/GoblinSiege/Destruction/GSTorchProjectile.cpp
-evaluated: 2026-08-06T05:34Z
+evaluated: 2026-08-06T05:45Z
 ---
 
 ## Goal
@@ -94,3 +94,5 @@ width, and getting that wrong is invisible in code review and enormous on screen
 it is a separate design with two answered questions (torch becomes a held weapon; hold-Q,
 drag, release) and one open one (who builds the widget). Folding it in here would have mixed
 a feel-fix with an input-model change.
+
+> 2026-08-06T05:45Z RETRACTION: my Evaluate claimed #022 might be chasing this same arc bug. That was WRONG - do not abandon #022 on my account. Evidence: GSAimComponent draws no wireframe (only a DrawDebugSphere behind GS.Aim.Debug); no red DrawDebugBox exists anywhere in Source; and in Michael's recording the red box and ellipse stay world-anchored to a wall structure and a distant tree while the goblin moves past them. That is a level actor, which is #022's subject. The ArcSegmentWidth scale bug in this ticket is still real arithmetic (4 x 100uu cube = 400uu) but is NOT what Michael saw in that video.

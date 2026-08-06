@@ -94,7 +94,6 @@ void AGSBuildingObjective::AdoptPieces()
 	}
 
 	const FVector Origin = GetActorLocation();
-	const float RadiusSq = AdoptRadius * AdoptRadius;
 
 	for (TActorIterator<AActor> It(World); It; ++It)
 	{
@@ -104,7 +103,20 @@ void AGSBuildingObjective::AdoptPieces()
 			continue;
 		}
 
-		if (FVector::DistSquared(Other->GetActorLocation(), Origin) > RadiusSq)
+		// Measure to the piece's GEOMETRY, not its pivot.
+		//
+		// This kit offsets its meshes from their actor origin by a median of 287 uu and up to 671
+		// (measured over 1,000 house pieces on L_Tutorial_Island). Testing GetActorLocation() was
+		// therefore asking "is this pivot near me", which is a different question from "is this wall
+		// part of my house" - and the answer diverged badly: 76 of 113 windows ended up owned by no
+		// building, so breaking them did nothing at all.
+		//
+		// Subtracting the piece's own bounding radius means a large wall counts as adopted if ANY of
+		// it is inside the footprint, which is what "part of this building" actually means.
+		FVector PieceOrigin, PieceExtent;
+		Other->GetActorBounds(false, PieceOrigin, PieceExtent);
+		const float EdgeDistance = FVector::Dist(PieceOrigin, Origin) - PieceExtent.Size();
+		if (EdgeDistance > AdoptRadius)
 		{
 			continue;
 		}

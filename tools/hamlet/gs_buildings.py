@@ -88,7 +88,25 @@ say("building kit pieces found: %d" % len(pieces))
 if not pieces:
     say("nothing to do"); flush(); raise SystemExit
 
-P = [(a.get_actor_location().x, a.get_actor_location().y, a.get_actor_location().z) for a in pieces]
+# Cluster on where the GEOMETRY is, not where the pivot is.
+#
+# This kit offsets its meshes from their actor origin by a median of 287 uu (max 671, over 1,000
+# house pieces). Clustering on get_actor_location() therefore grouped pivots rather than walls, and
+# sized every adopt radius from the spread of those pivots - producing radii of 0 to 617 uu where a
+# house needs several hundred, and leaving 76 of 113 windows owned by no building at all.
+#
+# get_actor_bounds returns the real world-space centre. Everything downstream - clustering, span,
+# adopt radius - is derived from these, so fixing it here fixes all three.
+def centre_of(a):
+    o, _ext = a.get_actor_bounds(False)
+    return (o.x, o.y, o.z)
+
+def radius_of(a):
+    _o, ext = a.get_actor_bounds(False)
+    return math.sqrt(ext.x * ext.x + ext.y * ext.y + ext.z * ext.z)
+
+P = [centre_of(a) for a in pieces]
+R = [radius_of(a) for a in pieces]
 
 # ---- connected components at LINK. Grid-bucketed: 1,413 pieces is 2M pair tests brute force,
 # which is slow enough over the MCP bridge to look like a hang.
@@ -126,7 +144,7 @@ def span_of(comp):
     cx = sum(P[i][0] for i in comp) / len(comp)
     cy = sum(P[i][1] for i in comp) / len(comp)
     cz = sum(P[i][2] for i in comp) / len(comp)
-    return max(math.dist((cx, cy, cz), P[i]) for i in comp)
+    return max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp)
 
 MESH = [mesh_of(a) or "" for a in pieces]
 
@@ -156,7 +174,9 @@ for idx, comp in enumerate(comps):
     cx = sum(P[i][0] for i in comp) / len(comp)
     cy = sum(P[i][1] for i in comp) / len(comp)
     cz = sum(P[i][2] for i in comp) / len(comp)
-    span = max(math.dist((cx, cy, cz), P[i]) for i in comp)
+    # Reach far enough to contain each piece's whole extent, not just its centre - otherwise the
+    # outermost wall of the house sits half outside its own building.
+    span = max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp)
 
     b = eas.spawn_actor_from_class(unreal.GSBuildingObjective,
                                    unreal.Vector(cx, cy, cz), unreal.Rotator(0, 0, 0))

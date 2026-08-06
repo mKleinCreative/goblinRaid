@@ -142,9 +142,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 022 | review (waiting on: Michael to identify the actor he is hitting - five searches found nothing matching 'empty gigantic blocking volume') | claude-perf | Delete empty gigantic Dreamscape blocking volumes from L_Tutorial_Island | Content/Maps/L_Tutorial_Island.umap | none |
-| 023 | review (waiting on: build gate - and #022 may be chasing this same bug as a level actor; worth checking before more searching) | claude-ranged | Torch throw feel: fix the giant arc square, show the reticle, more range, visible in flight | Source/GoblinSiege/Combat/GSAimComponent.h<br>Source/GoblinSiege/Combat/GSAimComponent.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.h<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp | required |
+| 023 | review (waiting on: build gate) | claude-ranged | Torch throw feel: fix the giant arc square, show the reticle, more range, visible in flight | Source/GoblinSiege/Combat/GSAimComponent.h<br>Source/GoblinSiege/Combat/GSAimComponent.cpp<br>Source/GoblinSiege/Destruction/GSTorchProjectile.h<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp | required |
 | 024 | active | claude-queue | Stop tickets closing with a stale Evaluate | GoblinSiege 5.8/AgentQueue/gsqueue.ps1<br>GoblinSiege 5.8/AgentQueue/QUEUE.md<br>GoblinSiege 5.8/AGENT_STATE.md | none |
+| 025 | review | claude-raid | Buildings measured by pivot not geometry - 76 of 113 windows own nothing | Source/GoblinSiege/Destruction/GSBuildingObjective.cpp<br>tools/hamlet/gs_buildings.py | required |
 
 **BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
@@ -173,6 +173,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 019 | done | claude-raid | GS.Raid.Goto / GotoActor / SpawnAt teleport debug commands |
 | 020 | done | claude-raid | Burning houses need to LOOK like it: char, smoulder and flames |
 | 021 | done | claude-raid | GotoBuilding / BurnHere / BuildingStatus - and find out why char is not showing |
+| 022 | done | claude-perf | Delete empty gigantic Dreamscape blocking volumes from L_Tutorial_Island |
 
 <!-- BOARD:END -->
 
