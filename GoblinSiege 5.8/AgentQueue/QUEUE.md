@@ -142,7 +142,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 17 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 18 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -176,6 +176,7 @@ _Queue is empty. The build gate is OPEN._
 | 026 | done | claude-ranged | Editor-side torch/bow wiring: swapped aim materials, missing bow+quiver meshes, unset bow ability |
 | 027 | done | claude-raid | Debug commands must resolve the game world; buildings must not double-own pieces |
 | 028 | done | claude-raid | Teleport reported success while TeleportTo silently failed |
+| 029 | done | claude-raid | Buildings: cluster on shell not interiors, merge floors, score the shell |
 
 <!-- BOARD:END -->
 

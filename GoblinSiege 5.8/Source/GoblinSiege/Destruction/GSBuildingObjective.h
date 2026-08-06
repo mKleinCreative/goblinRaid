@@ -172,6 +172,24 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
 	TArray<FString> RoofNameFilters;
 
+	/**
+	 * Pieces that are INSIDE the building - interior walls, floors, stairs, ceiling beams.
+	 *
+	 * Michael, 2026-08-06: "I think you're getting caught up and confused on interiors." He was
+	 * right, and it was the whole problem. 28% of the kit is interior, a tavern with many rooms and
+	 * a balcony read as 422 pieces, and the floors sat at different heights - which is what split
+	 * every multi-storey house into one objective per storey.
+	 *
+	 * These are still ADOPTED and still burn, so fire spreads through a building properly. They are
+	 * simply not COUNTED toward completion: a player judges a house by its outside, and burning a
+	 * cellar floor they cannot see should not be what stands between them and the objective.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
+	TArray<FString> InteriorNameFilters;
+
+	/** True if this piece is interior - adopted and flammable, but not scored. */
+	bool IsInteriorPiece(const AActor* Piece) const;
+
 	/** Substrings a piece's mesh must match to be adopted at all. Empty adopts anything with a
 	 *  static mesh inside the radius, which drags in barrels and market tables. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")

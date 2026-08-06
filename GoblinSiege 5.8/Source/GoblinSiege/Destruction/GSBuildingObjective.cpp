@@ -30,6 +30,14 @@ AGSBuildingObjective::AGSBuildingObjective()
 
 	RoofNameFilters.Add(TEXT("Roof"));
 
+	// See InteriorNameFilters in the header. "Beam" is in here because the roof beams are structural
+	// interior geometry - they are named Roof_Beam and would otherwise be counted as roof.
+	InteriorNameFilters.Add(TEXT("Interior"));
+	InteriorNameFilters.Add(TEXT("Floor"));
+	InteriorNameFilters.Add(TEXT("Stair"));
+	InteriorNameFilters.Add(TEXT("Ceiling"));
+	InteriorNameFilters.Add(TEXT("Beam"));
+
 	// Soft paths: these are real assets today (Content/VFX), but soft-loading keeps a level holding
 	// eleven buildings from pulling in Niagara nobody has lit yet.
 	FireSystem = TSoftObjectPtr<UNiagaraSystem>(
@@ -236,7 +244,13 @@ bool AGSBuildingObjective::IsEntryPiece(const AActor* Piece) const
 
 bool AGSBuildingObjective::IsRoofPiece(const AActor* Piece) const
 {
-	return MeshNameMatches(Piece, RoofNameFilters);
+	// A roof BEAM is interior structure, not roof you can throw a torch onto.
+	return MeshNameMatches(Piece, RoofNameFilters) && !IsInteriorPiece(Piece);
+}
+
+bool AGSBuildingObjective::IsInteriorPiece(const AActor* Piece) const
+{
+	return MeshNameMatches(Piece, InteriorNameFilters);
 }
 
 bool AGSBuildingObjective::ContainsWorldLocation(const FVector& /*WorldLocation*/) const
@@ -401,18 +415,30 @@ void AGSBuildingObjective::RecomputeCompletion()
 		return;
 	}
 
-	int32 Burnt = 0;
+	// Score the SHELL, not the interior. A player judges a burning house from outside, and the
+	// interior is 28% of the kit - so counting it meant a third of the work was invisible, and a
+	// house could sit at "not done" while visibly gutted. Interiors still burn; they just do not
+	// gate the objective.
+	int32 Burnt = 0, Shell = 0;
 	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
 	{
 		const UGSFlammableComponent* Flam = Weak.Get();
-		if (Flam && Flam->HasBurnedDown())
+		if (!Flam || IsInteriorPiece(Flam->GetOwner()))
+		{
+			continue;
+		}
+		++Shell;
+		if (Flam->HasBurnedDown())
 		{
 			++Burnt;
 		}
 	}
 
 	BurntPieceCount = Burnt;
-	SetCompletion01(static_cast<float>(Burnt) / static_cast<float>(InitialPieceCount));
+	if (Shell > 0)
+	{
+		SetCompletion01(static_cast<float>(Burnt) / static_cast<float>(Shell));
+	}
 }
 
 // ====================================================================== lookup

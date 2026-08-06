@@ -35,7 +35,23 @@ SAVE = True
 # link <= spread. Equality was over-tight: at 250 < 450 every piece in a cluster is still reachable
 # by fire (which is what the rule protects), and fire ALSO crossing between neighbouring houses is
 # a feature in a burning village, not a defect.
-LINK = 250.0
+# CLUSTER ON THE SHELL, IN A CYLINDER.
+#
+# Michael, 2026-08-06: "I think you're getting caught up and confused on interiors." That was the
+# whole bug. Two separate errors fell out of it:
+#
+#   1. INTERIORS. 28% of the kit is interior wall, floor, stair and ceiling beam. Counting them made
+#      a tavern read as 422 pieces, and their per-floor heights are what split every multi-storey
+#      house into one objective per storey. Three buildings Michael identified by eye - a
+#      multi-storey house, a large house, and a tavern with many rooms and a balcony - came out as
+#      13, 15 and 5 separate objectives.
+#   2. THE METRIC WAS SPHERICAL. A building is a FOOTPRINT with floors stacked in it, so linking has
+#      to be generous vertically and tight horizontally. A single radius cannot be both.
+#
+# LINK_XY 600 / LINK_Z 1200 on shell pieces resolves all three of Michael's buildings to exactly one
+# cluster each, which is the only ground truth available and the only test that matters.
+LINK_XY = 600.0
+LINK_Z = 1200.0
 # WHAT COUNTS AS A HOUSE: a roof over some walls.
 #
 # This replaces a piece-count and span threshold, and the replacement is the point. Counting pieces
@@ -67,6 +83,14 @@ if les.is_in_play_in_editor():
     flush(); raise SystemExit
 
 PIECE_KEYS = ("House", "Roof", "Wall", "Window", "Door", "Foundation", "Barn", "Tavern")
+
+# Not part of any building. These only matched because the filter says "Wall", and they RUN BETWEEN
+# structures - exactly the thing that bridges two houses into one cluster.
+NOT_BUILDING = ("VillageWall", "VillageFence", "StoneWall", "VegetableFence", "RoadFence")
+
+# Inside the building. Excluded from CLUSTERING and from the completion count, but still adopted and
+# still flammable - see AGSBuildingObjective::InteriorNameFilters.
+INTERIOR = ("Interior", "Floor", "Stair", "Ceiling", "Beam")
 WINDOW_KEYS = ("Window",)
 
 
@@ -81,8 +105,15 @@ for a in actors:
     if isinstance(a, unreal.GSBurnObjectiveBase):
         continue
     m = mesh_of(a)
-    if m and any(k in m for k in PIECE_KEYS):
-        pieces.append(a)
+    if not m:
+        continue
+    if not any(k in m for k in PIECE_KEYS):
+        continue
+    if any(k in m for k in NOT_BUILDING):
+        continue
+    if any(k in m for k in INTERIOR):
+        continue          # adopted at runtime, but never used to decide where a building IS
+    pieces.append(a)
 
 say("building kit pieces found: %d" % len(pieces))
 if not pieces:
@@ -110,20 +141,24 @@ R = [radius_of(a) for a in pieces]
 
 # ---- connected components at LINK. Grid-bucketed: 1,413 pieces is 2M pair tests brute force,
 # which is slow enough over the MCP bridge to look like a hang.
-cell = LINK
+cell = LINK_XY
 grid = {}
 for i, (x, y, z) in enumerate(P):
-    grid.setdefault((int(x // cell), int(y // cell), int(z // cell)), []).append(i)
+    grid.setdefault((int(x // cell), int(y // cell)), []).append(i)
 
 def neighbours(i):
+    # Cylinder, not sphere: tight in XY so neighbouring houses stay apart, generous in Z so the
+    # floors of one house belong to it.
     x, y, z = P[i]
-    gx, gy, gz = int(x // cell), int(y // cell), int(z // cell)
+    gx, gy = int(x // cell), int(y // cell)
     for dx in (-1, 0, 1):
         for dy in (-1, 0, 1):
-            for dz in (-1, 0, 1):
-                for j in grid.get((gx + dx, gy + dy, gz + dz), ()):
-                    if j != i and math.dist(P[i], P[j]) <= LINK:
-                        yield j
+            for j in grid.get((gx + dx, gy + dy), ()):
+                if j == i:
+                    continue
+                x2, y2, z2 = P[j]
+                if math.hypot(x - x2, y - y2) <= LINK_XY and abs(z - z2) <= LINK_Z:
+                    yield j
 
 seen, comps = set(), []
 for i in range(len(P)):
@@ -155,7 +190,8 @@ def is_building(comp):
 
 comps = [c for c in comps if is_building(c)]
 comps.sort(key=len, reverse=True)
-say("clusters that are houses (roof + >=%d wall): %d" % (MIN_WALL_PIECES, len(comps)))
+say("houses (shell pieces, roof + >=%d wall, xy<=%.0f z<=%.0f): %d"
+    % (MIN_WALL_PIECES, LINK_XY, LINK_Z, len(comps)))
 say("  sizes: %s%s" % ([len(c) for c in comps[:12]], " ..." if len(comps) > 12 else ""))
 
 # Buildings are DERIVED DATA - entirely reproducible from the kit pieces - so a re-run rebuilds
