@@ -157,11 +157,21 @@ protected:
 
 	// ---- prediction ---------------------------------------------------------------------
 
-	/** How far ahead to simulate. A torch at 1400uu/s under full gravity is done well inside 3s;
-	 *  an arrow at 6000uu/s under 0.2 gravity is still travelling, and that is fine - the arc simply
-	 *  ends off in the distance, which is an honest picture of a shot that hits nothing. */
+	/**
+	 * How far ahead to simulate.
+	 *
+	 * 2026-08-06: 3 -> 5, forced by the torch going from 1400uu/s to 2400. Time of flight at 45
+	 * degrees is 2*v*sin(45)/g, which at 2400 is about 3.5s - PAST the old 3s window. The
+	 * prediction would have ended in mid-air, PredictProjectilePath would have reported no hit, and
+	 * UpdateArcVisual hides the landing decal when there is no hit. Raising the speed alone would
+	 * have deleted the reticle on exactly the long throws that most need one.
+	 *
+	 * An arrow at 6000uu/s under 0.2 gravity is still travelling at 5s, and that is fine - the arc
+	 * ends off in the distance with no marker, which is an honest picture of a shot that lands
+	 * nowhere near.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Prediction", meta = (ClampMin = "0.2"))
-	float MaxSimSeconds = 3.f;
+	float MaxSimSeconds = 5.f;
 
 	/** Simulation steps per second. Higher is smoother and costs a trace each. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Prediction", meta = (ClampMin = "5.0"))
@@ -200,11 +210,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "4"))
 	int32 MaxArcSegments = 40;
 
+	/**
+	 * Ribbon thickness in WORLD UNITS, not a mesh multiplier.
+	 *
+	 * 2026-08-06: it used to be passed straight to SetStartScale, which multiplies the mesh's own
+	 * cross-section - so 4 against a 100uu cube drew a 400uu box and the whole arc read as a giant
+	 * square with the landing marker lost inside it. UpdateArcVisual now divides by the assigned
+	 * mesh's measured bounds, so this is honest units for any mesh.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "0.1"))
-	float ArcSegmentWidth = 4.f;
+	float ArcSegmentWidth = 8.f;
 
+	/**
+	 * X is the decal's PROJECTION DEPTH, not a radius - Y and Z are the ring's half-extents.
+	 *
+	 * 2026-08-06: depth 40 -> 250. A decal only paints surfaces within its depth of the component's
+	 * origin, so 40 meant that if the predicted impact point sat even slightly off the actual
+	 * ground - a sloped face, a kerb, a trace that stopped on a blade of grass - the ring painted
+	 * nothing at all and read as "the reticle is broken". Depth is cheap; being invisible is not.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual")
-	FVector LandingDecalSize = FVector(40.f, 55.f, 55.f);
+	FVector LandingDecalSize = FVector(250.f, 55.f, 55.f);
 
 	/** Torch orange - carried over verbatim from AGSPlayerCharacter::TorchAimArcColour, which this
 	 *  component replaced. */

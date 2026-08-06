@@ -16,6 +16,8 @@ class USphereComponent;
 class UProjectileMovementComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UNiagaraComponent;
+class UNiagaraSystem;
 class AGSFireVolume;
 
 UCLASS()
@@ -71,8 +73,31 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
 	TSubclassOf<AGSFireVolume> FireVolumeClass;
 
+	/**
+	 * Flame on the torch while it is in the air (2026-08-06).
+	 *
+	 * Added because a thrown torch was untrackable: an 8uu sphere carrying a small dark prop,
+	 * crossing 50m in under a second, against grass. Michael's report was "there's no way to tell
+	 * where your torch is". The static mesh alone cannot fix that - the thing that makes a torch
+	 * legible in flight is that it is ON FIRE, and nothing was drawing the fire until it landed and
+	 * an AGSFireVolume spawned.
+	 *
+	 * This is also what sells the throw. A lit arc leaving the hand reads as an event; a grey dot
+	 * on a parabola does not.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Torch|Visual")
+	TObjectPtr<UNiagaraComponent> FlameFX;
+
+	/** C++-defaulted to NS_GS_TorchFlame, same reasoning as FireVolumeClass: a reference that can
+	 *  go missing from a content folder is a reference that will, and the failure is silent. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch|Visual")
+	TSoftObjectPtr<UNiagaraSystem> FlameSystem;
+
 	/** One-shot warn latch for TorchMesh, matching the rest of the module's soft-asset pattern. */
 	bool bTorchMeshResolveFailed = false;
+
+	/** Same, for FlameSystem. */
+	bool bFlameSystemResolveFailed = false;
 
 	bool bStuck = false;
 };

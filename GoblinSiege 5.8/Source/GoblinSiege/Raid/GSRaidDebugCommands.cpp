@@ -44,6 +44,31 @@ namespace GSRaidDebug
 		}
 	}
 
+	/**
+	 * The world the GAME is running in, whatever world the console handed us.
+	 *
+	 * FAutoConsoleCommandWithWorld passes the world the command was typed in, and the editor's
+	 * Output Log console is not the PIE world - so every one of these commands silently did nothing
+	 * when run from there: no pawn to teleport, no GameState to read, and (worst) no log line saying
+	 * why. Four attempts at GS.Raid.GotoActor produced zero output for exactly this reason.
+	 *
+	 * Resolving PIE/Game explicitly means it does not matter which console you use.
+	 */
+	static UWorld* GameWorld(UWorld* Fallback)
+	{
+		if (GEngine)
+		{
+			for (const FWorldContext& Ctx : GEngine->GetWorldContexts())
+			{
+				if ((Ctx.WorldType == EWorldType::PIE || Ctx.WorldType == EWorldType::Game) && Ctx.World())
+				{
+					return Ctx.World();
+				}
+			}
+		}
+		return Fallback;
+	}
+
 	static AGSPlayerState* GetPlayerState(UWorld* World)
 	{
 		APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
@@ -56,8 +81,9 @@ namespace GSRaidDebug
 static FAutoConsoleCommandWithWorld GSRaidStatusCmd(
 	TEXT("GS.Raid.Status"),
 	TEXT("Print the raid clock, alarm, lives and per-type objective progress."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -91,8 +117,9 @@ static FAutoConsoleCommandWithWorld GSRaidExpireClockCmd(
 	TEXT("GS.Raid.ExpireClock"),
 	TEXT("Fast-forward the raid clock to the edge of its current phase. Run repeatedly to walk "
 		 "Running -> FinalWarning -> Collapsing -> Expired (which ends the raid as LeftBehind)."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -114,8 +141,9 @@ static FAutoConsoleCommandWithWorld GSRaidKillCmd(
 	TEXT("GS.Raid.Kill"),
 	TEXT("Kill the player outright by zeroing the Health attribute. Spends a life; five of these "
 		 "ends the raid as OutOfLives."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -140,8 +168,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSetLivesCmd(
 	TEXT("Set the player's remaining lives. 'GS.Raid.SetLives 1' then GS.Raid.Kill reaches "
 		 "OutOfLives in one death instead of five."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -211,8 +240,41 @@ namespace GSRaidDebug
 		}
 
 		const FVector Where = GroundSnap(World, Wanted);
-		Pawn->TeleportTo(Where, Pawn->GetActorRotation());
-		Log(FString::Printf(TEXT("teleported to (%.0f, %.0f, %.0f)"), Where.X, Where.Y, Where.Z));
+		const FRotator Facing = Pawn->GetActorRotation();
+
+		// CHECK THE RETURN VALUE. TeleportTo refuses when the destination capsule is blocked, and the
+		// first version of this ignored that and logged success regardless - so the command cheerfully
+		// reported "teleported to (-18154, 73815, 2642)" while the pawn had not moved a centimetre.
+		// A debug tool that lies about what it did is worse than one that does nothing, because you
+		// spend the next hour debugging the wrong thing.
+		bool bMoved = Pawn->TeleportTo(Where, Facing);
+
+		// Blocked at ground level is normal near a wall or under eaves. Try progressively higher
+		// before giving up - falling a short way is fine, being stuck is not.
+		if (!bMoved)
+		{
+			for (const float Up : { 200.f, 500.f, 1000.f })
+			{
+				if (Pawn->TeleportTo(Where + FVector(0.f, 0.f, Up), Facing))
+				{
+					bMoved = true;
+					Log(FString::Printf(TEXT("ground was blocked; dropped in from %.0f uu up"), Up));
+					break;
+				}
+			}
+		}
+
+		// Last resort: move it regardless. Clipping into a wall is recoverable and visible; silently
+		// not moving is neither.
+		if (!bMoved)
+		{
+			Pawn->SetActorLocation(Where, false, nullptr, ETeleportType::TeleportPhysics);
+			Log(TEXT("every teleport attempt was blocked - forced the move; you may be inside geometry"));
+		}
+
+		const FVector Actual = Pawn->GetActorLocation();
+		Log(FString::Printf(TEXT("%s -> now at (%.0f, %.0f, %.0f)"),
+			bMoved ? TEXT("teleported") : TEXT("FORCED"), Actual.X, Actual.Y, Actual.Z));
 	}
 }
 
@@ -222,8 +284,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoCmd(
 	TEXT("GS.Raid.Goto"),
 	TEXT("Teleport the player to X Y Z, snapped to the ground there. e.g. GS.Raid.Goto -3471 49012 -514"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -244,8 +307,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoActorCmd(
 	TEXT("Teleport to the first actor whose label contains this text, standing just outside it. "
 		 "e.g. GS.Raid.GotoActor GS_Building_01"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World || Args.Num() < 1)
 		{
 			GSRaidDebug::Log(TEXT("usage: GS.Raid.GotoActor <part of the actor name>"));
@@ -280,8 +344,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSpawnAtCmd(
 	TEXT("Make every spawn AND respawn land at X Y Z instead of the runic site. "
 		 "'GS.Raid.SpawnAt off' restores normal spawning. Survives PIE restarts."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (Args.Num() >= 1 && (Args[0].Equals(TEXT("off"), ESearchCase::IgnoreCase)
 			|| Args[0].Equals(TEXT("clear"), ESearchCase::IgnoreCase)))
 		{
@@ -352,8 +417,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoBuildingCmd(
 	TEXT("Teleport to a burnable building, standing back far enough to see the whole thing. "
 		 "Optional index, 0 = biggest. Buildings are sorted largest first."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -380,8 +446,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoBuildingCmd(
 static FAutoConsoleCommandWithWorld GSRaidBurnHereCmd(
 	TEXT("GS.Raid.BurnHere"),
 	TEXT("Set the nearest building alight, as though a torch had gone through its window."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -428,8 +495,9 @@ static FAutoConsoleCommandWithWorld GSRaidBuildingStatusCmd(
 	TEXT("GS.Raid.BuildingStatus"),
 	TEXT("Report the nearest building's pieces: how many are burning, how many burnt, and the actual "
 		 "GS_BurnAmount on their materials - which is what decides whether char is VISIBLE."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
