@@ -31,7 +31,8 @@ param(
     [switch]$Build,
     [string]$Note,
     [string]$WaitingOn,
-    [double]$StaleHours
+    [double]$StaleHours,
+    [switch]$Reaffirm
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,6 +82,7 @@ function Read-Ticket {
     $claimed   = ''
     $buildNeed = 'none'
     $waiting   = ''
+    $evaluated = ''
     $fileList  = @()
 
     $inFm    = $false
@@ -109,6 +111,7 @@ function Read-Ticket {
                 'claimed'    { $claimed   = $v }
                 'build'      { $buildNeed = $v.ToLower() }
                 'waiting_on' { $waiting   = $v }
+                'evaluated'  { $evaluated = $v }
             }
         }
     }
@@ -136,6 +139,7 @@ function Read-Ticket {
         Claimed   = $claimed
         Build     = $buildNeed
         WaitingOn = $waiting
+        Evaluated = $evaluated
         Files     = $fileList
         AgeHours  = $ageHours
         IsOpen    = ($OpenStatuses -contains $status)
@@ -170,8 +174,49 @@ function Set-TicketField {
         }
         if ($i -gt 0 -and $lines[$i] -match '^---\s*$') { break }
     }
-    if (-not $hit) { throw "Ticket $Path has no '$Key' field." }
+    if (-not $hit) {
+        # Tickets written before a field existed simply lack it. Insert rather than throw,
+        # so a new field can be added without rewriting every ticket on disk.
+        $out = @()
+        $done = $false
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if (-not $done -and $i -gt 0 -and $lines[$i] -match '^---\s*$') {
+                $out += "$Key`: $Value"
+                $done = $true
+            }
+            $out += $lines[$i]
+        }
+        if (-not $done) { throw "Ticket $Path has no frontmatter to add '$Key' to." }
+        $lines = $out
+    }
     Set-Content -LiteralPath $Path -Value $lines -Encoding UTF8
+}
+
+# When did the agent last stand behind its Generate/Evaluate/Refine? Stamped on the move to
+# `review`. `done` compares each claimed file's mtime against it - see Invoke-Done.
+function Get-EvaluatedAt {
+    param($Ticket)
+    if (-not $Ticket.Evaluated) { return $null }
+    $dt = [datetime]::MinValue
+    if ([datetime]::TryParse($Ticket.Evaluated, [ref]$dt)) { return $dt.ToUniversalTime() }
+    return $null
+}
+
+# Claimed files written AFTER the Evaluate was stamped. Each one is a reason to re-read it.
+function Get-FilesTouchedSinceEvaluate {
+    param($Ticket)
+    $at = Get-EvaluatedAt -Ticket $Ticket
+    if (-not $at) { return @() }
+    $late = @()
+    foreach ($rel in $Ticket.Files) {
+        $full = Join-Path $RepoRoot ($rel -replace '/', '\')
+        if (-not (Test-Path -LiteralPath $full)) { continue }
+        $m = (Get-Item -LiteralPath $full).LastWriteTimeUtc
+        if ($m -gt $at) {
+            $late += [pscustomobject]@{ Path = $rel; Modified = $m }
+        }
+    }
+    return @($late)
 }
 
 # ---------------------------------------------------------------- conflicts --
@@ -400,6 +445,7 @@ status: queued
 claimed: $stamp
 build: $buildNeed
 waiting_on:
+evaluated:
 files: $fileBlock
 ---
 
@@ -516,6 +562,12 @@ function Invoke-Set {
     }
 
     Set-TicketField -Path $t.Path -Key 'status' -Value $Status
+    # Moving to `review` is the moment the agent says "this G/E/R is what I stand behind".
+    # Stamp it, so `done` can tell whether the work carried on afterwards.
+    if ($Status -eq 'review') {
+        Set-TicketField -Path $t.Path -Key 'evaluated' `
+            -Value ((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ'))
+    }
     if ($Note) { Add-Content -LiteralPath $t.Path -Value "`n> $((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ')) $Note" -Encoding UTF8 }
     Update-Board
     Write-Output "#$($t.Id) -> $Status"
@@ -563,6 +615,37 @@ function Invoke-Done {
         exit 1
     }
 
+    # --- has the work moved on since the Evaluate was written? ----------------------------
+    # Ticket #009 closed `done` describing a world eight commits out of date: it still said the
+    # two lose paths were unexercised and BP_GS_RunicSite did not exist, hours after its own
+    # author had committed "both lose paths verified at last". Nothing caught it, because the
+    # G/E/R gate only asks whether the sections are WRITTEN, never whether they are still TRUE.
+    if (-not $t.Evaluated) {
+        Write-Output "REFUSED - #$($t.Id) never passed through review, so there is no point at which"
+        Write-Output 'anyone stood behind its Generate/Evaluate/Refine. Run:'
+        Write-Output "  set -Id $($t.Id) -Status review"
+        Write-Output 'and hand it to the orchestrator, which is what QUEUE.md rule 3 asks for.'
+        exit 1
+    }
+
+    $late = @(Get-FilesTouchedSinceEvaluate -Ticket $t)
+    if ($late.Count -gt 0 -and -not $Reaffirm) {
+        Write-Output "REFUSED - #$($t.Id) kept working after you wrote its Evaluate ($($t.Evaluated))."
+        Write-Output 'These claimed files were written AFTER that point:'
+        foreach ($f in $late) {
+            Write-Output ("  {0}   (modified {1}Z)" -f $f.Path, $f.Modified.ToString('yyyy-MM-ddTHH:mm'))
+        }
+        Write-Output ''
+        Write-Output 'An Evaluate that is honest about a tree that no longer exists is worse than'
+        Write-Output 'no Evaluate: the orchestrator folds its "not yet done" list into AGENT_STATE.md'
+        Write-Output 'and the next agent rediscovers work that is already finished.'
+        Write-Output ''
+        Write-Output 'RE-READ Evaluate against what is now true. Then either:'
+        Write-Output "  set -Id $($t.Id) -Status review     (you changed it - re-stamps, then run done)"
+        Write-Output "  done -Id $($t.Id) -Reaffirm         (you read it and it still stands)"
+        exit 1
+    }
+
     $script:Status = 'done'
     Invoke-Set
 }
@@ -602,7 +685,10 @@ gsqueue.ps1 - Goblin Siege agent work queue
   check -Id <n> | -Files a,b                    who is ahead of me on these files?
   set -Id <n> -Status <s> [-Note "..."]         queued|active|review|done|blocked|abandoned
   set -Id <n> -WaitingOn "<#n or prose>"        say what is stalling you (shows on the board)
-  done -Id <n>                                  close (refuses unless G/E/R are written)
+  done -Id <n> [-Reaffirm]                      close; refuses unless G/E/R are written, the
+                                                ticket passed through review, and no claimed
+                                                file changed after the Evaluate was stamped.
+                                                -Reaffirm = "I re-read it and it still stands"
   buildgate                                     exit 0 only if nothing is open
   render                                        rewrite the board in QUEUE.md
 

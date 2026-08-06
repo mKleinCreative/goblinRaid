@@ -36,17 +36,22 @@ SAVE = True
 # by fire (which is what the rule protects), and fire ALSO crossing between neighbouring houses is
 # a feature in a burning village, not a defect.
 LINK = 250.0
-# Two filters, both measured. At >=6 pieces with no span floor you get 81 "buildings", and the tail
-# of that list is nonsense: clusters of six co-located pieces with span 0-70 uu - a stack of window
-# frames, not a house. They matter because every one is a scoring objective, so the player could
-# complete "burn a house" by torching a pile of spare frames.
+# WHAT COUNTS AS A HOUSE: a roof over some walls.
 #
-#   >=6  span>=0    -> 81   (includes the junk)
-#   >=10 span>=250  -> 22
-#   >=12 span>=300  -> 11   <- houses
-#   >=15 span>=350  ->  6
-MIN_PIECES = 12
-MIN_SPAN = 300.0
+# This replaces a piece-count and span threshold, and the replacement is the point. Counting pieces
+# is a statistical guess at "is this a building", and it was wrong in both directions: it admitted
+# stacks of six co-located window frames, and it excluded 92 clusters that HAVE A ROOF - real houses
+# the player simply could not set on fire. Only 11 of the village's houses were burnable and nobody
+# could tell by looking.
+#
+# A roof is what a house has and a pile of spare frames does not. Requiring some walls under it
+# drops the detached roof-beam clusters that "has a roof" alone would admit (102 -> 29).
+#
+#   >=12 pieces + span>=300   -> 11 buildings   (the old rule; 92 roofed houses missed)
+#   has a roof                -> 102            (includes loose roof fragments)
+#   roof + >=3 wall/house     -> 29             <- this
+MIN_ROOF_PIECES = 1
+MIN_WALL_PIECES = 3
 LABEL = "GS_Building_%02d"
 
 OUT = []
@@ -123,21 +128,31 @@ def span_of(comp):
     cz = sum(P[i][2] for i in comp) / len(comp)
     return max(math.dist((cx, cy, cz), P[i]) for i in comp)
 
-comps = [c for c in comps if len(c) >= MIN_PIECES and span_of(c) >= MIN_SPAN]
+MESH = [mesh_of(a) or "" for a in pieces]
+
+def is_building(comp):
+    roofs = sum(1 for i in comp if "Roof" in MESH[i])
+    walls = sum(1 for i in comp if "Wall" in MESH[i] or "House" in MESH[i])
+    return roofs >= MIN_ROOF_PIECES and walls >= MIN_WALL_PIECES
+
+comps = [c for c in comps if is_building(c)]
 comps.sort(key=len, reverse=True)
-say("clusters at link=%.0f with >=%d pieces: %d" % (LINK, MIN_PIECES, len(comps)))
+say("clusters that are houses (roof + >=%d wall): %d" % (MIN_WALL_PIECES, len(comps)))
 say("  sizes: %s%s" % ([len(c) for c in comps[:12]], " ..." if len(comps) > 12 else ""))
 
-existing = [a for a in actors if isinstance(a, unreal.GSBuildingObjective)]
-say("existing building objectives: %d" % len(existing))
+# Buildings are DERIVED DATA - entirely reproducible from the kit pieces - so a re-run rebuilds
+# them rather than skipping what exists. Skipping was fine while the rule was fixed; the moment the
+# rule changed it would have left the old 11 in place alongside the new set, two overlapping
+# definitions of the same house, each adopting a share of its pieces.
+stale = [a for a in actors if isinstance(a, unreal.GSBuildingObjective)]
+for a in stale:
+    eas.destroy_actor(a)
+say("removed %d existing building objective(s) to rebuild" % len(stale))
+actors = eas.get_all_level_actors()
 
 made = 0
 for idx, comp in enumerate(comps):
     label = LABEL % idx
-    if any(a.get_actor_label() == label for a in actors):
-        say("  SKIP %s exists" % label)
-        continue
-
     cx = sum(P[i][0] for i in comp) / len(comp)
     cy = sum(P[i][1] for i in comp) / len(comp)
     cz = sum(P[i][2] for i in comp) / len(comp)
@@ -150,9 +165,10 @@ for idx, comp in enumerate(comps):
     # neighbour's wall and raises the burn threshold this building can never meet.
     b.set_editor_property("adopt_radius", span * 1.1)
     lib.set_objective_identity(b, "Objective.Burn.House", "A House")
-    say("  CREATED %-16s %3d pieces  span=%6.0f  at (%.0f, %.0f, %.0f)"
-        % (label, len(comp), span, cx, cy, cz))
     made += 1
+    if made <= 6 or made % 10 == 0:
+        say("  %-16s %3d pieces  span=%6.0f  at (%.0f, %.0f, %.0f)"
+            % (label, len(comp), span, cx, cy, cz))
 
 say("\ncreated %d building objective(s)" % made)
 
