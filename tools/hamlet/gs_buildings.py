@@ -1,73 +1,79 @@
 """
-Turn L_Tutorial_Island's loose building kit into burnable buildings.
+Give every building on L_Tutorial_Island an AGSBuildingObjective, so it can be set on fire.
 
-    python gs_ue.py tools\\hamlet\\gs_buildings.py --timeout 600
+    python gs_ue.py tools\\hamlet\\gs_buildings.py --timeout 900
 
-Idempotent. Does NOT save by default - pass SAVE=True below once the result looks right.
+Destroys and rebuilds the whole set on each run - buildings are DERIVED DATA, reproducible from
+the level, and leaving stale ones behind means two overlapping definitions of the same house each
+adopting a share of its pieces.
 
-WHY THIS SCRIPT EXISTS
+WHAT A BUILDING IS - AND WHY IT IS NOT A CLUSTER RADIUS
+------------------------------------------------------
+Four attempts clustered kit pieces by distance: all shell pieces at XY 600 (7 buildings, the whole
+village core fused into one), then tighter (multi-storey houses split per storey), then roof pieces
+at XY 250 (71 "buildings", which was Michael's tavern cut into ~30 objectives plus one placed on
+top of the windmill). Every value traded one failure for the other, because distance was never the
+right question.
+
+Michael settled it by annotating a top-down of the village, one stroke per house. 47 downtown. The
+level itself already carries that identity two different ways, and neither is a distance:
+
+  1. SM_MERGED_House_*  -  ONE ACTOR IS ONE WHOLE HOUSE.
+     61 of them. The village's ordinary houses were merged to single meshes, so they have no
+     separate roof, wall or window piece at all. This is why roof clustering could not find them:
+     there was nothing to cluster. It found 245 roof TILES, which belong almost entirely to a
+     handful of detailed kitbashed buildings - House_2x1_T9 alone is ONE building with 46 tiles.
+
+  2. An ATTACHED HIERARCHY  -  the detailed kitbashed buildings.
+     Innbase (498 pieces, 48 roof tiles) is Michael's tavern, which he confirmed is one objective.
+     Also House_2x1_L7_Detailed, House_2x1_T9, House_1x3_10, WaterMill_Closed, SM_House_Window_A.
+     Their pieces are attached into one hierarchy, so the subtree IS the building.
+
+Both are identity carried by the level. Nothing here is tuned, and re-running on a changed map
+cannot silently drift the way a radius does.
+
+EXCLUDED, DELIBERATELY
 ----------------------
-There is no building on this map. A house is 20-40 separate StaticMeshActors kitbashed from 150
-piece types (floors of 12 triangles, walls, corners, beams, roof segments, windows) - 1,413
-instances in total. Fire had nothing to own. This clusters those pieces into buildings and gives
-each cluster an AGSBuildingObjective, which becomes the thing that burns and scores.
+  Distant_*   21 backdrop houses at X 25k..38k and -36k..-58k, off the island. Scenery the player
+              can never reach; a burnable objective there is an objective that can never be met.
+  Wells       SM_WellRoof matches "Roof" but a stone well is not a building.
+  Windmill    already AGSMillObjective, and the one structure Michael crossed out on his annotation.
+              Its hierarchy is 2 pieces, so the >=8 piece floor drops it; the proximity check below
+              is the belt to that braces.
 
-THE RULE THIS SCRIPT EXISTS TO RESPECT
---------------------------------------
+THE RULE THIS SCRIPT STILL RESPECTS
+-----------------------------------
     A cluster objective's adopt radius must not exceed what its spread distance can traverse.
 
 The market spent a session unwinnable because it adopted 64 scattered stalls when fire could reach
-only ~30. Adopting more pieces makes a building HARDER to burn, not richer, and nothing reports the
-shortfall. So the clustering LINK distance and the flammable SPREAD radius are the same number by
-construction here - a cluster is, by definition, a set of pieces fire can walk between.
+~30. Adopting more pieces makes a building HARDER to burn, not richer, and nothing reports the
+shortfall. So radii here come from the building's own geometry and are capped - see RADIUS_CAP.
 """
 import math
+from collections import defaultdict
 
 import unreal
 
 SAVE = True
-# 250, measured not guessed. A link sweep over the real map showed a sharp percolation threshold:
-# 180 -> 70 clusters, largest 17.  250 -> 81 clusters, largest 49.  320 -> largest 189.  600 -> 421.
-# Past ~320 neighbouring houses bridge and the whole village fuses into one "building" that would
-# need 278 pieces burnt to complete. 250 sits safely below that knee.
-#
-# This also corrects the rule I wrote first. I had link == spread; the real constraint is
-# link <= spread. Equality was over-tight: at 250 < 450 every piece in a cluster is still reachable
-# by fire (which is what the rule protects), and fire ALSO crossing between neighbouring houses is
-# a feature in a burning village, not a defect.
-# CLUSTER ON THE SHELL, IN A CYLINDER.
-#
-# Michael, 2026-08-06: "I think you're getting caught up and confused on interiors." That was the
-# whole bug. Two separate errors fell out of it:
-#
-#   1. INTERIORS. 28% of the kit is interior wall, floor, stair and ceiling beam. Counting them made
-#      a tavern read as 422 pieces, and their per-floor heights are what split every multi-storey
-#      house into one objective per storey. Three buildings Michael identified by eye - a
-#      multi-storey house, a large house, and a tavern with many rooms and a balcony - came out as
-#      13, 15 and 5 separate objectives.
-#   2. THE METRIC WAS SPHERICAL. A building is a FOOTPRINT with floors stacked in it, so linking has
-#      to be generous vertically and tight horizontally. A single radius cannot be both.
-#
-# LINK_XY 600 / LINK_Z 1200 on shell pieces resolves all three of Michael's buildings to exactly one
-# cluster each, which is the only ground truth available and the only test that matters.
-LINK_XY = 600.0
-LINK_Z = 1200.0
-# WHAT COUNTS AS A HOUSE: a roof over some walls.
-#
-# This replaces a piece-count and span threshold, and the replacement is the point. Counting pieces
-# is a statistical guess at "is this a building", and it was wrong in both directions: it admitted
-# stacks of six co-located window frames, and it excluded 92 clusters that HAVE A ROOF - real houses
-# the player simply could not set on fire. Only 11 of the village's houses were burnable and nobody
-# could tell by looking.
-#
-# A roof is what a house has and a pile of spare frames does not. Requiring some walls under it
-# drops the detached roof-beam clusters that "has a roof" alone would admit (102 -> 29).
-#
-#   >=12 pieces + span>=300   -> 11 buildings   (the old rule; 92 roofed houses missed)
-#   has a roof                -> 102            (includes loose roof fragments)
-#   roof + >=3 wall/house     -> 29             <- this
-MIN_ROOF_PIECES = 1
-MIN_WALL_PIECES = 3
+
+# One actor, one whole house. The prefix the Dreamscape village kit uses for its merged meshes.
+MERGED = "SM_MERGED_"
+BACKDROP = "Distant"          # off-island scenery
+NOT_A_BUILDING_MESH = ("Well", "Bridge", "Fence", "QuestBoard", "Terrain", "CloudCard", "SkySphere")
+
+# An attached hierarchy is a building if it has a roof and enough pieces to be a structure. Eight
+# drops SM_WIndmill_Base_Blueprint (2 pieces, 1 roof) without naming it.
+MIN_HIERARCHY_PIECES = 8
+
+# Radius cap. Innbase's subtree spans 10,722 uu because fences and paths are attached to the same
+# root as the inn; sizing a radius from that would adopt half the village and set a burn threshold
+# the building could never meet. Centres and spans come from ROOF pieces only, which mark where the
+# structure actually is, and the cap is the backstop.
+RADIUS_CAP = 3500.0
+
+# Do not place a building on top of an objective that already exists (the windmill, the market).
+OBJECTIVE_CLEARANCE = 1500.0
+
 LABEL = "GS_Building_%02d"
 
 OUT = []
@@ -82,191 +88,156 @@ if les.is_in_play_in_editor():
     say("REFUSING: PIE is running - editor-world edits are invisible during PIE.")
     flush(); raise SystemExit
 
-PIECE_KEYS = ("House", "Roof", "Wall", "Window", "Door", "Foundation", "Barn", "Tavern")
-
-# Not part of any building. These only matched because the filter says "Wall", and they RUN BETWEEN
-# structures - exactly the thing that bridges two houses into one cluster.
-NOT_BUILDING = ("VillageWall", "VillageFence", "StoneWall", "VegetableFence", "RoadFence")
-
-# Inside the building. Excluded from CLUSTERING and from the completion count, but still adopted and
-# still flammable - see AGSBuildingObjective::InteriorNameFilters.
-INTERIOR = ("Interior", "Floor", "Stair", "Ceiling", "Beam")
-WINDOW_KEYS = ("Window",)
-
 
 def mesh_of(a):
     c = a.get_component_by_class(unreal.StaticMeshComponent)
     return c.static_mesh.get_name() if (c and c.static_mesh) else None
 
 
-# ------------------------------------------------------------------ ONE BUILDING PER ROOF
-#
-# Michael, looking at a top-down of the map: "count the red buildings ... make sure every building
-# on the map that has a roof and is separate we're able to burn."
-#
-# Counting roofs in the data agrees with the screenshot: 245 roof pieces forming 71 separate roofs.
-# The previous rule - cluster all shell pieces at XY 600 - produced SEVEN buildings, because in a
-# dense village the walls of neighbouring houses are close enough to bridge and the whole core fused
-# into one object. Nine houses in ten could not be set on fire at all.
-#
-# A ROOF is the right signal, and it is the one Michael used by eye. Roofs do not touch between
-# neighbours even where walls nearly do, so clustering roofs separates buildings that clustering
-# walls cannot. Everything under a roof then belongs to that roof's building.
+def bounds_of(a):
+    """World-space centre and half-extent.
+
+    NOT get_actor_location(): this kit offsets its meshes from their actor pivot by a median of
+    287 uu (max 671), so pivots group and size things wrongly - that bug once left 76 of 113
+    windows owned by no building at all.
+    """
+    o, e = a.get_actor_bounds(False)
+    return (o.x, o.y, o.z), (e.x, e.y, e.z)
+
+
+def root_of(a):
+    n = 0
+    while a.get_attach_parent_actor() and n < 50:
+        a = a.get_attach_parent_actor()
+        n += 1
+    return a
+
+
+def is_roof(m):
+    return m and "Roof" in m and "Beam" not in m
+
+
 actors = eas.get_all_level_actors()
-pieces = []
+
+# ---------------------------------------------------------------- existing objectives to avoid
+avoid = []
+for a in actors:
+    if isinstance(a, unreal.GSBurnObjectiveBase) and not isinstance(a, unreal.GSBuildingObjective):
+        c, _e = bounds_of(a)
+        avoid.append(c)
+say("existing non-building objectives to keep clear of: %d" % len(avoid))
+
+
+def too_close_to_objective(c):
+    return any(math.hypot(c[0] - o[0], c[1] - o[1]) < OBJECTIVE_CLEARANCE for o in avoid)
+
+
+# ---------------------------------------------------------------- 1. merged houses: 1 actor = 1 house
+candidates = []   # (kind, centre, radius, detail)
+merged_skipped_backdrop = 0
 for a in actors:
     if isinstance(a, unreal.GSBurnObjectiveBase):
         continue
     m = mesh_of(a)
-    if not m:
+    if not m or not m.startswith(MERGED) or "House" not in m:
         continue
-    if not any(k in m for k in PIECE_KEYS):
+    if BACKDROP in m:
+        merged_skipped_backdrop += 1
         continue
-    if any(k in m for k in NOT_BUILDING):
+    c, e = bounds_of(a)
+    # Its own footprint plus a little, so adoption picks up the porch and any loose prop leaning
+    # on it, and no further.
+    r = max(e[0], e[1]) * 1.15 + 150.0
+    candidates.append(("merged", c, min(r, RADIUS_CAP), m))
+
+say("merged house actors (1 actor = 1 house): %d   [%d Distant_* backdrop skipped]"
+    % (len(candidates), merged_skipped_backdrop))
+
+# ---------------------------------------------------------------- 2. attached kit hierarchies
+sub = defaultdict(list)
+for a in actors:
+    if isinstance(a, unreal.GSBurnObjectiveBase):
         continue
-    if any(k in m for k in INTERIOR):
-        continue          # adopted at runtime, but never used to decide where a building IS
-    pieces.append(a)
-
-say("building kit pieces found: %d" % len(pieces))
-if not pieces:
-    say("nothing to do"); flush(); raise SystemExit
-
-# Cluster on where the GEOMETRY is, not where the pivot is.
-#
-# This kit offsets its meshes from their actor origin by a median of 287 uu (max 671, over 1,000
-# house pieces). Clustering on get_actor_location() therefore grouped pivots rather than walls, and
-# sized every adopt radius from the spread of those pivots - producing radii of 0 to 617 uu where a
-# house needs several hundred, and leaving 76 of 113 windows owned by no building at all.
-#
-# get_actor_bounds returns the real world-space centre. Everything downstream - clustering, span,
-# adopt radius - is derived from these, so fixing it here fixes all three.
-def centre_of(a):
-    o, _ext = a.get_actor_bounds(False)
-    return (o.x, o.y, o.z)
-
-def radius_of(a):
-    _o, ext = a.get_actor_bounds(False)
-    return math.sqrt(ext.x * ext.x + ext.y * ext.y + ext.z * ext.z)
-
-P = [centre_of(a) for a in pieces]
-R = [radius_of(a) for a in pieces]
-
-# Cluster the ROOFS, not everything. Beams are interior structure and are already excluded above.
-ROOF_LINK_XY = 250.0
-roof_idx = [i for i, a in enumerate(pieces) if "Roof" in (mesh_of(a) or "")]
-say("roof pieces: %d of %d shell pieces" % (len(roof_idx), len(pieces)))
-
-# ---- connected components at LINK. Grid-bucketed: 1,413 pieces is 2M pair tests brute force,
-# which is slow enough over the MCP bridge to look like a hang.
-cell = ROOF_LINK_XY
-grid = {}
-for i in roof_idx:
-    x, y, z = P[i]
-    grid.setdefault((int(x // cell), int(y // cell)), []).append(i)
-
-def neighbours(i):
-    # Cylinder, not sphere: tight in XY so neighbouring houses stay apart, generous in Z so the
-    # floors of one house belong to it.
-    x, y, z = P[i]
-    gx, gy = int(x // cell), int(y // cell)
-    for dx in (-1, 0, 1):
-        for dy in (-1, 0, 1):
-            for j in grid.get((gx + dx, gy + dy), ()):
-                if j == i:
-                    continue
-                x2, y2, z2 = P[j]
-                if math.hypot(x - x2, y - y2) <= ROOF_LINK_XY and abs(z - z2) <= LINK_Z:
-                    yield j
-
-seen, comps = set(), []
-for i in roof_idx:
-    if i in seen:
+    m = mesh_of(a)
+    if not m or not a.get_attach_parent_actor():
         continue
-    stack, comp = [i], []
-    seen.add(i)
-    while stack:
-        k = stack.pop()
-        comp.append(k)
-        for j in neighbours(k):
-            if j not in seen:
-                seen.add(j)
-                stack.append(j)
-    comps.append(comp)
+    sub[root_of(a).get_actor_label()].append((a, m))
 
-def span_of(comp):
-    cx = sum(P[i][0] for i in comp) / len(comp)
-    cy = sum(P[i][1] for i in comp) / len(comp)
-    cz = sum(P[i][2] for i in comp) / len(comp)
-    return max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp)
+hier = 0
+for label, members in sorted(sub.items()):
+    if len(members) < MIN_HIERARCHY_PIECES:
+        continue
+    roofs = [(a, m) for a, m in members
+             if is_roof(m) and not any(k in m for k in NOT_A_BUILDING_MESH)]
+    if not roofs:
+        continue                      # bridges, fences, quest boards - no roof, not a building
+    # Centre and span from the ROOFS. The subtree also holds attached fences and paths, which would
+    # drag the centre off the building and inflate the radius.
+    pts = [bounds_of(a) for a, _m in roofs]
+    cx = sum(p[0][0] for p in pts) / len(pts)
+    cy = sum(p[0][1] for p in pts) / len(pts)
+    cz = sum(p[0][2] for p in pts) / len(pts)
+    span = max(math.dist((cx, cy, cz), p[0]) + max(p[1]) for p in pts) + 300.0
+    candidates.append(("hierarchy", (cx, cy, cz), min(span, RADIUS_CAP),
+                       "%s (%d pieces, %d roof tiles)" % (label, len(members), len(roofs))))
+    hier += 1
+say("attached kit hierarchies with a roof: %d" % hier)
 
-# EVERY roof cluster is a building, including single-piece ones. 43 of the map's 71 roofs are a
-# single piece - sheds, outbuildings, well roofs - and Michael's instruction was explicit: every
-# building on the map that has a roof and is separate should be burnable. Filtering to >=2 pieces
-# silently dropped those 43, which is the same "only some houses burn" failure in a smaller costume.
-#
-# The old "roof + >=3 walls" test was a proxy for "is this a building"; clustering roofs directly
-# answers that question, so it is gone.
-comps = [c for c in comps if len(c) >= 1]
-comps.sort(key=len, reverse=True)
-say("separate ROOFS found (= buildings): %d   [xy<=%.0f z<=%.0f]"
-    % (len(comps), ROOF_LINK_XY, LINK_Z))
-say("  sizes: %s%s" % ([len(c) for c in comps[:12]], " ..." if len(comps) > 12 else ""))
+# ---------------------------------------------------------------- drop anything on an objective
+kept = []
+for cand in candidates:
+    if too_close_to_objective(cand[1]):
+        say("  SKIPPED %s - sits on an existing objective (windmill/market)" % cand[3][:52])
+        continue
+    kept.append(cand)
+candidates = kept
 
-# Buildings are DERIVED DATA - entirely reproducible from the kit pieces - so a re-run rebuilds
-# them rather than skipping what exists. Skipping was fine while the rule was fixed; the moment the
-# rule changed it would have left the old 11 in place alongside the new set, two overlapping
-# definitions of the same house, each adopting a share of its pieces.
+say("")
+say("BUILDINGS TO CREATE: %d" % len(candidates))
+
+# ---------------------------------------------------------------- rebuild
 stale = [a for a in actors if isinstance(a, unreal.GSBuildingObjective)]
 for a in stale:
     eas.destroy_actor(a)
 say("removed %d existing building objective(s) to rebuild" % len(stale))
-actors = eas.get_all_level_actors()
 
 made = 0
-for idx, comp in enumerate(comps):
+for idx, (kind, c, r, detail) in enumerate(candidates):
     label = LABEL % idx
-    cx = sum(P[i][0] for i in comp) / len(comp)
-    cy = sum(P[i][1] for i in comp) / len(comp)
-    cz = sum(P[i][2] for i in comp) / len(comp)
-    # Reach far enough to contain each piece's whole extent, not just its centre - otherwise the
-    # outermost wall of the house sits half outside its own building.
-    # The roof tells us where the building IS; the walls beneath it reach further out and further
-    # down. Pad so adoption picks up the whole structure, not just what is under the tiles.
-    span = max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp) + 400.0
-
     b = eas.spawn_actor_from_class(unreal.GSBuildingObjective,
-                                   unreal.Vector(cx, cy, cz), unreal.Rotator(0, 0, 0))
+                                   unreal.Vector(c[0], c[1], c[2]), unreal.Rotator(0, 0, 0))
     b.set_actor_label(label)
-    # Radius covers the cluster and no more. Generous here is not generous - it drags in the
-    # neighbour's wall and raises the burn threshold this building can never meet.
-    b.set_editor_property("adopt_radius", span * 1.1)
+    b.set_editor_property("adopt_radius", r)
     lib.set_objective_identity(b, "Objective.Burn.House", "A House")
     made += 1
-    if made <= 6 or made % 10 == 0:
-        say("  %-16s %3d pieces  span=%6.0f  at (%.0f, %.0f, %.0f)"
-            % (label, len(comp), span, cx, cy, cz))
-
+    if kind == "hierarchy" or made <= 4:
+        say("  %-16s %-10s r=%5.0f  at (%.0f, %.0f, %.0f)  %s"
+            % (label, kind, r, c[0], c[1], c[2], detail[:46]))
 say("\ncreated %d building objective(s)" % made)
 
-# ---- windows become breakable, which is what makes them a way in
-wins = [a for a in pieces if any(k in (mesh_of(a) or "") for k in WINDOW_KEYS)]
-say("\nwindow actors: %d" % len(wins))
+# ---------------------------------------------------------------- windows become a way in
+#
+# Only the kitbashed buildings have separate window actors; a merged house has its windows baked
+# into the single mesh, so there is nothing to break. Those houses are ROOF-ONLY entries, which is
+# reported rather than papered over.
+actors = eas.get_all_level_actors()
+wins = [a for a in actors
+        if "Window" in (mesh_of(a) or "") and not isinstance(a, unreal.GSBurnObjectiveBase)]
 added = 0
 for a in wins:
     if a.get_component_by_class(unreal.GSBreakableComponent):
         continue
-    # UGSRaidLibrary::MakeActorBreakable, NOT add_component_by_class - that method does not exist
-    # on a StaticMeshActor and silently added zero components on the first run. The C++ helper also
+    # UGSRaidLibrary::MakeActorBreakable, NOT add_component_by_class - that does not exist on a
+    # StaticMeshActor and silently added zero components on the first run. The C++ helper also
     # routes through AddInstanceComponent, without which the component would not survive a save.
     if lib.make_actor_breakable(a, True):
         added += 1
-say("breakable components added: %d" % added)
+say("\nwindow actors: %d   breakable components added: %d" % (len(wins), added))
 say("NOTE: BrokenCollection is left empty - windows hide + puff until fracture assets exist.")
 
 if SAVE:
     les.save_current_level()
     say("\nSAVED")
 else:
-    say("\nNOT SAVED - set SAVE=True once the cluster sizes above look like buildings.")
+    say("\nNOT SAVED")
 flush()

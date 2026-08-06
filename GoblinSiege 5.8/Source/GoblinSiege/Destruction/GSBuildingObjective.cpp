@@ -156,6 +156,28 @@ void AGSBuildingObjective::AdoptPieces()
 	}
 
 	InitialPieceCount = Pieces.Num();
+
+	// Which KIND of building is this? It decides how a torch gets in, and it is answered by the
+	// pieces themselves rather than by a flag someone has to remember to set.
+	//
+	// Kitbashed -> it owns roof actors, so the roof is a thing you can hit.
+	// Merged     -> it does not, so its roof is the top of its own bounds. See ContainsWorldLocation.
+	int32 RoofPieceCount = 0;
+	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
+	{
+		if (IsRoofPiece(Weak.Get()))
+		{
+			++RoofPieceCount;
+		}
+	}
+	bHasRoofPieces = RoofPieceCount > 0;
+
+	UE_LOG(LogGSBuilding, Log,
+		TEXT("[GoblinSiege] Building '%s' is %s (%d piece(s), %d of them roof)."),
+		*GetName(),
+		bHasRoofPieces ? TEXT("KITBASHED - enter via a roof piece or a window")
+					   : TEXT("MERGED - enter via the top of its own mesh"),
+		Pieces.Num(), RoofPieceCount);
 }
 
 void AGSBuildingObjective::EnsurePiecesFlammable()
@@ -253,17 +275,63 @@ bool AGSBuildingObjective::IsInteriorPiece(const AActor* Piece) const
 	return MeshNameMatches(Piece, InteriorNameFilters);
 }
 
-bool AGSBuildingObjective::ContainsWorldLocation(const FVector& /*WorldLocation*/) const
+bool AGSBuildingObjective::ContainsWorldLocation(const FVector& WorldLocation) const
 {
-	// Never. A building owns no ground, so the torch's FindObjectiveAtLocation sweep cannot light a
-	// house by splashing its outside wall. Getting in is the window's job and the roof's job, and
-	// routing it through those keeps the rule in one place instead of two.
+	// A KITBASHED building owns no ground: the torch's FindObjectiveAtLocation sweep must not light a
+	// house by splashing its outside wall. Getting in is the window's job and the roof piece's job.
+	if (bHasRoofPieces)
+	{
+		return false;
+	}
+
+	// A MERGED building has no roof piece to throw a torch at (2026-08-06). 61 of this map's 67
+	// buildings are single SM_MERGED_House_* meshes - walls, roof and windows baked into one actor -
+	// so IsRoofPiece can never be true for them and there is no window actor to break either. Refusing
+	// here would leave nine buildings in ten unlightable, which is the exact bug this whole feature
+	// exists to fix.
+	//
+	// So for those, the roof is not an actor, it is a REGION: the top of the mesh's own bounds. That
+	// keeps the ignition rule intact rather than weakening it - a torch into the wall still fails,
+	// because the wall is the lower two thirds.
+	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
+	{
+		const AActor* Piece = Weak.Get();
+		if (!Piece || IsInteriorPiece(Piece))
+		{
+			continue;
+		}
+
+		FVector Origin, Extent;
+		Piece->GetActorBounds(false, Origin, Extent);
+		if (Extent.IsNearlyZero())
+		{
+			continue;
+		}
+
+		const bool bInFootprint =
+			FMath::Abs(WorldLocation.X - Origin.X) <= Extent.X &&
+			FMath::Abs(WorldLocation.Y - Origin.Y) <= Extent.Y;
+		const float RoofFloorZ =
+			Origin.Z + Extent.Z * (1.f - 2.f * FMath::Clamp(RoofZoneFraction, 0.05f, 0.9f));
+
+		if (bInFootprint && WorldLocation.Z >= RoofFloorZ && WorldLocation.Z <= Origin.Z + Extent.Z)
+		{
+			return true;
+		}
+	}
+
 	return false;
 }
 
-void AGSBuildingObjective::IgniteAtLocation(const FVector& /*WorldLocation*/)
+void AGSBuildingObjective::IgniteAtLocation(const FVector& WorldLocation)
 {
-	// Intentionally empty - see the header. Exterior fire is refused.
+	// Only ever reached for a merged building whose roof region contains this point - see above. A
+	// kitbashed building returns false from ContainsWorldLocation and never gets here, so exterior
+	// fire on a wall is still refused.
+	if (ContainsWorldLocation(WorldLocation))
+	{
+		IgniteInterior(EGSBuildingIgnitionSource::Roof);
+	}
 }
 
 void AGSBuildingObjective::IgniteInterior(EGSBuildingIgnitionSource Source)

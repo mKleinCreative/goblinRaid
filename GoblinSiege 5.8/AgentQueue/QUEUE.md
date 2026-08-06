@@ -143,9 +143,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
 | 030 | review | claude-ranged | Code-review fixes: arc pool truncates the ribbon, decal depth reverted, flame warn-latch is per-instance | Source/GoblinSiege/Combat/GSAimComponent.h<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp | required |
-| 031 | queued | claude-raid | One building per ROOF: cover every roofed structure on the map | tools/hamlet/gs_buildings.py<br>Content/Maps/L_Tutorial_Island.umap | none |
+| 032 | review | claude-ranged | Handoff doc: outstanding code-review findings + ranged/torch state for the single-agent takeover | GoblinSiege 5.8/HANDOFF.md<br>GoblinSiege 5.8/AGENT_STATE.md | none |
+| 033 | review | claude-raid | A building is a merged house actor or an attached kit hierarchy - not a cluster radius | tools/hamlet/gs_buildings.py<br>Content/Maps/L_Tutorial_Island.umap<br>Source/GoblinSiege/Destruction/GSBuildingObjective.h<br>Source/GoblinSiege/Destruction/GSBuildingObjective.cpp | none |
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -180,6 +181,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 027 | done | claude-raid | Debug commands must resolve the game world; buildings must not double-own pieces |
 | 028 | done | claude-raid | Teleport reported success while TeleportTo silently failed |
 | 029 | done | claude-raid | Buildings: cluster on shell not interiors, merge floors, score the shell |
+| 031 | done | claude-raid | One building per ROOF: cover every roofed structure on the map |
 
 <!-- BOARD:END -->
 

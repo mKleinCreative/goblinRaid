@@ -110,12 +110,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Building")
 	bool IsRoofPiece(const AActor* Piece) const;
 
-	/** Walls refuse fire; only windows and roof let it in. */
+	/**
+	 * Walls refuse fire; only the roof and windows let it in.
+	 *
+	 * Always false for a KITBASHED building - it owns a roof actor, so entry is decided by which
+	 * piece was hit, and returning true here would let a torch light a house off its facade.
+	 *
+	 * For a MERGED building it is the roof TEST, because there is no roof actor to hit: true only
+	 * when the point is inside the mesh's footprint and in the top RoofZoneFraction of its bounds.
+	 */
 	virtual bool ContainsWorldLocation(const FVector& WorldLocation) const override;
 
-	/** Deliberately does nothing. A torch that splashes a wall must not light the house - that is
-	 *  the whole ignition rule, and the base class's default is already "an objective owns no
-	 *  ground", so this override exists purely to say the silence is intentional. */
+	/** Lights a MERGED building hit on its roof region. Does nothing for a kitbashed one, whose
+	 *  ContainsWorldLocation is always false - a torch that splashes a wall must not light the
+	 *  house, and that rule stays in one place. */
 	virtual void IgniteAtLocation(const FVector& WorldLocation) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -245,6 +253,21 @@ protected:
 
 	UPROPERTY()
 	TArray<TWeakObjectPtr<UGSFlammableComponent>> PieceFlammables;
+
+	/**
+	 * How much of a MERGED building's height counts as roof.
+	 *
+	 * Only consulted when the building owns no roof actor. A third is the eaves line on this kit's
+	 * houses; lower would let a torch into an upstairs wall, higher would demand a near-vertical drop
+	 * onto the ridge and make the throw feel broken.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning",
+		meta = (ClampMin = "0.05", ClampMax = "0.9"))
+	float RoofZoneFraction = 0.34f;
+
+	/** True if this building owns roof ACTORS (kitbashed) rather than baking its roof into one merged
+	 *  mesh. Decides how a torch gets in - see ContainsWorldLocation. Set during AdoptPieces. */
+	bool bHasRoofPieces = false;
 
 	/** Set at adoption, so completion has a stable denominator even as pieces are destroyed. */
 	int32 InitialPieceCount = 0;
