@@ -99,6 +99,19 @@ def mesh_of(a):
     return c.static_mesh.get_name() if (c and c.static_mesh) else None
 
 
+# ------------------------------------------------------------------ ONE BUILDING PER ROOF
+#
+# Michael, looking at a top-down of the map: "count the red buildings ... make sure every building
+# on the map that has a roof and is separate we're able to burn."
+#
+# Counting roofs in the data agrees with the screenshot: 245 roof pieces forming 71 separate roofs.
+# The previous rule - cluster all shell pieces at XY 600 - produced SEVEN buildings, because in a
+# dense village the walls of neighbouring houses are close enough to bridge and the whole core fused
+# into one object. Nine houses in ten could not be set on fire at all.
+#
+# A ROOF is the right signal, and it is the one Michael used by eye. Roofs do not touch between
+# neighbours even where walls nearly do, so clustering roofs separates buildings that clustering
+# walls cannot. Everything under a roof then belongs to that roof's building.
 actors = eas.get_all_level_actors()
 pieces = []
 for a in actors:
@@ -139,11 +152,17 @@ def radius_of(a):
 P = [centre_of(a) for a in pieces]
 R = [radius_of(a) for a in pieces]
 
+# Cluster the ROOFS, not everything. Beams are interior structure and are already excluded above.
+ROOF_LINK_XY = 250.0
+roof_idx = [i for i, a in enumerate(pieces) if "Roof" in (mesh_of(a) or "")]
+say("roof pieces: %d of %d shell pieces" % (len(roof_idx), len(pieces)))
+
 # ---- connected components at LINK. Grid-bucketed: 1,413 pieces is 2M pair tests brute force,
 # which is slow enough over the MCP bridge to look like a hang.
-cell = LINK_XY
+cell = ROOF_LINK_XY
 grid = {}
-for i, (x, y, z) in enumerate(P):
+for i in roof_idx:
+    x, y, z = P[i]
     grid.setdefault((int(x // cell), int(y // cell)), []).append(i)
 
 def neighbours(i):
@@ -157,11 +176,11 @@ def neighbours(i):
                 if j == i:
                     continue
                 x2, y2, z2 = P[j]
-                if math.hypot(x - x2, y - y2) <= LINK_XY and abs(z - z2) <= LINK_Z:
+                if math.hypot(x - x2, y - y2) <= ROOF_LINK_XY and abs(z - z2) <= LINK_Z:
                     yield j
 
 seen, comps = set(), []
-for i in range(len(P)):
+for i in roof_idx:
     if i in seen:
         continue
     stack, comp = [i], []
@@ -181,17 +200,17 @@ def span_of(comp):
     cz = sum(P[i][2] for i in comp) / len(comp)
     return max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp)
 
-MESH = [mesh_of(a) or "" for a in pieces]
-
-def is_building(comp):
-    roofs = sum(1 for i in comp if "Roof" in MESH[i])
-    walls = sum(1 for i in comp if "Wall" in MESH[i] or "House" in MESH[i])
-    return roofs >= MIN_ROOF_PIECES and walls >= MIN_WALL_PIECES
-
-comps = [c for c in comps if is_building(c)]
+# EVERY roof cluster is a building, including single-piece ones. 43 of the map's 71 roofs are a
+# single piece - sheds, outbuildings, well roofs - and Michael's instruction was explicit: every
+# building on the map that has a roof and is separate should be burnable. Filtering to >=2 pieces
+# silently dropped those 43, which is the same "only some houses burn" failure in a smaller costume.
+#
+# The old "roof + >=3 walls" test was a proxy for "is this a building"; clustering roofs directly
+# answers that question, so it is gone.
+comps = [c for c in comps if len(c) >= 1]
 comps.sort(key=len, reverse=True)
-say("houses (shell pieces, roof + >=%d wall, xy<=%.0f z<=%.0f): %d"
-    % (MIN_WALL_PIECES, LINK_XY, LINK_Z, len(comps)))
+say("separate ROOFS found (= buildings): %d   [xy<=%.0f z<=%.0f]"
+    % (len(comps), ROOF_LINK_XY, LINK_Z))
 say("  sizes: %s%s" % ([len(c) for c in comps[:12]], " ..." if len(comps) > 12 else ""))
 
 # Buildings are DERIVED DATA - entirely reproducible from the kit pieces - so a re-run rebuilds
@@ -212,7 +231,9 @@ for idx, comp in enumerate(comps):
     cz = sum(P[i][2] for i in comp) / len(comp)
     # Reach far enough to contain each piece's whole extent, not just its centre - otherwise the
     # outermost wall of the house sits half outside its own building.
-    span = max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp)
+    # The roof tells us where the building IS; the walls beneath it reach further out and further
+    # down. Pad so adoption picks up the whole structure, not just what is under the tiles.
+    span = max(math.dist((cx, cy, cz), P[i]) + R[i] for i in comp) + 400.0
 
     b = eas.spawn_actor_from_class(unreal.GSBuildingObjective,
                                    unreal.Vector(cx, cy, cz), unreal.Rotator(0, 0, 0))

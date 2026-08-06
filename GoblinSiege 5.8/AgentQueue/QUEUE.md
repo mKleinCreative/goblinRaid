@@ -140,9 +140,12 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 030 | review | claude-ranged | Code-review fixes: arc pool truncates the ribbon, decal depth reverted, flame warn-latch is per-instance | Source/GoblinSiege/Combat/GSAimComponent.h<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp | required |
+| 031 | queued | claude-raid | One building per ROOF: cover every roofed structure on the map | tools/hamlet/gs_buildings.py<br>Content/Maps/L_Tutorial_Island.umap | none |
 
-**BUILD GATE: OPEN - and 18 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
