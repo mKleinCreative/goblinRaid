@@ -7,6 +7,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GSRaidTypes.generated.h"
 
 /**
@@ -59,4 +60,16 @@ struct FGSObjectiveRow
 	/** 0..1. Meaningful mid-burn; a field at 0.4 is visibly on its way. */
 	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Objective")
 	float Completion01 = 0.f;
+
+	/**
+	 * Which burn type this carrier is (Objective.Burn.Field / .Mill / .Market / .House).
+	 *
+	 * Added 2026-08-05 so the HUD can COLLAPSE. Eleven houses landed in the level and the objective
+	 * list printed eleven identical "A House" rows on top of field, mill and market - a list that
+	 * long stops being read at all, which defeats the one job it has. The list needs to group, and
+	 * grouping needs the type on the row; the display name alone cannot tell two houses apart from
+	 * a house and a mill.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Objective")
+	FGameplayTag TypeTag;
 };

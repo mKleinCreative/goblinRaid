@@ -91,6 +91,17 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> AlarmText;
 
+	/**
+	 * A burn type with MORE carriers than this collapses to a single counted row.
+	 *
+	 * 2 by default, which keeps the tutorial's two wheat fields named individually ("The Wheat
+	 * Field", "The Farm Field" - both worth finding) while the eleven houses become one "Houses
+	 * 0 / 11". Naming is only worth the space while the names distinguish things; "A House"
+	 * repeated eleven times is noise that pushes the objectives that DO have names off the screen.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD", meta = (ClampMin = "1"))
+	int32 CollapseTypeAbove = 2;
+
 	// ------------------------------------------------------------------ Blueprint hooks
 
 	/** Called on damage so a Blueprint can flash the bar, shake, play a sound - anything that wants

@@ -222,6 +222,7 @@ void UGSRaidDirector::GetObjectiveRows(TArray<FGSObjectiveRow>& OutRows) const
 		Row.DisplayName = Carrier->GetObjectiveDisplayName();
 		Row.ListState = static_cast<uint8>(Carrier->GetListState());
 		Row.Completion01 = Carrier->GetCompletion01();
+		Row.TypeTag = Carrier->GetObjectiveTypeTag();
 	}
 }
 
