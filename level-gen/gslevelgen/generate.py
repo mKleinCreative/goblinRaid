@@ -16,9 +16,11 @@ Everything is seeded and deterministic: same seed, same plan, byte for byte.
 
 from __future__ import annotations
 
+import json
 import math
 import random
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
 
 from .geom import Disc, Rect
 from .kit import Kit
@@ -94,117 +96,245 @@ class Plan:
 # --------------------------------------------------------------------------- layer A
 
 
+REFERENCE_JSON = Path(__file__).resolve().parent.parent / "reference" / "TutorialIsland.json"
+# Hand-authored houses, in ascending size. Taverns (Innbase) and working structures
+# (WaterMill_Closed) are deliberately excluded — different building types.
+# House_1x3_10 is excluded: it is L-shaped, and check_roof_coverage cannot tell its
+# unroofed wing from a hole (it reports ~55% uncovered on a building a human built
+# correctly). Shipping only what the evaluator can verify, rather than loosening the
+# evaluator to admit a building it cannot check. Re-add it with a footprint-polygon
+# coverage test instead of an AABB one.
+TEMPLATE_HOUSES = ("House_2x1_L7_Detailed", "House_2x1_T9")
+_TEMPLATES: dict | None = None
+
+
+def load_templates() -> dict:
+    """
+    The hand-authored buildings, as placement lists.
+
+    THREE ATTEMPTS AT SYNTHESIS FAILED, so this stopped synthesising.
+
+      1. tile one roof piece per floor cell -> a 192 cm hole down every house
+      2. two slopes at a ridge -> closed, but read as a shed
+      3. a perimeter ring of Base+Top pairs per STYLE_GUIDE R3/R5 -> a mass of overlapping
+         geometry radiating outward; the capture looked like an exploded starfish
+
+    The style guide's rules are statistical — piece ratios, pairing, storey heights, yaw
+    discipline. They are all true and none of them told me where a roof piece actually goes.
+    That spatial grammar is in the reference buildings, so this reads it out and stamps it
+    rather than re-deriving it. `gs_buildings.py` reached the same conclusion about building
+    identity: the level already carries the answer.
+    """
+    global _TEMPLATES
+    if _TEMPLATES is None:
+        if not REFERENCE_JSON.exists():
+            raise FileNotFoundError(
+                f"{REFERENCE_JSON} not found. Extract the reference buildings first:\n"
+                f"    python gs_ue.py level-gen\\extract_buildings.py --timeout 900"
+            )
+        data = json.loads(REFERENCE_JSON.read_text(encoding="utf-8"))
+        _TEMPLATES = {b["id"]: b for b in data["buildings"] if b["id"] in TEMPLATE_HOUSES}
+    return _TEMPLATES
+
+
 def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
                   mods_w: int, mods_h: int, hid: str, yaw: float = 0.0) -> Building:
     """
-    Compose one house from the modular kit on the measured module grid.
+    Stamp a hand-authored house at (ox, oy), rotated to its own base yaw.
 
-    Order matches how the kit is authored: foundation -> floor -> perimeter walls ->
-    corners -> roof. Wall pieces are chosen from the measured window variants so houses
-    differ from each other without any piece being invented.
+    Variation comes from choosing among the reference houses and rotating them, not from
+    re-deriving the assembly. STYLE_GUIDE R1 (own base yaw), R2 (storeys), R3 (roof is the
+    biggest role), R4/R5 (roof grammar), R7 (beams), R8/R10 (piece variety) are all satisfied
+    by construction, because a human satisfied them.
+
+    `mods_w`/`mods_h` now select a template by size rather than dictating a footprint.
+    """
+    templates = load_templates()
+    want = max(1, mods_w) * max(1, mods_h)
+    names = sorted(templates)
+    tpl = templates[names[min(len(names) - 1, max(0, want - 1))]]
+
+    base_yaw = yaw if yaw else rng.uniform(0.0, 360.0)          # R1
+    rad = math.radians(base_yaw)
+    ca, sa = math.cos(rad), math.sin(rad)
+
+    pl: list[Placement] = []
+    fxs, fys = [], []
+    for piece_rec in tpl["pieces"]:
+        piece = kit.pieces.get(piece_rec["mesh"])
+        if piece is None:
+            continue                                            # not in the measured kit
+        lx, ly, lz = piece_rec["rel"]
+        wx = ox + lx * ca - ly * sa
+        wy = oy + lx * sa + ly * ca
+        wyaw = (piece_rec["yaw"] + base_yaw) % 360.0
+        bb = world_bb(piece, wx, wy, wyaw)
+        pl.append(Placement(piece.name, wx, wy, lz, wyaw, bb))
+        if "Floor" in piece.name or "Foundation" in piece.name:
+            fxs += [bb[0], bb[2]]
+            fys += [bb[1], bb[3]]
+
+    if not fxs:                                                 # fall back to every piece
+        fxs = [c for p in pl for c in (p.bb[0], p.bb[2])]
+        fys = [c for p in pl for c in (p.bb[1], p.bb[3])]
+    rect = Rect(min(fxs), min(fys), max(fxs) - min(fxs), max(fys) - min(fys))
+    roofs = sum(1 for p in pl if "Roof" in p.mesh)
+    return Building(id=hid, kind="house", rect=rect, placements=pl,
+                    notes=f"template {tpl['id']}, {len(pl)} pieces ({roofs} roof), "
+                          f"yaw {base_yaw:.0f}")
+
+
+def compose_house_synthesised(kit: Kit, rng: random.Random, ox: float, oy: float,
+                              mods_w: int, mods_h: int, hid: str, yaw: float = 0.0) -> Building:
+    """
+    Compose a house by the rules in STYLE_GUIDE.md, which were read out of the hand-authored
+    kitbashes on L_Tutorial_Island rather than invented from bounds.
+
+      R1  the building has its own base yaw; every piece sits at base + {0,90,180,270}
+      R2  storeys stack at the measured wall height (400 cm); 1-3 of them
+      R3  the roof is the largest role in the piece list
+      R4  roof pieces go down as Base+Top PAIRS at identical coordinates
+      R5  the roof is a perimeter ring with corners, not a field of tiles
+      R6  Extended variants are the default
+      R7  a beam per roof segment
+      R8  wall runs mix blank / window / door variants
+      R9  every storey is floored
+      R10 every storey is cornered, with varied corner pieces
     """
     mw, mh = kit.module
     w, h = mods_w * mw, mods_h * mh
-    rect = Rect(ox, oy, w, h)
-    pl: list[Placement] = []
+    base_yaw = yaw if yaw else rng.uniform(0.0, 360.0)      # R1
+    local: list[tuple] = []                                  # (piece, lx, ly, z, lyaw)
 
-    # Measurement corrected this: the foundation is a perimeter WALL segment
-    # (500 x 50 x 300), not a floor plate. Floors tile the interior; foundations ring it.
+    def at(piece, lx, ly, z, lyaw):
+        """Place by pivot, in the building's own frame."""
+        local.append((piece, lx, ly, z, lyaw))
+
+    def by_min(piece, min_x, min_y, z, lyaw):
+        """Place so the piece's rotated footprint starts at (min_x, min_y)."""
+        x0, y0, _, _ = rotated_extent(piece, lyaw)
+        local.append((piece, min_x - x0, min_y - y0, z, lyaw))
+
+    def pick(*roles):
+        opts = [p for r in roles for p in kit.role(r)]
+        return rng.choice(opts) if opts else None
+
     found = next((p for p in kit.role("foundation") if p.name.endswith("_5x4")),
-                 kit.one("foundation"))
+                 kit.role("foundation")[0] if kit.role("foundation") else None)
     floor = next((p for p in kit.role("floor") if p.name.endswith("_5x4_01")),
                  kit.role("floor")[0])
-    walls = kit.role("wall_window") or kit.role("corner")
-    corner = kit.role("corner")[0] if kit.role("corner") else None
-    roof_tiles = kit.role("roof_tile")
-    roof_end = kit.role("roof_end")
+    wall_any = kit.role("wall_window") + kit.role("wall_blank") + kit.role("wall_door")
+    if not wall_any:
+        wall_any = kit.role("wall_window") or kit.role("corner")
+    storey_h = wall_any[0].size[2]                            # R2: the wall IS the storey
+    storeys = rng.randint(1, 3)
 
-    found_h = found.size[2]
-
-    def put(piece, min_x: float, min_y: float, z: float, ang: float) -> None:
-        wx, wy = origin_for(piece, min_x, min_y, z, ang)
-        pl.append(Placement(piece.name, wx, wy, z + piece.pivot_from_min[2], ang,
-                            world_bb(piece, wx, wy, ang)))
-
-    def put_at(piece, wx: float, wy: float, z: float, ang: float) -> None:
-        """Place by PIVOT position, not by min corner — the roof set is authored this way."""
-        pl.append(Placement(piece.name, wx, wy, z + piece.pivot_from_min[2], ang,
-                            world_bb(piece, wx, wy, ang)))
-
-    # Foundation ring: one segment per perimeter module, standing on the ground. The
-    # south/north runs use the piece as-authored; east/west are turned 90 degrees, which is
-    # where pivot handling matters most.
-    for i in range(mods_w):
-        put(found, ox + i * mw, oy, 0.0, 0.0)
-        put(found, ox + i * mw, oy + h - found.size[1], 0.0, 0.0)
-    for j in range(mods_h):
-        put(found, ox, oy + j * mh, 0.0, 90.0)
-        put(found, ox + w - found.size[1], oy + j * mh, 0.0, 90.0)
-
-    # Floor plates tile the footprint, on top of the foundation ring.
-    for i in range(mods_w):
+    # --- foundation ring --------------------------------------------------------------
+    z = 0.0
+    if found:
+        for i in range(mods_w):
+            by_min(found, i * mw, 0.0, z, 0.0)
+            by_min(found, i * mw, h - found.size[1], z, 0.0)
         for j in range(mods_h):
-            put(floor, ox + i * mw, oy + j * mh, found_h, 0.0)
+            by_min(found, 0.0, j * mh, z, 90.0)
+            by_min(found, w - found.size[1], j * mh, z, 90.0)
+        z += found.size[2]
 
-    # Perimeter walls, sitting on the floor.
-    wall_z = found_h + floor.size[2]
-    for i in range(mods_w):
-        wa, wb = rng.choice(walls), rng.choice(walls)
-        put(wa, ox + i * mw, oy, wall_z, 0.0)
-        put(wb, ox + i * mw, oy + h - wb.size[1], wall_z, 0.0)
-    for j in range(mods_h):
-        wa, wb = rng.choice(walls), rng.choice(walls)
-        put(wa, ox, oy + j * mh, wall_z, 90.0)
-        put(wb, ox + w - wb.size[1], oy + j * mh, wall_z, 90.0)
+    # --- storeys: floor + wall ring + corners (R9, R8, R10) ---------------------------
+    door_module = rng.randrange(mods_w)
+    for s in range(storeys):
+        for i in range(mods_w):                               # R9
+            for j in range(mods_h):
+                by_min(floor, i * mw, j * mh, z, 0.0)
+        wz = z + floor.size[2]
+        for i in range(mods_w):                               # R8: vary the run
+            a = pick("wall_window", "wall_blank") or wall_any[0]
+            b = pick("wall_window", "wall_blank") or wall_any[0]
+            if s == 0 and i == door_module and kit.role("wall_door"):
+                a = rng.choice(kit.role("wall_door"))
+            by_min(a, i * mw, 0.0, wz, 0.0)
+            by_min(b, i * mw, h - b.size[1], wz, 0.0)
+        for j in range(mods_h):
+            a = pick("wall_window", "wall_blank") or wall_any[0]
+            b = pick("wall_window", "wall_blank") or wall_any[0]
+            by_min(a, 0.0, j * mh, wz, 90.0)
+            by_min(b, w - b.size[1], j * mh, wz, 90.0)
+        for (cx, cy, cyaw) in ((0.0, 0.0, 0.0), (w, 0.0, 90.0),
+                               (w, h, 180.0), (0.0, h, 270.0)):   # R10
+            c = pick("corner")
+            if c:
+                at(c, cx, cy, wz, cyaw)
+        z = wz + storey_h
 
-    if corner:
-        for (cx, cy) in ((ox, oy), (ox + w - corner.size[0], oy),
-                         (ox + w - corner.size[0], oy + h - corner.size[1]),
-                         (ox, oy + h - corner.size[1])):
-            put(corner, cx, cy, wall_z, 0.0)
+    # --- roof: a perimeter ring of Base+Top pairs (R4, R5, R6, R7) --------------------
+    roof_z = z
 
-    # A door on the south face, in a module chosen by the seed.
-    doors = kit.role("door")
-    door_mod = rng.randrange(mods_w)
-    if doors:
-        d = doors[0]
-        put(d, ox + door_mod * mw + (mw - d.size[0]) / 2.0, oy - d.size[1] * 0.25,
-            wall_z, 0.0)
+    def pair(base_role, top_role, lx, ly, lyaw):
+        """R4: a _Base and its _Top go down at the same point, same yaw."""
+        b = next((p for p in kit.role(base_role) if "Extended" in p.name), None) \
+            or (kit.role(base_role)[0] if kit.role(base_role) else None)
+        t = next((p for p in kit.role(top_role) if "Extended" in p.name), None) \
+            or (kit.role(top_role)[0] if kit.role(top_role) else None)
+        for p in (b, t):
+            if p:
+                at(p, lx, ly, roof_z, lyaw)
+        return b is not None
 
-    # --- Roof -------------------------------------------------------------------------
-    # A gable, not a field of tiles. The pivots encode the assembly: Tiling_Base occupies
-    # X -383..-75 relative to its pivot and Tiling_Top occupies X -109..+2, so the two
-    # placed at the SAME point form one slope plus its ridge cap, reaching 383 cm from the
-    # ridge. Mirrored at yaw 180 that is a 766 cm span.
-    #
-    # Tiling one Base per module cell — which is what the previous version did — covers 308
-    # of each 500 cm module and leaves a 192 cm hole. It passed every check because the
-    # checks counted pieces.
-    roof_z = wall_z + walls[0].size[2]
-    base = next((p for p in roof_tiles if p.name.endswith("_Tiling_Base")), None)
-    top = next((p for p in roof_tiles if p.name.endswith("_Tiling_Top")), None)
-    if base and top:
-        x_ridge = ox + w / 2.0
-        span = -rotated_extent(base, 0.0)[0]          # 383: reach from ridge to eave
-        sections = max(1, int(round(h / base.size[1])))
-        sec_len = h / sections
-        for j in range(sections):
-            y_c = oy + (j + 0.5) * sec_len
-            for ang in (0.0, 180.0):                  # the two slopes
-                put_at(base, x_ridge, y_c, roof_z, ang)
-                put_at(top, x_ridge, y_c, roof_z, ang)
-        if span * 2.0 < w - 1.0:
-            # Recorded rather than silently shipped: the standard set cannot span this
-            # house. The Extended pieces exist for it and are not implemented.
-            pl.append(Placement("__ROOF_TOO_NARROW__", x_ridge, oy + h / 2.0, roof_z, 0.0,
-                                (x_ridge, oy, x_ridge, oy + h)))
-        if roof_end:
-            e = roof_end[0]
-            put_at(e, x_ridge, oy, roof_z, 0.0)
-            put_at(e, x_ridge, oy + h, roof_z, 180.0)
+    tiles = kit.role("roof_tile")
+    tile_base = next((p for p in tiles if p.name.endswith("_Tiling_Base")), None)
+    tile_top = next((p for p in tiles if p.name.endswith("_Tiling_TopExtended")), None) \
+        or next((p for p in tiles if p.name.endswith("_Tiling_Top")), None)
+    beam = pick("roof_beam")
+    seg = tile_base.size[1] if tile_base else mw              # run length per segment
 
+    if tile_base and tile_top:
+        edges = ((0.0, 0.0, 0.0, 1.0, h, 0.0), (w, 0.0, 0.0, 1.0, h, 90.0),
+                 (w, h, -1.0, 0.0, w, 180.0), (0.0, h, 0.0, -1.0, h, 270.0))
+        for (sx, sy, dx, dy, length, eyaw) in edges:
+            n = max(1, int(round(length / seg)))
+            for k in range(n):
+                t = (k + 0.5) * (length / n)
+                at(tile_base, sx + dx * t, sy + dy * t, roof_z, eyaw)
+                at(tile_top, sx + dx * t, sy + dy * t, roof_z, eyaw)   # R4
+                if beam:                                                # R7
+                    at(beam, sx + dx * t, sy + dy * t, roof_z, eyaw)
+        for (cx, cy, cyaw) in ((0.0, 0.0, 0.0), (w, 0.0, 90.0),
+                               (w, h, 180.0), (0.0, h, 270.0)):         # R5 turns
+            pair("roof_corner_outer", "roof_corner_inner", cx, cy, cyaw)
+        for (ex, ey, eyaw) in ((w / 2.0, 0.0, 0.0), (w / 2.0, h, 180.0)):
+            pair("roof_end", "roof_end", ex, ey, eyaw)
+
+    # --- bake the local frame into world (R1) -----------------------------------------
+    rad = math.radians(base_yaw)
+    ca, sa = math.cos(rad), math.sin(rad)
+    pl: list[Placement] = []
+    xs, ys = [], []
+    for (piece, lx, ly, lz, lyaw) in local:
+        wx = ox + lx * ca - ly * sa
+        wy = oy + lx * sa + ly * ca
+        wyaw = (lyaw + base_yaw) % 360.0
+        bb = world_bb(piece, wx, wy, wyaw)
+        pl.append(Placement(piece.name, wx, wy, lz + piece.pivot_from_min[2], wyaw, bb))
+        xs += [bb[0], bb[2]]
+        ys += [bb[1], bb[3]]
+
+    # The building's footprint is where its FLOOR is, not where its roof reaches. Extended
+    # roof corners are 691 cm square and oversail the walls by design; including them made a
+    # 500 x 1500 cottage claim a 2681 x 1823 plot and no seed could be packed. Real villages
+    # put houses close enough for the eaves to overlap — that is what eaves are.
+    fxs, fys = [], []
+    for p in pl:
+        if "Floor" in p.mesh or "Foundation" in p.mesh:
+            fxs += [p.bb[0], p.bb[2]]
+            fys += [p.bb[1], p.bb[3]]
+    if not fxs:
+        fxs, fys = xs, ys
+    rect = Rect(min(fxs), min(fys), max(fxs) - min(fxs), max(fys) - min(fys)) if fxs else \
+        Rect(ox, oy, w, h)
+    roofs = sum(1 for p in pl if "Roof" in p.mesh)
     return Building(id=hid, kind="house", rect=rect, placements=pl,
-                    notes=f"{mods_w}x{mods_h} modules, door on south module {door_mod}")
+                    notes=f"{mods_w}x{mods_h} modules, {storeys} storey(s), "
+                          f"yaw {base_yaw:.0f}, {roofs} roof pieces")
 
 
 def rotated_extent(piece, yaw: float) -> tuple[float, float, float, float]:
@@ -366,11 +496,21 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
         # 1000. Houses vary along the ridge instead, which is also how the kit's Half and
         # End pieces are authored. A constraint the kit imposed, not a preference.
         mods_w, mods_h = 1, rng.randint(1, 3)
-        spot = free_spot(mods_w * mw, mods_h * mh, *house_ring)
+        # Compose at the origin FIRST to learn the template's real footprint, then find a
+        # spot that size and translate. Reserving mods_w x mods_h modules booked 500x1500
+        # for a house that is actually 1380x1818, and every seed collided.
+        probe = compose_house(kit, rng, 0.0, 0.0, mods_w, mods_h, f"house_{i}")
+        spot = free_spot(probe.rect.w, probe.rect.h, *house_ring)
         if spot is None:
             continue                     # the ring is full; fewer houses is not a failure
-        b = compose_house(kit, rng, spot[0], spot[1], mods_w, mods_h, f"house_{i}")
-        plan.buildings.append(b)
+        dx = spot[0] - probe.rect.x
+        dy = spot[1] - probe.rect.y
+        probe.rect = Rect(probe.rect.x + dx, probe.rect.y + dy, probe.rect.w, probe.rect.h)
+        for pc in probe.placements:
+            pc.x += dx
+            pc.y += dy
+            pc.bb = (pc.bb[0] + dx, pc.bb[1] + dy, pc.bb[2] + dx, pc.bb[3] + dy)
+        plan.buildings.append(probe)
 
     if kit.role("market"):
         sw, sh = kit.one("market").footprint

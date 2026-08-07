@@ -228,7 +228,8 @@ def check_building_integrity(plan: Plan) -> list[Finding]:
         # Floors are the per-module count. Foundations are a perimeter ring — counting those
         # as modules made a 1x1 house look like it needed four roof pieces.
         floors = [p for p in b.placements if "Floor" in p.mesh]
-        doors = [p for p in b.placements if p.mesh.startswith("SM_Door")]
+        doors = [p for p in b.placements
+                 if p.mesh.startswith("SM_Door") or "_Door_" in p.mesh]
         if floors and len(roofs) < len(floors):
             out.append(Finding("building_integrity", "2.8", "fail",
                                f"{b.id}: {len(roofs)} roof pieces for {len(floors)} modules — "
@@ -240,7 +241,9 @@ def check_building_integrity(plan: Plan) -> list[Finding]:
     return out
 
 
-ROOF_COVERAGE_TOLERANCE = 0.02      # 2% of footprint may be uncovered before it is a hole
+# 8%: a correctly-roofed reference house measures ~5% uncovered by this AABB sampling,
+# because floor plates edge out past the roof bounds. Below that is noise, not a hole.
+ROOF_COVERAGE_TOLERANCE = 0.08
 
 
 def check_roof_coverage(plan: Plan) -> list[Finding]:
@@ -271,16 +274,33 @@ def check_roof_coverage(plan: Plan) -> list[Finding]:
             out.append(Finding("roof_coverage", "2.8", "fail", f"{b.id} has no roof",
                                {"kind": "roof_missing", "building": b.id}))
             continue
-        n = 12
-        uncovered = 0
-        for i in range(n):
-            for j in range(n):
-                px = b.rect.x + (i + 0.5) * b.rect.w / n
-                py = b.rect.y + (j + 0.5) * b.rect.h / n
-                if not any(r.bb[0] <= px <= r.bb[2] and r.bb[1] <= py <= r.bb[3]
-                           for r in roofs):
-                    uncovered += 1
-        frac = uncovered / float(n * n)
+        # Sample the FLOORED area, not the bounding rect. Since houses carry their own base
+        # yaw (STYLE_GUIDE R1), the rect is a rotated AABB whose corners are outside the
+        # building — sampling those reported phantom holes. The real question is "is every
+        # floored square roofed", which is rotation-agnostic.
+        # INTERIOR floor plates only. "Floor" in the name also catches
+        # SM_House_Floor_5x4_Overang (a jetty where the upper storey oversails, which is
+        # meant to stick out past the roof) and _Overang_Beam (a bracket, not a floor).
+        # Sampling those reported 45-57% "uncovered" on hand-authored houses that are
+        # correctly roofed — the check was wrong, not the buildings.
+        floors = [p for p in b.placements
+                  if "Floor" in p.mesh and p.bb
+                  and "Overang" not in p.mesh and "Beam" not in p.mesh
+                  and "Terrace" not in p.mesh]
+        if not floors:
+            continue
+        pts = []
+        for f in floors:
+            x0, y0, x1, y1 = f.bb
+            for u in (0.3, 0.7):
+                for v in (0.3, 0.7):
+                    pts.append((x0 + (x1 - x0) * u, y0 + (y1 - y0) * v))
+        uncovered = sum(
+            0 if any(r.bb[0] <= px <= r.bb[2] and r.bb[1] <= py <= r.bb[3] for r in roofs)
+            else 1
+            for (px, py) in pts
+        )
+        frac = uncovered / float(len(pts))
         if frac > ROOF_COVERAGE_TOLERANCE:
             out.append(Finding("roof_coverage", "2.8", "fail",
                                f"{b.id}: {frac:.0%} of the footprint has no roof above it",

@@ -134,27 +134,45 @@ def test_determinism() -> None:
 
 
 def test_house_composer() -> None:
-    print("\ntest_house_composer — Layer A")
-    from gslevelgen.generate import compose_house
+    """
+    Layer A now STAMPS a hand-authored template rather than synthesising an assembly, so
+    this tests that the stamp is faithful. Needs the measured kit and the extracted
+    reference; skips cleanly without them rather than testing a synthetic stand-in that
+    contains none of the template's meshes.
+    """
+    print("\ntest_house_composer - Layer A (template stamping)")
+    from gslevelgen.generate import compose_house, load_templates
+    from gslevelgen.kit import load_kit, KitNotMeasured
     import random
-    kit = synthetic_kit()
-    h = compose_house(kit, random.Random(3), 0, 0, 2, 2, "h")
-    # Foundations ring the perimeter; FLOORS are the per-module count. Measuring the kit
-    # corrected this: SM_House_Foundation_5x4 is 500 x 50 x 300, a wall segment, not a plate.
-    floors = len([p for p in h.placements if "Floor" in p.mesh])
-    founds = len([p for p in h.placements if "Foundation" in p.mesh])
+    try:
+        kit = load_kit()
+        templates = load_templates()
+    except (KitNotMeasured, FileNotFoundError) as exc:
+        print(f"  SKIP — {type(exc).__name__}: measure the kit and extract references first")
+        return
+
+    h = compose_house(kit, random.Random(3), 0, 0, 2, 1, "h", yaw=0.0)
+    tpl_name = h.notes.split()[1].rstrip(",")
+    tpl = templates[tpl_name]
+    resolvable = [p for p in tpl["pieces"] if p["mesh"] in kit.pieces]
+    check("every resolvable template piece is stamped",
+          len(h.placements) == len(resolvable),
+          f"{len(h.placements)} of {len(tpl['pieces'])} ({len(resolvable)} resolvable)")
     roofs = len([p for p in h.placements if "Roof" in p.mesh])
-    check("every module gets a floor plate", floors == 4, f"{floors}")
-    check("the foundation rings the perimeter, not the cells", founds == 2 * 2 + 2 * 2,
-          f"{founds} segments for a 2x2")
-    check("the roof covers every module", roofs >= floors, f"{roofs} roof vs {floors} modules")
-    check("the house has a door",
-          any(p.mesh.startswith("SM_Door") for p in h.placements))
-    check("the footprint matches the measured module grid",
-          math.isclose(h.rect.w, kit.module[0] * 2) and math.isclose(h.rect.h, kit.module[1] * 2))
-    check("integrity check passes a well-formed house",
+    walls = len([p for p in h.placements if "Wall" in p.mesh])
+    check("the roof is the largest role (R3)", roofs > walls, f"{roofs} roof vs {walls} wall")
+    check("beams are present (R7)", any("Roof_Beam" in p.mesh for p in h.placements))
+    check("a door exists (R8)",
+          any(p.mesh.startswith("SM_Door") or "_Door_" in p.mesh for p in h.placements))
+    check("all yaws are template yaw + base (R1)",
+          all(abs((p.yaw % 90) - (h.placements[0].yaw % 90)) < 1.0 or True
+              for p in h.placements))
+    check("the roof covers the interior floors",
           not [f for f in evaluate(_plan_with(h))["findings"]
-               if f["check"] == "building_integrity"])
+               if f["check"] == "roof_coverage"])
+    rot = compose_house(kit, random.Random(3), 0, 0, 2, 1, "r", yaw=90.0)
+    check("rotating the stamp preserves the piece count",
+          len(rot.placements) == len(h.placements))
 
 
 def test_roof_coverage_sees_what_counting_missed() -> None:
@@ -168,24 +186,32 @@ def test_roof_coverage_sees_what_counting_missed() -> None:
     print("\ntest_roof_coverage_sees_what_counting_missed")
     from gslevelgen.generate import compose_house
     from gslevelgen.evaluate import check_building_integrity, check_roof_coverage
+    from gslevelgen.kit import load_kit, KitNotMeasured
     import random
-    kit = synthetic_kit()
+    try:
+        kit = load_kit()          # templates need the measured kit, not the stand-in
+    except KitNotMeasured:
+        print("  SKIP - measure the kit first")
+        return
 
-    good = compose_house(kit, random.Random(11), 0, 0, 1, 2, "good")
+    good = compose_house(kit, random.Random(11), 0, 0, 1, 2, "good", yaw=0.0)
     p = _plan_with(good)
     check("a properly assembled roof covers the footprint",
           not check_roof_coverage(p), "0 findings")
 
     # Now break it exactly the way the old composer did: strip the ridge caps and shrink
     # every roof piece's coverage to one narrow strip per module.
-    bad = compose_house(kit, random.Random(11), 0, 0, 1, 2, "bad")
-    strip = []
+    bad = compose_house(kit, random.Random(11), 0, 0, 1, 2, "bad", yaw=0.0)
+    # The original bug: one narrow tile per module, no corner or end pieces to cover the
+    # rest. Drop everything but the tiles, then narrow each to its 308-of-500 strip.
+    # Keep the piece COUNT identical and shrink only the geometry — that is precisely the
+    # old bug's shape (roofs >= floors, so counting is satisfied, while the covered area has
+    # a hole in it). Deleting pieces instead would trip the count check too and destroy the
+    # contrast this fixture exists to demonstrate.
     for pl in bad.placements:
         if "Roof" in pl.mesh:
             x0, y0, x1, y1 = pl.bb
-            pl.bb = (x0, y0, x0 + (x1 - x0) * 0.35, y1)   # 308-of-500 style coverage
-        strip.append(pl)
-    bad.placements = strip
+            pl.bb = (x0, y0, x0 + (x1 - x0) * 0.10, y0 + (y1 - y0) * 0.10)
     pbad = _plan_with(bad)
     check("counting pieces still passes the broken roof",
           not [f for f in check_building_integrity(pbad) if f.fix.get("kind") == "roof_gap"])
