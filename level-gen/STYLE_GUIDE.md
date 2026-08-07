@@ -154,3 +154,38 @@ use.
 - **Exact run-length arithmetic.** R5 says the roof walks the outline; the precise sequence of
   full/half/end pieces for an arbitrary footprint was inferred from one house, not proven
   across all five.
+
+---
+
+## R11 — Mirroring is negative scale, not rotation
+
+51 of `House_2x1_T9`'s 220 pieces carry a negative scale: `SM_Stairs_Exterior_Wood_01` at
+`[-1,-1,1]` and `[-1,1,1]`. The kit has no left-hand stair mesh; the author mirrors the
+right-hand one.
+
+**Rule:** carry the full transform. A stamp that drops scale places every mirrored stair and
+railing unmirrored — they face the wrong way and do not meet their neighbour, which is
+exactly how the fault was reported.
+
+## R12 — The chimney is segmented so you can set its height, and the segments are scaled
+
+`House_2x1_T9`: `SM_Fireplace_Base` at z=471.5, then **ten** `SM_Fireplace_Tiling` at 137.5 cm
+intervals, then `SM_Fireplace_Top` — every piece at uniform scale **1.375**. The segment's
+native height times 1.375 is 137.5, so they stack flush. The segmentation exists so a chimney
+can be built to whatever height the building needs.
+
+**Rule:** stack tiling segments contiguously from the fireplace base to just above the
+ridge, at the building's chimney scale. Drop the scale and each segment renders 37.5 cm short
+of the next — a chimney of evenly spaced floating blocks, which reads as a bug because it is
+one.
+
+## R13 — The foundation course is the ground line; the undercroft is meant to be buried
+
+`House_2x1_T9`'s `SM_House_Foundation_5x4` sits at z=430. Below it are
+`SM_Pillar_Exterior_02_StoneBase` (z=265) and exterior stairs (z=0). That rock facade and
+undercroft are authored to be sunk into the terrain — that is the wiggle room that lets a
+house sit in uneven ground instead of perching on a flat pad or half-swallowed by a hill.
+
+**Rule:** sink a stamped building so the foundation course lands at ground level, leaving a
+little of the facade proud (`BURY_FRACTION`). Placing the building's lowest piece at z=0
+stands the whole basement above ground.

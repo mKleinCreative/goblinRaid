@@ -41,6 +41,13 @@ class Placement:
     # the evaluator can measure actual coverage instead of counting pieces — counting is
     # what let a roof with a 192 cm hole in it pass every check.
     bb: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    # Full transform, not just yaw. 69 of House_2x1_T9's 220 pieces carry a non-unit scale
+    # and most are MIRRORS (-1) — stamping those unmirrored is why stairs and railings did
+    # not meet. The chimney is 10 Fireplace_Tiling segments at scale 1.375, spaced 137.5
+    # apart; drop the scale and every segment renders 37.5 short of its neighbour.
+    pitch: float = 0.0
+    roll: float = 0.0
+    scale: tuple[float, float, float] = (1.0, 1.0, 1.0)
 
 
 @dataclass
@@ -106,6 +113,10 @@ REFERENCE_JSON = Path(__file__).resolve().parent.parent / "reference" / "Tutoria
 # coverage test instead of an AABB one.
 TEMPLATE_HOUSES = ("House_2x1_L7_Detailed", "House_2x1_T9")
 _TEMPLATES: dict | None = None
+# How much of the below-foundation undercroft to bury. 1.0 puts the foundation
+# course exactly on the ground plane; less leaves the rock facade showing, which
+# is the wiggle room the facade exists to provide on sloped terrain.
+BURY_FRACTION = 0.85
 
 
 def load_templates() -> dict:
@@ -138,7 +149,7 @@ def load_templates() -> dict:
 
 
 def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
-                  mods_w: int, mods_h: int, hid: str, yaw: float = 0.0) -> Building:
+                  mods_w: int, mods_h: int, hid: str, yaw: float | None = None) -> Building:
     """
     Stamp a hand-authored house at (ox, oy), rotated to its own base yaw.
 
@@ -154,9 +165,19 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
     names = sorted(templates)
     tpl = templates[names[min(len(names) - 1, max(0, want - 1))]]
 
-    base_yaw = yaw if yaw else rng.uniform(0.0, 360.0)          # R1
+    # `if yaw else` treated an explicit yaw=0.0 as "unspecified" and rolled a random one,
+    # so every test that thought it was pinning the rotation was not. None means unset.
+    base_yaw = rng.uniform(0.0, 360.0) if yaw is None else yaw   # R1
     rad = math.radians(base_yaw)
     ca, sa = math.cos(rad), math.sin(rad)
+
+    # The FOUNDATION COURSE is the ground line. Below it the reference carries an
+    # undercroft — stone pillar bases, lower stairs, the rock facade — which is authored to
+    # be buried so a house can sit in uneven terrain instead of perching on it. Stamping the
+    # lowest piece at z=0 stood that whole basement proud of the ground.
+    found_z = min((p["rel"][2] for p in tpl["pieces"] if "Foundation" in p["mesh"]),
+                  default=0.0)
+    sink = -found_z * BURY_FRACTION
 
     pl: list[Placement] = []
     fxs, fys = [], []
@@ -168,8 +189,10 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
         wx = ox + lx * ca - ly * sa
         wy = oy + lx * sa + ly * ca
         wyaw = (piece_rec["yaw"] + base_yaw) % 360.0
+        sc = tuple(piece_rec.get("scale", (1.0, 1.0, 1.0)))
         bb = world_bb(piece, wx, wy, wyaw)
-        pl.append(Placement(piece.name, wx, wy, lz, wyaw, bb))
+        pl.append(Placement(piece.name, wx, wy, lz + sink, wyaw, bb,
+                            piece_rec.get("pitch", 0.0), piece_rec.get("roll", 0.0), sc))
         if "Floor" in piece.name or "Foundation" in piece.name:
             fxs += [bb[0], bb[2]]
             fys += [bb[1], bb[3]]

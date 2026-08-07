@@ -87,9 +87,15 @@ def main():
                 missing.add(p["mesh"])
                 continue
             loc = unreal.Vector(p["x"], p["y"], p["z"])
-            rot = unreal.Rotator(0.0, 0.0, p.get("yaw", 0.0))
+            # FRotator is (pitch, yaw, roll). Roll and pitch were being thrown away along
+            # with scale, and scale is the one that matters most: the reference mirrors
+            # stairs and railings with negative scale, and stacks the chimney with a 1.375
+            # uniform scale that makes its segments meet.
+            rot = unreal.Rotator(p.get("pitch", 0.0), p.get("yaw", 0.0), p.get("roll", 0.0))
             actor = eas.spawn_actor_from_object(mesh, loc, rot)
             if actor:
+                sc = p.get("scale") or [1.0, 1.0, 1.0]
+                actor.set_actor_scale3d(unreal.Vector(sc[0], sc[1], sc[2]))
                 actor.set_actor_label(f"GEN_{b['id']}_{placed}")
                 actor.tags = [unreal.Name(TAG), unreal.Name(f"GEN_{b['kind']}")]
                 placed += 1

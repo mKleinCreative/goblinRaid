@@ -226,6 +226,58 @@ def _plan_with(building) -> Plan:
     return p
 
 
+def test_stamp_carries_the_full_transform() -> None:
+    """
+    Michael's report: railings and stairs do not meet, and the chimney looks evenly spaced
+    rather than stacked. Both are one bug — the stamp dropped scale.
+
+    The reference mirrors stairs with negative scale, and stacks the chimney as
+    Fireplace_Base + 10 x Fireplace_Tiling + Fireplace_Top, all at scale 1.375, spaced 137.5
+    apart. At native scale each segment falls 37.5 short of the next.
+    """
+    print("\ntest_stamp_carries_the_full_transform")
+    from gslevelgen.generate import compose_house, load_templates
+    from gslevelgen.kit import load_kit, KitNotMeasured
+    import random
+    try:
+        kit = load_kit()
+        templates = load_templates()
+    except (KitNotMeasured, FileNotFoundError):
+        print("  SKIP - measure the kit and extract references first")
+        return
+
+    h = compose_house(kit, random.Random(5), 0, 0, 2, 2, "h", yaw=0.0)
+    tpl = templates[h.notes.split()[1].rstrip(",")]
+
+    mirrored_src = [p for p in tpl["pieces"]
+                    if any(v < 0 for v in p.get("scale", [1, 1, 1]))]
+    mirrored_out = [p for p in h.placements if any(v < 0 for v in p.scale)]
+    check("mirrored pieces stay mirrored", len(mirrored_out) == len(mirrored_src),
+          f"{len(mirrored_out)} of {len(mirrored_src)}")
+
+    scaled_src = [p for p in tpl["pieces"]
+                  if any(abs(v - 1.0) > 1e-3 for v in p.get("scale", [1, 1, 1]))]
+    scaled_out = [p for p in h.placements if any(abs(v - 1.0) > 1e-3 for v in p.scale)]
+    check("every non-unit scale survives the stamp", len(scaled_out) == len(scaled_src),
+          f"{len(scaled_out)} of {len(scaled_src)}")
+
+    chim = sorted([p for p in h.placements if "Fireplace" in p.mesh], key=lambda p: p.z)
+    if len(chim) >= 3:
+        piece = kit.pieces[chim[1].mesh]
+        gaps = [round(chim[i + 1].z - chim[i].z, 1) for i in range(1, len(chim) - 2)]
+        scaled_h = piece.size[2] * chim[1].scale[2]
+        check("chimney segments stack flush (R12)",
+              all(abs(g - scaled_h) < 12.0 for g in gaps),
+              f"spacing {set(gaps)} vs scaled segment height {scaled_h:.1f}")
+
+    # R13: the undercroft is buried, so the foundation course sits near ground level.
+    founds = [p for p in h.placements if "Foundation" in p.mesh]
+    if founds:
+        check("the foundation course sits near ground level (R13)",
+              abs(min(f.z for f in founds)) < 120.0,
+              f"foundation z = {min(f.z for f in founds):.0f}")
+
+
 def main() -> None:
     print("=" * 68)
     print("GER level-generation fixtures — no editor, no API key")
@@ -233,7 +285,8 @@ def main() -> None:
     for fn in (test_planted_cover_failure, test_evaluator_is_not_vacuous,
                test_objective_mix_rule, test_circuit_breaker_fires,
                test_determinism, test_house_composer,
-               test_roof_coverage_sees_what_counting_missed):
+               test_roof_coverage_sees_what_counting_missed,
+               test_stamp_carries_the_full_transform):
         fn()
     print("\n" + "=" * 68)
     if failures:
