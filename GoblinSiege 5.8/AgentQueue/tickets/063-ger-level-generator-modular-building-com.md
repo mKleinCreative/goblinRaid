@@ -2,11 +2,11 @@
 id: 063
 title: GER level generator: modular building composer + settlement layout with GDD-derived evaluator (Assignment 6)
 agent: claude-levelgen
-status: review
+status: done
 claimed: 2026-08-07T06:10Z
 build: none
-waiting_on: ModelContextProtocol.StartServer in the editor console, so kit_manifest.py can measure the kit for real
-evaluated: 2026-08-07T06:25:39Z
+waiting_on: 
+evaluated: 2026-08-07T08:11:33Z
 files: 
   - ../level-gen
   - AgentQueue/QUEUE.md
@@ -64,6 +64,33 @@ refine,pipeline}.py`, `apply_in_editor.py`, `test_pipeline.py`, `README.md`.
    no-op that printed `moved obj_0_granary by (0,0)` three passes running. A silent no-op
    reporting success is precisely what GER exists to prevent, and it lived in my refiner until
    a wider seed sweep made it obvious.
+
+**SUPERSEDED - the section below was written before the MCP server started. What actually
+happened after it:**
+
+- `kit_manifest.py` ran: **187 meshes measured, zero skipped**. It immediately caught a wrong
+  grid. `kit.py` derived the module from `SM_House_Foundation_5x4`, which measures
+  [500, 50, 300] - a perimeter foundation *wall*, not a floor plate. The piece that tiles a
+  floor is `SM_House_Floor_5x4_01` at [500.75, 500.0, 36]: **the module is square** and "5x4"
+  describes neither dimension. The composer was wrong the same way, laying a foundation under
+  every cell instead of ringing the perimeter.
+- Real dimensions then broke the layout: 5/8 seeds passing fell to 2/8, because the spacing
+  constants had been tuned against invented footprints. Fixed by placing via rejection with
+  objectives as anchors. Back to **8/8**, with the evaluator still catching 12-18 findings per
+  seed on generation - almost all cover-guarantee, which is the declared rule.
+- `make_scratch_map.py` (new) built `L_LevelGen_Scratch`, and `apply_in_editor.py` ran:
+  **130 meshes + 19 markers placed, nothing dropped**.
+- Then looking at it caught what no check could: pieces were placed at grid corners as if
+  their pivots sat at the mesh min corner. `kit.json` measures `pivot_from_min` for exactly
+  that and the composer ignored it. Fixed with `origin_for()`.
+
+**Still true from the original text:** the verifier agent is not wired in, and every rule the
+evaluator enforces is one a raycast can settle.
+
+**Handed to ticket #065:** the roof does not close. `Tiling_Base` is 308 wide against a 500
+module and the integrity check counts pieces rather than measuring coverage.
+
+Original pre-server text follows, unaltered:
 
 **What is written but has never run:** `kit_manifest.py` and `apply_in_editor.py`. Both need
 the editor's MCP server, which is not started (editor is up; `ModelContextProtocol.StartServer`

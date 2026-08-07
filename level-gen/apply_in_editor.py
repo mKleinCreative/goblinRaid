@@ -79,6 +79,8 @@ def main():
     placed, missing = 0, set()
     for b in plan["buildings"]:
         for p in b["placements"]:
+            if p["mesh"].startswith("__"):
+                continue          # evaluator sentinel, not a mesh
             mesh_path = p.get("path") or _lookup(plan, p["mesh"])
             mesh = asset_sub.load_asset(mesh_path) if mesh_path else None
             if not isinstance(mesh, unreal.StaticMesh):

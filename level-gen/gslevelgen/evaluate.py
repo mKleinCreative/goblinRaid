@@ -240,6 +240,55 @@ def check_building_integrity(plan: Plan) -> list[Finding]:
     return out
 
 
+ROOF_COVERAGE_TOLERANCE = 0.02      # 2% of footprint may be uncovered before it is a hole
+
+
+def check_roof_coverage(plan: Plan) -> list[Finding]:
+    """
+    Does the roof actually cover the house?
+
+    `check_building_integrity` counts roof pieces against floor pieces, and a count cannot
+    see a hole. The previous composer tiled one 308 cm roof piece per 500 cm module, leaving
+    a 192 cm gap down every house, and passed — until someone looked at it in the editor.
+
+    So this measures. Sample the footprint on a grid and ask whether any placed roof piece's
+    world XY bounds contain each point. Not a mesh-accurate test — a pitched roof's AABB is
+    generous — but it catches the class of failure that matters: a strip of the building with
+    nothing above it at all.
+    """
+    out = []
+    for b in plan.buildings:
+        if b.kind != "house":
+            continue
+        if any(p.mesh == "__ROOF_TOO_NARROW__" for p in b.placements):
+            out.append(Finding("roof_coverage", "2.8", "fail",
+                               f"{b.id}: the standard roof set cannot span this house — it "
+                               f"needs the Extended pieces, which are not implemented",
+                               {"kind": "roof_too_narrow", "building": b.id}))
+            continue
+        roofs = [p for p in b.placements if "Roof" in p.mesh and p.bb]
+        if not roofs:
+            out.append(Finding("roof_coverage", "2.8", "fail", f"{b.id} has no roof",
+                               {"kind": "roof_missing", "building": b.id}))
+            continue
+        n = 12
+        uncovered = 0
+        for i in range(n):
+            for j in range(n):
+                px = b.rect.x + (i + 0.5) * b.rect.w / n
+                py = b.rect.y + (j + 0.5) * b.rect.h / n
+                if not any(r.bb[0] <= px <= r.bb[2] and r.bb[1] <= py <= r.bb[3]
+                           for r in roofs):
+                    uncovered += 1
+        frac = uncovered / float(n * n)
+        if frac > ROOF_COVERAGE_TOLERANCE:
+            out.append(Finding("roof_coverage", "2.8", "fail",
+                               f"{b.id}: {frac:.0%} of the footprint has no roof above it",
+                               {"kind": "roof_hole", "building": b.id,
+                                "uncovered_fraction": round(frac, 3)}))
+    return out
+
+
 def check_buildable_ground(plan: Plan) -> list[Finding]:
     """
     Week 1 also shipped "a windmill sited on an unbuildable rock face". Checking that needs
@@ -262,6 +311,7 @@ DETERMINISTIC = [
     check_roads_clear,
     check_wayfinding,
     check_building_integrity,
+    check_roof_coverage,
     check_buildable_ground,
 ]
 

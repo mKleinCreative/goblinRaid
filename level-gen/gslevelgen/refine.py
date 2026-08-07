@@ -34,6 +34,12 @@ def _move_building(plan: Plan, bid: str, dx: float, dy: float) -> None:
             for p in b.placements:
                 p.x += dx
                 p.y += dy
+                # Translate the cached world bounds too. Forgetting this left every moved
+                # house's roof bounds at its old location, and the coverage check — correctly
+                # — reported 100% of the footprint with nothing above it.
+                if p.bb:
+                    x0, y0, x1, y1 = p.bb
+                    p.bb = (x0 + dx, y0 + dy, x1 + dx, y1 + dy)
             return
 
 

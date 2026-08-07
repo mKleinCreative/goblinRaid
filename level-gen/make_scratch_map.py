@@ -49,10 +49,23 @@ def main():
             say("FAILED: new_level returned False")
             return
 
+    # Idempotence. The first version spawned the ground and a full lighting rig on every
+    # run, so re-opening the map stacked a second sun on the first and the editor said so:
+    # "Multiple directional lights are competing to be the single one used for forward
+    # shading." Placement scripts in this repo rebuild derived data rather than adding to
+    # it — the same rule tools/hamlet/gs_buildings.py established.
+    existing = {str(a.get_actor_label()) for a in eas.get_all_level_actors()}
+
+    def already(label: str) -> bool:
+        if label in existing:
+            say(f"  {label}: already present, left alone")
+            return True
+        return False
+
     # Ground: a scaled cube, because a hamlet spans ~180 m and the default template floor
     # is a few metres across.
     cube = esub.load_asset("/Engine/BasicShapes/Cube.Cube")
-    if cube:
+    if cube and not already("ScratchGround"):
         ground = eas.spawn_actor_from_object(cube, unreal.Vector(0, 0, -50.0))
         if ground:
             ground.set_actor_label("ScratchGround")
@@ -66,6 +79,8 @@ def main():
         (unreal.SkyAtmosphere, "SkyAtmosphere", unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0)),
         (unreal.ExponentialHeightFog, "Fog", unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0)),
     ):
+        if already(label):
+            continue
         try:
             a = eas.spawn_actor_from_class(cls, loc, rot)
             if a:
@@ -79,6 +94,10 @@ def main():
         with open(r"D:\goblinRaid\level-gen\out\plan.json", encoding="utf-8") as fh:
             plan = json.load(fh)
         rs = plan["runic_site"]
+        # The runic site moves with the seed, so this one IS rebuilt rather than skipped.
+        for a in eas.get_all_level_actors():
+            if str(a.get_actor_label()).startswith("PlayerStart_RunicSite"):
+                eas.destroy_actor(a)
         ps = eas.spawn_actor_from_class(unreal.PlayerStart,
                                         unreal.Vector(rs[0], rs[1], 200.0))
         if ps:

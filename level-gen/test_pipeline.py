@@ -157,6 +157,43 @@ def test_house_composer() -> None:
                if f["check"] == "building_integrity"])
 
 
+def test_roof_coverage_sees_what_counting_missed() -> None:
+    """
+    The regression that motivated ticket #065.
+
+    A roof that tiles one 308 cm piece per 500 cm module leaves a 192 cm hole down every
+    house. `building_integrity` counts roof pieces against floor pieces and passes it. The
+    coverage check measures, so it fails it.
+    """
+    print("\ntest_roof_coverage_sees_what_counting_missed")
+    from gslevelgen.generate import compose_house
+    from gslevelgen.evaluate import check_building_integrity, check_roof_coverage
+    import random
+    kit = synthetic_kit()
+
+    good = compose_house(kit, random.Random(11), 0, 0, 1, 2, "good")
+    p = _plan_with(good)
+    check("a properly assembled roof covers the footprint",
+          not check_roof_coverage(p), "0 findings")
+
+    # Now break it exactly the way the old composer did: strip the ridge caps and shrink
+    # every roof piece's coverage to one narrow strip per module.
+    bad = compose_house(kit, random.Random(11), 0, 0, 1, 2, "bad")
+    strip = []
+    for pl in bad.placements:
+        if "Roof" in pl.mesh:
+            x0, y0, x1, y1 = pl.bb
+            pl.bb = (x0, y0, x0 + (x1 - x0) * 0.35, y1)   # 308-of-500 style coverage
+        strip.append(pl)
+    bad.placements = strip
+    pbad = _plan_with(bad)
+    check("counting pieces still passes the broken roof",
+          not [f for f in check_building_integrity(pbad) if f.fix.get("kind") == "roof_gap"])
+    findings = check_roof_coverage(pbad)
+    check("measuring coverage FAILS the broken roof", len(findings) >= 1,
+          findings[0].message if findings else "no finding")
+
+
 def _plan_with(building) -> Plan:
     p = bare_plan()
     p.buildings.append(building)
@@ -169,7 +206,8 @@ def main() -> None:
     print("=" * 68)
     for fn in (test_planted_cover_failure, test_evaluator_is_not_vacuous,
                test_objective_mix_rule, test_circuit_breaker_fires,
-               test_determinism, test_house_composer):
+               test_determinism, test_house_composer,
+               test_roof_coverage_sees_what_counting_missed):
         fn()
     print("\n" + "=" * 68)
     if failures:

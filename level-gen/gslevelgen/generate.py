@@ -35,6 +35,10 @@ class Placement:
     y: float
     z: float
     yaw: float = 0.0
+    # World-space XY bounds of this piece once placed and rotated. Carried on the plan so
+    # the evaluator can measure actual coverage instead of counting pieces — counting is
+    # what let a roof with a 192 cm hole in it pass every check.
+    bb: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
 
 
 @dataclass
@@ -119,7 +123,13 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
 
     def put(piece, min_x: float, min_y: float, z: float, ang: float) -> None:
         wx, wy = origin_for(piece, min_x, min_y, z, ang)
-        pl.append(Placement(piece.name, wx, wy, z + piece.pivot_from_min[2], ang))
+        pl.append(Placement(piece.name, wx, wy, z + piece.pivot_from_min[2], ang,
+                            world_bb(piece, wx, wy, ang)))
+
+    def put_at(piece, wx: float, wy: float, z: float, ang: float) -> None:
+        """Place by PIVOT position, not by min corner — the roof set is authored this way."""
+        pl.append(Placement(piece.name, wx, wy, z + piece.pivot_from_min[2], ang,
+                            world_bb(piece, wx, wy, ang)))
 
     # Foundation ring: one segment per perimeter module, standing on the ground. The
     # south/north runs use the piece as-authored; east/west are turned 90 degrees, which is
@@ -161,20 +171,59 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
         put(d, ox + door_mod * mw + (mw - d.size[0]) / 2.0, oy - d.size[1] * 0.25,
             wall_z, 0.0)
 
-    # Roof: tile every cell, then cap the two ends.
+    # --- Roof -------------------------------------------------------------------------
+    # A gable, not a field of tiles. The pivots encode the assembly: Tiling_Base occupies
+    # X -383..-75 relative to its pivot and Tiling_Top occupies X -109..+2, so the two
+    # placed at the SAME point form one slope plus its ridge cap, reaching 383 cm from the
+    # ridge. Mirrored at yaw 180 that is a 766 cm span.
+    #
+    # Tiling one Base per module cell — which is what the previous version did — covers 308
+    # of each 500 cm module and leaves a 192 cm hole. It passed every check because the
+    # checks counted pieces.
     roof_z = wall_z + walls[0].size[2]
-    if roof_tiles:
-        for i in range(mods_w):
-            for j in range(mods_h):
-                tile = roof_tiles[(i + j) % len(roof_tiles)]
-                put(tile, ox + i * mw, oy + j * mh, roof_z, 0.0)
-    if roof_end:
-        e = roof_end[0]
-        put(e, ox - e.size[0] * 0.5, oy + (h - e.size[1]) / 2.0, roof_z, 0.0)
-        put(e, ox + w - e.size[0] * 0.5, oy + (h - e.size[1]) / 2.0, roof_z, 180.0)
+    base = next((p for p in roof_tiles if p.name.endswith("_Tiling_Base")), None)
+    top = next((p for p in roof_tiles if p.name.endswith("_Tiling_Top")), None)
+    if base and top:
+        x_ridge = ox + w / 2.0
+        span = -rotated_extent(base, 0.0)[0]          # 383: reach from ridge to eave
+        sections = max(1, int(round(h / base.size[1])))
+        sec_len = h / sections
+        for j in range(sections):
+            y_c = oy + (j + 0.5) * sec_len
+            for ang in (0.0, 180.0):                  # the two slopes
+                put_at(base, x_ridge, y_c, roof_z, ang)
+                put_at(top, x_ridge, y_c, roof_z, ang)
+        if span * 2.0 < w - 1.0:
+            # Recorded rather than silently shipped: the standard set cannot span this
+            # house. The Extended pieces exist for it and are not implemented.
+            pl.append(Placement("__ROOF_TOO_NARROW__", x_ridge, oy + h / 2.0, roof_z, 0.0,
+                                (x_ridge, oy, x_ridge, oy + h)))
+        if roof_end:
+            e = roof_end[0]
+            put_at(e, x_ridge, oy, roof_z, 0.0)
+            put_at(e, x_ridge, oy + h, roof_z, 180.0)
 
     return Building(id=hid, kind="house", rect=rect, placements=pl,
                     notes=f"{mods_w}x{mods_h} modules, door on south module {door_mod}")
+
+
+def rotated_extent(piece, yaw: float) -> tuple[float, float, float, float]:
+    """Local XY bounds of a piece after yaw, relative to its pivot."""
+    px, py, _ = piece.pivot_from_min
+    lx0, ly0 = -px, -py
+    lx1, ly1 = lx0 + piece.size[0], ly0 + piece.size[1]
+    rad = math.radians(yaw)
+    c, s = math.cos(rad), math.sin(rad)
+    xs, ys = [], []
+    for (lx, ly) in ((lx0, ly0), (lx1, ly0), (lx1, ly1), (lx0, ly1)):
+        xs.append(lx * c - ly * s)
+        ys.append(lx * s + ly * c)
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def world_bb(piece, wx: float, wy: float, yaw: float) -> tuple[float, float, float, float]:
+    x0, y0, x1, y1 = rotated_extent(piece, yaw)
+    return (wx + x0, wy + y0, wx + x1, wy + y1)
 
 
 def origin_for(piece, min_x: float, min_y: float, z: float, yaw: float) -> tuple[float, float]:
@@ -312,7 +361,11 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
     n_houses = rng.randint(5, 8)
     house_ring = (mw * 3.0, mw * 7.0)
     for i in range(n_houses):
-        mods_w, mods_h = rng.randint(1, 2), rng.randint(1, 2)
+        # ONE module wide, deliberately. The measured roof set spans 766 cm from eave to
+        # eave, which roofs a 500 cm module with proper overhang and cannot reach across
+        # 1000. Houses vary along the ridge instead, which is also how the kit's Half and
+        # End pieces are authored. A constraint the kit imposed, not a preference.
+        mods_w, mods_h = 1, rng.randint(1, 3)
         spot = free_spot(mods_w * mw, mods_h * mh, *house_ring)
         if spot is None:
             continue                     # the ring is full; fewer houses is not a failure
