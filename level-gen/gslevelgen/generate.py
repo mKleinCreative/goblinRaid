@@ -117,42 +117,49 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
 
     found_h = found.size[2]
 
-    # Foundation ring: one segment per perimeter module, standing on the ground.
-    for i in range(mods_w):
-        cx = ox + i * mw
-        pl.append(Placement(found.name, cx, oy, 0.0, yaw))
-        pl.append(Placement(found.name, cx, oy + h, 0.0, yaw + 180))
-    for j in range(mods_h):
-        cy = oy + j * mh
-        pl.append(Placement(found.name, ox, cy, 0.0, yaw + 90))
-        pl.append(Placement(found.name, ox + w, cy, 0.0, yaw + 270))
+    def put(piece, min_x: float, min_y: float, z: float, ang: float) -> None:
+        wx, wy = origin_for(piece, min_x, min_y, z, ang)
+        pl.append(Placement(piece.name, wx, wy, z + piece.pivot_from_min[2], ang))
 
-    # Floor plates tile the footprint, sitting on top of the foundation ring.
+    # Foundation ring: one segment per perimeter module, standing on the ground. The
+    # south/north runs use the piece as-authored; east/west are turned 90 degrees, which is
+    # where pivot handling matters most.
+    for i in range(mods_w):
+        put(found, ox + i * mw, oy, 0.0, 0.0)
+        put(found, ox + i * mw, oy + h - found.size[1], 0.0, 0.0)
+    for j in range(mods_h):
+        put(found, ox, oy + j * mh, 0.0, 90.0)
+        put(found, ox + w - found.size[1], oy + j * mh, 0.0, 90.0)
+
+    # Floor plates tile the footprint, on top of the foundation ring.
     for i in range(mods_w):
         for j in range(mods_h):
-            pl.append(Placement(floor.name, ox + i * mw, oy + j * mh, found_h, yaw))
+            put(floor, ox + i * mw, oy + j * mh, found_h, 0.0)
 
-    # Perimeter walls. South/north run along X, west/east along Y.
+    # Perimeter walls, sitting on the floor.
     wall_z = found_h + floor.size[2]
     for i in range(mods_w):
-        cx = ox + i * mw
-        pl.append(Placement(rng.choice(walls).name, cx, oy, wall_z, yaw))
-        pl.append(Placement(rng.choice(walls).name, cx, oy + h, wall_z, yaw + 180))
+        wa, wb = rng.choice(walls), rng.choice(walls)
+        put(wa, ox + i * mw, oy, wall_z, 0.0)
+        put(wb, ox + i * mw, oy + h - wb.size[1], wall_z, 0.0)
     for j in range(mods_h):
-        cy = oy + j * mh
-        pl.append(Placement(rng.choice(walls).name, ox, cy, wall_z, yaw + 90))
-        pl.append(Placement(rng.choice(walls).name, ox + w, cy, wall_z, yaw + 270))
+        wa, wb = rng.choice(walls), rng.choice(walls)
+        put(wa, ox, oy + j * mh, wall_z, 90.0)
+        put(wb, ox + w - wb.size[1], oy + j * mh, wall_z, 90.0)
 
     if corner:
-        for (cx, cy) in rect.corners():
-            pl.append(Placement(corner.name, cx, cy, wall_z, yaw))
+        for (cx, cy) in ((ox, oy), (ox + w - corner.size[0], oy),
+                         (ox + w - corner.size[0], oy + h - corner.size[1]),
+                         (ox, oy + h - corner.size[1])):
+            put(corner, cx, cy, wall_z, 0.0)
 
     # A door on the south face, in a module chosen by the seed.
     doors = kit.role("door")
     door_mod = rng.randrange(mods_w)
-    door_xy = (ox + door_mod * mw + mw / 2.0, oy)
     if doors:
-        pl.append(Placement(doors[0].name, door_xy[0], door_xy[1], wall_z, yaw))
+        d = doors[0]
+        put(d, ox + door_mod * mw + (mw - d.size[0]) / 2.0, oy - d.size[1] * 0.25,
+            wall_z, 0.0)
 
     # Roof: tile every cell, then cap the two ends.
     roof_z = wall_z + walls[0].size[2]
@@ -160,13 +167,40 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
         for i in range(mods_w):
             for j in range(mods_h):
                 tile = roof_tiles[(i + j) % len(roof_tiles)]
-                pl.append(Placement(tile.name, ox + i * mw, oy + j * mh, roof_z, yaw))
+                put(tile, ox + i * mw, oy + j * mh, roof_z, 0.0)
     if roof_end:
-        pl.append(Placement(roof_end[0].name, ox, oy + h / 2.0, roof_z, yaw + 90))
-        pl.append(Placement(roof_end[0].name, ox + w, oy + h / 2.0, roof_z, yaw + 270))
+        e = roof_end[0]
+        put(e, ox - e.size[0] * 0.5, oy + (h - e.size[1]) / 2.0, roof_z, 0.0)
+        put(e, ox + w - e.size[0] * 0.5, oy + (h - e.size[1]) / 2.0, roof_z, 180.0)
 
     return Building(id=hid, kind="house", rect=rect, placements=pl,
                     notes=f"{mods_w}x{mods_h} modules, door on south module {door_mod}")
+
+
+def origin_for(piece, min_x: float, min_y: float, z: float, yaw: float) -> tuple[float, float]:
+    """
+    World origin for a piece whose ROTATED footprint should start at (min_x, min_y).
+
+    Kit pivots are not at the mesh's min corner — `kit_manifest.py` measures
+    `pivot_from_min` for exactly this reason, and the first composer ignored it, placing
+    every piece at a grid corner as if the pivot were there. On screen that put walls
+    inside their own floor, roofs off-centre, and foundation beams sticking out past the
+    footprint. Every count-based check passed the whole time.
+
+    Rotation compounds it: yaw spins a piece about its pivot, so a centre-pivoted wall
+    turned 90 degrees lands half its length away. So: rotate the local box, find where its
+    min corner ends up, and offset by that.
+    """
+    px, py, _ = piece.pivot_from_min
+    lx0, ly0 = -px, -py                       # local min corner relative to the pivot
+    lx1, ly1 = lx0 + piece.size[0], ly0 + piece.size[1]
+    rad = math.radians(yaw)
+    c, s = math.cos(rad), math.sin(rad)
+    xs, ys = [], []
+    for (lx, ly) in ((lx0, ly0), (lx1, ly0), (lx1, ly1), (lx0, ly1)):
+        xs.append(lx * c - ly * s)
+        ys.append(lx * s + ly * c)
+    return (min_x - min(xs), min_y - min(ys))
 
 
 def place_prefab(kit: Kit, role: str, x: float, y: float, bid: str, kind: str,

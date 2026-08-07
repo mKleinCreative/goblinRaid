@@ -103,6 +103,24 @@ overlap check happily pass a windmill whose sails scythe through a farmhouse.
 None of this cost a debugging session, because the generator **refuses to run without
 `kit.json`** rather than falling back on a plausible number.
 
+### 0a. Then placing it caught what no check could
+
+Seed 1 went onto a scratch map (`L_LevelGen_Scratch`, 130 meshes + 19 markers, nothing
+dropped) and I looked at it. The houses were wrong: **walls missing from faces, roofs
+hovering off-centre, foundation beams sticking out past the footprint as loose bars on the
+ground.**
+
+`compose_house` placed every piece at a grid corner as if its pivot were at the mesh's min
+corner. It is not — `kit_manifest.py` measures `pivot_from_min` for precisely this reason and
+the composer ignored it. Rotation compounded it: yaw spins a piece about its pivot, so a
+centre-pivoted wall turned 90° lands half its length away. Fixed with `origin_for()`, which
+rotates the local box and offsets by where its min corner actually ends up.
+
+**Every deterministic check passed throughout.** Roof count ≥ floor count, door present,
+footprint on the module grid — all counts, and a count cannot see a wall 250 cm out of place.
+That is the honest limit of this evaluator, found by doing what week 1 did: looking at it
+instead of trusting the report.
+
 ### 0b. …and then the real numbers broke the layout
 
 Swapping the synthetic kit for the measured one dropped the review gate from **5/8 seeds
@@ -225,6 +243,11 @@ previous set first, the same derived-data rule `gs_buildings.py` established.
   one a raycast can settle, and none of them can tell you the result is *good*.
 - **`buildable_ground` is unimplemented**, not silently passing — it needs terrain the solver
   cannot see.
+- **The roof still does not close.** `SM_House_Roof_01_Tiling_Base` measures 308 × 501 against
+  a 500 × 500 module, so tiling one per cell leaves a ~192 cm gap along X. The integrity check
+  counts roof pieces against floor pieces and passes it, which is the same count-vs-geometry
+  blind spot that hid the pivot bug. Closing it means tiling by measured piece width rather
+  than per module — known, not yet done, and visible in the capture.
 
 ## Files
 
