@@ -147,7 +147,8 @@ findings survive rather than shipping unverified rows.
   window-shot instruction belongs to the Stage-1 prompt that fires later.
 - **Tone.** The critic rejected *"Let that be the last thing he does"* as "generic assassin
   menace" against an Overlord whose register is "pompous, whispered, chronically underwhelmed
-  condescension." That one is still open — see §6.
+  condescension." It survived two revisions in the pre-ruling run and was reported `UNRESOLVED`
+  rather than shipped; the regenerated run no longer produces it.
 
 ---
 
@@ -178,7 +179,8 @@ the HUD line does not have to. Re-running against the same retrieval:
 | Before tweak | 169 | 138 | 9 / 9 |
 | **After tweak** | **85** | **64** | **0 / 9** |
 
-Unresolved findings on that job dropped from 2 to 1. The before/after pair is preserved in
+Unresolved findings on that job dropped from 2 to 1, and to 0 once the GDD contradiction below
+was also fixed. The before/after pair is preserved in
 `out/_run1_unverified/prompts.beforeTweak.csv`.
 
 **A retrieval note.** Register queries had to name the register, not the topic. Querying
@@ -198,15 +200,24 @@ actually defines the voice. Topic words find *where a thing is discussed*; style
   they cannot be imported until someone defines the row structs. Authoring bark sheets ahead of
   the runtime is the order GDD §3.2 and the §4.5 schedule intend — barks are W7 — but "designed
   order" is not "wired," and the column names are my proposal, not a contract.
-- **One finding is still open.** `Prompts_06` retains a tone line the critic flagged and two
-  revisions failed to fix, with a correction supplied in the trace. Left flagged deliberately:
-  GDD §3.3 gives Michael *"exclusive authority over aesthetics and tone,"* and an unresolved
-  aesthetic call is exactly the thing an agent should escalate rather than settle.
-- **The pipeline found a real ambiguity in the GDD.** On `Prompts_05` the critic reversed itself
-  between rounds — round 1 cited §2.6 (a "goblin half-confirmed" is a soft signal that escalates
-  to Suspicious), round 2 cited §2.4 (break the look before the confirm lands and "you were never
-  there"). Those two sentences cannot both be literally true. This is a design question for the
-  decisions ledger, not a model error.
+- **All three jobs now converge clean**, but that took a source-document fix, not just more
+  revisions — see the next point. The loop still reports `UNRESOLVED` rather than shipping
+  unverified rows when it cannot converge, which is how the tone finding above was handled.
+- **The pipeline found a contradiction in the GDD, and it has been closed.** On
+  `Prompts_05` the critic reversed itself between rounds — round 1 cited §2.6 (a "goblin
+  half-confirmed" is a soft signal that escalates to Suspicious), round 2 cited §2.4 (break the
+  look before the confirm lands and "you were never there"). Those two sentences could not both
+  be literally true. Escalated as a design question rather than patched over, and ruled:
+  *half-confirmed means confirmed but uncorroborated* — §2.6's wording was the defect, §2.4 had
+  been right. The GDD now states that an early-broken look is **no** signal and a confirm becomes
+  **exactly one** uncorroborated soft signal (commit `369ab26`), and the prompts were regenerated
+  against the corrected document. The patrol prompt went from a hedged *"break their sightline to
+  stay unconfirmed"* to *"crouch in cover: a broken look is no alarm"*, and the job converged
+  clean in one revision instead of never. Pre-ruling artifacts: `out/_pre_ruling/`.
+  <br>The honest limitation is in the *method*, not the result: this surfaced only because a
+  tutorial prompt has to state a rule plainly to a player. Content types that never teach a
+  mechanic would not have exposed it, so this class of defect is found opportunistically rather
+  than systematically.
 - **No point value was ever wrong, but that is a narrower claim than it sounds.** Across every
   run, no finding concerned an incorrect number from the §2.9 score table — the values drafts
   would most plausibly have drifted on, and retrieval put §2.9 in context for every job that

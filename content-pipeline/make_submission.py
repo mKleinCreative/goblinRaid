@@ -192,8 +192,54 @@ def find_chain() -> tuple[str, list[tuple[str, str, str, str]]]:
     return "", []
 
 
+def find_section_conflict():
+    """
+    Find a row the critic flagged twice while citing DIFFERENT GDD sections as
+    evidence — the signature of a contradiction in the source document rather
+    than a fault in the draft. Searches the archived runs.
+    """
+    for base in (OUT / "_run1_unverified", OUT / "_pre_ruling", OUT):
+        for tp in sorted(base.glob("*.trace.json")):
+            t = json.loads(tp.read_text(encoding="utf-8"))
+            rows: dict[str, list] = {}
+            for r in t["rounds"]:
+                for f in r["findings"]:
+                    rows.setdefault(f["row"], []).append((r["round"], f))
+            for row, fs in rows.items():
+                secs = {f["evidence_chunk_id"].split("#")[0] for _, f in fs}
+                if len(fs) > 1 and len(secs) > 1 and all("§" in s for s in secs):
+                    return row, [(rd, f) for rd, f in fs]
+    return "", []
+
+
 def sec_critic(traces: dict) -> str:
     chain_row, chain_rows = find_chain()
+    conf_row, conf = find_section_conflict()
+    conflict = ""
+    if conf:
+        steps = "".join(
+            f"""<tr><td class="stage">Round {rd}</td>
+<td><code>{E(f['evidence_chunk_id'])}</code></td>
+<td class="why">{E(f['canon_rule'])}</td></tr>"""
+            for rd, f in conf
+        )
+        conflict = f"""<h3>And a contradiction in the source document itself</h3>
+<p>On <code>{E(conf_row)}</code> the critic <b>reversed its own verdict between rounds</b>, citing a
+different section each time. That is a distinct signature: when a draft is wrong the critic cites
+one rule twice, but when the <i>document</i> is inconsistent it argues both sides in good faith.</p>
+<table class="chain"><thead><tr><th>Round</th><th>Cited</th><th>Rule it read there</th></tr></thead>
+<tbody>{steps}</tbody></table>
+<p class="note"><b>Resolved, and the fix is in the repo.</b> Those two sentences could not both be
+literally true. Escalated to the human as a design question rather than patched over &mdash; and
+ruled: <i>&ldquo;half-confirmed means confirmed but uncorroborated&rdquo;</i>. &sect;2.6's wording
+was the defect; &sect;2.4 had been right all along. The GDD now says a look broken before the
+confirm is <i>no</i> signal, and a confirm becomes <i>exactly one</i> uncorroborated soft signal
+needing a second to escalate (commit <code>369ab26</code>). The prompts in
+<code>out/prompts.csv</code> were then regenerated against the corrected document; the
+pre-ruling run is preserved under <code>out/_pre_ruling/</code>.</p>
+<p>This is the pipeline doing something a spell-check cannot: it did not find a bad line, it found
+a <b>bad specification</b>, by trying to teach the rule to a player and discovering the rule did
+not resolve.</p>"""
     chain = "".join(
         f"<tr><td class='stage'>{s}</td><td>{E(txt)}</td><td class='why'>"
         + (E(why) if why else "&mdash;")
@@ -245,6 +291,7 @@ included in the bundle under <code>out/_run1_unverified/</code> precisely so thi
 <table class="chain"><thead><tr><th>Stage</th><th>Line</th><th>Verdict / evidence</th></tr></thead>
 <tbody>{chain}</tbody></table>
 
+{conflict}
 <h3>Every other finding, in full</h3>{other}</section>"""
 
 
@@ -316,11 +363,11 @@ flagged and two revisions failed to fix, with a correction supplied in the trace
 deliberately: GDD &sect;3.3 gives the human <i>&ldquo;exclusive authority over aesthetics and
 tone&rdquo;</i>, so an unresolved aesthetic call is exactly what an agent should escalate rather
 than settle.</li>
-<li><b>The pipeline found a real ambiguity in the GDD.</b> On <code>Prompts_05</code> the critic
-reversed itself between rounds &mdash; round 1 cited &sect;2.6 (a &ldquo;goblin half-confirmed&rdquo;
-is a soft signal that escalates to Suspicious), round 2 cited &sect;2.4 (break the look before the
-confirm lands and &ldquo;you were never there&rdquo;). Those two sentences cannot both be
-literally true. That is a design question for the decisions ledger, not a model error.</li>
+<li><b>A GDD contradiction was found and closed</b> &mdash; see &sect;4. Worth noting as a
+limitation of the <i>method</i>, not the run: the pipeline surfaced it only because a tutorial
+prompt had to state the rule plainly to a player. Content types that never need to teach a
+mechanic would not have exposed it, so this class of defect is found opportunistically rather
+than systematically.</li>
 <li><b>No point value was ever wrong</b>, but that is narrower than it sounds: no finding
 concerned an incorrect number from the &sect;2.9 score table. &sect;2.9 <i>was</i> cited once, on
 <code>Whispers_09</code>, for <i>who qualifies</i> for &ldquo;None Left Behind&rdquo; (civilians,
