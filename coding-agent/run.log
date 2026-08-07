@@ -1,0 +1,72 @@
+
+=== gaps ===
+  [1/17] PARTIAL      Scout player kit: third-person controller, weapon swap, dodge, crouch (medium)
+  [2/17] PARTIAL      Hold-E interact channel framework (medium)
+  [3/17] IMPLEMENTED  Torch toss, fire propagation, and the three burn objectives (high)
+  [4/17] PARTIAL      Raid objective tracking, 30-minute clock and portal collapse (medium)
+  [5/17] PARTIAL      Four-phase alarm escalation with soft signals (medium)
+  [6/17] PARTIAL      War-horn summoning and horde goblin pool (medium)
+  [7/17] PARTIAL      Horde control: follow, frenzy, and the point context command (medium)
+  [8/17] MISSING      Crouch-and-confirm detection model (high)
+  [9/17] MISSING      Noise events and guard investigation (high)
+  [10/17] MISSING      Takedown finisher and civilian bind (high)
+  [11/17] MISSING      Coin toss and greed AI (high)
+  [12/17] PARTIAL      Guards, patrols, watchtower bell, barracks and the finite raid-response pool (medium)
+  [13/17] PARTIAL      Loot, livestock carrying, and permanent banking at the stones or Warren (medium)
+  [14/17] PARTIAL      Scoring, lives, and the end-of-raid judgement screen (medium)
+  [15/17] MISSING      First-encounter tutorial prompts and Overlord barks (high)
+  [16/17] PARTIAL      Hand-authored tutorial hamlet, forest ring and runic site (medium)
+  [17/17] MISSING      Civilians: routines, panic, bucket lines and self-looting (high)
+  {'PARTIAL': 10, 'IMPLEMENTED': 1, 'MISSING': 6}
+
+done in 255s — 17 calls, 45,576 in / 16,915 out tokens
+
+=== plan ===
+  ranking:
+    1. Crouch-and-confirm detection model  [never-cut, W1, risk low]
+    2. Four-phase alarm escalation with soft signals  [cuttable, W2, risk medium]
+    3. Noise events and guard investigation  [cuttable, W1, risk low]
+    4. Raid objective tracking, 30-minute clock and portal collapse  [cuttable, W2, risk medium]
+    5. War-horn summoning and horde goblin pool  [never-cut, W3, risk medium]
+    6. Horde control: follow, frenzy, and the point context command  [never-cut, W3, risk high]
+    7. Scout player kit: third-person controller, weapon swap, dodge, crouch  [cuttable, W1, risk low]
+    8. First-encounter tutorial prompts and Overlord barks  [cuttable, W4, risk low]
+    9. Scoring, lives, and the end-of-raid judgement screen  [never-cut, W6, risk medium]
+    10. Hold-E interact channel framework  [cuttable, W1, risk low]
+    11. Loot, livestock carrying, and permanent banking at the stones or Warren  [never-cut, W6, risk high]
+    12. Guards, patrols, watchtower bell, barracks and the finite raid-response pool  [cuttable, W5, risk high]
+    13. Hand-authored tutorial hamlet, forest ring and runic site  [cuttable, W4, risk high]
+    14. Takedown finisher and civilian bind  [cuttable, W5, risk high]
+    15. Coin toss and greed AI  [cuttable, W5, risk medium]
+    16. Civilians: routines, panic, bucket lines and self-looting  [cuttable, W6, risk high]
+
+  CHOICE: stealth_detection
+  It is the only candidate that wins on every criterion at once: explicitly Never cut, scheduled for week 1 with that week already past, and completely absent rather than partially scaffolded. It is also the widest unblocker left — the alarm system has phase and source enums but literally no code that can emit a signal into them; takedown needs an unaware state; the Scout's crouch stance has no detection consumer to modify; noise investigation reuses the same perception spine; and First Spark Unseen needs a confirm counter to track. Crucially it is one-pass buildable in pure C++: a per-observer perception component with a ~1.5s confirm timer that resets on LOS loss, a watchman vision cone with a doze droop, crouch and cover range modifiers, and a SightingConfirmed event that fires exactly one soft signal moving the town to Suspicious. No art, no animation, no level content, no dependency on unbuilt systems.
+
+done in 91s — 1 calls, 11,304 in / 7,078 out tokens
+
+=== generate ===
+  generating: Crouch-and-confirm detection model (§2.4)
+    transient RemoteProtocolError; retry in 2s
+Traceback (most recent call last):
+  File "D:\goblinRaid\coding-agent\gsagent.py", line 720, in <module>
+    main()
+  File "D:\goblinRaid\coding-agent\gsagent.py", line 713, in main
+    STAGES[s]()
+  File "D:\goblinRaid\coding-agent\gsagent.py", line 596, in stage_generate
+    data = ask(
+           ^^^^
+  File "D:\goblinRaid\coding-agent\gsagent.py", line 113, in ask
+    return json.loads(next(b.text for b in msg.content if b.type == "text"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Michael\AppData\Local\Programs\Python\Python312\Lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Michael\AppData\Local\Programs\Python\Python312\Lib\json\decoder.py", line 338, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Michael\AppData\Local\Programs\Python\Python312\Lib\json\decoder.py", line 354, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+json.decoder.JSONDecodeError: Unterminated string starting at: line 1 column 197 (char 196)
+EXIT=1

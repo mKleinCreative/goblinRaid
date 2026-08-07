@@ -1,0 +1,1026 @@
+[
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "AGSPlayerCharacter",
+        "supports": "Player character class (third-person controller / input owner)"
+      },
+      {
+        "symbol_or_path": "UGSWeaponComponent + EGSWeaponSlot + UGSWeaponDataAsset",
+        "supports": "Weapon component with slot-based live swap and per-weapon data"
+      },
+      {
+        "symbol_or_path": "UGSGA_DodgeRoll (Weapons/Abilities/GSGA_DodgeRoll.h/.cpp)",
+        "supports": "Dodge-roll ability exists (i-frame window/recovery timing not verifiable from index)"
+      },
+      {
+        "symbol_or_path": "UGSGA_BowShot, UGSGA_SwordLight, AGSArrowProjectile",
+        "supports": "Per-weapon attack behavior for ranged and melee"
+      },
+      {
+        "symbol_or_path": "UGSDamageExecCalculation, UGSGE_WeaponDamage, UGSAttributeSetBase",
+        "supports": "Combat hit resolution/damage pipeline"
+      },
+      {
+        "symbol_or_path": "FGSArchetypeDefinition, UGSRaceDataAsset",
+        "supports": "Possible data-driven stat block source"
+      },
+      {
+        "symbol_or_path": "FGSSwingStage, UBTTask_EvadeTelegraph",
+        "supports": "Attack staging exists; telegraph symbol is AI-side reaction, not player wind-up authoring"
+      }
+    ],
+    "missing_pieces": [
+      "No crouch/stealth stance symbol (no UGSStealthComponent, crouch state enum, or detection-system hook); UGSGE_MoveSpeedScalar is generic",
+      "No hitstop/knockback symbol (no hit-stop component, hit-react struct beyond a debug tag GS.Combat.LogHitReact)",
+      "No ground decal / impact decal system symbol (FGSBurnSplat is fire-specific)",
+      "No dagger-specific weapon ability (only UGSGA_SwordLight); 'Daggers' as Scout kit not represented",
+      "No explicit Scout archetype/class symbol or HP 110 stat row (FGSArchetypeDefinition unconfirmed as player stat block)",
+      "No mouse-look/camera or input-binding-specific symbols (no camera/input config classes in index)"
+    ],
+    "reasoning": "The index shows a solid player+weapon+ability skeleton: AGSPlayerCharacter, UGSWeaponComponent with EGSWeaponSlot and UGSWeaponDataAsset for swapping, UGSGA_BowShot/UGSGA_SwordLight for per-weapon attacks, and UGSGA_DodgeRoll for the roll. Damage resolution exists via UGSDamageExecCalculation/UGSGE_WeaponDamage. However, several acceptance signals have no matching symbol anywhere in the complete 86-symbol index: crouch/stealth stance and its feed into detection, hitstop/knockback and telegraphed wind-ups on the player side (the only Telegraph symbol is an AI behavior-tree evade task), ground impact decals, and an explicit Scout stat block with HP 110 / dagger loadout. That absence in a complete index indicates those parts are not implemented, so the feature is partially covered.",
+    "feature_id": "scout_kit_controller",
+    "name": "Scout player kit: third-person controller, weapon swap, dodge, crouch",
+    "gdd_section": "2.3",
+    "candidates": [
+      {
+        "path": "AI/Tasks/BTTask_EvadeTelegraph.h",
+        "score": 10,
+        "classes": [
+          "UBTTask_EvadeTelegraph"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Weapons/Abilities/GSGA_BowShot.h",
+        "score": 10,
+        "classes": [
+          "UGSGA_BowShot"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Weapons/Abilities/GSGA_DodgeRoll.h",
+        "score": 10,
+        "classes": [
+          "UGSGA_DodgeRoll"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "AI/Tasks/BTTask_EvadeTelegraph.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Weapons/Abilities/GSGA_BowShot.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Weapons/Abilities/GSGA_DodgeRoll.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSInteractionComponent (Interaction/GSInteractionComponent.h)",
+        "supports": "Shared player-side component driving hold-to-complete interaction channels"
+      },
+      {
+        "symbol_or_path": "EGSInteractEndReason",
+        "supports": "Cancellation/end-reason taxonomy (release, interrupt, complete) for interruptible channels"
+      },
+      {
+        "symbol_or_path": "UGSInteractableComponent (Interaction/GSInteractableComponent.h/.cpp)",
+        "supports": "Interactable actors registering channel data (type/duration/completion) with the framework"
+      },
+      {
+        "symbol_or_path": "UGSGA_Interact",
+        "supports": "Gameplay ability wiring the interact input into the channel"
+      },
+      {
+        "symbol_or_path": "UGSCarryComponent",
+        "supports": "One consumer of the framework: carry"
+      },
+      {
+        "symbol_or_path": "GS.Interact.Debug",
+        "supports": "Interaction subsystem is a first-class, debuggable system"
+      }
+    ],
+    "missing_pieces": [
+      "No symbols for takedown, bind/tie-up, foul-the-well, or dig/plant-Warren channel consumers (no AGSWell*, *Takedown*, *Bind*, *Warren* classes anywhere in the index)",
+      "No loot/lootable interactable symbol (no UGSLootComponent or AGSLootContainer)",
+      "No explicit HUD progress widget for channel feedback — only UGSPlayerHUDWidget generically; no interact-progress widget symbol",
+      "Cancellation-on-damage/movement coupling not verifiable from a symbol (only EGSInteractEndReason enum exists, contents unknown)"
+    ],
+    "reasoning": "The core framework clearly exists: a paired UGSInteractionComponent / UGSInteractableComponent design with an EGSInteractEndReason enum for interruption outcomes, plus a UGSGA_Interact ability, satisfies the first two acceptance signals and implies interruptibility. However, the multi-consumer signal is largely unmet: of loot, takedown, bind, foul well, carry and dig Warren, only UGSCarryComponent appears in a complete 86-symbol index — there are no Warren, well, bind, takedown or loot classes at all, and the project's content symbols are all burn/raid objective oriented. HUD progress feedback also has no dedicated symbol. So the plumbing is in, the gameplay channels riding it are not.",
+    "feature_id": "interact_channel_framework",
+    "name": "Hold-E interact channel framework",
+    "gdd_section": "2.3",
+    "candidates": [
+      {
+        "path": "Interaction/GSInteractableComponent.h",
+        "score": 10,
+        "classes": [
+          "UGSInteractableComponent"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Interaction/GSInteractableComponent.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Interaction/GSInteractionComponent.h",
+        "score": 4,
+        "classes": [
+          "UGSInteractionComponent"
+        ],
+        "structs": [],
+        "enums": [
+          "EGSInteractEndReason"
+        ],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "IMPLEMENTED",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSGA_TorchToss (Weapons/Abilities/GSGA_TorchToss.h/.cpp)",
+        "supports": "Player-facing torch toss ability (Q)"
+      },
+      {
+        "symbol_or_path": "AGSTorchProjectile",
+        "supports": "Projectile torch that impacts/attaches and seeds ignition"
+      },
+      {
+        "symbol_or_path": "UGSFlammableComponent (Destruction/GSFlammableComponent.h/.cpp)",
+        "supports": "Per-actor flammability / fire propagation between flammable actors with burn profiles"
+      },
+      {
+        "symbol_or_path": "AGSBurnObjectiveBase + EGSBurnObjectiveType, EGSObjectiveListState",
+        "supports": "Burn-objective actors tracking burn state/completion and reporting to objective list tracker"
+      },
+      {
+        "symbol_or_path": "AGSObjective_BurnGranaries",
+        "supports": "Granary compact-blaze burn objective"
+      },
+      {
+        "symbol_or_path": "AGSFieldFireObjective + FGSFieldCell + EGSFieldCellState",
+        "supports": "Wheat field row-to-row / cell-based spread"
+      },
+      {
+        "symbol_or_path": "AGSMillObjective + EGSMillStage",
+        "supports": "Windmill objective with distinct Stage 1 Ablaze / Stage 2 Detonation states (window hit and smashed mesh implied by stage enum)"
+      },
+      {
+        "symbol_or_path": "EGSAlarmSource, EGSAlarmPhase",
+        "supports": "Fire registering as a town-wide noise/alarm signal"
+      },
+      {
+        "symbol_or_path": "UGSGE_FireDamage, AGSFireVolume",
+        "supports": "Fire applying damage (incl. friendly fire) to any actor in the volume"
+      },
+      {
+        "symbol_or_path": "UGSBurnFXComponent, UGSBurnMaskSubsystem, FGSBurnSplat",
+        "supports": "Burn visualization / propagation mask support"
+      },
+      {
+        "symbol_or_path": "Tags GS.Burn.Ignite, GS.Burn.IgniteAll, GS.Burn.Douse, GS.Burn.Firebreak, GS.Burn.Status, GS.Raid.BurnHere",
+        "supports": "Debug/console surface for the ignition and spread system"
+      }
+    ],
+    "missing_pieces": [
+      "Window-hit detection and the state-swapped smashed windmill mesh are not visible as distinct symbols; only EGSMillStage/AGSMillObjective imply them"
+    ],
+    "reasoning": "The index contains a dedicated symbol for essentially every acceptance signal: the torch ability and projectile, a flammable component plus burn FX/mask subsystem for propagation, a burn-objective base class with type and list-state enums, concrete granary/field/mill objectives with a cell state enum and a mill stage enum, an alarm source/phase enum for the noise signal, and a fire damage gameplay effect plus fire volume for friendly-fire damage. Only the fine-grained windmill details (window trigger, mesh swap) lack their own named symbols, but these are naturally implementation details inside AGSMillObjective rather than separate classes, so the feature reads as fully implemented.",
+    "feature_id": "fire_and_burn_objectives",
+    "name": "Torch toss, fire propagation, and the three burn objectives",
+    "gdd_section": "2.1, 2.8",
+    "candidates": [
+      {
+        "path": "Destruction/GSBurnObjectiveBase.h",
+        "score": 10,
+        "classes": [
+          "AGSBurnObjectiveBase"
+        ],
+        "structs": [],
+        "enums": [
+          "EGSBurnObjectiveType",
+          "EGSObjectiveListState"
+        ],
+        "tags": []
+      },
+      {
+        "path": "Destruction/GSFlammableComponent.h",
+        "score": 10,
+        "classes": [
+          "UGSFlammableComponent"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Weapons/Abilities/GSGA_TorchToss.h",
+        "score": 10,
+        "classes": [
+          "UGSGA_TorchToss"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Destruction/GSBurnObjectiveBase.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": [
+          "GS.Burn.Debug"
+        ]
+      },
+      {
+        "path": "Destruction/GSFlammableComponent.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Weapons/Abilities/GSGA_TorchToss.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSRaidDirector (Raid/GSRaidDirector.h)",
+        "supports": "Raid-loop subsystem owning the raid flow / objective assignment"
+      },
+      {
+        "symbol_or_path": "EGSRaidClockPhase (Alarm/GSAlarmTypes.h)",
+        "supports": "30-minute clock broken into phases, consistent with the 10/5/2-minute whisper beats"
+      },
+      {
+        "symbol_or_path": "EGSRaidResult",
+        "supports": "End-of-raid transition / win-loss outcome enumeration"
+      },
+      {
+        "symbol_or_path": "FGSObjectiveRow, FGSObjectiveTypeBucket, EGSObjectiveListState",
+        "supports": "Objective registry with per-objective state, structured for HUD listing"
+      },
+      {
+        "symbol_or_path": "UGSPlayerHUDWidget (UI/GSPlayerHUDWidget.h)",
+        "supports": "HUD surface for objective names and clock"
+      },
+      {
+        "symbol_or_path": "AGSBurnObjectiveBase, AGSObjective_BurnGranaries, AGSObjective_KillLandlord, AGSMissionObjective",
+        "supports": "Three assigned target types and their burned/completed state"
+      },
+      {
+        "symbol_or_path": "AGSGameState (Core/GSGameState.h) + GS.Raid.SetLives / GS.Raid.ExpireClock cheat tags",
+        "supports": "Replicated raid clock and lives tracking, loss-on-lives-exhausted plumbing"
+      },
+      {
+        "symbol_or_path": "AGSRunicSite",
+        "supports": "Stone-circle / portal actor — plausible host of the open state, though no state enum is exposed"
+      }
+    ],
+    "missing_pieces": [
+      "No portal state-machine symbol (no EGSPortalState / closed-open-collapsing enum) and no CollapseWindow type; AGSRunicSite exposes no phase enum in the index",
+      "No symbol for the 90-second collapse timer, screen warning widget, or stone-glow decay",
+      "No explicit symbol for the 'player outside the circle at collapse end' loss check (no circle/containment volume or check component beyond AGSRunicSite)",
+      "Whisper/Overlord beat system has no dedicated symbol (no whisper cue asset, dialogue/beat struct); only EGSRaidClockPhase implies timing"
+    ],
+    "reasoning": "The index clearly contains the raid-loop director, a phased raid clock enum, a raid-result enum, an objective registry (rows, buckets, list state, concrete objective actors) and a HUD widget, so the countdown, objective tracking and end-of-raid transition signals are backed by real symbols. The portal side is only weakly represented: AGSRunicSite is the only candidate stone/portal actor and there is no portal-state, collapse-window, screen-warning or glow-decay symbol anywhere in an otherwise complete 86-symbol index, and the out-of-circle loss check likewise has no symbol. That points to the collapse phase being unimplemented or, at best, buried in unexposed members. Hence partial coverage.",
+    "feature_id": "objective_tracking_raid_clock",
+    "name": "Raid objective tracking, 30-minute clock and portal collapse",
+    "gdd_section": "2.1, 2.2",
+    "candidates": [
+      {
+        "path": "Alarm/GSAlarmTypes.h",
+        "score": 4,
+        "classes": [],
+        "structs": [],
+        "enums": [
+          "EGSAlarmPhase",
+          "EGSAlarmSource",
+          "EGSRaidClockPhase",
+          "EGSReinforcementTier"
+        ],
+        "tags": []
+      },
+      {
+        "path": "Core/GSGameState.h",
+        "score": 4,
+        "classes": [
+          "AGSGameState"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Raid/GSRaidDirector.h",
+        "score": 4,
+        "classes": [
+          "UGSRaidDirector"
+        ],
+        "structs": [
+          "FGSObjectiveTypeBucket"
+        ],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "UI/GSPlayerHUDWidget.h",
+        "score": 4,
+        "classes": [
+          "UGSPlayerHUDWidget"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "EGSAlarmPhase (Alarm/GSAlarmTypes.h)",
+        "supports": "A phase enumeration exists, presumably covering QUIET/SUSPICIOUS/RAID/RAZED — the data type behind 'current phase'"
+      },
+      {
+        "symbol_or_path": "EGSAlarmSource (Alarm/GSAlarmTypes.h)",
+        "supports": "Source tagging vocabulary for signals (sighting, corpse, horn, etc.) appears to be enumerated"
+      },
+      {
+        "symbol_or_path": "AGSGameState (Core/GSGameState.h)",
+        "supports": "Top match for alarm keywords; plausibly replicates/owns the current alarm phase, but no alarm-specific member symbol is exposed in the index"
+      },
+      {
+        "symbol_or_path": "UGSRaidDirector / EGSRaidClockPhase / EGSReinforcementTier",
+        "supports": "Raid-side escalation machinery (reinforcement tiers, raid clock) that a RAID phase could drive"
+      },
+      {
+        "symbol_or_path": "AGSSpawnerActor (AI/GSSpawnerActor.h)",
+        "supports": "Spawner actor that a RAZED phase would need to silence — matched the keyword search, but no razed-state API symbol is listed"
+      }
+    ],
+    "missing_pieces": [
+      "No town/alarm subsystem class (nothing like UGSAlarmSubsystem/UGSTownSubsystem) owning the phase and enforcing no de-escalation past RAID",
+      "No soft-signal struct or queue type (no FGSSoftSignal / FGSAlarmSignal) with source tagging and timestamps",
+      "No decay-timer component or handler returning the phase to QUIET, and no second-signal instant-escalation symbol",
+      "No signal emitter symbols: nothing for sighting confirmation, corpse discovery, startled livestock/flock, patrol horn, overdue patrol check-in, or civilian-absence census",
+      "No phase-driven AI hooks: no investigate BT task/service (only UBTService_AcquireTarget, UBTTask_EvadeTelegraph, UBTTask_Firefight, UBTTask_MeleeAttack) and no watchman alertness or routine-switching symbol",
+      "No RAZED handling: no spawner-silencing or survivor-convergence symbol on AGSSpawnerActor or elsewhere",
+      "No alarm-related gameplay tags (tag list is entirely Burn/Combat/Aim/Interact/Raid debug commands)"
+    ],
+    "reasoning": "The symbol index shows only the data vocabulary of the feature — EGSAlarmPhase and EGSAlarmSource in Alarm/GSAlarmTypes.h — with no behavioural machinery behind it. In a complete 86-symbol index there is no alarm/town subsystem, no soft-signal struct or queue, no decay timer, no emitter components for any of the six named soft signals, no investigate behaviour-tree task, and no RAZED-phase spawner shutdown or survivor convergence. The enums indicate the feature was scaffolded (or the phase is used only as a raid-side flag driven by UGSRaidDirector), so this is more than nothing but far short of the acceptance signals; only one of five signals has partial symbol support.",
+    "feature_id": "alarm_phase_system",
+    "name": "Four-phase alarm escalation with soft signals",
+    "gdd_section": "2.6",
+    "candidates": [
+      {
+        "path": "Core/GSGameState.h",
+        "score": 8,
+        "classes": [
+          "AGSGameState"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "AI/GSSpawnerActor.h",
+        "score": 4,
+        "classes": [
+          "AGSSpawnerActor"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Alarm/GSAlarmTypes.h",
+        "score": 4,
+        "classes": [],
+        "structs": [],
+        "enums": [
+          "EGSAlarmPhase",
+          "EGSAlarmSource",
+          "EGSRaidClockPhase",
+          "EGSReinforcementTier"
+        ],
+        "tags": []
+      },
+      {
+        "path": "UI/GSPlayerHUDWidget.h",
+        "score": 4,
+        "classes": [
+          "UGSPlayerHUDWidget"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "AGSHordeGoblin",
+        "supports": "A horde goblin actor class exists, so the horde AI unit itself is present (and being an AGSCharacterBase-derived actor it presumably takes damage like others)"
+      },
+      {
+        "symbol_or_path": "AGSHordeAIController",
+        "supports": "Horde AI control exists — horde goblins are AI-driven actors"
+      },
+      {
+        "symbol_or_path": "UGSRaidDirector / AGSSpawnerActor",
+        "supports": "Generic raid-side spawning machinery exists that could place actors, though nothing horde/treeline-specific"
+      }
+    ],
+    "missing_pieces": [
+      "No horde subsystem symbol (no UGSHordeSubsystem/GoblinPool) owning the 20-unit reserve, active cap of 10, or per-blast summon count",
+      "No war-horn gameplay ability (UGSGA_* list has Block, BowShot, DodgeRoll, Interact, SwordLight, TorchToss — no horn) and no G-key horn input",
+      "No loud-noise/alarm emission tied to a horn; EGSAlarmSource exists but no horn source symbol, and nothing marks the end of the quiet phase from a horn",
+      "No treeline entry-point spawn logic (no Treeline symbol, no run-in-from-edge spawn type)",
+      "No pool accounting symbols: permanent removal on death, return to reserve on courier delivery, or Warren digging cost",
+      "No gameplay tag for horn/horde summoning in the complete tag list"
+    ],
+    "reasoning": "The symbol index is complete and contains only two horde-related symbols: the AGSHordeGoblin actor and AGSHordeAIController. Everything the acceptance signals actually require — a pool-owning subsystem with reserve/active-cap/summon-count state, a war-horn ability with a noise signal and quiet-phase termination, treeline entry spawning with a run-in approach, and pool debit/credit accounting — has no matching symbol anywhere in the class, struct, enum, or gameplay tag lists. The horde unit exists; the summoning and pool systems do not.",
+    "feature_id": "horde_horn",
+    "name": "War-horn summoning and horde goblin pool",
+    "gdd_section": "2.5",
+    "candidates": []
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "AGSHordeAIController (Horde/GSHordeAIController.h/.cpp)",
+        "supports": "A horde AI controller exists as a distinct class, the base for Follow/Frenzy behavior"
+      },
+      {
+        "symbol_or_path": "AGSHordeGoblin",
+        "supports": "Horde unit pawn that would be commanded/summonable"
+      },
+      {
+        "symbol_or_path": "UGSCarryComponent",
+        "supports": "Carrying of cargo (loot sack/pig) — partial basis for courier hauling"
+      },
+      {
+        "symbol_or_path": "AGSRunicSite",
+        "supports": "Bank destination for courier drop-off exists as an actor"
+      },
+      {
+        "symbol_or_path": "UGSTargetingComponent / UGSAimComponent / EGSAimMode",
+        "supports": "Aim-reticle target resolution machinery that a point command could use"
+      }
+    ],
+    "missing_pieces": [
+      "No state enum or symbol for Follow / Frenzy / Courier behavior states (no EGSHordeState, no BTTask/BTService for horde follow or frenzy — only enemy-side UBTService_AcquireTarget, UBTTask_Firefight, UBTTask_MeleeAttack)",
+      "No threat-propagation symbol tying player combat to horde auto-swarm",
+      "No point-command symbol resolving reticle target into attack / destroy / courier orders (no PointCommand class, function-level symbol, or input tag such as GS.Horde.Point)",
+      "No courier state that banks cargo at the runic site/Warren and returns the goblin to a summonable pool (no summon-pool subsystem symbol)",
+      "No prisoner-escort variant or three-captive capacity concept (no prisoner/chain symbols at all)",
+      "No cargo-drop-on-courier-death handling symbol"
+    ],
+    "reasoning": "The index is a complete listing of classes, structs, enums and tags, and only two horde symbols exist: AGSHordeAIController and AGSHordeGoblin. Supporting pieces (carry component, runic site, aim/targeting) exist but serve the player raid loop. Every specific acceptance signal — Follow/Frenzy states, threat propagation, the unified point command, courier banking/return-to-pool, prisoner escort with a cap of three, and cargo drop on death — has no symbol whose role matches. That absence in a complete index indicates only a skeletal horde controller is present, so the feature is at best partially scaffolded.",
+    "feature_id": "horde_commands",
+    "name": "Horde control: follow, frenzy, and the point context command",
+    "gdd_section": "2.5",
+    "candidates": [
+      {
+        "path": "Horde/GSHordeAIController.h",
+        "score": 10,
+        "classes": [
+          "AGSHordeAIController"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Horde/GSHordeAIController.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "MISSING",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "UBTService_AcquireTarget",
+        "supports": "Only AI targeting-related symbol; a behaviour-tree target acquisition service, not a per-observer sight confirmation timer component"
+      },
+      {
+        "symbol_or_path": "EGSAlarmPhase / EGSAlarmSource",
+        "supports": "An alarm subsystem concept exists (phases and sources), but no confirmation event symbol that emits a soft signal from a sighting confirm"
+      },
+      {
+        "symbol_or_path": "UGSTargetingComponent",
+        "supports": "Closest component to perception, but role is player/AI targeting, not stance/cover-modified detection ranges"
+      }
+    ],
+    "missing_pieces": [
+      "Perception component accumulating per-observer confirm timers with LOS-loss reset (no UGS*PerceptionComponent, no ConfirmTimer symbol)",
+      "Detection range modifiers for crouch stance and cover geometry (no stance/crouch enum or cover-query symbol)",
+      "Watchman vision cone actor/component with doze timer droop (no VisionCone or DozeTimer symbol; no Watchman class)",
+      "SightingConfirmed event emitting exactly one soft signal into the alarm subsystem",
+      "First Spark Unseen tracking of confirms before first fire (no such flag in AGSPlayerState, AGSGameState or UGSScoreSubsystem symbol names)"
+    ],
+    "reasoning": "The symbol index is complete (86 symbols, all tags) and contains no perception, vision-cone, confirmation-timer, doze, stance-detection or First-Spark-Unseen symbols. No file matched any of the searched keywords. The only adjacent symbols are AI targeting (UBTService_AcquireTarget, UGSTargetingComponent) and an alarm phase/source enum pair, whose roles do not match any acceptance signal — enemy awareness appears to be simple BT target acquisition rather than a crouch-and-confirm detection model. Absence across a complete index is strong evidence the feature is not built.",
+    "feature_id": "stealth_detection",
+    "name": "Crouch-and-confirm detection model",
+    "gdd_section": "2.4",
+    "candidates": []
+  },
+  {
+    "verdict": "MISSING",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "EGSAlarmSource / EGSAlarmPhase",
+        "supports": "An alarm system with categorized sources exists, which is the only tangential match — but no noise emission or audible-radius symbol is tied to it"
+      },
+      {
+        "symbol_or_path": "AGSAIControllerBase, AGSHordeAIController, UBTService_AcquireTarget, UBTTask_EvadeTelegraph, UBTTask_Firefight, UBTTask_MeleeAttack",
+        "supports": "Full set of AI/behavior-tree symbols contains no investigate task, no hearing/perception-of-noise service"
+      }
+    ],
+    "missing_pieces": [
+      "Noise-emission API (e.g. MakeNoise/FGSNoiseEvent) with per-action audible radii",
+      "NPC hearing consumption of noise events",
+      "Guard investigate behavior/BT task moving to last noise location",
+      "Registration of loud actions (smashing, digging, horn, fire) as noise signals to the alarm system",
+      "Startled-livestock/chicken noise events and nearest-guard pull"
+    ],
+    "reasoning": "The symbol index is complete (86 symbols, all tags) and contains no noise, hearing, perception, investigate, or livestock symbols whatsoever. No file matched any of the searched keywords. The only adjacent evidence is EGSAlarmSource/EGSAlarmPhase, which describes an alarm state machine rather than a noise-event API with audible radii, and there is no AI symbol (the BT tasks are combat-only: AcquireTarget, EvadeTelegraph, Firefight, MeleeAttack) that could drive investigation movement. Absence across a complete index is strong evidence the feature is not implemented.",
+    "feature_id": "noise_system",
+    "name": "Noise events and guard investigation",
+    "gdd_section": "2.4",
+    "candidates": []
+  },
+  {
+    "verdict": "MISSING",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSInteractionComponent / UGSGA_Interact",
+        "supports": "Generic interaction system exists but no takedown/bind-specific symbols"
+      },
+      {
+        "symbol_or_path": "UGSScoreSubsystem",
+        "supports": "Score system exists but no takedown/civilian-capture symbols in index"
+      }
+    ],
+    "missing_pieces": [
+      "Rear-approach takedown ability requiring unaware target state",
+      "Civilian bind channel producing a bound-captive actor",
+      "Rope-chain captive linking with escort movement penalty and no-attack restriction",
+      "Corpse actors with guard discovery raising Suspicious",
+      "Score hooks for takedown bonus, civilian captured, watchman silenced"
+    ],
+    "reasoning": "The complete 86-symbol index contains no Takedown, Bind, Captive, Corpse, RopeChain, or Unaware-state symbols; no stealth/awareness enum (only EGSAlarmPhase/EGSAlarmSource for alarm), no civilian character class (only AGSEnemyCharacter, AGSHordeGoblin), and no gameplay tags relating to stealth takedowns. The best-matching files (burn mask subsystem, HUD widget) are unrelated. Absence across a complete index is strong evidence the feature is not implemented.",
+    "feature_id": "takedown_and_bind",
+    "name": "Takedown finisher and civilian bind",
+    "gdd_section": "2.4",
+    "candidates": [
+      {
+        "path": "Destruction/GSBurnMaskSubsystem.h",
+        "score": 4,
+        "classes": [
+          "UGSBurnMaskSubsystem"
+        ],
+        "structs": [
+          "FGSBurnSplat"
+        ],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "UI/GSPlayerHUDWidget.h",
+        "score": 4,
+        "classes": [
+          "UGSPlayerHUDWidget"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "MISSING",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSGA_TorchToss",
+        "supports": "Only throwable-item ability present is a torch toss, not a coin toss; no currency/pouch consumption"
+      },
+      {
+        "symbol_or_path": "AGSArrowProjectile, AGSTorchProjectile",
+        "supports": "Projectile actors exist but none is a coin/distraction actor"
+      },
+      {
+        "symbol_or_path": "UBTService_AcquireTarget, UBTTask_EvadeTelegraph, UBTTask_Firefight, UBTTask_MeleeAttack",
+        "supports": "AI behavior tree nodes are combat-only; no lure/greed/abandon-post task"
+      },
+      {
+        "symbol_or_path": "UGSAttributeSetBase",
+        "supports": "Attribute set exists but no greed stat symbol is present"
+      },
+      {
+        "symbol_or_path": "UGSScoreSubsystem",
+        "supports": "Score system exists but no watchman-silenced lure condition symbol"
+      }
+    ],
+    "missing_pieces": [
+      "Throwable coin actor / CoinToss ability consuming pouch currency",
+      "Greed stat on human AI gating lure priority",
+      "AI lure state to abandon post, collect coin, then resume",
+      "Watchman-silenced score condition tie-in to lures"
+    ],
+    "reasoning": "The complete symbol index contains no Coin, Greed, Lure, Distraction, Currency, or Pouch symbols, and no gameplay tags related to them. The only throw ability is torch-related and AI tasks are purely combat-focused. Absence across a complete index indicates the feature is not implemented.",
+    "feature_id": "coin_toss_distraction",
+    "name": "Coin toss and greed AI",
+    "gdd_section": "2.4, 2.10",
+    "candidates": []
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "AGSEnemyCharacter, FGSArchetypeDefinition, UGSScoreSubsystem",
+        "supports": "Data-driven enemy archetypes with score values (militia/archer/knight naming not visible, but archetype definition struct + score subsystem exist)"
+      },
+      {
+        "symbol_or_path": "FGSSwingStage, FGSMeleeAttackMemory, UBTTask_EvadeTelegraph, UBTTask_MeleeAttack",
+        "supports": "Telegraphed attack windup/stage data and AI reacting to telegraphs"
+      },
+      {
+        "symbol_or_path": "AGSSpawnerActor, EGSReinforcementTier",
+        "supports": "Some spawner actor and a reinforcement tier enum exist, hinting at tiered reinforcement spawning"
+      },
+      {
+        "symbol_or_path": "UGSRaidDirector, EGSAlarmPhase, EGSAlarmSource, AGSRaidMarker",
+        "supports": "Alarm/escalation framework that a bell or horn could feed into (phases and alarm sources)"
+      },
+      {
+        "symbol_or_path": "UGSRaceDataAsset",
+        "supports": "Race-configurable data asset that could carry pool size, though no pool field symbol is visible"
+      },
+      {
+        "symbol_or_path": "UGSBreakableComponent, AGSDestructibleObjective",
+        "supports": "Destruction framework that a destructible barracks could use"
+      }
+    ],
+    "missing_pieces": [
+      "No defender-spawn subsystem owning a shared raid-response pool (no RaidResponsePool or equivalent budget/pool symbol; UGSRaidDirector is the only director and no pool type is exposed)",
+      "No barracks spawner class and no map-edge reinforcement spawner drawing from a shared pool, nor any 'pool empty -> silent' logic symbol",
+      "No patrol AI: no PatrolRoute, waypoint check-in, sweep-cadence timer, or overdue grace/soft-signal symbol (BT tasks are only AcquireTarget/Firefight/MeleeAttack/EvadeTelegraph)",
+      "No signal-horn ability: gameplay abilities are Block, BowShot, DodgeRoll, Interact, SwordLight, TorchToss only; no committed interruptible horn wind-up",
+      "No watchtower bell interactable or doze/nap schedule symbol; no Watchman/guard-post class",
+      "No fouled-well interaction or bucket-brigade system (no FoulWell/BucketBrigade symbols; only UGSWaterVolume)",
+      "No explicit militia/archer/knight enemy type definitions or an enemy type data asset"
+    ],
+    "reasoning": "The symbol index appears complete and contains none of the feature's core classes. There is a raid/alarm framework (UGSRaidDirector, EGSAlarmPhase, EGSAlarmSource, EGSReinforcementTier, AGSSpawnerActor) and a combat/enemy layer with telegraphed swings and score tracking, which partially satisfies the 'data-driven enemy types with telegraphed attacks and score values' signal and provides plumbing an escalation could hook into. But the defining elements — a finite pool of 15 shared by barracks and edge reinforcement spawners, patrol routes with 5-7 minute cadence and check-in/grace timers, the archer signal horn ability, the watchtower bell and doze schedule, and the destructible barracks / fouled well disabling systems — have no matching symbols at all, and no file matched any of the searched keywords. So most acceptance signals are unimplemented.",
+    "feature_id": "town_defenders",
+    "name": "Guards, patrols, watchtower bell, barracks and the finite raid-response pool",
+    "gdd_section": "2.1, 2.6",
+    "candidates": []
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSCarryComponent (Interaction/GSCarryComponent.h)",
+        "supports": "A carry component exists, potentially covering the carry-with-restrictions signal (though livestock/dual-chicken specifics are unverifiable from the index)"
+      },
+      {
+        "symbol_or_path": "UGSBreakableComponent",
+        "supports": "Destructible prop support exists, partially covering the smashable container signal"
+      },
+      {
+        "symbol_or_path": "AGSRunicSite",
+        "supports": "Runic site actor exists that could serve as a banking location"
+      },
+      {
+        "symbol_or_path": "UGSScoreSubsystem",
+        "supports": "Scoring accounting exists, but no evidence of provisional-deeds-vs-loot separation"
+      }
+    ],
+    "missing_pieces": [
+      "No loot/pouch symbols (no ULootComponent, UGSPouchComponent, BankLoot API)",
+      "No lootable sack actor spawned on death",
+      "No livestock actors (pig/chicken) with flee/catch, kill-vs-steal scoring, or courier-target tagging",
+      "No Warren actor, plant-channel ability, one-active limit, horde-goblin cost, or respawn-point logic",
+      "No strongbox/stall container actors specifically gating a hold-E gather channel (only generic UGSInteractableComponent/UGSGA_Interact)",
+      "No prisoner-chain banking volumes at portal/Warren"
+    ],
+    "reasoning": "The symbol index is complete (86 symbols) and contains no loot, pouch, banking, livestock, sack, or Warren symbols whatsoever; the gameplay tag list likewise shows only burn/combat/raid/interact tags. Only generic infrastructure that could support parts of the feature exists: UGSCarryComponent (carry), UGSBreakableComponent (destructible props), UGSInteractableComponent/UGSGA_Interact (hold-E interaction), AGSRunicSite (potential bank site) and UGSScoreSubsystem (scoring). Most acceptance signals — loot accounting/banking, livestock behavior, pouch spill sack, Warren planting/respawn — have no matching symbol, so absence here is strong evidence of absence.",
+    "feature_id": "loot_livestock_banking",
+    "name": "Loot, livestock carrying, and permanent banking at the stones or Warren",
+    "gdd_section": "2.6, 2.7",
+    "candidates": [
+      {
+        "path": "Interaction/GSCarryComponent.h",
+        "score": 10,
+        "classes": [
+          "UGSCarryComponent"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Interaction/GSCarryComponent.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Characters/GSPlayerCharacter.h",
+        "score": 4,
+        "classes": [
+          "AGSPlayerCharacter"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSScoreSubsystem (Raid/GSScoreSubsystem.h/.cpp)",
+        "supports": "A score subsystem exists as a dedicated class, likely tallying kills/arson/loot"
+      },
+      {
+        "symbol_or_path": "AGSPlayerState (Core/GSPlayerState.h)",
+        "supports": "Per-player score/lives storage (keyword match on Lives/Score)"
+      },
+      {
+        "symbol_or_path": "GS.Raid.SetLives debug command (Raid/GSRaidDebugCommands.cpp)",
+        "supports": "A lives counter exists and is runtime-settable"
+      },
+      {
+        "symbol_or_path": "AGSRunicSite",
+        "supports": "Respawn anchor referenced by the lives/respawn signal"
+      },
+      {
+        "symbol_or_path": "UGSSaveGame",
+        "supports": "Persistence layer that could hold a personal best"
+      },
+      {
+        "symbol_or_path": "EGSRaidResult",
+        "supports": "Success/failure outcome enum feeding exit multiplier / retention logic"
+      }
+    ],
+    "missing_pieces": [
+      "No data-table row struct for scoring entries (no FGSScoreEntry/FGSScoreRow analogous to FGSObjectiveRow) — the score table appears not to be data-driven",
+      "No bonus-condition symbols for First Spark Unseen, None Left Behind, watchman silenced, well fouled, barracks demolished, or clean patrol wipe (no enum or struct enumerating bonuses)",
+      "No end-of-raid judgement widget class — UI contains only UGSPlayerHUDWidget and UGSWeaponWheelWidget; no results/summary screen presenting itemized deeds vs loot",
+      "No letter-grade type or grading enum (no EGSGrade/FGSGrade)",
+      "No Overlord verdict selection type, and nothing indicating prisoner-heavy flavor variation",
+      "No explicit symbol for 25% unbanked-deed retention or +20-per-unused-life exit bonus (may exist as internals of UGSScoreSubsystem but not visible in the index)"
+    ],
+    "reasoning": "The backend scaffolding is real: a dedicated UGSScoreSubsystem, player-state score/lives fields, a SetLives debug command, a runic-site respawn actor, a raid-result enum and a save game for persistence. But the presentation and data layers of the feature are absent from a complete symbol index: there is no results/judgement widget, no letter-grade or verdict type, no bonus-condition evaluators, and no scoring data-table row struct (contrast FGSObjectiveRow, which shows this project does declare data-table structs when it uses them). That absence in a full index is meaningful evidence the scoring table, bonus set, and end screen are not built. Hence partial.",
+    "feature_id": "score_and_end_screen",
+    "name": "Scoring, lives, and the end-of-raid judgement screen",
+    "gdd_section": "2.2, 2.9",
+    "candidates": [
+      {
+        "path": "Raid/GSScoreSubsystem.h",
+        "score": 10,
+        "classes": [
+          "UGSScoreSubsystem"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Raid/GSScoreSubsystem.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Core/GSPlayerState.h",
+        "score": 4,
+        "classes": [
+          "AGSPlayerState"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "UI/GSPlayerHUDWidget.h",
+        "score": 4,
+        "classes": [
+          "UGSPlayerHUDWidget"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Raid/GSRaidDebugCommands.cpp",
+        "score": 3,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": [
+          "GS.Raid.BuildingStatus",
+          "GS.Raid.BurnHere",
+          "GS.Raid.ExpireClock",
+          "GS.Raid.Goto",
+          "GS.Raid.GotoActor",
+          "GS.Raid.GotoBuilding",
+          "GS.Raid.Kill",
+          "GS.Raid.SetLives",
+          "GS.Raid.SpawnAt",
+          "GS.Raid.Status"
+        ]
+      }
+    ]
+  },
+  {
+    "verdict": "MISSING",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "UGSPlayerHUDWidget",
+        "supports": "A HUD widget exists but no prompt/note symbol; nothing tied to first-encounter notes"
+      },
+      {
+        "symbol_or_path": "UGSRaidDirector",
+        "supports": "Raid pacing exists but no bark/whisper playback symbol on timed beats"
+      }
+    ],
+    "missing_pieces": [
+      "Tutorial/prompt subsystem tracking first-encounter flags per mechanic",
+      "Data-driven bark/prompt table asset or row struct keyed to triggers",
+      "Settings toggle to suppress prompts",
+      "Overlord/villager ambient bark playback component or subsystem"
+    ],
+    "reasoning": "The complete symbol index (86 symbols) contains no tutorial, prompt, bark, hint, dialogue, or VO-related class, struct, enum, or tag. No file matched any keyword. Existing symbols cover objectives, burning, combat, and raid direction only. Absence across a complete index is strong evidence of absence.",
+    "feature_id": "tutorial_prompts_barks",
+    "name": "First-encounter tutorial prompts and Overlord barks",
+    "gdd_section": "2.8, 2.10",
+    "candidates": []
+  },
+  {
+    "verdict": "PARTIAL",
+    "confidence": "medium",
+    "evidence": [
+      {
+        "symbol_or_path": "AGSRunicSite (Raid/GSRunicSite.h/.cpp)",
+        "supports": "Runic-site actor serving as spawn/respawn/extraction volume; the only strong keyword match in the index"
+      },
+      {
+        "symbol_or_path": "AGSMillObjective",
+        "supports": "Windmill objective actor exists as a distinct objective type"
+      },
+      {
+        "symbol_or_path": "AGSFieldFireObjective / FGSFieldCell / EGSFieldCellState",
+        "supports": "Field objective exists"
+      },
+      {
+        "symbol_or_path": "AGSObjective_BurnGranaries / AGSBuildingObjective",
+        "supports": "Granary objective exists"
+      },
+      {
+        "symbol_or_path": "AGSSpawnerActor, AGSEnemyCharacter, AGSAIControllerBase",
+        "supports": "Placement of guards/AI in a level is supported at the actor level"
+      }
+    ],
+    "missing_pieces": [
+      "No module prefab kit symbols (core village, farmstead, windmill module) — nothing like FGSModulePrefab/UGSVillageModule/AGSVillageModule",
+      "No civilian or livestock actor classes (only AGSEnemyCharacter, AGSHordeGoblin, AGSPlayerCharacter); no patrol-route or civilian-schedule symbol",
+      "No cover prop registration for a stealth layer — no CoverProp/Sightline/Occluder component or subsystem; no stealth/sightline system symbol at all in the index",
+      "No wayfinding affordances: no Signpost, Road, Landmark, Treeline or audible-pen actor/component",
+      "No TutorialHamlet level/gamemode/data-asset symbol tying the authored layout together; no evidence of the fixed one-granary/one-field/one-windmill layout being enforced in code"
+    ],
+    "reasoning": "The symbol index is complete and only one feature-specific class exists: AGSRunicSite, which matches the spawn/respawn/extraction acceptance signal by name and file match. Objective classes for a mill, field and granaries exist, so the objective triple is at least representable, though nothing enforces a fixed one-of-each layout. Everything else the feature asks for — reusable module prefab kits, civilian/livestock population, cover props registered with a stealth sightline system, and wayfinding props (signposts, roads, landmarks, audible pens) — has no corresponding symbol anywhere in the index, and there is no stealth/sightline subsystem at all. Some of the authored content could in principle live purely in level data, but the acceptance signals explicitly call for registered cover props and reusable module kits, which would require code symbols. Hence PARTIAL, weighted toward the runic site plus objective actors only.",
+    "feature_id": "hamlet_layout_and_wayfinding",
+    "name": "Hand-authored tutorial hamlet, forest ring and runic site",
+    "gdd_section": "2.8",
+    "candidates": [
+      {
+        "path": "Raid/GSRunicSite.h",
+        "score": 10,
+        "classes": [
+          "AGSRunicSite"
+        ],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      },
+      {
+        "path": "Raid/GSRunicSite.cpp",
+        "score": 6,
+        "classes": [],
+        "structs": [],
+        "enums": [],
+        "tags": []
+      }
+    ]
+  },
+  {
+    "verdict": "MISSING",
+    "confidence": "high",
+    "evidence": [
+      {
+        "symbol_or_path": "AGSEnemyCharacter / AGSHordeGoblin / AGSHordeAIController",
+        "supports": "Only hostile NPC classes exist; no civilian character or controller class is present"
+      },
+      {
+        "symbol_or_path": "UBTTask_Firefight",
+        "supports": "Closest keyword match — a behavior-tree task likely used by guard/enemy AI to fight fires, but there is no bucket-line/well-fouled logic symbol or civilian actor tied to it"
+      },
+      {
+        "symbol_or_path": "EGSAlarmPhase / EGSAlarmSource",
+        "supports": "Alarm subsystem enums exist, but no census/absence-signal symbol (e.g., FGSCivilianCensus) feeds them"
+      }
+    ],
+    "missing_pieces": [
+      "Civilian character/AI class with 10 HP, no attack, routine schedule",
+      "Panic/flee state machine or BT states for civilians",
+      "Bucket-brigade behavior reducing fire progress, and well-fouled condition check",
+      "Civilian census (dead/bound/missing) feeding alarm absence soft signal",
+      "Self-looting behavior removing stall gold at peak chaos",
+      "Disbelief/double-take reaction tied to barks"
+    ],
+    "reasoning": "The provided symbol index appears complete (86 symbols, all tags) and contains no civilian-related class, struct, enum, or tag: no ACivilian*, no CivilianAI, no routine/schedule struct, no panic state enum, no bucket-line or census type, no self-loot behavior. The only tangential hit is UBTTask_Firefight, which is a generic BT task with no accompanying civilian actor, well-fouling state, or fire-progress-reduction symbol, and no evidence ties it to a civilian bucket brigade. Alarm enums exist but nothing represents an absence/census signal. Absence of any matching symbol in a complete index is strong evidence the feature is not implemented.",
+    "feature_id": "civilian_routines",
+    "name": "Civilians: routines, panic, bucket lines and self-looting",
+    "gdd_section": "2.6",
+    "candidates": []
+  }
+]

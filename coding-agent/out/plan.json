@@ -1,0 +1,254 @@
+{
+  "ranked": [
+    {
+      "feature_id": "stealth_detection",
+      "name": "Crouch-and-confirm detection model",
+      "rank": 1,
+      "rationale": "Marked Never cut, its week-1 slot is already behind, and it is a hard MISSING rather than a partial. It is the sensory framework the whole stealth half of the game rides on: the alarm phase machine has enums but no emitter, takedown/bind needs an 'unaware' target state, the Scout's crouch stance has nothing to modify, and the First Spark Unseen score bonus needs a confirm counter. One pass can deliver it whole in code — per-observer confirm timer with LOS-loss reset, a watchman vision cone with doze droop, stance/cover range modifiers, and a single SightingConfirmed soft signal — with no art, animation or level content required.",
+      "criteria": {
+        "never_cut": true,
+        "unblocks": [
+          "alarm_phase_system",
+          "noise_system",
+          "takedown_and_bind",
+          "town_defenders",
+          "scout_kit_controller",
+          "score_and_end_screen",
+          "coin_toss_distraction"
+        ],
+        "schedule_week": 1,
+        "one_pass_buildable": true,
+        "risk": "low"
+      }
+    },
+    {
+      "feature_id": "alarm_phase_system",
+      "name": "Four-phase alarm escalation with soft signals",
+      "rank": 2,
+      "rationale": "The hub every stealth and defender system reports into, and its week has effectively arrived (2). But today it has only vocabulary enums and, critically, no signal producers: building the subsystem now yields a state machine with nothing to drive it and no investigate behaviour to express it. It also wants six distinct emitters plus RAZED spawner shutdown — more than one coherent pass. Build immediately after detection gives it its first real input.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [
+          "noise_system",
+          "town_defenders",
+          "civilian_routines",
+          "horde_horn",
+          "score_and_end_screen"
+        ],
+        "schedule_week": 2,
+        "one_pass_buildable": false,
+        "risk": "medium"
+      }
+    },
+    {
+      "feature_id": "noise_system",
+      "name": "Noise events and guard investigation",
+      "rank": 3,
+      "rationale": "Week 1 and fully missing. Shares the same AI sensory spine as detection (hearing alongside sight, investigate movement) and feeds the alarm system a second signal class. Natural immediate follow-on: once a perception component exists, MakeNoise/FGSNoiseEvent with audible radii and an investigate BT task is a tight pass. Not Never cut, and it is strictly downstream of the sight layer for the shared investigate behaviour.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [
+          "alarm_phase_system",
+          "town_defenders",
+          "civilian_routines"
+        ],
+        "schedule_week": 1,
+        "one_pass_buildable": true,
+        "risk": "low"
+      }
+    },
+    {
+      "feature_id": "objective_tracking_raid_clock",
+      "name": "Raid objective tracking, 30-minute clock and portal collapse",
+      "rank": 4,
+      "rationale": "Week 2 and the loop's terminator — without portal states and the 90-second collapse window plus the out-of-circle loss check, no raid can actually end, which starves the score/end-screen work later. It also has a waiting consumer claim: whispers.csv is sitting unconsumed and the Overlord check-in beats at 10/5/2 minutes are exactly what would read it. The director, clock phase enum and objective registry already exist, so this is a bounded completion job rather than a from-scratch system.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [
+          "score_and_end_screen",
+          "tutorial_prompts_barks",
+          "hamlet_layout_and_wayfinding"
+        ],
+        "schedule_week": 2,
+        "one_pass_buildable": true,
+        "risk": "medium"
+      }
+    },
+    {
+      "feature_id": "horde_horn",
+      "name": "War-horn summoning and horde goblin pool",
+      "rank": 5,
+      "rationale": "Never cut, and the horde unit actor already exists with nothing able to spawn it — a real waiting-consumer claim. Loses to the stealth spine only on schedule (week 3, not yet arrived) and because the pool subsystem's accounting (reserve of 20, active cap 10, permanent death, courier credit) is entangled with horde_commands' courier state. Build the pool plus horn ability once the sensory layer can register the horn as a loud signal.",
+      "criteria": {
+        "never_cut": true,
+        "unblocks": [
+          "horde_commands",
+          "loot_livestock_banking"
+        ],
+        "schedule_week": 3,
+        "one_pass_buildable": true,
+        "risk": "medium"
+      }
+    },
+    {
+      "feature_id": "horde_commands",
+      "name": "Horde control: follow, frenzy, and the point context command",
+      "rank": 6,
+      "rationale": "Never cut and the other half of the game's signature system, but strictly dependent on horde_horn: there is no pool to return couriers to and no way to field goblins yet. Follow/Frenzy states, threat propagation, the unified point resolver, courier banking and prisoner chains are several subsystems at once — not one clean pass. Week 3.",
+      "criteria": {
+        "never_cut": true,
+        "unblocks": [
+          "loot_livestock_banking"
+        ],
+        "schedule_week": 3,
+        "one_pass_buildable": false,
+        "risk": "high"
+      }
+    },
+    {
+      "feature_id": "scout_kit_controller",
+      "name": "Scout player kit: third-person controller, weapon swap, dodge, crouch",
+      "rank": 7,
+      "rationale": "Week 1 and overdue on paper, but the load-bearing parts (character, weapon swap, dodge roll, damage exec) are already in. What remains splits into one piece detection needs — the crouch stance enum, which the detection pass should define as its stance modifier input — and a pile of feel polish (hitstop, knockback, impact decals, dagger ability, Scout stat row) that is valuable but blocks nothing.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [
+          "stealth_detection",
+          "takedown_and_bind"
+        ],
+        "schedule_week": 1,
+        "one_pass_buildable": true,
+        "risk": "low"
+      }
+    },
+    {
+      "feature_id": "tutorial_prompts_barks",
+      "name": "First-encounter tutorial prompts and Overlord barks",
+      "rank": 8,
+      "rationale": "Strongest waiting-asset claim in the list: barks.csv and prompts.csv are generated and sitting unconsumed, and the feature is a clean one-pass build (first-encounter flag subsystem, data-table row struct, one-line HUD note, settings toggle). Held back only because its week is 4 and it needs the mechanics it narrates to exist first — a prompt naming the one control that does it is worthless if the control isn't there.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [],
+        "schedule_week": 4,
+        "one_pass_buildable": true,
+        "risk": "low"
+      }
+    },
+    {
+      "feature_id": "score_and_end_screen",
+      "name": "Scoring, lives, and the end-of-raid judgement screen",
+      "rank": 9,
+      "rationale": "Never cut, which keeps it above all the sacrificial content, but week 6 and its bonus evaluators (First Spark Unseen, watchman silenced, well fouled, clean patrol wipe) each depend on systems that do not exist yet. The score subsystem backend is real; the data-driven table, grade enum, verdict picker and results widget should land once the deeds they judge are actually performable.",
+      "criteria": {
+        "never_cut": true,
+        "unblocks": [],
+        "schedule_week": 6,
+        "one_pass_buildable": true,
+        "risk": "medium"
+      }
+    },
+    {
+      "feature_id": "interact_channel_framework",
+      "name": "Hold-E interact channel framework",
+      "rank": 10,
+      "rationale": "Week 1, but the framework itself — paired interaction/interactable components, end-reason enum, interact ability — is already built. Everything flagged missing is actually the consumer channels owned by other features (loot, takedown, bind, foul well, plant Warren). The only genuine gap here is the progress widget, a small add best done alongside the first real channel rather than in isolation.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [
+          "takedown_and_bind",
+          "loot_livestock_banking",
+          "town_defenders"
+        ],
+        "schedule_week": 1,
+        "one_pass_buildable": true,
+        "risk": "low"
+      }
+    },
+    {
+      "feature_id": "loot_livestock_banking",
+      "name": "Loot, livestock carrying, and permanent banking at the stones or Warren",
+      "rank": 11,
+      "rationale": "Flagged Never cut yet also sitting at cut-order 2, which reads as: the banking core is protected but the livestock and Warren content around it is the second thing sacrificed. Week 6, and it needs livestock actors with flee/catch, a Warren actor with respawn logic, and courier integration — art and multiple subsystems at once, not a single pass. Depends on the horde courier loop.",
+      "criteria": {
+        "never_cut": true,
+        "unblocks": [
+          "score_and_end_screen"
+        ],
+        "schedule_week": 6,
+        "one_pass_buildable": false,
+        "risk": "high"
+      }
+    },
+    {
+      "feature_id": "town_defenders",
+      "name": "Guards, patrols, watchtower bell, barracks and the finite raid-response pool",
+      "rank": 12,
+      "rationale": "Week 5 and enormous: a shared pool of 15, barracks and edge spawners, patrol routes with check-in cadence, signal horn, watchtower bell and doze schedule, fouled well and bucket brigade. Several of its soft signals (overdue patrol, horn) are alarm emitters that need the alarm hub first, and the whole thing is far beyond one coherent generation.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [
+          "alarm_phase_system",
+          "civilian_routines"
+        ],
+        "schedule_week": 5,
+        "one_pass_buildable": false,
+        "risk": "high"
+      }
+    },
+    {
+      "feature_id": "hamlet_layout_and_wayfinding",
+      "name": "Hand-authored tutorial hamlet, forest ring and runic site",
+      "rank": 13,
+      "rationale": "Week 4, but this is fundamentally level-authoring work an agent pass cannot deliver coherently — module prefab kits, signposts, roads, guaranteed cover between treeline and objectives. Its one code-side ask, registered cover props, should be defined by the stealth sightline layer rather than invented here.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [],
+        "schedule_week": 4,
+        "one_pass_buildable": false,
+        "risk": "high"
+      }
+    },
+    {
+      "feature_id": "takedown_and_bind",
+      "name": "Takedown finisher and civilian bind",
+      "rank": 14,
+      "rationale": "Cut-order 5 — pre-committed as sacrificial — and week 5. It also cannot exist before an unaware-target state (detection) and a civilian actor (which is itself first on the cut list). Needs committed finisher animation on top. Poor value to build now even though it would ride the existing interact channel nicely.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [],
+        "schedule_week": 5,
+        "one_pass_buildable": false,
+        "risk": "high"
+      }
+    },
+    {
+      "feature_id": "coin_toss_distraction",
+      "name": "Coin toss and greed AI",
+      "rank": 15,
+      "rationale": "Cut-order 3, week 5, and doubly blocked: it consumes pouch currency that loot has not implemented and needs an AI lure state layered on perception that does not exist. A charming leaf feature the design has already agreed to sacrifice — building it now is the definition of poor value.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [],
+        "schedule_week": 5,
+        "one_pass_buildable": false,
+        "risk": "medium"
+      }
+    },
+    {
+      "feature_id": "civilian_routines",
+      "name": "Civilians: routines, panic, bucket lines and self-looting",
+      "rank": 16,
+      "rationale": "First item in the pre-committed cut order and week 6, with an explicitly stretch-tier behaviour inside it. It needs a civilian character with art, a routine schedule, a panic state machine, bucket-brigade fire suppression and a census feed — the largest single ask on the board for the work the design is most willing to drop.",
+      "criteria": {
+        "never_cut": false,
+        "unblocks": [],
+        "schedule_week": 6,
+        "one_pass_buildable": false,
+        "risk": "high"
+      }
+    }
+  ],
+  "choice": "stealth_detection",
+  "why_this_one": "It is the only candidate that wins on every criterion at once: explicitly Never cut, scheduled for week 1 with that week already past, and completely absent rather than partially scaffolded. It is also the widest unblocker left — the alarm system has phase and source enums but literally no code that can emit a signal into them; takedown needs an unaware state; the Scout's crouch stance has no detection consumer to modify; noise investigation reuses the same perception spine; and First Spark Unseen needs a confirm counter to track. Crucially it is one-pass buildable in pure C++: a per-observer perception component with a ~1.5s confirm timer that resets on LOS loss, a watchman vision cone with a doze droop, crouch and cover range modifiers, and a SightingConfirmed event that fires exactly one soft signal moving the town to Suspicious. No art, no animation, no level content, no dependency on unbuilt systems.",
+  "why_not_the_runner_up": "alarm_phase_system loses because it is the consumer, not the producer. Build the four-phase subsystem now and you get a state machine with zero inputs: none of its six soft signals — confirmed sighting, corpse, startled flock, patrol horn, overdue patrol, civilian census — have an emitter in the codebase, and four of those emitters belong to features (town_defenders, civilian_routines) that are week 5-6 and near the top of the cut order. It also cannot be delivered coherently in one pass, since it demands investigate BT behaviour and RAZED-phase spawner silencing alongside the phase logic. It is not Never cut, where detection is. Detection first gives the alarm hub a real, testable first signal to be built around next."
+}

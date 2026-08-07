@@ -1,0 +1,2023 @@
+{
+  "root": "D:\\goblinRaid\\GoblinSiege 5.8\\Source\\GoblinSiege",
+  "file_count": 135,
+  "symbol_count": 86,
+  "tags": [
+    "GS.Aim.Debug",
+    "GS.Burn.Debug",
+    "GS.Burn.Douse",
+    "GS.Burn.Dry",
+    "GS.Burn.Firebreak",
+    "GS.Burn.Ignite",
+    "GS.Burn.IgniteAll",
+    "GS.Burn.SpawnDummy",
+    "GS.Burn.Status",
+    "GS.Combat.BlockArc",
+    "GS.Combat.BlockMultiplier",
+    "GS.Combat.Debug",
+    "GS.Combat.LogDamage",
+    "GS.Combat.LogHitReact",
+    "GS.Interact.Debug",
+    "GS.LitTorch",
+    "GS.PlayerView",
+    "GS.Raid.BuildingStatus",
+    "GS.Raid.BurnHere",
+    "GS.Raid.ExpireClock",
+    "GS.Raid.Goto",
+    "GS.Raid.GotoActor",
+    "GS.Raid.GotoBuilding",
+    "GS.Raid.Kill",
+    "GS.Raid.SetLives",
+    "GS.Raid.SpawnAt",
+    "GS.Raid.Status"
+  ],
+  "files": [
+    {
+      "path": "AI/GSAIControllerBase.cpp",
+      "lines": 73,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/GSAIControllerBase.h",
+      "lines": 51,
+      "classes": [
+        "AGSAIControllerBase"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "HandlePerceptionUpdated"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/GSBuffAuraComponent.cpp",
+      "lines": 66,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/GSBuffAuraComponent.h",
+      "lines": 40,
+      "classes": [
+        "UGSBuffAuraComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/GSSpawnerActor.cpp",
+      "lines": 174,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/GSSpawnerActor.h",
+      "lines": 105,
+      "classes": [
+        "AGSSpawnerActor"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "ApplyStructuralDamage",
+        "HandleDistrictRazedChanged",
+        "HandleFlammableBurnedDown",
+        "HandleHordeWaveTriggered",
+        "IsSilenced"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTService_AcquireTarget.cpp",
+      "lines": 95,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTService_AcquireTarget.h",
+      "lines": 66,
+      "classes": [
+        "UBTService_AcquireTarget"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTTask_EvadeTelegraph.cpp",
+      "lines": 27,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTTask_EvadeTelegraph.h",
+      "lines": 27,
+      "classes": [
+        "UBTTask_EvadeTelegraph"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTTask_Firefight.cpp",
+      "lines": 61,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTTask_Firefight.h",
+      "lines": 28,
+      "classes": [
+        "UBTTask_Firefight"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTTask_MeleeAttack.cpp",
+      "lines": 87,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "AI/Tasks/BTTask_MeleeAttack.h",
+      "lines": 55,
+      "classes": [
+        "UBTTask_MeleeAttack"
+      ],
+      "structs": [
+        "FGSMeleeAttackMemory"
+      ],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Alarm/GSAlarmTypes.h",
+      "lines": 76,
+      "classes": [],
+      "structs": [],
+      "enums": [
+        "EGSAlarmPhase",
+        "EGSAlarmSource",
+        "EGSRaidClockPhase",
+        "EGSReinforcementTier"
+      ],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Attributes/GSAttributeSetBase.cpp",
+      "lines": 92,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Attributes/GSAttributeSetBase.h",
+      "lines": 85,
+      "classes": [
+        "UGSAttributeSetBase"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "OnRep_Armor",
+        "OnRep_Health",
+        "OnRep_MaxHealth",
+        "OnRep_MoveSpeedMultiplier"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSCharacterBase.cpp",
+      "lines": 491,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Combat.LogHitReact"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSCharacterBase.h",
+      "lines": 256,
+      "classes": [
+        "AGSCharacterBase"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "ApplyRespawnState",
+        "DebugKill",
+        "GetBaseWalkSpeed",
+        "GetHealth",
+        "GetMaxHealth",
+        "GetRaceTag",
+        "GetTurnRateRadPerSec",
+        "IsAlive",
+        "IsBlocking",
+        "IsHostileTo",
+        "PlayHitReact",
+        "SetBaseWalkSpeed",
+        "SetTurnRateRadPerSec"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSEnemyCharacter.cpp",
+      "lines": 145,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSEnemyCharacter.h",
+      "lines": 95,
+      "classes": [
+        "AGSEnemyCharacter"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "CanGuardBreak",
+        "InitializeFromArchetype",
+        "StartBlocking",
+        "StopBlocking",
+        "TryGuardBreak",
+        "TryHeavyAttack",
+        "TryLightAttack"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSPlayerCharacter.cpp",
+      "lines": 984,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSPlayerCharacter.h",
+      "lines": 469,
+      "classes": [
+        "AGSPlayerCharacter"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetAimComponent",
+        "GetCarryComponent",
+        "GetDodgeDirection",
+        "GetHeavyChargeAlpha",
+        "GetInteractionComponent",
+        "GetTargetingComponent",
+        "GetWeaponComponent",
+        "HandleAimStateChanged",
+        "HandleStaminaExhausted",
+        "HandleWeaponModeChanged"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSStaminaComponent.cpp",
+      "lines": 128,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSStaminaComponent.h",
+      "lines": 133,
+      "classes": [
+        "UGSStaminaComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetMaxStamina",
+        "GetStamina",
+        "GetStaminaNormalised",
+        "IsExhausted",
+        "OnRep_Stamina",
+        "ResetToFull",
+        "SetDrainRate",
+        "TryConsume"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSTargetingComponent.cpp",
+      "lines": 92,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Characters/GSTargetingComponent.h",
+      "lines": 50,
+      "classes": [
+        "UGSTargetingComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetCurrentSoftTarget"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSAimComponent.cpp",
+      "lines": 526,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Aim.Debug"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSAimComponent.h",
+      "lines": 302,
+      "classes": [
+        "UGSAimComponent"
+      ],
+      "structs": [],
+      "enums": [
+        "EGSAimMode"
+      ],
+      "ufunctions": [
+        "BeginAim",
+        "EndAim",
+        "GetAimMode",
+        "GetAimRotation",
+        "GetMuzzleTransform",
+        "IsAiming",
+        "OnRep_AimMode",
+        "PushAimRotationToServer",
+        "Server_SetAimRotation"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSDamageExecCalculation.cpp",
+      "lines": 202,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Combat.BlockArc",
+        "GS.Combat.BlockMultiplier",
+        "GS.Combat.LogDamage"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSDamageExecCalculation.h",
+      "lines": 23,
+      "classes": [
+        "UGSDamageExecCalculation"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSDebugCommands.cpp",
+      "lines": 78,
+      "classes": [],
+      "structs": [
+        "FGSDebugToggle"
+      ],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Aim.Debug",
+        "GS.Burn.Debug",
+        "GS.Combat.Debug",
+        "GS.Combat.LogDamage",
+        "GS.Combat.LogHitReact",
+        "GS.Interact.Debug",
+        "GS.PlayerView"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGameplayTags.cpp",
+      "lines": 55,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGameplayTags.h",
+      "lines": 163,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGE_FireDamage.cpp",
+      "lines": 17,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGE_FireDamage.h",
+      "lines": 26,
+      "classes": [
+        "UGSGE_FireDamage"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGE_MoveSpeedScalar.cpp",
+      "lines": 27,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGE_MoveSpeedScalar.h",
+      "lines": 24,
+      "classes": [
+        "UGSGE_MoveSpeedScalar"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGE_WeaponDamage.cpp",
+      "lines": 14,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSGE_WeaponDamage.h",
+      "lines": 22,
+      "classes": [
+        "UGSGE_WeaponDamage"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSRaceDataAsset.cpp",
+      "lines": 9,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Combat/GSRaceDataAsset.h",
+      "lines": 120,
+      "classes": [
+        "UGSRaceDataAsset"
+      ],
+      "structs": [
+        "FGSArchetypeDefinition",
+        "FGSDamageMultiplierEntry"
+      ],
+      "enums": [],
+      "ufunctions": [
+        "GetDamageMultiplier"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSGameInstance.cpp",
+      "lines": 29,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSGameInstance.h",
+      "lines": 31,
+      "classes": [
+        "UGSGameInstance"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetSaveGame",
+        "SaveGame"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSGameMode.cpp",
+      "lines": 152,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSGameMode.h",
+      "lines": 73,
+      "classes": [
+        "AGSGameMode"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSGameState.cpp",
+      "lines": 356,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSGameState.h",
+      "lines": 249,
+      "classes": [
+        "AGSGameState"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "AddAlarm",
+        "DebugExpireClock",
+        "GetAlarm01",
+        "GetAlarmPhase",
+        "GetCollapseSecondsRemaining",
+        "GetRaidClockPhase",
+        "GetRaidSecondsRemaining",
+        "GetReinforcementTier",
+        "HasAnyFireStarted",
+        "IsDistrictRazed",
+        "OnRep_Alarm",
+        "OnRep_AlarmPhase",
+        "OnRep_DistrictRazed",
+        "OnRep_RaidClockPhase",
+        "OnRep_ReinforcementTier",
+        "ReportConfirmedSighting",
+        "ReportFireSeenByHuman",
+        "ReportFireStarted",
+        "RequestAlarmPhase",
+        "SetDistrictRazed",
+        "StartRaidClock"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSPlayerState.cpp",
+      "lines": 53,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Core/GSPlayerState.h",
+      "lines": 49,
+      "classes": [
+        "AGSPlayerState"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "DebugSetLives",
+        "GetLives",
+        "OnRep_Lives",
+        "ResetLivesForNewRaid"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBreakableComponent.cpp",
+      "lines": 155,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBreakableComponent.h",
+      "lines": 124,
+      "classes": [
+        "UGSBreakableComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "Break",
+        "DoesOpenBuilding",
+        "IsBroken",
+        "OnRep_Broken",
+        "SetOpensBuilding"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBuildingObjective.cpp",
+      "lines": 632,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBuildingObjective.h",
+      "lines": 308,
+      "classes": [
+        "AGSBuildingObjective"
+      ],
+      "structs": [],
+      "enums": [
+        "EGSBuildingIgnitionSource"
+      ],
+      "ufunctions": [
+        "GetBurntPieceCount",
+        "GetIgnitionSource",
+        "GetPieceCount",
+        "HandlePieceBurnedDown",
+        "HandlePieceIgnited",
+        "IgniteInterior",
+        "IsAlight",
+        "IsRoofPiece",
+        "OnRep_Alight"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBurnDebugCommands.cpp",
+      "lines": 544,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Burn.Douse",
+        "GS.Burn.Dry",
+        "GS.Burn.Firebreak",
+        "GS.Burn.Ignite",
+        "GS.Burn.IgniteAll",
+        "GS.Burn.SpawnDummy",
+        "GS.Burn.Status"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBurnFXComponent.cpp",
+      "lines": 352,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBurnFXComponent.h",
+      "lines": 219,
+      "classes": [
+        "UGSBurnFXComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetBurnAmount",
+        "HandleBurnedDown",
+        "HandleExtinguished",
+        "HandleIgnited",
+        "SetBurnAmount",
+        "SpawnSmolder"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBurnMaskSubsystem.cpp",
+      "lines": 894,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBurnMaskSubsystem.h",
+      "lines": 493,
+      "classes": [
+        "UGSBurnMaskSubsystem"
+      ],
+      "structs": [
+        "FGSBurnSplat"
+      ],
+      "enums": [],
+      "ufunctions": [
+        "ClearMask",
+        "GetEffectiveSplatRadiusCells",
+        "GetMaskRT",
+        "GetOrigin",
+        "GetOverlapCompensation",
+        "GetSize",
+        "GetSplatRadiusCells",
+        "RefreshCropBindings",
+        "RegisterCropMaterials",
+        "SetBounds",
+        "SplatBurn"
+      ],
+      "tags": [],
+      "is_subsystem": true
+    },
+    {
+      "path": "Destruction/GSBurnObjectiveBase.cpp",
+      "lines": 280,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Burn.Debug"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSBurnObjectiveBase.h",
+      "lines": 255,
+      "classes": [
+        "AGSBurnObjectiveBase"
+      ],
+      "structs": [],
+      "enums": [
+        "EGSBurnObjectiveType",
+        "EGSObjectiveListState"
+      ],
+      "ufunctions": [
+        "ContainsWorldLocation",
+        "GetCompletion01",
+        "GetListState",
+        "GetObjectiveDisplayName",
+        "GetObjectiveType",
+        "GetObjectiveTypeTag",
+        "IgniteAtLocation",
+        "IsComplete",
+        "OnRep_Completed",
+        "OnRep_Completion01",
+        "OnRep_ListState",
+        "SetListState",
+        "SetObjectiveIdentity"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSDestructibleObjective.cpp",
+      "lines": 56,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSDestructibleObjective.h",
+      "lines": 55,
+      "classes": [
+        "AGSDestructibleObjective"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "HandleBurnedDown",
+        "IsDestroyed"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSFieldFireObjective.cpp",
+      "lines": 1839,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSFieldFireObjective.h",
+      "lines": 972,
+      "classes": [
+        "AGSFieldFireObjective"
+      ],
+      "structs": [
+        "FGSFieldCell"
+      ],
+      "enums": [
+        "EGSFieldCellState"
+      ],
+      "ufunctions": [
+        "DouseAtLocation",
+        "DryAllDousedCells",
+        "GetBurningCellCount",
+        "GetBurningCentroid",
+        "GetBurntFraction",
+        "GetCellCount",
+        "GetCellIntensity01",
+        "GetCellState",
+        "GetCellWorldLocation",
+        "GetDousedCellCount",
+        "GetDousedFraction",
+        "GetNearestCellIndex",
+        "HandleCellChangedForFX",
+        "OnRep_CellStates"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSFireVolume.cpp",
+      "lines": 425,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSFireVolume.h",
+      "lines": 307,
+      "classes": [
+        "AGSFireVolume"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetDamageRadius",
+        "GetFireIntensity",
+        "GetTotalDamageDealt",
+        "SetDamageRadius",
+        "SetFireIntensity",
+        "SetLightEnabled"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSFlammableComponent.cpp",
+      "lines": 261,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSFlammableComponent.h",
+      "lines": 171,
+      "classes": [
+        "UGSFlammableComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "Extinguish",
+        "GetBurnProgress01",
+        "GetFireResistance",
+        "HasBurnedDown",
+        "Ignite",
+        "IsBurning",
+        "OnRep_BurnedDown",
+        "OnRep_BurningState"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSMarketObjective.cpp",
+      "lines": 305,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSMarketObjective.h",
+      "lines": 106,
+      "classes": [
+        "AGSMarketObjective"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "DouseAtLocation",
+        "GetBurningStallCount",
+        "GetBurntStallCount",
+        "GetStallCount",
+        "HandleStallBurnedDown"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSMillObjective.cpp",
+      "lines": 385,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSMillObjective.h",
+      "lines": 184,
+      "classes": [
+        "AGSMillObjective"
+      ],
+      "structs": [],
+      "enums": [
+        "EGSMillStage"
+      ],
+      "ufunctions": [
+        "GetSecondsToDetonation",
+        "GetStage",
+        "IgniteInterior",
+        "OnRep_Stage",
+        "OnWindowOverlap"
+      ],
+      "tags": [
+        "GS.LitTorch"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSTorchProjectile.cpp",
+      "lines": 244,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Destruction/GSTorchProjectile.h",
+      "lines": 102,
+      "classes": [
+        "AGSTorchProjectile"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "OnProjectileHit"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "GoblinSiege.cpp",
+      "lines": 7,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "GoblinSiege.h",
+      "lines": 7,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Horde/GSHordeAIController.cpp",
+      "lines": 57,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Horde/GSHordeAIController.h",
+      "lines": 48,
+      "classes": [
+        "AGSHordeAIController"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Horde/GSHordeGoblin.cpp",
+      "lines": 15,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Horde/GSHordeGoblin.h",
+      "lines": 20,
+      "classes": [
+        "AGSHordeGoblin"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Interaction/GSCarryComponent.cpp",
+      "lines": 304,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Interaction/GSCarryComponent.h",
+      "lines": 125,
+      "classes": [
+        "UGSCarryComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "DestroyCarried",
+        "GetCarriedActor",
+        "GetPutDownSeconds",
+        "HandleOwnerDied",
+        "IsCarrying",
+        "OnRep_CarriedActor",
+        "PutDown",
+        "StartCarry"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Interaction/GSInteractableComponent.cpp",
+      "lines": 109,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Interaction/GSInteractableComponent.h",
+      "lines": 126,
+      "classes": [
+        "UGSInteractableComponent"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "CanInteract",
+        "GetChannelSeconds",
+        "GetInteractionLocation",
+        "GetPromptText",
+        "GetVerbTag",
+        "IsAvailable",
+        "IsCarryable",
+        "OnRep_IsAvailable",
+        "ReceiveInteractionCompleted",
+        "SetAvailable"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Interaction/GSInteractionComponent.cpp",
+      "lines": 567,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Interact.Debug"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Interaction/GSInteractionComponent.h",
+      "lines": 184,
+      "classes": [
+        "UGSInteractionComponent"
+      ],
+      "structs": [],
+      "enums": [
+        "EGSInteractEndReason"
+      ],
+      "ufunctions": [
+        "AbortChannel",
+        "GetActiveChannelDuration",
+        "GetActiveVerbTag",
+        "GetChannelProgress",
+        "GetFocusedInteractable",
+        "HandleOwnerHealthChanged",
+        "IsChannelling",
+        "ReleaseInteractInput",
+        "ServerAbortChannel",
+        "ServerBeginChannel"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Missions/GSMissionObjective.cpp",
+      "lines": 24,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Missions/GSMissionObjective.h",
+      "lines": 43,
+      "classes": [
+        "AGSMissionObjective"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "BeginObjective",
+        "IsCompleted"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Missions/GSObjective_BurnGranaries.cpp",
+      "lines": 41,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Missions/GSObjective_BurnGranaries.h",
+      "lines": 29,
+      "classes": [
+        "AGSObjective_BurnGranaries"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "HandleGranaryDestroyed"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Missions/GSObjective_KillLandlord.cpp",
+      "lines": 62,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Missions/GSObjective_KillLandlord.h",
+      "lines": 51,
+      "classes": [
+        "AGSObjective_KillLandlord"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "HandleAlarmChanged"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Progression/GSSaveGame.cpp",
+      "lines": 2,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Progression/GSSaveGame.h",
+      "lines": 25,
+      "classes": [
+        "UGSSaveGame"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Progression/GSWeaponProgressionTree.cpp",
+      "lines": 2,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Progression/GSWeaponProgressionTree.h",
+      "lines": 35,
+      "classes": [
+        "UGSWeaponProgressionTree"
+      ],
+      "structs": [
+        "FGSWeaponUnlockNode"
+      ],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidDebugCommands.cpp",
+      "lines": 597,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Raid.BuildingStatus",
+        "GS.Raid.BurnHere",
+        "GS.Raid.ExpireClock",
+        "GS.Raid.Goto",
+        "GS.Raid.GotoActor",
+        "GS.Raid.GotoBuilding",
+        "GS.Raid.Kill",
+        "GS.Raid.SetLives",
+        "GS.Raid.SpawnAt",
+        "GS.Raid.Status"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidDirector.cpp",
+      "lines": 377,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidDirector.h",
+      "lines": 202,
+      "classes": [
+        "UGSRaidDirector"
+      ],
+      "structs": [
+        "FGSObjectiveTypeBucket"
+      ],
+      "enums": [],
+      "ufunctions": [
+        "AreObjectivesComplete",
+        "EndRaid",
+        "GetCompletedTypeCount",
+        "GetObjectiveRows",
+        "GetRaidResult",
+        "GetRequiredTypeCount",
+        "HandleCarrierCompleted",
+        "HandleRaidClockPhaseChanged",
+        "HasRaidEnded"
+      ],
+      "tags": [],
+      "is_subsystem": true
+    },
+    {
+      "path": "Raid/GSRaidLibrary.cpp",
+      "lines": 261,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidLibrary.h",
+      "lines": 123,
+      "classes": [
+        "UGSRaidLibrary"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "ConfigureMarker",
+        "CountBreakable",
+        "CountFlammable",
+        "MakeActorBreakable",
+        "MakeActorFlammable",
+        "MakeTagByName",
+        "SetObjectiveIdentity"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidMarker.cpp",
+      "lines": 108,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidMarker.h",
+      "lines": 115,
+      "classes": [
+        "AGSRaidMarker"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "Configure",
+        "GetGroupId",
+        "GetMarkerType",
+        "GetOrderIndex",
+        "GetRadius"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRaidTypes.h",
+      "lines": 76,
+      "classes": [],
+      "structs": [
+        "FGSObjectiveRow"
+      ],
+      "enums": [
+        "EGSRaidResult"
+      ],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRunicSite.cpp",
+      "lines": 306,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSRunicSite.h",
+      "lines": 200,
+      "classes": [
+        "AGSRunicSite"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetSpawnTransform",
+        "HandleObjectivesComplete",
+        "IsPortalOpen",
+        "OnRep_PortalOpen",
+        "SetPortalOpen"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSScoreSubsystem.cpp",
+      "lines": 187,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Raid/GSScoreSubsystem.h",
+      "lines": 101,
+      "classes": [
+        "UGSScoreSubsystem"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "AddDeeds",
+        "AddLoot",
+        "BuildSummaryLine",
+        "GetDeeds",
+        "GetDeedsForType",
+        "GetLoot",
+        "GetObjectivesCompleted",
+        "GetTotal",
+        "HandleObjectiveCompleted",
+        "HandleRaidEnded",
+        "HasLootSource"
+      ],
+      "tags": [],
+      "is_subsystem": true
+    },
+    {
+      "path": "UI/GSHUD.cpp",
+      "lines": 17,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "UI/GSHUD.h",
+      "lines": 27,
+      "classes": [
+        "AGSHUD"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "UI/GSPlayerHUDWidget.cpp",
+      "lines": 558,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "UI/GSPlayerHUDWidget.h",
+      "lines": 244,
+      "classes": [
+        "UGSPlayerHUDWidget"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "BindToCharacter",
+        "BindToRaid",
+        "HandleAlarmPhaseChanged",
+        "HandleHealthChanged",
+        "HandleLivesChanged",
+        "HandleObjectiveListStateChanged",
+        "HandleObjectiveProgress",
+        "HandleObjectiveRosterChanged",
+        "HandleRaidClockPhaseChanged",
+        "HandleRaidEnded",
+        "HandleStaminaChanged",
+        "OnAlarmPhaseChanged",
+        "OnDamaged",
+        "OnLivesChanged",
+        "OnObjectiveListChanged",
+        "OnRaidClockPhaseChanged",
+        "OnRaidEnded"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "UI/GSWeaponWheelWidget.cpp",
+      "lines": 121,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "UI/GSWeaponWheelWidget.h",
+      "lines": 89,
+      "classes": [
+        "UGSWeaponWheelWidget"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "HandleWheelHighlightChanged",
+        "HandleWheelOpenChanged",
+        "RefreshFromWeaponComponent"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_Block.cpp",
+      "lines": 126,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_Block.h",
+      "lines": 56,
+      "classes": [
+        "UGSGA_Block"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_BowShot.cpp",
+      "lines": 165,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_BowShot.h",
+      "lines": 118,
+      "classes": [
+        "UGSGA_BowShot"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetArrowProjectileClass",
+        "OnReleaseFinished"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_DodgeRoll.cpp",
+      "lines": 67,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_DodgeRoll.h",
+      "lines": 48,
+      "classes": [
+        "UGSGA_DodgeRoll"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "OnDodgeFinished"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_Interact.cpp",
+      "lines": 106,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_Interact.h",
+      "lines": 50,
+      "classes": [
+        "UGSGA_Interact"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "HandleChannelEnded"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_SwordLight.cpp",
+      "lines": 463,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [
+        "GS.Combat.Debug"
+      ],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_SwordLight.h",
+      "lines": 209,
+      "classes": [
+        "UGSGA_SwordLight"
+      ],
+      "structs": [
+        "FGSSwingStage"
+      ],
+      "enums": [],
+      "ufunctions": [
+        "BufferComboInput",
+        "GetCurrentStageIndex"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_TorchToss.cpp",
+      "lines": 180,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/Abilities/GSGA_TorchToss.h",
+      "lines": 118,
+      "classes": [
+        "UGSGA_TorchToss"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetTorchProjectileClass",
+        "OnTorchWindupFinished"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/GSArrowProjectile.cpp",
+      "lines": 199,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/GSArrowProjectile.h",
+      "lines": 119,
+      "classes": [
+        "AGSArrowProjectile"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "OnProjectileHit"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/GSWeaponComponent.cpp",
+      "lines": 639,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/GSWeaponComponent.h",
+      "lines": 353,
+      "classes": [
+        "UGSWeaponComponent"
+      ],
+      "structs": [],
+      "enums": [
+        "EGSWeaponSlot"
+      ],
+      "ufunctions": [
+        "AddBloodOrb",
+        "AddWheelInput",
+        "CloseWeaponWheel",
+        "ConsumeBloodOrbs",
+        "EquipWeapon",
+        "GetActiveWeaponMesh",
+        "GetBloodOrbCount",
+        "GetCurrentSlot",
+        "GetEquippedWeapon",
+        "GetHeldTorchMesh",
+        "GetWheelHighlight",
+        "GetWheelVector",
+        "IsInRangedMode",
+        "IsTorchReadied",
+        "IsWheelCommitted",
+        "IsWheelOpen",
+        "OpenWeaponWheel",
+        "RefreshWeaponVisuals",
+        "SetSlot",
+        "SetTorchReadied",
+        "SlotForDirection",
+        "ToggleRangedMode"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/GSWeaponDataAsset.cpp",
+      "lines": 23,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "Weapons/GSWeaponDataAsset.h",
+      "lines": 247,
+      "classes": [
+        "UGSWeaponDataAsset"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "World/GSWaterVolume.cpp",
+      "lines": 18,
+      "classes": [],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [],
+      "tags": [],
+      "is_subsystem": false
+    },
+    {
+      "path": "World/GSWaterVolume.h",
+      "lines": 52,
+      "classes": [
+        "AGSWaterVolume"
+      ],
+      "structs": [],
+      "enums": [],
+      "ufunctions": [
+        "GetSwimDashDrainRate",
+        "GetSwimDrainRate"
+      ],
+      "tags": [],
+      "is_subsystem": false
+    }
+  ],
+  "symbols": {
+    "AGSAIControllerBase": "AI/GSAIControllerBase.h",
+    "UGSBuffAuraComponent": "AI/GSBuffAuraComponent.h",
+    "AGSSpawnerActor": "AI/GSSpawnerActor.h",
+    "UBTService_AcquireTarget": "AI/Tasks/BTService_AcquireTarget.h",
+    "UBTTask_EvadeTelegraph": "AI/Tasks/BTTask_EvadeTelegraph.h",
+    "UBTTask_Firefight": "AI/Tasks/BTTask_Firefight.h",
+    "UBTTask_MeleeAttack": "AI/Tasks/BTTask_MeleeAttack.h",
+    "FGSMeleeAttackMemory": "AI/Tasks/BTTask_MeleeAttack.h",
+    "EGSAlarmPhase": "Alarm/GSAlarmTypes.h",
+    "EGSAlarmSource": "Alarm/GSAlarmTypes.h",
+    "EGSRaidClockPhase": "Alarm/GSAlarmTypes.h",
+    "EGSReinforcementTier": "Alarm/GSAlarmTypes.h",
+    "UGSAttributeSetBase": "Attributes/GSAttributeSetBase.h",
+    "AGSCharacterBase": "Characters/GSCharacterBase.h",
+    "AGSEnemyCharacter": "Characters/GSEnemyCharacter.h",
+    "AGSPlayerCharacter": "Characters/GSPlayerCharacter.h",
+    "UGSStaminaComponent": "Characters/GSStaminaComponent.h",
+    "UGSTargetingComponent": "Characters/GSTargetingComponent.h",
+    "UGSAimComponent": "Combat/GSAimComponent.h",
+    "EGSAimMode": "Combat/GSAimComponent.h",
+    "UGSDamageExecCalculation": "Combat/GSDamageExecCalculation.h",
+    "FGSDebugToggle": "Combat/GSDebugCommands.cpp",
+    "UGSGE_FireDamage": "Combat/GSGE_FireDamage.h",
+    "UGSGE_MoveSpeedScalar": "Combat/GSGE_MoveSpeedScalar.h",
+    "UGSGE_WeaponDamage": "Combat/GSGE_WeaponDamage.h",
+    "UGSRaceDataAsset": "Combat/GSRaceDataAsset.h",
+    "FGSArchetypeDefinition": "Combat/GSRaceDataAsset.h",
+    "FGSDamageMultiplierEntry": "Combat/GSRaceDataAsset.h",
+    "UGSGameInstance": "Core/GSGameInstance.h",
+    "AGSGameMode": "Core/GSGameMode.h",
+    "AGSGameState": "Core/GSGameState.h",
+    "AGSPlayerState": "Core/GSPlayerState.h",
+    "UGSBreakableComponent": "Destruction/GSBreakableComponent.h",
+    "AGSBuildingObjective": "Destruction/GSBuildingObjective.h",
+    "EGSBuildingIgnitionSource": "Destruction/GSBuildingObjective.h",
+    "UGSBurnFXComponent": "Destruction/GSBurnFXComponent.h",
+    "UGSBurnMaskSubsystem": "Destruction/GSBurnMaskSubsystem.h",
+    "FGSBurnSplat": "Destruction/GSBurnMaskSubsystem.h",
+    "AGSBurnObjectiveBase": "Destruction/GSBurnObjectiveBase.h",
+    "EGSBurnObjectiveType": "Destruction/GSBurnObjectiveBase.h",
+    "EGSObjectiveListState": "Destruction/GSBurnObjectiveBase.h",
+    "AGSDestructibleObjective": "Destruction/GSDestructibleObjective.h",
+    "AGSFieldFireObjective": "Destruction/GSFieldFireObjective.h",
+    "FGSFieldCell": "Destruction/GSFieldFireObjective.h",
+    "EGSFieldCellState": "Destruction/GSFieldFireObjective.h",
+    "AGSFireVolume": "Destruction/GSFireVolume.h",
+    "UGSFlammableComponent": "Destruction/GSFlammableComponent.h",
+    "AGSMarketObjective": "Destruction/GSMarketObjective.h",
+    "AGSMillObjective": "Destruction/GSMillObjective.h",
+    "EGSMillStage": "Destruction/GSMillObjective.h",
+    "AGSTorchProjectile": "Destruction/GSTorchProjectile.h",
+    "AGSHordeAIController": "Horde/GSHordeAIController.h",
+    "AGSHordeGoblin": "Horde/GSHordeGoblin.h",
+    "UGSCarryComponent": "Interaction/GSCarryComponent.h",
+    "UGSInteractableComponent": "Interaction/GSInteractableComponent.h",
+    "UGSInteractionComponent": "Interaction/GSInteractionComponent.h",
+    "EGSInteractEndReason": "Interaction/GSInteractionComponent.h",
+    "AGSMissionObjective": "Missions/GSMissionObjective.h",
+    "AGSObjective_BurnGranaries": "Missions/GSObjective_BurnGranaries.h",
+    "AGSObjective_KillLandlord": "Missions/GSObjective_KillLandlord.h",
+    "UGSSaveGame": "Progression/GSSaveGame.h",
+    "UGSWeaponProgressionTree": "Progression/GSWeaponProgressionTree.h",
+    "FGSWeaponUnlockNode": "Progression/GSWeaponProgressionTree.h",
+    "UGSRaidDirector": "Raid/GSRaidDirector.h",
+    "FGSObjectiveTypeBucket": "Raid/GSRaidDirector.h",
+    "UGSRaidLibrary": "Raid/GSRaidLibrary.h",
+    "AGSRaidMarker": "Raid/GSRaidMarker.h",
+    "FGSObjectiveRow": "Raid/GSRaidTypes.h",
+    "EGSRaidResult": "Raid/GSRaidTypes.h",
+    "AGSRunicSite": "Raid/GSRunicSite.h",
+    "UGSScoreSubsystem": "Raid/GSScoreSubsystem.h",
+    "AGSHUD": "UI/GSHUD.h",
+    "UGSPlayerHUDWidget": "UI/GSPlayerHUDWidget.h",
+    "UGSWeaponWheelWidget": "UI/GSWeaponWheelWidget.h",
+    "UGSGA_Block": "Weapons/Abilities/GSGA_Block.h",
+    "UGSGA_BowShot": "Weapons/Abilities/GSGA_BowShot.h",
+    "UGSGA_DodgeRoll": "Weapons/Abilities/GSGA_DodgeRoll.h",
+    "UGSGA_Interact": "Weapons/Abilities/GSGA_Interact.h",
+    "UGSGA_SwordLight": "Weapons/Abilities/GSGA_SwordLight.h",
+    "FGSSwingStage": "Weapons/Abilities/GSGA_SwordLight.h",
+    "UGSGA_TorchToss": "Weapons/Abilities/GSGA_TorchToss.h",
+    "AGSArrowProjectile": "Weapons/GSArrowProjectile.h",
+    "UGSWeaponComponent": "Weapons/GSWeaponComponent.h",
+    "EGSWeaponSlot": "Weapons/GSWeaponComponent.h",
+    "UGSWeaponDataAsset": "Weapons/GSWeaponDataAsset.h",
+    "AGSWaterVolume": "World/GSWaterVolume.h"
+  }
+}

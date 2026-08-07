@@ -1,0 +1,14 @@
+{
+  "files_checked": [
+    "Stealth/GSSightPerceptionComponent.h",
+    "Stealth/GSStealthSubsystem.h",
+    "Stealth/GSStealthTypes.h",
+    "Stealth/GSSightPerceptionComponent.cpp",
+    "Stealth/GSStealthSubsystem.cpp"
+  ],
+  "unknown_type_references": [],
+  "unknown_method_calls": [],
+  "header_hygiene": [],
+  "calls_check_advisory": false,
+  "clean": true
+}
