@@ -1,0 +1,11 @@
+# Credentials — never commit. The loader also reads ../.env and
+# "../GoblinSiege 5.8/.env"; both are ignored by their own .gitignore.
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+
+# out/ is deliberately NOT ignored: the generated data tables and retrieval
+# traces are the assignment deliverables.

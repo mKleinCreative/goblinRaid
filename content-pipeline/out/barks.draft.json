@@ -1,0 +1,233 @@
+[
+  {
+    "speaker": "Watchman",
+    "alarm_state": "Quiet",
+    "trigger": "WatchmanDozeStart",
+    "line": "The king slew the last of 'em, so what exactly am I watching for… mmnh.",
+    "note": "The doze is a timer on his perception cone; the propaganda is the excuse he naps on, so the nap and the joke are the same beat.",
+    "sources": [
+      "GDD§2.10#0",
+      "GDD§2.6#1",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_01_WatchmanDozeStart"
+  },
+  {
+    "speaker": "Watchman",
+    "alarm_state": "Quiet",
+    "trigger": "WatchmanDozeEnd",
+    "line": "Awake! Watching! Been watching this whole time — what time is it?",
+    "note": "Fires as the drooping vision cone snaps back up, telling the player the nap window just closed without a HUD readout.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§3.1#5",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_02_WatchmanDozeEnd"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "Quiet",
+    "trigger": "CoinTossScramble",
+    "line": "Ooh — dropped coin, no owner, that's salvage, that's mine by law.",
+    "note": "The coin toss works on guards because greed is the exploitable stat; he breaks off his post and legally justifies it to himself.",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_03_CoinTossScramble"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "Quiet",
+    "trigger": "CoinTossScramble",
+    "line": "Coins in the mud at the king's feet — the statue's paying out!",
+    "note": "Uses the village-centre statue of the king from the propaganda dressing, and keeps civilian greed on the same branch as guard greed.",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.10#0",
+      "GDD§2.10#1"
+    ],
+    "_name": "Barks_04_CoinTossScramble"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "Suspicious",
+    "trigger": "FlockStartled_Investigate",
+    "line": "Squawk all you like, hens — it's a fox, it's always a fox, it has never once not been a fox.",
+    "note": "A startled flock is a soft signal that pulls the nearest guard to investigate; he investigates while pre-explaining it away.",
+    "sources": [
+      "GDD§2.7#1",
+      "GDD§2.6#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_05_FlockStartledInvestigate"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "Suspicious",
+    "trigger": "FlockStartled_NearbyRoutine",
+    "line": "A goblin? In my pen? Don't be daft, it's shearing day.",
+    "note": "The GDD's own reference bark, sitting on the flock noise event — disbelief first, chores uninterrupted.",
+    "sources": [
+      "GDD§2.10#0",
+      "GDD§2.7#1"
+    ],
+    "_name": "Barks_06_FlockStartledNearbyRoutine"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "Suspicious",
+    "trigger": "CorpseDiscovered",
+    "line": "Somebody's knifed the pen-hand. …Right. That's a fox with a knife. Investigating.",
+    "note": "Seeing a body goes only to Suspicious, never straight to the bell, because the denial is doing the work.",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.6#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_07_CorpseDiscovered"
+  },
+  {
+    "speaker": "Militia",
+    "alarm_state": "Suspicious",
+    "trigger": "CorpseDiscovered_Second",
+    "line": "Face-down, back opened, and not one goblin in the county for a hundred years — so it's a badger with ambition.",
+    "note": "Second corpse, same explanation, visibly straining: the joke escalates as the evidence stacks rather than resolving.",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.4#1",
+      "GDD§2.6#1"
+    ],
+    "_name": "Barks_08_CorpseDiscoveredSecond"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "Suspicious",
+    "trigger": "SightingConfirmed",
+    "line": "Green. Waist-high. Grinning. …I am not writing that in the book.",
+    "note": "Fires the moment a sighting holds long enough to confirm; disbelief, not fear, is the first reaction to an extinct monster.",
+    "sources": [
+      "GDD§2.4#0",
+      "GDD§2.4#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_09_SightingConfirmed"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "Suspicious",
+    "trigger": "SoftSignalDecay_ReturnToQuiet",
+    "line": "No goblin, no tracks, no nothing — trick of the light, back to your chores.",
+    "note": "The audible tell that an uncorroborated soft signal has decayed back to Quiet, since no timer shows on the HUD.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.6#2",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_10_SoftSignalDecayReturnToQuiet"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "Quiet",
+    "trigger": "RoutineResume_AfterDecay",
+    "line": "Must've been a badger. A badger wearing a belt. Badgers do that.",
+    "note": "Post-decay pottering resumes; canon's badger line, pushed one notch dumber because the villager did in fact see a belt.",
+    "sources": [
+      "GDD§2.10#0",
+      "GDD§2.10#1",
+      "GDD§2.6#1"
+    ],
+    "_name": "Barks_11_RoutineResumeAfterDecay"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "Suspicious",
+    "trigger": "PatrolOverdue_NoCheckIn",
+    "line": "That patrol's well past its waypoint — three grown men lost on a road with signposts on it.",
+    "note": "The ambient mutter that a patrol is running late is the only tell the missing-patrol soft signal has fired.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.1#1",
+      "GDD§3.4#0"
+    ],
+    "_name": "Barks_12_PatrolOverdueNoCheckIn"
+  },
+  {
+    "speaker": "PatrolArcher",
+    "alarm_state": "Suspicious",
+    "trigger": "HornWindUp_PatrolLosing",
+    "line": "We're losing — horn, horn, I'm sounding the — EXTINCT, ARE THEY?!",
+    "note": "She only winds up the horn once the patrol is losing; the committed wind-up is the player's window to cut her down.",
+    "sources": [
+      "GDD§2.1#1",
+      "GDD§2.6#1",
+      "GDD§2.10#1"
+    ],
+    "_name": "Barks_13_HornWindUpPatrolLosing"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "Raid",
+    "trigger": "WellFouled_Discovered",
+    "line": "There's something in the well, and I think it's looking back at me!",
+    "note": "Sells the +30 well-fouling counterplay as a readable, disgusting event rather than a stat change.",
+    "sources": [
+      "GDD§2.6#3",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_14_WellFouledDiscovered"
+  },
+  {
+    "speaker": "Militia",
+    "alarm_state": "Raid",
+    "trigger": "BucketBrigadeFormUp",
+    "line": "Bucket line, move! Pass it — don't sniff it, just throw it!",
+    "note": "Bucket lines form at the well in RAID; the fouled water lands as a gag inside the firefighting behaviour.",
+    "sources": [
+      "GDD§2.6#2",
+      "GDD§2.6#3",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_15_BucketBrigadeFormUp"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "Raid",
+    "trigger": "BucketBrigadeDisabled_WellFouled",
+    "line": "The granary's alight and the well's gone foul — we're fighting fire with soup!",
+    "note": "The audible confirmation that fouling the well permanently killed the brigade, tied to a burning objective.",
+    "sources": [
+      "GDD§2.6#3",
+      "GDD§2.1#1",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_16_BucketBrigadeDisabledWellFou"
+  },
+  {
+    "speaker": "Militia",
+    "alarm_state": "Razed",
+    "trigger": "LastPush_HamletBurning",
+    "line": "Windmill's ash, field's ash, fine — FINE — goblins! I said it! Are we happy?!",
+    "note": "At RAZED the denial finally snaps; the punchline lands on the man who spent the whole raid telling it.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.10#1",
+      "GDD§2.1#1"
+    ],
+    "_name": "Barks_17_LastPushHamletBurning"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "Razed",
+    "trigger": "RoutinesGoneQuiet",
+    "line": "Nobody at the pens, nobody in the field — nobody left to tell me it was a badger.",
+    "note": "A hamlet's worth of empty routines is the strained denial's final beat, and it reads the same whether the missing were killed or bound.",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.6#1",
+      "GDD§2.6#2"
+    ],
+    "_name": "Barks_18_RoutinesGoneQuiet"
+  }
+]

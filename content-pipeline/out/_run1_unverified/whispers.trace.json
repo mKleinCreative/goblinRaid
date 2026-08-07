@@ -1,0 +1,665 @@
+{
+  "job": "whispers",
+  "title": "His Eternal Darkness — whisper and verdict lines",
+  "gap": "GDD 3.2 (The Writer): 'new capture/purge-triggered Overlord verdict lines (2.10)' are outstanding. 2.10 asks for a raid that comes home with a rope chain of prisoners to earn a different flavour of verdict than one that comes home merely rich, and the clock nudges at 10/5/2 minutes have no lines either.",
+  "model": "claude-opus-5",
+  "retrieval": [
+    {
+      "query": "His Eternal Darkness whispers verdict adequate rats layered subtitles register",
+      "hits": [
+        {
+          "chunk_id": "GDD§1#0",
+          "score": 21.226,
+          "heading": "1. Executive Summary"
+        },
+        {
+          "chunk_id": "GDD§2.10#1",
+          "score": 17.01,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#2",
+          "score": 16.407,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§1#1",
+          "score": 16.254,
+          "heading": "1. Executive Summary"
+        }
+      ]
+    },
+    {
+      "query": "capture bind prisoners rope chain None Left Behind tribute proof they remember us",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.10#1",
+          "score": 18.168,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#2",
+          "score": 16.41,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.7#3",
+          "score": 13.576,
+          "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system"
+        },
+        {
+          "chunk_id": "GDD§2.6#3",
+          "score": 12.408,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        }
+      ]
+    },
+    {
+      "query": "raid clock 30 minutes ten five two minute nudges portal collapse grace window",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.2#0",
+          "score": 19.161,
+          "heading": "2. Game Mechanics > 2.2 Win, lose, and the three pressures"
+        },
+        {
+          "chunk_id": "GDD§1#2",
+          "score": 17.128,
+          "heading": "1. Executive Summary"
+        },
+        {
+          "chunk_id": "GDD§1#1",
+          "score": 15.844,
+          "heading": "1. Executive Summary"
+        },
+        {
+          "chunk_id": "GDD§3.1#5",
+          "score": 15.612,
+          "heading": "3. AI Architecture > 3.1 The game-system agents"
+        }
+      ]
+    },
+    {
+      "query": "score deeds loot banking extraction multiplier end screen letter grade personal best",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.9#0",
+          "score": 27.146,
+          "heading": "2. Game Mechanics > 2.9 Scoring (placeholder values, tuned in week 6–7 playtests)"
+        },
+        {
+          "chunk_id": "GDD§3.2#0",
+          "score": 13.767,
+          "heading": "3. AI Architecture > 3.2 The studio agents"
+        },
+        {
+          "chunk_id": "GDD§3.2#1",
+          "score": 12.659,
+          "heading": "3. AI Architecture > 3.2 The studio agents"
+        },
+        {
+          "chunk_id": "GDD§2.1#1",
+          "score": 12.556,
+          "heading": "2. Game Mechanics > 2.1 The core loop"
+        }
+      ]
+    },
+    {
+      "query": "windmill ablaze detonation window torch two stage set piece",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.8#1",
+          "score": 23.659,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#2",
+          "score": 23.207,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#3",
+          "score": 7.221,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§1#1",
+          "score": 5.974,
+          "heading": "1. Executive Summary"
+        }
+      ]
+    },
+    {
+      "query": "now is the time of the goblins propaganda vengeance theme tone escalates",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.10#2",
+          "score": 23.587,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#3",
+          "score": 19.14,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#1",
+          "score": 16.013,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#0",
+          "score": 8.822,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        }
+      ]
+    },
+    {
+      "query": "runic site standing stones portal extraction courier banking",
+      "hits": [
+        {
+          "chunk_id": "GDD§1#1",
+          "score": 16.788,
+          "heading": "1. Executive Summary"
+        },
+        {
+          "chunk_id": "GDD§3.1#5",
+          "score": 12.685,
+          "heading": "3. AI Architecture > 3.1 The game-system agents"
+        },
+        {
+          "chunk_id": "GDD§2.6#3",
+          "score": 12.269,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§1#0",
+          "score": 11.566,
+          "heading": "1. Executive Summary"
+        }
+      ]
+    }
+  ],
+  "context": [
+    {
+      "id": "GDD§2.9#0",
+      "heading": "2. Game Mechanics > 2.9 Scoring (placeholder values, tuned in week 6–7 playtests)",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Objective burned (granary / field / mill) 100 each (+150 for all three) · loot items 5–25 · market gold 5–15 per stall · strongbox 75 · **stolen pig/sheep/chicken 40/25/10 (loot-kind)** · **livestock killed 8/5/2 (deed, petty)** · militia/archer/knight 10/15/25 (capped by the raid-response pool of 15, §2.6) · takedown +5 on the kill · civilian 5 · **civilian captured (marched home, loot-kind) 15** · watchman silenced +25 · **\"First Spark Unseen\" +40** · **\"None Left Behind\" +40 (every civilian in the hamlet marched home alive)** · well fouled +30 · barracks demolished +40 · **clean patrol wipe (horn silenced before it sounds) +15** · **made it home: ×1.5 on deeds** · +20 per unused life. End screen: itemized deeds/loot split, letter grade, Overlord verdict, personal best. The prototype economy is *score only* — the tier ladder's scaling rewards and progression trees are architected for but deferred."
+    },
+    {
+      "id": "GDD§2.8#1",
+      "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**One hand-authored hamlet, not a generator (decided, 2026-07-23).** The slice ships a single, hand-composed hamlet assembled once from three hand-authored **module types**, stitched together with trees and greenery on an authored road-and-plots layout — not a constrained generator assembling a fresh one every raid. That's a deliberate scope call, not a fallback: procedurally generating an entire map free of placement bugs (week 1 alone already surfaced a road cutting through a house and a windmill sited on an unbuildable rock face) is real, open-ended engineering risk, and the better trade for a one-human-plus-agents team on a seven-week clock is to spend that budget once, by hand, and bank the reliability rather than fight a system that isn't there yet. The three module types:\n\n- **The core village** — the hamlet's social heart: houses, the well, the watchtower, the barracks, and the **market stalls with lootable gold** (the map's loot concentration, and where the strongbox spawns). Its burn objective is the **village granary**, sitting where the guards are thickest.\n- **Farmsteads** — the working edge: a farmhouse, **livestock pens** (the chickens, sheep, and pigs of §2.7), and ripe **wheat fields whose burn objective is the crop itself** — field fire spreads row to row, the most visible arson in the game and the hardest to douse.\n- **The windmill** — the landmark: its silhouette turns above the treetops (an orientation aid from anywhere in the forest, like the watchtower). Burning it down is a two-stage set piece, and — fixed this revision — both stages are now visible. Any torch touching the mill's frame starts **Stage 1 — Ablaze**: the sails catch, the smoke column thickens and darkens, a HUD line reads *\"Windmill: Ablaze — needs a window shot,\"* and His Eternal Darkness delivers a one-line bark the first time it happens (\"Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window\"). That's the tell fire's alarm cost was always missing: exterior fire still doesn't finish the objective on its own, but it's never silently wasted anymore — the player can see exactly what they bought and what's still owed. Finishing it means throwing a torch **through one of its windows** (an aimed throw) to catch the grain dust inside for **Stage 2 — Detonation**, which builds until the dust **detonates** in a one-off explosion and the mill state-swaps to a smashed-but-recognizable silhouette — collapsed inward, still burning. It's the raid's biggest visual payoff, the only objective you can't finish from outside, and now the only one where \"go loud\" and \"finish the job\" are two separate, both-legible steps instead of one action with a hidden second half."
+    },
+    {
+      "id": "GDD§2.10#2",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "None of this replaces the comedy — it gives it a floor. Every civilian a player captures rather than kills (§2.6, §2.7) is a small, systemic argument for who the goblins actually are versus what the propaganda claims: not vermin to be quietly stamped out, but a people who were told they didn't exist and are done proving it by staying quiet. His Eternal Darkness's whispers should register the difference — a raid that comes home with a rope chain of prisoners earns a different flavor of verdict than one that comes home merely rich (\"Bring me proof they remember us. …adequate\" sits closer to the register than another crack about rats). And the denial itself should visibly strain as the evidence piles up: one missing villager is \"must've been a badger\"; a hamlet's worth of empty routines is the joke's punchline finally landing on the people telling it. **\"Now is the time of the goblins\"** is the raid's real rallying cry underneath the satire — the Overlord's mockery of the humans and the game's own vengeance are two tones on the same idea, not a contradiction to resolve.\n\n**The weight escalates with the ladder, not inside the first raid (decided, 2026-07-23).** Tier 1 stays deliberately goofy: propaganda-as-denial played as comedy, \"must've been a badger,\" an Overlord who mocks more than he mourns. That's a sequencing choice, not a verdict that the theme doesn't matter — a new player's first raid needs to land as *fun*, and a little bit of superiority (outwitting bumbling guards, walking off with their pigs and their gold while they double-take at a monster they were told doesn't exist), because that feeling is what gets someone to queue up a second raid, not a history lesson delivered on their first one. The heavier version of the theme belongs to the settlement ladder (§2.8): as raids push deeper into the county — Pennybrook's walls, Silverford's stone, and finally Highpurse Keep, the seat the propaganda itself radiates from — the denial gets harder for the humans to sustain and the tone is free to darken to match, culminating in the Mayor Goldbottom assassination confronting the theme directly instead of laughing past it. Tier 1 spends its page count earning the player's trust and their sense of fun; tiers 2 through 4 are where that trust gets spent."
+    },
+    {
+      "id": "GDD§2.8#2",
+      "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "- **The core village** — the hamlet's social heart: houses, the well, the watchtower, the barracks, and the **market stalls with lootable gold** (the map's loot concentration, and where the strongbox spawns). Its burn objective is the **village granary**, sitting where the guards are thickest.\n- **Farmsteads** — the working edge: a farmhouse, **livestock pens** (the chickens, sheep, and pigs of §2.7), and ripe **wheat fields whose burn objective is the crop itself** — field fire spreads row to row, the most visible arson in the game and the hardest to douse.\n- **The windmill** — the landmark: its silhouette turns above the treetops (an orientation aid from anywhere in the forest, like the watchtower). Burning it down is a two-stage set piece, and — fixed this revision — both stages are now visible. Any torch touching the mill's frame starts **Stage 1 — Ablaze**: the sails catch, the smoke column thickens and darkens, a HUD line reads *\"Windmill: Ablaze — needs a window shot,\"* and His Eternal Darkness delivers a one-line bark the first time it happens (\"Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window\"). That's the tell fire's alarm cost was always missing: exterior fire still doesn't finish the objective on its own, but it's never silently wasted anymore — the player can see exactly what they bought and what's still owed. Finishing it means throwing a torch **through one of its windows** (an aimed throw) to catch the grain dust inside for **Stage 2 — Detonation**, which builds until the dust **detonates** in a one-off explosion and the mill state-swaps to a smashed-but-recognizable silhouette — collapsed inward, still burning. It's the raid's biggest visual payoff, the only objective you can't finish from outside, and now the only one where \"go loud\" and \"finish the job\" are two separate, both-legible steps instead of one action with a hidden second half.\n\nThis hamlet carries **all three burn objectives in a single fixed layout — one granary, one field, one windmill** — rather than the randomized two-of-three mix a procedural version will eventually roll; a new player sees every objective type, and how each one burns, in their very first raid instead of maybe two of them. **Trees and greenery** (hedgerows, copses, garden plots) fill the seams between modules and double as the stealth layer's cover. The layout also owes the player **wayfinding**: you're told *what* to burn, and the environment leads you to *where* — roads converge on the village core, signposts point the miles, wheat density thickens toward the mill, and the pens announce themselves by ear. Hand-authored prefabs keep the art language and readability intact (every surface still telegraphs what burns and what breaks); the same prefab kit is what the post-slice generator will eventually arrange algorithmically, once it's built. The forest ring and the runic site are authored once, same as everything else."
+    },
+    {
+      "id": "GDD§1#0",
+      "heading": "1. Executive Summary",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**Goblin Siege** is a third-person raid game in which the player is the monster. You are a goblin. Your Overlord — an unseen voice called **His Eternal Darkness**, who communicates only in layered whispers and subtitles — sends you through a runic portal into a dusk-lit forest in the county of **Groatsworth** *(name placeholder in the game's cozy-smug naming register)*, outside a tiny, unwalled human farming hamlet — too small to have a name, one of dozens dotting the county, and doing suspiciously well for itself. His Eternal Darkness assigns you **three burn targets**, drawn from what the hamlet happens to have — its village granary, its ripe wheat fields, its windmill — plus a standing order to steal everything that isn't nailed down, including the pigs, and get back to the standing stones before the portal collapses."
+    },
+    {
+      "id": "GDD§2.2#0",
+      "heading": "2. Game Mechanics > 2.2 Win, lose, and the three pressures",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "- **Win:** all three assigned objectives burned *and* you exit through the portal. Deeds (kills, arson, mischief bonuses) multiply ×1.5 on a successful exit, plus +20 per unused life.\n- **Lose:** all 5 lives spent, or still outside the circle when the portal dies (0:00 plus a 90-second collapse window — screen-wide warning, guttering stone-glow, the whispers going cold). Either way you keep only 25% of unbanked deeds. Loot that already physically reached the stones — or the Warren (§2.6), once one's planted — is safe regardless.\n- Three stacking pressures: **lives** (respawn is at the runic site — or at the Warren, §2.6, once you've planted one — so dying deep in the hamlet before that costs a whole re-approach), **the alarm** (the town escalates and never de-escalates — goblins don't calm situations down, they leave), and **the clock** (30 minutes, always on the HUD, the Overlord's whispers checking in at the 10-minute mark, naming a direction at 5, and pointing you there outright inside the final 2)."
+    },
+    {
+      "id": "GDD§2.10#3",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**The weight escalates with the ladder, not inside the first raid (decided, 2026-07-23).** Tier 1 stays deliberately goofy: propaganda-as-denial played as comedy, \"must've been a badger,\" an Overlord who mocks more than he mourns. That's a sequencing choice, not a verdict that the theme doesn't matter — a new player's first raid needs to land as *fun*, and a little bit of superiority (outwitting bumbling guards, walking off with their pigs and their gold while they double-take at a monster they were told doesn't exist), because that feeling is what gets someone to queue up a second raid, not a history lesson delivered on their first one. The heavier version of the theme belongs to the settlement ladder (§2.8): as raids push deeper into the county — Pennybrook's walls, Silverford's stone, and finally Highpurse Keep, the seat the propaganda itself radiates from — the denial gets harder for the humans to sustain and the tone is free to darken to match, culminating in the Mayor Goldbottom assassination confronting the theme directly instead of laughing past it. Tier 1 spends its page count earning the player's trust and their sense of fun; tiers 2 through 4 are where that trust gets spent.\n\n---"
+    },
+    {
+      "id": "GDD§2.10#1",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "There's a second, more specific joke underneath the general satire: **the kingdom told everyone goblins were extinct.** These hamlets are saturated with royal propaganda — a statue of the king who supposedly slew the last dragon and wiped out his goblin minions stands in every village center — so when a goblin actually shows up, the first reaction isn't fear, it's disbelief. Villagers double-take, mutter \"must've been a badger,\" and keep pottering while their well gets fouled six feet away. It's why a guard finding a corpse goes only to Suspicious instead of sounding the alarm outright — the propaganda is doing its job even while the evidence is on the ground. The town's first response to arson is denial, and that denial is the joke.\n\nNone of this replaces the comedy — it gives it a floor. Every civilian a player captures rather than kills (§2.6, §2.7) is a small, systemic argument for who the goblins actually are versus what the propaganda claims: not vermin to be quietly stamped out, but a people who were told they didn't exist and are done proving it by staying quiet. His Eternal Darkness's whispers should register the difference — a raid that comes home with a rope chain of prisoners earns a different flavor of verdict than one that comes home merely rich (\"Bring me proof they remember us. …adequate\" sits closer to the register than another crack about rats). And the denial itself should visibly strain as the evidence piles up: one missing villager is \"must've been a badger\"; a hamlet's worth of empty routines is the joke's punchline finally landing on the people telling it. **\"Now is the time of the goblins\"** is the raid's real rallying cry underneath the satire — the Overlord's mockery of the humans and the game's own vengeance are two tones on the same idea, not a contradiction to resolve."
+    },
+    {
+      "id": "GDD§1#2",
+      "heading": "1. Executive Summary",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**Win condition:** burn all three of the raid's assigned objectives — this slice's single tutorial hamlet carries one of each: the village core's granary, a farmstead's field, and the windmill (a randomized mix across many hamlets, never more than two of a kind, is the post-slice generator's job, §2.8) — which opens the extraction portal at the runic site; then step through it before the 30-minute raid clock (plus a 90-second grace window) expires. **Loss conditions:** lose all 5 lives, or fail to reach the portal in time and be *left behind*. Score is the connective tissue: everything you do earns points, but **deeds only fully bank if you make it home** (×1.5 on extraction; a wipe salvages just 25%), while physical **loot banks permanently the moment it reaches the stones** — so a smart goblin sends loot home early on the backs of expendable AI couriers.\n\nThe raid's shape is **quiet in, loud out**. The hamlet has no wall — its defense is a handful of guards, a watchtower, and open sightlines — so the approach is a stealth game: noise, cover, a dozing watchman, a silent takedown, a flock of chickens that will scream about you to the whole county. But your objective is *arson*, which cannot be hidden. Stealth isn't about ghosting the mission; it's about **controlling when the mayhem starts** — and when it starts, you blow your war-horn and your cackling AI horde comes sprinting out of the treeline, up to ten goblins fighting at your back. Combat is weighty and readable (stamina-gated melee, committed dodges, telegraphed enemy attacks), the town visibly fights back (bucket brigades, a bell, reinforcements from a distant castle), and the game plays as satire throughout: the humans of Groatsworth county are pompous, greedy, and a little bit stupid."
+    },
+    {
+      "id": "GDD§1#1",
+      "heading": "1. Executive Summary",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**Goblin Siege** is a third-person raid game in which the player is the monster. You are a goblin. Your Overlord — an unseen voice called **His Eternal Darkness**, who communicates only in layered whispers and subtitles — sends you through a runic portal into a dusk-lit forest in the county of **Groatsworth** *(name placeholder in the game's cozy-smug naming register)*, outside a tiny, unwalled human farming hamlet — too small to have a name, one of dozens dotting the county, and doing suspiciously well for itself. His Eternal Darkness assigns you **three burn targets**, drawn from what the hamlet happens to have — its village granary, its ripe wheat fields, its windmill — plus a standing order to steal everything that isn't nailed down, including the pigs, and get back to the standing stones before the portal collapses.\n\n**Win condition:** burn all three of the raid's assigned objectives — this slice's single tutorial hamlet carries one of each: the village core's granary, a farmstead's field, and the windmill (a randomized mix across many hamlets, never more than two of a kind, is the post-slice generator's job, §2.8) — which opens the extraction portal at the runic site; then step through it before the 30-minute raid clock (plus a 90-second grace window) expires. **Loss conditions:** lose all 5 lives, or fail to reach the portal in time and be *left behind*. Score is the connective tissue: everything you do earns points, but **deeds only fully bank if you make it home** (×1.5 on extraction; a wipe salvages just 25%), while physical **loot banks permanently the moment it reaches the stones** — so a smart goblin sends loot home early on the backs of expendable AI couriers."
+    },
+    {
+      "id": "GDD§3.1#5",
+      "heading": "3. AI Architecture > 3.1 The game-system agents",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**5. The Town Agent.**\n*Role: builds the living hamlet — the four alarm phases, guard perception, the patrol director, the watchman, civilians (including the bind/capture alternative to takedown, §2.6), livestock behavior, the bucket brigade, and the finite raid-response pool that caps RAID-phase reinforcements.*\nPlayer-facing effect: the town that visibly fights back and never calms down — the drooping vision cone of a dozing watchman, the guard who walks over to investigate a corpse, the runner sprinting for the bell after a botched ambush, bucket lines forming at the well, the flock that erupts into squawking the moment you vault into the wrong pen, and, eventually, a county that's visibly run out of soldiers to send. Livestock are this agent's cheapest win: an archetype data row plus a flee behavior, riding on the same panic branch as civilians. Status: partially scaffolded (the firefighting behavior task exists); the alarm-phase skeleton lands week 2, with peak weeks 5–6.\n\n**6. The Raid Loop Agent.**\n*Role: builds the runic site and its portal states, the Warren's respawn and secondary-banking logic (§2.6), the 30-minute clock and its 10/5/2-minute nudges, and the two-kind score system that decides what a player keeps.*\nPlayer-facing effect: why nothing counts until you're home — the stones flaring open on the last burn objective, courier sacks, pigs, and rope-chained prisoners piling up visibly inside the circle and auto-banking the instant the portal opens, the 90-second collapse with its guttering glow and cold whispers, and the end-of-raid tally that splits deeds from loot before applying the ×1.5. It's also the agent responsible for the one deliberate exception to all of that: the Warren, a closer, plantable loot-and-respawn point that gives a struggling raid something to show for itself without ever letting deeds bank anywhere but the real stones — the distinction this agent's whole design is built to protect. This agent owns the game's spine: the week-4 milestone — first full loop playable on the tutorial hamlet, start-to-bank — is its deliverable jointly with the Generator. Status: designed (tech doc §22–23); the score table is a data table, so the week-6 sign-off is a spreadsheet edit."
+    },
+    {
+      "id": "GDD§3.2#0",
+      "heading": "3. AI Architecture > 3.2 The studio agents",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**7. The Design Steward.**\n*Role: maintains the living game design document, runs design reviews with Michael, and keeps a decisions ledger so no question gets re-litigated.*\nPlayer-facing effect: every \"decided\" mechanic in §2 — the 30-minute clock, respawn-at-the-stones, the deeds/loot banking split, kill-petty/steal-big livestock, the lean-five stealth boundary, the golden-seed fallback — exists because this agent surfaced the open question, proposed options with tradeoffs, and recorded the ruling. The player feels this agent as *coherence*: greed-versus-safety shows up identically in the pouch, the couriers, the pig-theft, and the extraction multiplier because one document governs all of them — and all six system agents build from it. Shipped evidence: the Settlement Raid GDD revision, its decisions ledger (three review rounds, 2026-07-10 to 07-12), and the 2026-07-20 hamlet-pivot decision record this document reflects."
+    },
+    {
+      "id": "GDD§2.7#3",
+      "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "The rest of the loot flow: looting is something you *do*, not something that happens — a locked chest's lid must be **smashed open** (a destructible, the same make-the-world-breakable language as the burn objectives and the market stalls), and the coins inside are gathered with an interruptible hold-E channel, packing your **pouch** bit by bit while a patrol may be closing in. Die, and your pouch spills out as a lootable sack at your corpse. Loot moves home three ways: carry it yourself (slow, can't fight), toss it into the open portal (or the Warren, §2.6, if one's standing), or send it by courier — every courier is a fighter who leaves the raid *for the trip*, greed versus muscle from the same horde pool. That trip is temporary, not a sacrifice: a courier who delivers its cargo **rejoins the pool of summonable goblins** the instant it reaches the stones, free to answer the next horn blast same as any other reserve goblin. Only death is permanent — a horde goblin killed in the field is gone from the 20-pool for the rest of the raid, but a successful delivery costs nothing but time. That's the actual exchange rate behind \"greed versus muscle\": **time traded against tempo, not bodies traded against bodies.** Patrols intercept couriers opportunistically only; a dead courier (or pig-thief) drops its cargo where it fell and is spent from the pool for good, same as any other horde death.\n\n**Prisoners are loot that walks itself — mostly.** Binding a civilian (§2.4, §2.6) starts a rope chain rather than ending a life: bound captives link up behind whoever caught them and get walked home the same way any other cargo does. A horde goblin can escort up to **three prisoners per goblin** — point at the chain and it takes over, the same command that already couriers a pig or a loot sack (§2.5), and rejoins the summonable pool on a safe delivery exactly like any other courier — but beyond that capacity, or with no horde goblin free, you walk the rest yourself: slow, can't fight, exactly the cost of self-carrying any other loot. Prisoners bank the same way the rest of loot does — the instant the chain reaches the runic site or the Warren (§2.6), permanently, wipe-proof — and an intercepted or killed chain drops its cargo where it fell (and spends the escorting goblin from the pool), same as a dead courier. It's a harder, slower, riskier choice than a takedown, and it's meant to be: the game should reward marching the county's people home over quietly erasing them."
+    },
+    {
+      "id": "GDD§3.2#1",
+      "heading": "3. AI Architecture > 3.2 The studio agents",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**7. The Design Steward.**\n*Role: maintains the living game design document, runs design reviews with Michael, and keeps a decisions ledger so no question gets re-litigated.*\nPlayer-facing effect: every \"decided\" mechanic in §2 — the 30-minute clock, respawn-at-the-stones, the deeds/loot banking split, kill-petty/steal-big livestock, the lean-five stealth boundary, the golden-seed fallback — exists because this agent surfaced the open question, proposed options with tradeoffs, and recorded the ruling. The player feels this agent as *coherence*: greed-versus-safety shows up identically in the pouch, the couriers, the pig-theft, and the extraction multiplier because one document governs all of them — and all six system agents build from it. Shipped evidence: the Settlement Raid GDD revision, its decisions ledger (three review rounds, 2026-07-10 to 07-12), and the 2026-07-20 hamlet-pivot decision record this document reflects.\n\n**8. The Asset Artist.**\n*Role: models, textures, and fixes 3D props in a live shared Blender file over MCP, iterating against Michael's annotated-screenshot critiques.*\nPlayer-facing effect: the hero props the player touches — the reference case is the marketplace **strongbox**, taken end-to-end through this pipeline: chunky hand-painted proportions, iron bands riding *on top of* the wood (the art style's promise that surfaces never lie about their hardness), a padlock with the hasp it actually locks to, and a lid built as an engine destructible so that *smashing it open* — the §2.7 mechanic — works. In this revision it also owns prefab-kit conformance: every piece must read correctly from every angle — true for Michael hand-placing it into the tutorial hamlet this slice, and doubly true for the generator that will place it unsupervised once that work is funded (§2.8). Shipped evidence: the finished chest, an atlas-texture generation script, and roughly a dozen logged review rounds distilled into the playbook below."
+    },
+    {
+      "id": "GDD§2.1#1",
+      "heading": "2. Game Mechanics > 2.1 The core loop",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "One raid, capped at 30 minutes:\n\n1. **Step through as the Scout.** This slice's one playable kit — daggers and bow, live-swapped — is where every raid starts: no class-select screen this slice, just a straight drop into the **runic site** — a ring of glowing standing stones in a forest clearing. This is spawn, respawn, and the extraction point, all in one. Humans are too superstitious to enter the circle; it is the one safe tile in the world.\n2. **Cross the forest.** Worn paths lead toward the hamlet; off-path is slower and darker. Human patrols — three guards, two militia and an archer, **torches drawn** — sweep the woods every 5–7 minutes; their firelight flickers through the trees long before they can see you, so a patrol is a thing you *choose* to meet. Slip around them, ambush them quietly, or brawl — but the archer carries the patrol's own signal horn, a committed, interruptible wind-up she sounds the moment the patrol is *losing* a fight (not on first contact), and a sounded horn reaches the hamlet just like a rung bell: cut her down before it leaves her lips and the horn never happens. Win the fight before the horn sounds and you're still not quite free of it, though: patrols are expected back at the hamlet on that same 5–7-minute cadence, and one that never checks in raises its own quiet alarm after a couple of minutes' grace (§2.6) — the woods keep no witnesses, but the hamlet still notices an empty road. The county itself points your way: roads converge on the hamlet, signposts mark the miles, and the pens are audible from the treeline.\n3. **Case the hamlet.** No wall means no front door: circle it from the treeline, read the guard posts and the watchtower's vision cone, watch the well and the pens, and *find your three targets*. The HUD names the raid's three objectives — granary, field, and windmill, one of each in this slice's tutorial hamlet (§2.8) — but knowing the names isn't knowing the map, so locating them is still part of the scout, same as it will be once the post-slice generator varies the layout raid to raid. Each type telegraphs differently: a windmill announces itself over the treetops, fields sprawl at the hamlet's edges, and a granary hides in the village center where the guards are thickest.\n4. **Work quietly.** Crouch between hedgerows and haycarts, time the watchman's naps, take down an unaware guard from behind, toss a stolen coin to pull the greedy off their posts — and start looting before anyone knows you're there. Pocket valuables, smash open the strongbox, sling a squirming pig over your shoulder.\n5. **Go loud — on purpose.** Torch the first objective and the quiet phase is over: fire is the one thing you can't hide — and each target burns differently. The granary is a compact blaze in the guarded village heart; a wheat field is a *spreading* fire that races along the crop rows and lights the map for a mile; the windmill goes up like a torch, sails turning as it burns. Blow the horn, bring the horde in from the treeline, burn the rest, and fight the town's response — guards, bucket lines, the bell, and eventually soldiers marching in from the distant castle.\n6. **Get out.** Burning the last objective makes the stones flare open. Run the forest gauntlet home — the humans may pursue — and step into the circle. Loot can be tossed into the portal, or sent ahead mid-raid via courier goblins.\n7. **Get judged.** An itemized score tally, a letter grade, and a whispered verdict from His Eternal Darkness (\"Adequate. I have seen rats do better. …adequate.\"). Beat your personal best."
+    },
+    {
+      "id": "GDD§2.6#3",
+      "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Counterplay is physical and readable: silence the watchman before he rings the bell (+25); **foul the well** (\"dump something unspeakable in it\") to permanently disable the bucket brigade (+30); beat down the barracks to stop reinforcements (+40). Civilians (10 HP, no attack) run routines, panic, and join bucket lines — and, on top of the old petty-kill option, they're now a real choice. Kill one and it's *petty*, 5 points, permitted and forgettable, same as it's always been. **Bind one instead** (§2.4) and you're taking a captive: goblins haven't forgotten what \"the kingdom\" did to them, and marching prisoners home in a rope chain (§2.7) is the tribute His Eternal Darkness actually wants — not a body count. One stretch behavior, first in line if the schedule bites (§4.5): once chaos peaks, some **civilians loot their own market stalls** and bolt for home — competing with *you* for the hamlet's gold.\n\n**The Warren — a field relay, once the horn's been blown (decided, 2026-07-24).** Once a raid has gone loud, a player can spend a hold-E channel to plant **the Warren** — a crude, goblin-dug hole torn into the ground, not a second runic portal (His Eternal Darkness has exactly one of those, and it stays at the stones). Digging it is loud: it throws a noise signal like any other loud action, so where you plant it is a real decision, not a free save point. It costs one goblin from the horde pool (§2.5) — the digger stays behind to hold it open — and only one can be active per raid; if guards find and destroy it, it's gone for the rest of the raid and everything reverts to the stones. While it's standing, it does two things, deliberately not three: it becomes your respawn point instead of the far-off runic site, so a death deep in a burning hamlet costs a short trip back to the fight instead of the whole forest crossing; and loot and prisoners delivered to it **bank permanently on delivery, exactly like the stones** (§2.7) — so a raid that ends in a wipe still keeps whatever made it to the Warren. Deeds don't bank there, on purpose: loot gets more forgiving, because a struggling raid should still walk away with something real for what it actually gathered, but deeds — the raid's kills, arson, and mischief — still only bank on a clean extraction through the real portal. That's the tension the whole loop is built around, and a second place to bank them would erase the reason to ever risk the run home."
+    },
+    {
+      "id": "GDD§2.10#0",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Humans are greedy first and brave second, and greed is an exploitable AI stat: the coin toss works on guards *because* they're guards in this economy. The watchman's doze is a timer on his perception cone. Text **barks** carry the cheapest comedy per byte (\"A goblin? Here? Don't be daft, it's shearing day.\"). Violence is cartoony-with-a-hint-of-gore — party-favor gibs, clean cartoon bones, an exploding cushion of feathers for the chickens — with a single intensity scalar as the ratings knob, T target. His Eternal Darkness frames everything: apocalyptic whispered gravitas applied to stealing pigs from a hamlet too small for the humans to have bothered naming.\n\nThere's a second, more specific joke underneath the general satire: **the kingdom told everyone goblins were extinct.** These hamlets are saturated with royal propaganda — a statue of the king who supposedly slew the last dragon and wiped out his goblin minions stands in every village center — so when a goblin actually shows up, the first reaction isn't fear, it's disbelief. Villagers double-take, mutter \"must've been a badger,\" and keep pottering while their well gets fouled six feet away. It's why a guard finding a corpse goes only to Suspicious instead of sounding the alarm outright — the propaganda is doing its job even while the evidence is on the ground. The town's first response to arson is denial, and that denial is the joke."
+    },
+    {
+      "id": "GDD§2.8#3",
+      "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "This hamlet carries **all three burn objectives in a single fixed layout — one granary, one field, one windmill** — rather than the randomized two-of-three mix a procedural version will eventually roll; a new player sees every objective type, and how each one burns, in their very first raid instead of maybe two of them. **Trees and greenery** (hedgerows, copses, garden plots) fill the seams between modules and double as the stealth layer's cover. The layout also owes the player **wayfinding**: you're told *what* to burn, and the environment leads you to *where* — roads converge on the village core, signposts point the miles, wheat density thickens toward the mill, and the pens announce themselves by ear. Hand-authored prefabs keep the art language and readability intact (every surface still telegraphs what burns and what breaks); the same prefab kit is what the post-slice generator will eventually arrange algorithmically, once it's built. The forest ring and the runic site are authored once, same as everything else.\n\n**A hamlet built to be skipped, one prompt at a time.** Every objective and mechanic this hamlet introduces — the granary, the field, the windmill, the patrol and its soft-signal escalation (§2.6), a civilian pair offering both the takedown and the bind choice (§2.4), and a livestock pen for a first courier run (§2.7) — carries a short, dismissible prompt the first time the player meets it: a bark from His Eternal Darkness plus a one-line HUD note naming the objective, the payoff, and the one control that does it (the windmill's Stage-1 bark above is one instance of this same system). A single settings toggle skips every prompt at once for players who don't want the hand-holding; nothing is gated behind reading them — they're a teaching layer sitting on top of mechanics that already work standalone, not a tutorial mode the rest of the game depends on."
+    }
+  ],
+  "draft": [
+    {
+      "trigger": "Clock.TenMinutes",
+      "category": "ClockNudge",
+      "line": "Ten minutes, goblin. How goes the arson? …Don't answer. I can smell it from here.",
+      "note": "§2.2 clock pressure: the Overlord's whispers check in at the 10-minute mark; tier-1 register is mockery, not mourning.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§2.10#3"
+      ],
+      "_name": "Whispers_01_ClockTenMinutes"
+    },
+    {
+      "trigger": "Clock.FiveMinutes",
+      "category": "ClockNudge",
+      "line": "Five minutes. My stones are back through the trees, goblin — the way the smoke is blowing. Start walking while you gloat.",
+      "note": "§2.2: at 5 minutes the whisper names a direction; §2.1 the runic site is the forest-clearing ring of standing stones, and the raid is quiet in, loud out.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§2.1#1"
+      ],
+      "_name": "Whispers_02_ClockFiveMinutes"
+    },
+    {
+      "trigger": "Clock.TwoMinutes",
+      "category": "ClockNudge",
+      "line": "Two minutes. There. The circle. Into it. Drop the chicken if you must — …don't drop the chicken.",
+      "note": "§2.2: inside the final 2 the Overlord points you at the extraction outright; portal dies at 0:00 plus a 90-second collapse. Chicken is a §2.9 loot-kind steal.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_03_ClockTwoMinutes"
+    },
+    {
+      "trigger": "Objective.Granary.FirstTorch",
+      "category": "ObjectiveBark",
+      "line": "Their whole winter, goblin, stacked in one shed — with every spear in the hamlet standing round it. Light it and let them argue about badgers.",
+      "note": "Sibling of the windmill Stage-1 bark for the §2.8 granary: a compact blaze in the village core where the guards are thickest, plus the §2.10 denial joke. First-time dismissible prompt per §2.8.",
+      "sources": [
+        "GDD§2.8#1",
+        "GDD§2.8#2",
+        "GDD§2.8#3",
+        "GDD§2.10#1"
+      ],
+      "_name": "Whispers_04_ObjectiveGranaryFirstTorch"
+    },
+    {
+      "trigger": "Objective.Field.FirstTorch",
+      "category": "ObjectiveBark",
+      "line": "One row takes the next, goblin. Set the edge alight and walk away — the wheat does my work while they queue at the well with buckets.",
+      "note": "Sibling of the windmill Stage-1 bark for the §2.8 wheat field: fire spreads row to row, the most visible arson and the hardest to douse; §2.6 bucket brigade forms at the well.",
+      "sources": [
+        "GDD§2.8#1",
+        "GDD§2.8#2",
+        "GDD§2.6#3",
+        "GDD§2.8#3"
+      ],
+      "_name": "Whispers_05_ObjectiveFieldFirstTorch"
+    },
+    {
+      "trigger": "Milestone.FirstLootBanked",
+      "category": "MilestoneWhisper",
+      "line": "The first sack crosses into my stones. It is mine now. No bell in Groatsworth can un-steal it.",
+      "note": "§2.7/§2.6/§1: physical loot banks permanently the instant it reaches the stones, wipe-proof.",
+      "sources": [
+        "GDD§1#2",
+        "GDD§2.6#3",
+        "GDD§3.1#5"
+      ],
+      "_name": "Whispers_06_MilestoneFirstLootBanked"
+    },
+    {
+      "trigger": "Milestone.FirstPigBanked",
+      "category": "MilestoneWhisper",
+      "line": "A pig. Through the ancient portal of His Eternal Darkness. …Set it down gently. It is banked, and it is beautiful.",
+      "note": "§2.9 stolen pig is loot-kind (40) and banks on delivery; §2.10 apocalyptic gravitas applied to stealing pigs.",
+      "sources": [
+        "GDD§2.9#0",
+        "GDD§2.10#0",
+        "GDD§2.7#3"
+      ],
+      "_name": "Whispers_07_MilestoneFirstPigBanked"
+    },
+    {
+      "trigger": "Milestone.FirstPrisonerBanked",
+      "category": "MilestoneWhisper",
+      "line": "One of them, roped and walking into the dark. He'll know the word 'goblin' by morning. This is the tribute I wanted.",
+      "note": "§2.6/§2.7: bound civilians are loot that walks itself, banking at the stones; marching prisoners home is the tribute His Eternal Darkness actually wants, not a body count.",
+      "sources": [
+        "GDD§2.6#3",
+        "GDD§2.7#3",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_08_MilestoneFirstPrisonerBanked"
+    },
+    {
+      "trigger": "Milestone.NoneLeftBehind",
+      "category": "MilestoneWhisper",
+      "line": "Every soul in the hamlet, marched home alive. Let the empty routines explain themselves. Who do they blame now — the badger?",
+      "note": "§2.9 'None Left Behind' +40; §2.10 the denial straining — one missing villager is a badger, a whole hamlet's worth is the punchline landing.",
+      "sources": [
+        "GDD§2.9#0",
+        "GDD§2.10#1"
+      ],
+      "_name": "Whispers_09_MilestoneNoneLeftBehind"
+    },
+    {
+      "trigger": "Milestone.PortalOpen",
+      "category": "MilestoneWhisper",
+      "line": "Granary, field, mill — all three ash. The stones are open, goblin. Come home; nothing else in this county will keep you.",
+      "note": "§2.1/§1: burning the last of the three objectives flares the stones open as the extraction portal; §2.8 this hamlet carries one of each.",
+      "sources": [
+        "GDD§2.1#1",
+        "GDD§1#2",
+        "GDD§2.8#3"
+      ],
+      "_name": "Whispers_10_MilestonePortalOpen"
+    },
+    {
+      "trigger": "End.Extraction.CaptureHeavy",
+      "category": "EndVerdict",
+      "line": "You brought me a rope of them, blinking and alive. Not coins — proof they remember us. …Adequate.",
+      "note": "§2.10 asks explicitly for a distinct verdict flavor when the raid comes home with a rope chain of prisoners: 'Bring me proof they remember us. …adequate.'",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.10#2",
+        "GDD§2.7#3"
+      ],
+      "_name": "Whispers_11_EndExtractionCaptureHeavy"
+    },
+    {
+      "trigger": "End.Extraction.RichOnly",
+      "category": "EndVerdict",
+      "line": "Gold, gold, and a pig. Very shiny, goblin. I have seen rats haul more, and rats bring me witnesses. …Adequate.",
+      "note": "§2.10's 'merely rich' counterpart to the capture verdict, keeping the §2.1 rats crack; tier 1 mocks more than it mourns.",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.1#1",
+        "GDD§2.10#3",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_12_EndExtractionRichOnly"
+    },
+    {
+      "trigger": "End.Wipe.LivesSpent",
+      "category": "EndVerdict",
+      "line": "Five deaths, goblin. Your deeds keep a quarter of themselves; the rest burned where you fell. What reached my stones is still mine. Mostly mine.",
+      "note": "§2.2/§1 loss condition: all 5 lives spent, only 25% of unbanked deeds kept, while loot already at the stones or the Warren is safe.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§1#2",
+        "GDD§2.6#3"
+      ],
+      "_name": "Whispers_13_EndWipeLivesSpent"
+    },
+    {
+      "trigger": "End.LeftBehind",
+      "category": "EndVerdict",
+      "line": "The stones have gone cold and you are still out there, holding a chicken. Keep it. Groatsworth is your home now. …I'll tell them it was a badger.",
+      "note": "§2.2/§1 loss condition: outside the circle when the portal dies after the 90-second collapse, whispers going cold; §2.10 badger denial joke.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§1#2",
+        "GDD§2.10#1",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_14_EndLeftBehind"
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "findings": [
+        {
+          "row": "Whispers_09_MilestoneNoneLeftBehind",
+          "verdict": "LORE_BREAK",
+          "quote": "Every soul in the hamlet, marched home alive.",
+          "canon_rule": "\"None Left Behind\" is scored as \"every civilian in the hamlet marched home alive\" (+40). The bind/capture alternative applies to civilians only (§2.6, §3.1 Town Agent); guards, militia and archers are not ropeable, so a milestone whisper claiming every soul in the hamlet was marched home describes a state the slice cannot produce.",
+          "evidence_chunk_id": "GDD§2.9#0",
+          "correction": "Every villager in the hamlet, marched home alive. Let the empty routines explain themselves. Who do they blame now — the badger?",
+          "by": "critic"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "findings": [
+        {
+          "row": "Whispers_02_ClockFiveMinutes",
+          "verdict": "LORE_BREAK",
+          "quote": "My stones are back through the trees, goblin — the way the smoke is blowing.",
+          "canon_rule": "The 5-minute nudge names a direction, and directions in this slice must ride on the authored wayfinding cues the map actually provides (converging roads, signposts, wheat density, audible pens, the windmill/watchtower silhouettes over the treetops). There is no wind or smoke-drift heading system in the slice, so 'the way the smoke is blowing' points the player at a cue the game does not model and that has no fixed relationship to the runic site.",
+          "evidence_chunk_id": "GDD§2.8#3",
+          "correction": "Five minutes. My stones are back through the trees, goblin — follow the road out and keep the mill at your back. Start walking while you gloat.",
+          "by": "critic"
+        }
+      ]
+    }
+  ],
+  "final": [
+    {
+      "trigger": "Clock.TenMinutes",
+      "category": "ClockNudge",
+      "line": "Ten minutes, goblin. How goes the arson? …Don't answer. I can smell it from here.",
+      "note": "§2.2 clock pressure: the Overlord's whispers check in at the 10-minute mark; tier-1 register is mockery, not mourning.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§2.10#3"
+      ],
+      "_name": "Whispers_01_ClockTenMinutes"
+    },
+    {
+      "trigger": "Clock.FiveMinutes",
+      "category": "ClockNudge",
+      "line": "Five minutes. My stones are back through the trees, goblin — follow the road out and keep the mill at your back. Start walking while you gloat.",
+      "note": "§2.2: at 5 minutes the whisper names a direction; the direction rides only on §2.8's authored wayfinding cues (converging roads, the windmill silhouette over the treetops), and §2.1 places the runic site in the forest clearing beyond the trees.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§2.1#1",
+        "GDD§2.8#3"
+      ],
+      "_name": "Whispers_02_ClockFiveMinutes"
+    },
+    {
+      "trigger": "Clock.TwoMinutes",
+      "category": "ClockNudge",
+      "line": "Two minutes. There. The circle. Into it. Drop the chicken if you must — …don't drop the chicken.",
+      "note": "§2.2: inside the final 2 the Overlord points you at the extraction outright; portal dies at 0:00 plus a 90-second collapse. Chicken is a §2.9 loot-kind steal.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_03_ClockTwoMinutes"
+    },
+    {
+      "trigger": "Objective.Granary.FirstTorch",
+      "category": "ObjectiveBark",
+      "line": "Their whole winter, goblin, stacked in one shed — with every spear in the hamlet standing round it. Light it and let them argue about badgers.",
+      "note": "Sibling of the windmill Stage-1 bark for the §2.8 granary: a compact blaze in the village core where the guards are thickest, plus the §2.10 denial joke. First-time dismissible prompt per §2.8.",
+      "sources": [
+        "GDD§2.8#1",
+        "GDD§2.8#2",
+        "GDD§2.8#3",
+        "GDD§2.10#1"
+      ],
+      "_name": "Whispers_04_ObjectiveGranaryFirstTorch"
+    },
+    {
+      "trigger": "Objective.Field.FirstTorch",
+      "category": "ObjectiveBark",
+      "line": "One row takes the next, goblin. Set the edge alight and walk away — the wheat does my work while they queue at the well with buckets.",
+      "note": "Sibling of the windmill Stage-1 bark for the §2.8 wheat field: fire spreads row to row, the most visible arson and the hardest to douse; §2.6 bucket brigade forms at the well.",
+      "sources": [
+        "GDD§2.8#1",
+        "GDD§2.8#2",
+        "GDD§2.6#3",
+        "GDD§2.8#3"
+      ],
+      "_name": "Whispers_05_ObjectiveFieldFirstTorch"
+    },
+    {
+      "trigger": "Milestone.FirstLootBanked",
+      "category": "MilestoneWhisper",
+      "line": "The first sack crosses into my stones. It is mine now. No bell in Groatsworth can un-steal it.",
+      "note": "§2.7/§2.6/§1: physical loot banks permanently the instant it reaches the stones, wipe-proof.",
+      "sources": [
+        "GDD§1#2",
+        "GDD§2.6#3",
+        "GDD§3.1#5"
+      ],
+      "_name": "Whispers_06_MilestoneFirstLootBanked"
+    },
+    {
+      "trigger": "Milestone.FirstPigBanked",
+      "category": "MilestoneWhisper",
+      "line": "A pig. Through the ancient portal of His Eternal Darkness. …Set it down gently. It is banked, and it is beautiful.",
+      "note": "§2.9 stolen pig is loot-kind (40) and banks on delivery; §2.10 apocalyptic gravitas applied to stealing pigs.",
+      "sources": [
+        "GDD§2.9#0",
+        "GDD§2.10#0",
+        "GDD§2.7#3"
+      ],
+      "_name": "Whispers_07_MilestoneFirstPigBanked"
+    },
+    {
+      "trigger": "Milestone.FirstPrisonerBanked",
+      "category": "MilestoneWhisper",
+      "line": "One of them, roped and walking into the dark. He'll know the word 'goblin' by morning. This is the tribute I wanted.",
+      "note": "§2.6/§2.7: bound civilians are loot that walks itself, banking at the stones; marching prisoners home is the tribute His Eternal Darkness actually wants, not a body count.",
+      "sources": [
+        "GDD§2.6#3",
+        "GDD§2.7#3",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_08_MilestoneFirstPrisonerBanked"
+    },
+    {
+      "trigger": "Milestone.NoneLeftBehind",
+      "category": "MilestoneWhisper",
+      "line": "Every villager in the hamlet, marched home alive. Let the empty routines explain themselves. Who do they blame now — the badger?",
+      "note": "§2.9 'None Left Behind' +40 is scored as every civilian in the hamlet marched home alive (bind/capture applies to civilians only, §2.6); §2.10 the denial straining — one missing villager is a badger, a whole hamlet's worth is the punchline landing.",
+      "sources": [
+        "GDD§2.9#0",
+        "GDD§2.10#1",
+        "GDD§2.6#3"
+      ],
+      "_name": "Whispers_09_MilestoneNoneLeftBehind"
+    },
+    {
+      "trigger": "Milestone.PortalOpen",
+      "category": "MilestoneWhisper",
+      "line": "Granary, field, mill — all three ash. The stones are open, goblin. Come home; nothing else in this county will keep you.",
+      "note": "§2.1/§1: burning the last of the three objectives flares the stones open as the extraction portal; §2.8 this hamlet carries one of each.",
+      "sources": [
+        "GDD§2.1#1",
+        "GDD§1#2",
+        "GDD§2.8#3"
+      ],
+      "_name": "Whispers_10_MilestonePortalOpen"
+    },
+    {
+      "trigger": "End.Extraction.CaptureHeavy",
+      "category": "EndVerdict",
+      "line": "You brought me a rope of them, blinking and alive. Not coins — proof they remember us. …Adequate.",
+      "note": "§2.10 asks explicitly for a distinct verdict flavor when the raid comes home with a rope chain of prisoners: 'Bring me proof they remember us. …adequate.'",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.10#2",
+        "GDD§2.7#3"
+      ],
+      "_name": "Whispers_11_EndExtractionCaptureHeavy"
+    },
+    {
+      "trigger": "End.Extraction.RichOnly",
+      "category": "EndVerdict",
+      "line": "Gold, gold, and a pig. Very shiny, goblin. I have seen rats haul more, and rats bring me witnesses. …Adequate.",
+      "note": "§2.10's 'merely rich' counterpart to the capture verdict, keeping the §2.1 rats crack; tier 1 mocks more than it mourns.",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.1#1",
+        "GDD§2.10#3",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_12_EndExtractionRichOnly"
+    },
+    {
+      "trigger": "End.Wipe.LivesSpent",
+      "category": "EndVerdict",
+      "line": "Five deaths, goblin. Your deeds keep a quarter of themselves; the rest burned where you fell. What reached my stones is still mine. Mostly mine.",
+      "note": "§2.2/§1 loss condition: all 5 lives spent, only 25% of unbanked deeds kept, while loot already at the stones or the Warren is safe.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§1#2",
+        "GDD§2.6#3"
+      ],
+      "_name": "Whispers_13_EndWipeLivesSpent"
+    },
+    {
+      "trigger": "End.LeftBehind",
+      "category": "EndVerdict",
+      "line": "The stones have gone cold and you are still out there, holding a chicken. Keep it. Groatsworth is your home now. …I'll tell them it was a badger.",
+      "note": "§2.2/§1 loss condition: outside the circle when the portal dies after the 90-second collapse, whispers going cold; §2.10 badger denial joke.",
+      "sources": [
+        "GDD§2.2#0",
+        "GDD§1#2",
+        "GDD§2.10#1",
+        "GDD§2.9#0"
+      ],
+      "_name": "Whispers_14_EndLeftBehind"
+    }
+  ]
+}

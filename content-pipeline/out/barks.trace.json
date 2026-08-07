@@ -1,0 +1,805 @@
+{
+  "job": "barks",
+  "title": "NPC bark sheet — livestock & stealth extension pass",
+  "gap": "GDD 3.2 (The Writer): the approved bark sheet is 'now due a livestock-and-stealth extension pass'. The livestock system (2.7) and the lean-five stealth layer (2.4) both landed after the sheet was approved, so the states they introduce — a startled flock, a coin scramble, a discovered corpse, an overdue patrol — have no lines.",
+  "model": "claude-opus-5",
+  "retrieval": [
+    {
+      "query": "guard perception confirm suspicious corpse discovered investigate",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.4#1",
+          "score": 12.419,
+          "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid"
+        },
+        {
+          "chunk_id": "GDD§2.4#0",
+          "score": 10.663,
+          "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid"
+        },
+        {
+          "chunk_id": "GDD§2.10#0",
+          "score": 8.714,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.6#1",
+          "score": 8.284,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        }
+      ]
+    },
+    {
+      "query": "livestock chickens sheep pigs pens startled flock squawking noise alarm",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.7#1",
+          "score": 27.303,
+          "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system"
+        },
+        {
+          "chunk_id": "GDD§2.7#2",
+          "score": 15.305,
+          "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system"
+        },
+        {
+          "chunk_id": "GDD§2.7#0",
+          "score": 14.349,
+          "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system"
+        },
+        {
+          "chunk_id": "GDD§revision-growth#2",
+          "score": 10.193,
+          "heading": "1. Executive Summary > Revision & growth — what changed since Assignment #1"
+        }
+      ]
+    },
+    {
+      "query": "civilians routines panic bucket brigade well watchman doze bell",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.6#2",
+          "score": 15.089,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§2.6#3",
+          "score": 15.042,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§3.1#4",
+          "score": 14.861,
+          "heading": "3. AI Architecture > 3.1 The game-system agents"
+        },
+        {
+          "chunk_id": "GDD§3.1#5",
+          "score": 14.308,
+          "heading": "3. AI Architecture > 3.1 The game-system agents"
+        }
+      ]
+    },
+    {
+      "query": "tone comedy barks propaganda goblins extinct badger denial shearing day",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.10#0",
+          "score": 34.887,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#1",
+          "score": 26.977,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#2",
+          "score": 23.57,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#3",
+          "score": 22.859,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        }
+      ]
+    },
+    {
+      "query": "coin toss lure greedy guards scramble distraction",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.4#1",
+          "score": 13.801,
+          "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid"
+        },
+        {
+          "chunk_id": "GDD§2.4#2",
+          "score": 13.432,
+          "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid"
+        },
+        {
+          "chunk_id": "GDD§4.5#4",
+          "score": 9.612,
+          "heading": "4. Technical Strategy > 4.5 Schedule and honest scoping"
+        },
+        {
+          "chunk_id": "GDD§2.10#0",
+          "score": 8.681,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        }
+      ]
+    },
+    {
+      "query": "forest patrol torches archer signal horn overdue check in waypoint",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.6#1",
+          "score": 17.017,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§2.6#2",
+          "score": 14.634,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§2.1#1",
+          "score": 12.56,
+          "heading": "2. Game Mechanics > 2.1 The core loop"
+        },
+        {
+          "chunk_id": "GDD§3.4#0",
+          "score": 10.616,
+          "heading": "3. AI Architecture > 3.4 In-game AI (for clarity: conventional, not LLM)"
+        }
+      ]
+    },
+    {
+      "query": "alarm phases QUIET SUSPICIOUS RAID RAZED escalation soft signal",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.6#1",
+          "score": 20.089,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§2.6#2",
+          "score": 17.114,
+          "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees"
+        },
+        {
+          "chunk_id": "GDD§1#3",
+          "score": 8.418,
+          "heading": "1. Executive Summary"
+        },
+        {
+          "chunk_id": "GDD§2.4#0",
+          "score": 8.024,
+          "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid"
+        }
+      ]
+    }
+  ],
+  "context": [
+    {
+      "id": "GDD§2.10#0",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Humans are greedy first and brave second, and greed is an exploitable AI stat: the coin toss works on guards *because* they're guards in this economy. The watchman's doze is a timer on his perception cone. Text **barks** carry the cheapest comedy per byte (\"A goblin? Here? Don't be daft, it's shearing day.\"). Violence is cartoony-with-a-hint-of-gore — party-favor gibs, clean cartoon bones, an exploding cushion of feathers for the chickens — with a single intensity scalar as the ratings knob, T target. His Eternal Darkness frames everything: apocalyptic whispered gravitas applied to stealing pigs from a hamlet too small for the humans to have bothered naming.\n\nThere's a second, more specific joke underneath the general satire: **the kingdom told everyone goblins were extinct.** These hamlets are saturated with royal propaganda — a statue of the king who supposedly slew the last dragon and wiped out his goblin minions stands in every village center — so when a goblin actually shows up, the first reaction isn't fear, it's disbelief. Villagers double-take, mutter \"must've been a badger,\" and keep pottering while their well gets fouled six feet away. It's why a guard finding a corpse goes only to Suspicious instead of sounding the alarm outright — the propaganda is doing its job even while the evidence is on the ground. The town's first response to arson is denial, and that denial is the joke."
+    },
+    {
+      "id": "GDD§2.7#1",
+      "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**Livestock are loot that runs away.** The hamlet's pens hold chickens, sheep, and pigs (kitbashed from the same stylized packs as the humans). *Killing* an animal is a petty deed — 2 points for a chicken, 5 for a sheep, 8 for a pig, party-favor feathers included — permitted and pointless, exactly like civilian kills. *Stealing* one is the real prize: a live pig is a squirming over-the-shoulder carry worth a fat 40 loot points (sheep 25, chickens 10), and a valid courier target — point a horde goblin at a pen and watch it chase, catch, and waddle off with a pig on its back. His Eternal Darkness wants the hamlet's *wealth*, and its wealth has trotters.\n\nLivestock also belong to the stealth layer: **a startled flock is an alarm**. Blunder through the chicken pen and the squawking is a noise event that pulls the nearest guard to investigate — or, used deliberately, a thrown chicken is the cheapest distraction in the game. Pens are terrain: a hazard on one route, a tool on another, and a payday on the way out. Chickens get their own bit: they're weightless, so a goblin carries **two at once, one under each arm** — and fighting one-handed while holding a chicken is not just possible, it's encouraged."
+    },
+    {
+      "id": "GDD§2.10#1",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "There's a second, more specific joke underneath the general satire: **the kingdom told everyone goblins were extinct.** These hamlets are saturated with royal propaganda — a statue of the king who supposedly slew the last dragon and wiped out his goblin minions stands in every village center — so when a goblin actually shows up, the first reaction isn't fear, it's disbelief. Villagers double-take, mutter \"must've been a badger,\" and keep pottering while their well gets fouled six feet away. It's why a guard finding a corpse goes only to Suspicious instead of sounding the alarm outright — the propaganda is doing its job even while the evidence is on the ground. The town's first response to arson is denial, and that denial is the joke.\n\nNone of this replaces the comedy — it gives it a floor. Every civilian a player captures rather than kills (§2.6, §2.7) is a small, systemic argument for who the goblins actually are versus what the propaganda claims: not vermin to be quietly stamped out, but a people who were told they didn't exist and are done proving it by staying quiet. His Eternal Darkness's whispers should register the difference — a raid that comes home with a rope chain of prisoners earns a different flavor of verdict than one that comes home merely rich (\"Bring me proof they remember us. …adequate\" sits closer to the register than another crack about rats). And the denial itself should visibly strain as the evidence piles up: one missing villager is \"must've been a badger\"; a hamlet's worth of empty routines is the joke's punchline finally landing on the people telling it. **\"Now is the time of the goblins\"** is the raid's real rallying cry underneath the satire — the Overlord's mockery of the humans and the game's own vengeance are two tones on the same idea, not a contradiction to resolve."
+    },
+    {
+      "id": "GDD§2.10#2",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "None of this replaces the comedy — it gives it a floor. Every civilian a player captures rather than kills (§2.6, §2.7) is a small, systemic argument for who the goblins actually are versus what the propaganda claims: not vermin to be quietly stamped out, but a people who were told they didn't exist and are done proving it by staying quiet. His Eternal Darkness's whispers should register the difference — a raid that comes home with a rope chain of prisoners earns a different flavor of verdict than one that comes home merely rich (\"Bring me proof they remember us. …adequate\" sits closer to the register than another crack about rats). And the denial itself should visibly strain as the evidence piles up: one missing villager is \"must've been a badger\"; a hamlet's worth of empty routines is the joke's punchline finally landing on the people telling it. **\"Now is the time of the goblins\"** is the raid's real rallying cry underneath the satire — the Overlord's mockery of the humans and the game's own vengeance are two tones on the same idea, not a contradiction to resolve.\n\n**The weight escalates with the ladder, not inside the first raid (decided, 2026-07-23).** Tier 1 stays deliberately goofy: propaganda-as-denial played as comedy, \"must've been a badger,\" an Overlord who mocks more than he mourns. That's a sequencing choice, not a verdict that the theme doesn't matter — a new player's first raid needs to land as *fun*, and a little bit of superiority (outwitting bumbling guards, walking off with their pigs and their gold while they double-take at a monster they were told doesn't exist), because that feeling is what gets someone to queue up a second raid, not a history lesson delivered on their first one. The heavier version of the theme belongs to the settlement ladder (§2.8): as raids push deeper into the county — Pennybrook's walls, Silverford's stone, and finally Highpurse Keep, the seat the propaganda itself radiates from — the denial gets harder for the humans to sustain and the tone is free to darken to match, culminating in the Mayor Goldbottom assassination confronting the theme directly instead of laughing past it. Tier 1 spends its page count earning the player's trust and their sense of fun; tiers 2 through 4 are where that trust gets spent."
+    },
+    {
+      "id": "GDD§2.10#3",
+      "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**The weight escalates with the ladder, not inside the first raid (decided, 2026-07-23).** Tier 1 stays deliberately goofy: propaganda-as-denial played as comedy, \"must've been a badger,\" an Overlord who mocks more than he mourns. That's a sequencing choice, not a verdict that the theme doesn't matter — a new player's first raid needs to land as *fun*, and a little bit of superiority (outwitting bumbling guards, walking off with their pigs and their gold while they double-take at a monster they were told doesn't exist), because that feeling is what gets someone to queue up a second raid, not a history lesson delivered on their first one. The heavier version of the theme belongs to the settlement ladder (§2.8): as raids push deeper into the county — Pennybrook's walls, Silverford's stone, and finally Highpurse Keep, the seat the propaganda itself radiates from — the denial gets harder for the humans to sustain and the tone is free to darken to match, culminating in the Mayor Goldbottom assassination confronting the theme directly instead of laughing past it. Tier 1 spends its page count earning the player's trust and their sense of fun; tiers 2 through 4 are where that trust gets spent.\n\n---"
+    },
+    {
+      "id": "GDD§2.6#1",
+      "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "The hamlet is small — **four posted guards** *(placeholder split: one in the watchtower, one on the barracks door, two wandering)*, the **watchtower** itself (an archer with a bell and a nap schedule; his vision cone visibly droops as he dozes), a small **barracks** (stone-based, unburnable, beatable), and 6–10 civilians on daily routines. The defense is legible on screen, not hidden in numbers, through four visible **alarm phases**:\n\n- **QUIET:** field work, pen chores, pottering. The watchman dozes. This is the stealth half's playground.\n- **SUSPICIOUS:** the hamlet is sitting on one uncorroborated **soft signal** — a goblin half-confirmed, a corpse discovered, a squawking flock, a forest patrol's horn carrying in from the treeline, a patrol that's overdue and hasn't checked in at its expected waypoint (§2.1), or a hamlet whose daily routines have gone conspicuously quiet — enough civilians dead, bound, or simply gone that the gap itself becomes the tell. Captured counts exactly the same as killed here: the town doesn't know the difference, only that people stopped showing up. Any single soft signal is enough to move QUIET → SUSPICIOUS: the nearest guard investigates, the watchman actually watches. Left uncorroborated, it **decays back to QUIET** after a short window — most soft signals are false alarms, and the town treats them that way. But a *second* soft signal of any kind arriving while the hamlet is still SUSPICIOUS doesn't just refresh the clock — it escalates straight to RAID, same as the bell or open combat: a far-off horn followed by a missing patrol's checkpoint alarm reads as confirmation, not coincidence, even though no human ever laid eyes on you. Neither timer shows on the HUD — the tell is ambient, a guard muttering that a patrol's running late, the watchman's posture stiffening after a horn call — so the pressure is felt, not read off a countdown. (Killing an entire patrol means it can never check in either way, so even a silent, horn-suppressed wipe eventually files its own soft signal once the grace window lapses — the difference is that a suppressed wipe costs one recoverable SUSPICIOUS blip instead of an instant escalation, which is exactly what the clean-wipe score bonus, §2.9, is paying for.)\n- **RAID:** the bell rings, or open combat, or *fire*. The barracks starts producing guards (militia, then archers, then armored knights), and the distant castle on the horizon — **Highpurse Keep** — begins sending reinforcement squads that march in from the map edge. Both taps draw from one finite **raid-response pool of 15** — this raid's entire Groatsworth garrison, not a script that tops itself up forever. (The pool size is tier- and race-specific, set deliberately below the goblin horde's pool of 20 so grinding it can never out-score an honest stealth-and-loot raid; see the race design briefs for how it scales to other defender races and settlement tiers.) Kill your way through it and the county is, for this raid, out of soldiers: the barracks and the horizon alike fall silent, no new fighters, no new combat points. The hamlet can't stop you; the county can — exactly once, at this size.\n- **RAZED:** the hamlet is substantially burned; internal spawners fall silent regardless of the pool's state. If any of the raid-response pool is still standing, what's left converges on you as a last push home. If you've already emptied it, that pressure is gone too — the \"get out now\" urgency is entirely the burning hamlet and the closing clock, because you've already laid the county's response to waste."
+    },
+    {
+      "id": "GDD§2.6#2",
+      "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "- **QUIET:** field work, pen chores, pottering. The watchman dozes. This is the stealth half's playground.\n- **SUSPICIOUS:** the hamlet is sitting on one uncorroborated **soft signal** — a goblin half-confirmed, a corpse discovered, a squawking flock, a forest patrol's horn carrying in from the treeline, a patrol that's overdue and hasn't checked in at its expected waypoint (§2.1), or a hamlet whose daily routines have gone conspicuously quiet — enough civilians dead, bound, or simply gone that the gap itself becomes the tell. Captured counts exactly the same as killed here: the town doesn't know the difference, only that people stopped showing up. Any single soft signal is enough to move QUIET → SUSPICIOUS: the nearest guard investigates, the watchman actually watches. Left uncorroborated, it **decays back to QUIET** after a short window — most soft signals are false alarms, and the town treats them that way. But a *second* soft signal of any kind arriving while the hamlet is still SUSPICIOUS doesn't just refresh the clock — it escalates straight to RAID, same as the bell or open combat: a far-off horn followed by a missing patrol's checkpoint alarm reads as confirmation, not coincidence, even though no human ever laid eyes on you. Neither timer shows on the HUD — the tell is ambient, a guard muttering that a patrol's running late, the watchman's posture stiffening after a horn call — so the pressure is felt, not read off a countdown. (Killing an entire patrol means it can never check in either way, so even a silent, horn-suppressed wipe eventually files its own soft signal once the grace window lapses — the difference is that a suppressed wipe costs one recoverable SUSPICIOUS blip instead of an instant escalation, which is exactly what the clean-wipe score bonus, §2.9, is paying for.)\n- **RAID:** the bell rings, or open combat, or *fire*. The barracks starts producing guards (militia, then archers, then armored knights), and the distant castle on the horizon — **Highpurse Keep** — begins sending reinforcement squads that march in from the map edge. Both taps draw from one finite **raid-response pool of 15** — this raid's entire Groatsworth garrison, not a script that tops itself up forever. (The pool size is tier- and race-specific, set deliberately below the goblin horde's pool of 20 so grinding it can never out-score an honest stealth-and-loot raid; see the race design briefs for how it scales to other defender races and settlement tiers.) Kill your way through it and the county is, for this raid, out of soldiers: the barracks and the horizon alike fall silent, no new fighters, no new combat points. The hamlet can't stop you; the county can — exactly once, at this size.\n- **RAZED:** the hamlet is substantially burned; internal spawners fall silent regardless of the pool's state. If any of the raid-response pool is still standing, what's left converges on you as a last push home. If you've already emptied it, that pressure is gone too — the \"get out now\" urgency is entirely the burning hamlet and the closing clock, because you've already laid the county's response to waste.\n\nCounterplay is physical and readable: silence the watchman before he rings the bell (+25); **foul the well** (\"dump something unspeakable in it\") to permanently disable the bucket brigade (+30); beat down the barracks to stop reinforcements (+40). Civilians (10 HP, no attack) run routines, panic, and join bucket lines — and, on top of the old petty-kill option, they're now a real choice. Kill one and it's *petty*, 5 points, permitted and forgettable, same as it's always been. **Bind one instead** (§2.4) and you're taking a captive: goblins haven't forgotten what \"the kingdom\" did to them, and marching prisoners home in a rope chain (§2.7) is the tribute His Eternal Darkness actually wants — not a body count. One stretch behavior, first in line if the schedule bites (§4.5): once chaos peaks, some **civilians loot their own market stalls** and bolt for home — competing with *you* for the hamlet's gold."
+    },
+    {
+      "id": "GDD§2.7#2",
+      "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Livestock also belong to the stealth layer: **a startled flock is an alarm**. Blunder through the chicken pen and the squawking is a noise event that pulls the nearest guard to investigate — or, used deliberately, a thrown chicken is the cheapest distraction in the game. Pens are terrain: a hazard on one route, a tool on another, and a payday on the way out. Chickens get their own bit: they're weightless, so a goblin carries **two at once, one under each arm** — and fighting one-handed while holding a chicken is not just possible, it's encouraged.\n\nThe rest of the loot flow: looting is something you *do*, not something that happens — a locked chest's lid must be **smashed open** (a destructible, the same make-the-world-breakable language as the burn objectives and the market stalls), and the coins inside are gathered with an interruptible hold-E channel, packing your **pouch** bit by bit while a patrol may be closing in. Die, and your pouch spills out as a lootable sack at your corpse. Loot moves home three ways: carry it yourself (slow, can't fight), toss it into the open portal (or the Warren, §2.6, if one's standing), or send it by courier — every courier is a fighter who leaves the raid *for the trip*, greed versus muscle from the same horde pool. That trip is temporary, not a sacrifice: a courier who delivers its cargo **rejoins the pool of summonable goblins** the instant it reaches the stones, free to answer the next horn blast same as any other reserve goblin. Only death is permanent — a horde goblin killed in the field is gone from the 20-pool for the rest of the raid, but a successful delivery costs nothing but time. That's the actual exchange rate behind \"greed versus muscle\": **time traded against tempo, not bodies traded against bodies.** Patrols intercept couriers opportunistically only; a dead courier (or pig-thief) drops its cargo where it fell and is spent from the pool for good, same as any other horde death."
+    },
+    {
+      "id": "GDD§2.6#3",
+      "heading": "2. Game Mechanics > 2.6 The town that fights back — what the player sees",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Counterplay is physical and readable: silence the watchman before he rings the bell (+25); **foul the well** (\"dump something unspeakable in it\") to permanently disable the bucket brigade (+30); beat down the barracks to stop reinforcements (+40). Civilians (10 HP, no attack) run routines, panic, and join bucket lines — and, on top of the old petty-kill option, they're now a real choice. Kill one and it's *petty*, 5 points, permitted and forgettable, same as it's always been. **Bind one instead** (§2.4) and you're taking a captive: goblins haven't forgotten what \"the kingdom\" did to them, and marching prisoners home in a rope chain (§2.7) is the tribute His Eternal Darkness actually wants — not a body count. One stretch behavior, first in line if the schedule bites (§4.5): once chaos peaks, some **civilians loot their own market stalls** and bolt for home — competing with *you* for the hamlet's gold.\n\n**The Warren — a field relay, once the horn's been blown (decided, 2026-07-24).** Once a raid has gone loud, a player can spend a hold-E channel to plant **the Warren** — a crude, goblin-dug hole torn into the ground, not a second runic portal (His Eternal Darkness has exactly one of those, and it stays at the stones). Digging it is loud: it throws a noise signal like any other loud action, so where you plant it is a real decision, not a free save point. It costs one goblin from the horde pool (§2.5) — the digger stays behind to hold it open — and only one can be active per raid; if guards find and destroy it, it's gone for the rest of the raid and everything reverts to the stones. While it's standing, it does two things, deliberately not three: it becomes your respawn point instead of the far-off runic site, so a death deep in a burning hamlet costs a short trip back to the fight instead of the whole forest crossing; and loot and prisoners delivered to it **bank permanently on delivery, exactly like the stones** (§2.7) — so a raid that ends in a wipe still keeps whatever made it to the Warren. Deeds don't bank there, on purpose: loot gets more forgiving, because a struggling raid should still walk away with something real for what it actually gathered, but deeds — the raid's kills, arson, and mischief — still only bank on a clean extraction through the real portal. That's the tension the whole loop is built around, and a second place to bank them would erase the reason to ever risk the run home."
+    },
+    {
+      "id": "GDD§3.1#4",
+      "heading": "3. AI Architecture > 3.1 The game-system agents",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**4. The Horde Agent.**\n*Role: builds the war-horn, the horde's follow/frenzy/point brain, and the courier behavior for sacks and livestock.*\nPlayer-facing effect: the horde at your back — a 20-goblin raid pool, up to ten active at once, summoned mobs that sprint in from the treeline, swarm whatever you attack, smash whatever you point at, and chase down a pig before waddling homeward with it — then answering the next horn blast same as any other reserve goblin, since only death actually spends one from the pool (§2.7) — planting the Warren (§2.6) spends one too, the digger staying behind to hold the hole open. Also the game's quietest performance trick: the player never notices that horde goblins have no senses of their own (a central subsystem feeds them stimuli), which is precisely why a full active horde runs at frame rate. Status: designed in full (tech doc §18); week 3 is this agent's week, and its exit test is player-visible — ten goblins plus the player brawling guards without a frame drop.\n\n**5. The Town Agent.**\n*Role: builds the living hamlet — the four alarm phases, guard perception, the patrol director, the watchman, civilians (including the bind/capture alternative to takedown, §2.6), livestock behavior, the bucket brigade, and the finite raid-response pool that caps RAID-phase reinforcements.*\nPlayer-facing effect: the town that visibly fights back and never calms down — the drooping vision cone of a dozing watchman, the guard who walks over to investigate a corpse, the runner sprinting for the bell after a botched ambush, bucket lines forming at the well, the flock that erupts into squawking the moment you vault into the wrong pen, and, eventually, a county that's visibly run out of soldiers to send. Livestock are this agent's cheapest win: an archetype data row plus a flee behavior, riding on the same panic branch as civilians. Status: partially scaffolded (the firefighting behavior task exists); the alarm-phase skeleton lands week 2, with peak weeks 5–6."
+    },
+    {
+      "id": "GDD§2.7#0",
+      "heading": "2. Game Mechanics > 2.7 Loot, livestock, and couriers — greed as a system",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Score comes in two kinds, and the difference is the strategic spine of the game:\n\n- **Deeds** (kills, takedowns, arson, mischief bonuses) are intangible and provisional — they bank only when *you* step through the stones.\n- **Loot** is physical — coins, market goods, the strongbox, grain sacks, **and livestock** — and **banks permanently the instant it reaches the runic site**, wipe-proof.\n\n**Livestock are loot that runs away.** The hamlet's pens hold chickens, sheep, and pigs (kitbashed from the same stylized packs as the humans). *Killing* an animal is a petty deed — 2 points for a chicken, 5 for a sheep, 8 for a pig, party-favor feathers included — permitted and pointless, exactly like civilian kills. *Stealing* one is the real prize: a live pig is a squirming over-the-shoulder carry worth a fat 40 loot points (sheep 25, chickens 10), and a valid courier target — point a horde goblin at a pen and watch it chase, catch, and waddle off with a pig on its back. His Eternal Darkness wants the hamlet's *wealth*, and its wealth has trotters."
+    },
+    {
+      "id": "GDD§3.1#5",
+      "heading": "3. AI Architecture > 3.1 The game-system agents",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "**5. The Town Agent.**\n*Role: builds the living hamlet — the four alarm phases, guard perception, the patrol director, the watchman, civilians (including the bind/capture alternative to takedown, §2.6), livestock behavior, the bucket brigade, and the finite raid-response pool that caps RAID-phase reinforcements.*\nPlayer-facing effect: the town that visibly fights back and never calms down — the drooping vision cone of a dozing watchman, the guard who walks over to investigate a corpse, the runner sprinting for the bell after a botched ambush, bucket lines forming at the well, the flock that erupts into squawking the moment you vault into the wrong pen, and, eventually, a county that's visibly run out of soldiers to send. Livestock are this agent's cheapest win: an archetype data row plus a flee behavior, riding on the same panic branch as civilians. Status: partially scaffolded (the firefighting behavior task exists); the alarm-phase skeleton lands week 2, with peak weeks 5–6.\n\n**6. The Raid Loop Agent.**\n*Role: builds the runic site and its portal states, the Warren's respawn and secondary-banking logic (§2.6), the 30-minute clock and its 10/5/2-minute nudges, and the two-kind score system that decides what a player keeps.*\nPlayer-facing effect: why nothing counts until you're home — the stones flaring open on the last burn objective, courier sacks, pigs, and rope-chained prisoners piling up visibly inside the circle and auto-banking the instant the portal opens, the 90-second collapse with its guttering glow and cold whispers, and the end-of-raid tally that splits deeds from loot before applying the ×1.5. It's also the agent responsible for the one deliberate exception to all of that: the Warren, a closer, plantable loot-and-respawn point that gives a struggling raid something to show for itself without ever letting deeds bank anywhere but the real stones — the distinction this agent's whole design is built to protect. This agent owns the game's spine: the week-4 milestone — first full loop playable on the tutorial hamlet, start-to-bank — is its deliverable jointly with the Generator. Status: designed (tech doc §22–23); the score table is a data table, so the week-6 sign-off is a spreadsheet edit."
+    },
+    {
+      "id": "GDD§2.4#1",
+      "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Stealth is deliberately *lite*: the whole detection model is one readable rule — a guard's sighting of you must **hold for about 1.5 seconds to confirm**. Duck behind a haycart before the confirm lands and you were never there; get confirmed and the town moves to Suspicious. On top of that foundation sit five systems, and only five:\n\n1. **Noise.** Every action has an audible radius the player learns by feel: walking is quiet, running less so, smashing stalls and fences is loud, and fire is a town-wide announcement. Guards investigate noise; the squawking chickens investigate *you*.\n2. **Crouch.** A stealth stance that tightens every guard's effective detection range and slows you to a creep. Hedgerows, fences, haycarts, and pen walls are the hamlet's cover language — the tutorial hamlet is hand-placed to guarantee broken sightlines between the treeline and every objective, the same design rule the post-slice generator will enforce algorithmically once it exists.\n3. **The takedown.** Approach an *unaware* human from behind and hold E: one silent, committed animation and they're gone. Interruptible, position-demanding, and deeply goblin. Any goblin can do it; the Scout — this slice's only class — does it fastest of the whole roster to come. On an unarmed civilian, the same approach offers a second outcome: **bind** them instead of ending them — a longer, more interruptible channel that starts a rope chain rather than a body (§2.6, §2.7).\n4. **Corpses talk.** Bodies aren't cleanup work (no dragging in this slice) — but a guard who *sees* one goes straight to Suspicious and starts investigating. Sloppy stealth leaves a trail of alarms behind you.\n5. **The coin toss.** Throw looted coins to make greedy humans — guards included — break off what they're doing and scramble for them. The distraction tool that *is* the game's thesis, promoted to a core verb in this slice."
+    },
+    {
+      "id": "GDD§2.4#2",
+      "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "1. **Noise.** Every action has an audible radius the player learns by feel: walking is quiet, running less so, smashing stalls and fences is loud, and fire is a town-wide announcement. Guards investigate noise; the squawking chickens investigate *you*.\n2. **Crouch.** A stealth stance that tightens every guard's effective detection range and slows you to a creep. Hedgerows, fences, haycarts, and pen walls are the hamlet's cover language — the tutorial hamlet is hand-placed to guarantee broken sightlines between the treeline and every objective, the same design rule the post-slice generator will enforce algorithmically once it exists.\n3. **The takedown.** Approach an *unaware* human from behind and hold E: one silent, committed animation and they're gone. Interruptible, position-demanding, and deeply goblin. Any goblin can do it; the Scout — this slice's only class — does it fastest of the whole roster to come. On an unarmed civilian, the same approach offers a second outcome: **bind** them instead of ending them — a longer, more interruptible channel that starts a rope chain rather than a body (§2.6, §2.7).\n4. **Corpses talk.** Bodies aren't cleanup work (no dragging in this slice) — but a guard who *sees* one goes straight to Suspicious and starts investigating. Sloppy stealth leaves a trail of alarms behind you.\n5. **The coin toss.** Throw looted coins to make greedy humans — guards included — break off what they're doing and scramble for them. The distraction tool that *is* the game's thesis, promoted to a core verb in this slice.\n\nWhat stealth is **not**, by decision: no light-and-shadow meter, no disguises, no body carrying, no ghost-run win condition. The objective is arson; a perfect stealth approach ends with a fire everyone can see. The reward for staying hidden is *position* — you choose when the loud half starts, with full pockets, thinned guards, a fouled well, and the horde one horn-blast away. A dedicated score bonus (**\"First Spark Unseen\"**) pays out if no one confirmed a goblin before the first objective caught fire."
+    },
+    {
+      "id": "GDD§2.1#1",
+      "heading": "2. Game Mechanics > 2.1 The core loop",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "One raid, capped at 30 minutes:\n\n1. **Step through as the Scout.** This slice's one playable kit — daggers and bow, live-swapped — is where every raid starts: no class-select screen this slice, just a straight drop into the **runic site** — a ring of glowing standing stones in a forest clearing. This is spawn, respawn, and the extraction point, all in one. Humans are too superstitious to enter the circle; it is the one safe tile in the world.\n2. **Cross the forest.** Worn paths lead toward the hamlet; off-path is slower and darker. Human patrols — three guards, two militia and an archer, **torches drawn** — sweep the woods every 5–7 minutes; their firelight flickers through the trees long before they can see you, so a patrol is a thing you *choose* to meet. Slip around them, ambush them quietly, or brawl — but the archer carries the patrol's own signal horn, a committed, interruptible wind-up she sounds the moment the patrol is *losing* a fight (not on first contact), and a sounded horn reaches the hamlet just like a rung bell: cut her down before it leaves her lips and the horn never happens. Win the fight before the horn sounds and you're still not quite free of it, though: patrols are expected back at the hamlet on that same 5–7-minute cadence, and one that never checks in raises its own quiet alarm after a couple of minutes' grace (§2.6) — the woods keep no witnesses, but the hamlet still notices an empty road. The county itself points your way: roads converge on the hamlet, signposts mark the miles, and the pens are audible from the treeline.\n3. **Case the hamlet.** No wall means no front door: circle it from the treeline, read the guard posts and the watchtower's vision cone, watch the well and the pens, and *find your three targets*. The HUD names the raid's three objectives — granary, field, and windmill, one of each in this slice's tutorial hamlet (§2.8) — but knowing the names isn't knowing the map, so locating them is still part of the scout, same as it will be once the post-slice generator varies the layout raid to raid. Each type telegraphs differently: a windmill announces itself over the treetops, fields sprawl at the hamlet's edges, and a granary hides in the village center where the guards are thickest.\n4. **Work quietly.** Crouch between hedgerows and haycarts, time the watchman's naps, take down an unaware guard from behind, toss a stolen coin to pull the greedy off their posts — and start looting before anyone knows you're there. Pocket valuables, smash open the strongbox, sling a squirming pig over your shoulder.\n5. **Go loud — on purpose.** Torch the first objective and the quiet phase is over: fire is the one thing you can't hide — and each target burns differently. The granary is a compact blaze in the guarded village heart; a wheat field is a *spreading* fire that races along the crop rows and lights the map for a mile; the windmill goes up like a torch, sails turning as it burns. Blow the horn, bring the horde in from the treeline, burn the rest, and fight the town's response — guards, bucket lines, the bell, and eventually soldiers marching in from the distant castle.\n6. **Get out.** Burning the last objective makes the stones flare open. Run the forest gauntlet home — the humans may pursue — and step into the circle. Loot can be tossed into the portal, or sent ahead mid-raid via courier goblins.\n7. **Get judged.** An itemized score tally, a letter grade, and a whispered verdict from His Eternal Darkness (\"Adequate. I have seen rats do better. …adequate.\"). Beat your personal best."
+    },
+    {
+      "id": "GDD§2.4#0",
+      "heading": "2. Game Mechanics > 2.4 Stealth — the quiet half of the raid",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "Stealth is deliberately *lite*: the whole detection model is one readable rule — a guard's sighting of you must **hold for about 1.5 seconds to confirm**. Duck behind a haycart before the confirm lands and you were never there; get confirmed and the town moves to Suspicious. On top of that foundation sit five systems, and only five:"
+    },
+    {
+      "id": "GDD§3.4#0",
+      "heading": "3. AI Architecture > 3.4 In-game AI (for clarity: conventional, not LLM)",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "The NPCs the player fights are classical game AI, *built by* the agents above, not powered by them at runtime: behavior trees for guards, civilians, livestock, and the horde; a perception system whose entire stealth model is one number (a sighting must hold ~1.5 seconds to confirm); a **patrol director** that spawns forest patrols on a 5–7-minute cadence, tracks whether each one checks back in at its next waypoint (the missing-patrol soft signal, §2.6), and switches to castle reinforcements when the bell rings, drawing every RAID-phase spawn from one finite raid-response pool per race and tier (§2.6, §2.8); and the horde running as a crowd of perception-less agents fed stimuli by a central subsystem, which is what makes ten concurrent goblins cheap. The tutorial hamlet is hand-placed, hand-authored content this slice — no procedural code runs at raid start, and (like everything else here) it's not an LLM call either. No tokens are spent at play time; the player's machine never calls an API. This boundary is itself a scope decision: LLM-at-runtime was rejected as unnecessary — the comedy lives in authored barks and systemic behavior, which are cheaper, funnier, and shippable.\n\n---"
+    },
+    {
+      "id": "GDD§revision-growth#2",
+      "heading": "1. Executive Summary > Revision & growth — what changed since Assignment #1",
+      "source": "Goblin Siege GDD (final draft)",
+      "text": "- **The settlement pivoted from a walled palisade town to an unwalled hamlet.** Draft 1 opened on a fortified town with a breach layer (hidden gaps, digging, a ram, a catapult). On review, that put wall-breaching and stealth-approach as competing first impressions in the same slice. The fix: prove the stealth-and-raid core on open ground first, where a guard's sightline is the only obstacle, and treat walls as a *harder* version of the same game rather than a second game bolted on. The palisade systems weren't cut — they're fully designed and now sit in Appendix A of the working design doc as tier-2 content, reframed as the second rung of a four-tier **settlement ladder** (hamlet → palisade town → stone-wall town → castle keep) that gives the game a difficulty curve it didn't have before.\n- **Livestock became a scored system, not set dressing.** Chickens, sheep, and pigs are now stealable loot and a stealth hazard at the same time: killing one is a petty deed (2–8 points), stealing one live is real money (10–40 loot points) and a valid courier target, and a startled flock is a noise event that pulls a guard's attention — the same \"kill petty, steal big\" rule already governing civilians, now extended on the hoof.\n- **The agent team restructured from a smaller split into ten specialized roles** (§3). The original two-role split (one programmer, one editor operator) produced a compiling scaffold, but the hard boundaries in this project turned out to run *between game systems* — combat, stealth, the generator, the horde, the town, the raid loop — not between tools. Splitting to six game-system agents plus four studio agents (design, art, writing, process) gives each mechanic cluster a single owner end-to-end and made the §4.2 accountability table possible.\n- **The procedural generator went from a flat template to a terrain-aware, constrained system with real design rules.** Draft 1's generator arranged prefabs on a seeded plot template; the current version adds a cover-guarantee rule (broken sightlines between the treeline and every objective), a wayfinding requirement (roads, signposts, and audible/visual cues instead of a HUD arrow), and a golden-seed fallback if seed variance doesn't tune in time.\n- This revision was driven primarily by my own iterative review against the running build — one of the three feedback channels this assignment names, alongside the agent stress-test and peer review. Every change above is recorded with its rationale in the working design document's decisions ledger (§13), so nothing here is a rewrite without a paper trail.\n\n---"
+    }
+  ],
+  "draft": [
+    {
+      "speaker": "Watchman",
+      "alarm_state": "Quiet",
+      "trigger": "WatchmanDozeStart",
+      "line": "The king slew the last of 'em, so what exactly am I watching for… mmnh.",
+      "note": "The doze is a timer on his perception cone; the propaganda is the excuse he naps on, so the nap and the joke are the same beat.",
+      "sources": [
+        "GDD§2.10#0",
+        "GDD§2.6#1",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_01_WatchmanDozeStart"
+    },
+    {
+      "speaker": "Watchman",
+      "alarm_state": "Quiet",
+      "trigger": "WatchmanDozeEnd",
+      "line": "Awake! Watching! Been watching this whole time — what time is it?",
+      "note": "Fires as the drooping vision cone snaps back up, telling the player the nap window just closed without a HUD readout.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§3.1#5",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_02_WatchmanDozeEnd"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Quiet",
+      "trigger": "CoinTossScramble",
+      "line": "Ooh — dropped coin, no owner, that's salvage, that's mine by law.",
+      "note": "The coin toss works on guards because greed is the exploitable stat; he breaks off his post and legally justifies it to himself.",
+      "sources": [
+        "GDD§2.4#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_03_CoinTossScramble"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Quiet",
+      "trigger": "CoinTossScramble",
+      "line": "Coins in the mud at the king's feet — the statue's paying out!",
+      "note": "Uses the village-centre statue of the king from the propaganda dressing, and keeps civilian greed on the same branch as guard greed.",
+      "sources": [
+        "GDD§2.4#1",
+        "GDD§2.10#0",
+        "GDD§2.10#1"
+      ],
+      "_name": "Barks_04_CoinTossScramble"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "FlockStartled_Investigate",
+      "line": "Squawk all you like, hens — it's a fox, it's always a fox, it has never once not been a fox.",
+      "note": "A startled flock is a soft signal that pulls the nearest guard to investigate; he investigates while pre-explaining it away.",
+      "sources": [
+        "GDD§2.7#1",
+        "GDD§2.6#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_05_FlockStartledInvestigate"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Suspicious",
+      "trigger": "FlockStartled_NearbyRoutine",
+      "line": "A goblin? In my pen? Don't be daft, it's shearing day.",
+      "note": "The GDD's own reference bark, sitting on the flock noise event — disbelief first, chores uninterrupted.",
+      "sources": [
+        "GDD§2.10#0",
+        "GDD§2.7#1"
+      ],
+      "_name": "Barks_06_FlockStartledNearbyRoutine"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "CorpseDiscovered",
+      "line": "Somebody's knifed the pen-hand. …Right. That's a fox with a knife. Investigating.",
+      "note": "Seeing a body goes only to Suspicious, never straight to the bell, because the denial is doing the work.",
+      "sources": [
+        "GDD§2.4#1",
+        "GDD§2.6#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_07_CorpseDiscovered"
+    },
+    {
+      "speaker": "Militia",
+      "alarm_state": "Suspicious",
+      "trigger": "CorpseDiscovered_Second",
+      "line": "Face-down, back opened, and not one goblin in the county for a hundred years — so it's a badger with ambition.",
+      "note": "Second corpse, same explanation, visibly straining: the joke escalates as the evidence stacks rather than resolving.",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.4#1",
+        "GDD§2.6#1"
+      ],
+      "_name": "Barks_08_CorpseDiscoveredSecond"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "SightingConfirmed",
+      "line": "Green. Waist-high. Grinning. …I am not writing that in the book.",
+      "note": "Fires the moment a sighting holds long enough to confirm; disbelief, not fear, is the first reaction to an extinct monster.",
+      "sources": [
+        "GDD§2.4#0",
+        "GDD§2.4#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_09_SightingConfirmed"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "SoftSignalDecay_ReturnToQuiet",
+      "line": "No goblin, no tracks, no nothing — trick of the light, back to your chores.",
+      "note": "The audible tell that an uncorroborated soft signal has decayed back to Quiet, since no timer shows on the HUD.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§2.6#2",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_10_SoftSignalDecayReturnToQuiet"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Quiet",
+      "trigger": "RoutineResume_AfterDecay",
+      "line": "Must've been a badger. A badger wearing a belt. Badgers do that.",
+      "note": "Post-decay pottering resumes; canon's badger line, pushed one notch dumber because the villager did in fact see a belt.",
+      "sources": [
+        "GDD§2.10#0",
+        "GDD§2.10#1",
+        "GDD§2.6#1"
+      ],
+      "_name": "Barks_11_RoutineResumeAfterDecay"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "PatrolOverdue_NoCheckIn",
+      "line": "That patrol's well past its waypoint — three grown men lost on a road with signposts on it.",
+      "note": "The ambient mutter that a patrol is running late is the only tell the missing-patrol soft signal has fired.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§2.1#1",
+        "GDD§3.4#0"
+      ],
+      "_name": "Barks_12_PatrolOverdueNoCheckIn"
+    },
+    {
+      "speaker": "PatrolArcher",
+      "alarm_state": "Suspicious",
+      "trigger": "HornWindUp_PatrolLosing",
+      "line": "We're losing — horn, horn, I'm sounding the — EXTINCT, ARE THEY?!",
+      "note": "She only winds up the horn once the patrol is losing; the committed wind-up is the player's window to cut her down.",
+      "sources": [
+        "GDD§2.1#1",
+        "GDD§2.6#1",
+        "GDD§2.10#1"
+      ],
+      "_name": "Barks_13_HornWindUpPatrolLosing"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Raid",
+      "trigger": "WellFouled_Discovered",
+      "line": "There's something in the well, and I think it's looking back at me!",
+      "note": "Sells the +30 well-fouling counterplay as a readable, disgusting event rather than a stat change.",
+      "sources": [
+        "GDD§2.6#3",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_14_WellFouledDiscovered"
+    },
+    {
+      "speaker": "Militia",
+      "alarm_state": "Raid",
+      "trigger": "BucketBrigadeFormUp",
+      "line": "Bucket line, move! Pass it — don't sniff it, just throw it!",
+      "note": "Bucket lines form at the well in RAID; the fouled water lands as a gag inside the firefighting behaviour.",
+      "sources": [
+        "GDD§2.6#2",
+        "GDD§2.6#3",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_15_BucketBrigadeFormUp"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Raid",
+      "trigger": "BucketBrigadeDisabled_WellFouled",
+      "line": "The granary's alight and the well's gone foul — we're fighting fire with soup!",
+      "note": "The audible confirmation that fouling the well permanently killed the brigade, tied to a burning objective.",
+      "sources": [
+        "GDD§2.6#3",
+        "GDD§2.1#1",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_16_BucketBrigadeDisabledWellFou"
+    },
+    {
+      "speaker": "Militia",
+      "alarm_state": "Razed",
+      "trigger": "LastPush_HamletBurning",
+      "line": "Windmill's ash, field's ash, fine — FINE — goblins! I said it! Are we happy?!",
+      "note": "At RAZED the denial finally snaps; the punchline lands on the man who spent the whole raid telling it.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§2.10#1",
+        "GDD§2.1#1"
+      ],
+      "_name": "Barks_17_LastPushHamletBurning"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Razed",
+      "trigger": "RoutinesGoneQuiet",
+      "line": "Nobody at the pens, nobody in the field — nobody left to tell me it was a badger.",
+      "note": "A hamlet's worth of empty routines is the strained denial's final beat, and it reads the same whether the missing were killed or bound.",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.6#1",
+        "GDD§2.6#2"
+      ],
+      "_name": "Barks_18_RoutinesGoneQuiet"
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "findings": [
+        {
+          "row": "Barks_08_CorpseDiscoveredSecond",
+          "verdict": "LORE_BREAK",
+          "quote": "\"alarm_state\": \"Suspicious\" … \"Face-down, back opened, and not one goblin in the county for a hundred years — so it's a badger with ambition.\"",
+          "canon_rule": "A second soft signal of any kind (a corpse discovered counts) arriving while the hamlet is already SUSPICIOUS does not refresh the clock — it escalates straight to RAID. A second corpse therefore cannot sit in a sustained Suspicious state with the denial holding. (Secondary: militia are not posted in the hamlet during Quiet/Suspicious — the barracks only starts producing militia once RAID begins, so a Militia speaker in Suspicious does not exist in this slice.)",
+          "evidence_chunk_id": "GDD§2.6#1",
+          "correction": "Speaker: Guard; alarm_state: Raid; line: \"Second body. Badger with ambition, that's — no. No. BELL! RING THE BELL!\" (Note should read: second soft signal while Suspicious escalates straight to RAID; the denial breaks mid-sentence, which is where the joke lands.)",
+          "by": "critic"
+        },
+        {
+          "row": "Barks_12_PatrolOverdueNoCheckIn",
+          "verdict": "LORE_BREAK",
+          "quote": "three grown men lost on a road with signposts on it",
+          "canon_rule": "A forest patrol is three guards — two militia and an archer — and the archer who carries the patrol's signal horn is canonically female (\"a committed, interruptible wind-up she sounds the moment the patrol is losing\"). \"Three grown men\" miscounts the patrol's makeup.",
+          "evidence_chunk_id": "GDD§2.1#1",
+          "correction": "That patrol's well past its waypoint — three grown soldiers lost on a road with signposts on it.",
+          "by": "critic"
+        }
+      ],
+      "verify_only": false
+    },
+    {
+      "round": 2,
+      "findings": [
+        {
+          "row": "Barks_15_BucketBrigadeFormUp",
+          "verdict": "LORE_BREAK",
+          "quote": "Bucket line, move! Pass it — don't sniff it, just throw it!",
+          "canon_rule": "Fouling the well *permanently disables* the bucket brigade (+30 counterplay). There is no state where the brigade forms up and passes fouled water — either the well is clean and the brigade works, or it's fouled and the brigade is gone for the raid. The row's own note (\"the fouled water lands as a gag inside the firefighting behaviour\") describes a behaviour the slice does not have, and it collides with row 16, which correctly plays the brigade as dead once the well is fouled.",
+          "evidence_chunk_id": "GDD§2.6#3",
+          "correction": "Bucket line, move! Well to the granary — pass it up, don't spill it!",
+          "by": "critic"
+        }
+      ],
+      "verify_only": false
+    },
+    {
+      "round": 3,
+      "findings": [],
+      "verify_only": true
+    }
+  ],
+  "final": [
+    {
+      "speaker": "Watchman",
+      "alarm_state": "Quiet",
+      "trigger": "WatchmanDozeStart",
+      "line": "The king slew the last of 'em, so what exactly am I watching for… mmnh.",
+      "note": "The doze is a timer on his perception cone; the propaganda is the excuse he naps on, so the nap and the joke are the same beat.",
+      "sources": [
+        "GDD§2.10#0",
+        "GDD§2.6#1",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_01_WatchmanDozeStart"
+    },
+    {
+      "speaker": "Watchman",
+      "alarm_state": "Quiet",
+      "trigger": "WatchmanDozeEnd",
+      "line": "Awake! Watching! Been watching this whole time — what time is it?",
+      "note": "Fires as the drooping vision cone snaps back up, telling the player the nap window just closed without a HUD readout.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§3.1#5",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_02_WatchmanDozeEnd"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Quiet",
+      "trigger": "CoinTossScramble",
+      "line": "Ooh — dropped coin, no owner, that's salvage, that's mine by law.",
+      "note": "The coin toss works on guards because greed is the exploitable stat; he breaks off his post and legally justifies it to himself.",
+      "sources": [
+        "GDD§2.4#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_03_CoinTossScramble"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Quiet",
+      "trigger": "CoinTossScramble",
+      "line": "Coins in the mud at the king's feet — the statue's paying out!",
+      "note": "Uses the village-centre statue of the king from the propaganda dressing, and keeps civilian greed on the same branch as guard greed.",
+      "sources": [
+        "GDD§2.4#1",
+        "GDD§2.10#0",
+        "GDD§2.10#1"
+      ],
+      "_name": "Barks_04_CoinTossScramble"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "FlockStartled_Investigate",
+      "line": "Squawk all you like, hens — it's a fox, it's always a fox, it has never once not been a fox.",
+      "note": "A startled flock is a soft signal that pulls the nearest guard to investigate; he investigates while pre-explaining it away.",
+      "sources": [
+        "GDD§2.7#1",
+        "GDD§2.6#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_05_FlockStartledInvestigate"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Suspicious",
+      "trigger": "FlockStartled_NearbyRoutine",
+      "line": "A goblin? In my pen? Don't be daft, it's shearing day.",
+      "note": "The GDD's own reference bark, sitting on the flock noise event — disbelief first, chores uninterrupted.",
+      "sources": [
+        "GDD§2.10#0",
+        "GDD§2.7#1"
+      ],
+      "_name": "Barks_06_FlockStartledNearbyRoutine"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "CorpseDiscovered",
+      "line": "Somebody's knifed the pen-hand. …Right. That's a fox with a knife. Investigating.",
+      "note": "Seeing a body goes only to Suspicious, never straight to the bell, because the denial is doing the work.",
+      "sources": [
+        "GDD§2.4#1",
+        "GDD§2.6#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_07_CorpseDiscovered"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Raid",
+      "trigger": "CorpseDiscovered_Second",
+      "line": "Second body. Badger with ambition, that's — no. No. BELL! RING THE BELL!",
+      "note": "A second soft signal while the hamlet is already SUSPICIOUS escalates straight to RAID, so the denial breaks mid-sentence — which is exactly where the joke lands.",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.4#1",
+        "GDD§2.6#1"
+      ],
+      "_name": "Barks_08_CorpseDiscoveredSecond"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "SightingConfirmed",
+      "line": "Green. Waist-high. Grinning. …I am not writing that in the book.",
+      "note": "Fires the moment a sighting holds long enough to confirm; disbelief, not fear, is the first reaction to an extinct monster.",
+      "sources": [
+        "GDD§2.4#0",
+        "GDD§2.4#1",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_09_SightingConfirmed"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "SoftSignalDecay_ReturnToQuiet",
+      "line": "No goblin, no tracks, no nothing — trick of the light, back to your chores.",
+      "note": "The audible tell that an uncorroborated soft signal has decayed back to Quiet, since no timer shows on the HUD.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§2.6#2",
+        "GDD§2.10#0"
+      ],
+      "_name": "Barks_10_SoftSignalDecayReturnToQuiet"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Quiet",
+      "trigger": "RoutineResume_AfterDecay",
+      "line": "Must've been a badger. A badger wearing a belt. Badgers do that.",
+      "note": "Post-decay pottering resumes; canon's badger line, pushed one notch dumber because the villager did in fact see a belt.",
+      "sources": [
+        "GDD§2.10#0",
+        "GDD§2.10#1",
+        "GDD§2.6#1"
+      ],
+      "_name": "Barks_11_RoutineResumeAfterDecay"
+    },
+    {
+      "speaker": "Guard",
+      "alarm_state": "Suspicious",
+      "trigger": "PatrolOverdue_NoCheckIn",
+      "line": "That patrol's well past its waypoint — three grown soldiers lost on a road with signposts on it.",
+      "note": "The ambient mutter that a patrol is running late is the only tell the missing-patrol soft signal has fired.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§2.1#1",
+        "GDD§3.4#0"
+      ],
+      "_name": "Barks_12_PatrolOverdueNoCheckIn"
+    },
+    {
+      "speaker": "PatrolArcher",
+      "alarm_state": "Suspicious",
+      "trigger": "HornWindUp_PatrolLosing",
+      "line": "We're losing — horn, horn, I'm sounding the — EXTINCT, ARE THEY?!",
+      "note": "She only winds up the horn once the patrol is losing; the committed wind-up is the player's window to cut her down.",
+      "sources": [
+        "GDD§2.1#1",
+        "GDD§2.6#1",
+        "GDD§2.10#1"
+      ],
+      "_name": "Barks_13_HornWindUpPatrolLosing"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Raid",
+      "trigger": "WellFouled_Discovered",
+      "line": "There's something in the well, and I think it's looking back at me!",
+      "note": "Sells the +30 well-fouling counterplay as a readable, disgusting event rather than a stat change.",
+      "sources": [
+        "GDD§2.6#3",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_14_WellFouledDiscovered"
+    },
+    {
+      "speaker": "Militia",
+      "alarm_state": "Raid",
+      "trigger": "BucketBrigadeFormUp",
+      "line": "Bucket line, move! Well to the granary — pass it up, don't spill it!",
+      "note": "The clean-well case: bucket lines form at the well in RAID and run water to a burning objective, so the player hears exactly what fouling the well would have cost them.",
+      "sources": [
+        "GDD§2.6#2",
+        "GDD§2.6#3",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_15_BucketBrigadeFormUp"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Raid",
+      "trigger": "BucketBrigadeDisabled_WellFouled",
+      "line": "The granary's alight and the well's gone foul — we're fighting fire with soup!",
+      "note": "The audible confirmation that fouling the well permanently killed the brigade, tied to a burning objective.",
+      "sources": [
+        "GDD§2.6#3",
+        "GDD§2.1#1",
+        "GDD§3.1#5"
+      ],
+      "_name": "Barks_16_BucketBrigadeDisabledWellFou"
+    },
+    {
+      "speaker": "Militia",
+      "alarm_state": "Razed",
+      "trigger": "LastPush_HamletBurning",
+      "line": "Windmill's ash, field's ash, fine — FINE — goblins! I said it! Are we happy?!",
+      "note": "At RAZED the denial finally snaps; the punchline lands on the man who spent the whole raid telling it.",
+      "sources": [
+        "GDD§2.6#1",
+        "GDD§2.10#1",
+        "GDD§2.1#1"
+      ],
+      "_name": "Barks_17_LastPushHamletBurning"
+    },
+    {
+      "speaker": "Civilian",
+      "alarm_state": "Razed",
+      "trigger": "RoutinesGoneQuiet",
+      "line": "Nobody at the pens, nobody in the field — nobody left to tell me it was a badger.",
+      "note": "A hamlet's worth of empty routines is the strained denial's final beat, and it reads the same whether the missing were killed or bound.",
+      "sources": [
+        "GDD§2.10#1",
+        "GDD§2.6#1",
+        "GDD§2.6#2"
+      ],
+      "_name": "Barks_18_RoutinesGoneQuiet"
+    }
+  ]
+}
