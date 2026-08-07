@@ -1,0 +1,20 @@
+# Goblin Siege — repo root ignores
+#
+# NOTE: .gitignore does not untrack files already in the index. Several
+# *_Backup_* directories and some __pycache__ files were committed before this
+# file existed and remain tracked; they need `git rm --cached` to remove.
+# These rules stop NEW ones from entering.
+
+# Editor-side map/asset backups. Large binary .umap/.uasset copies of content
+# that is already versioned — Map_Backup_20260806 alone is 177 MB.
+*_Backup_*/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Local secrets. The pipeline's loader also reads ./.env and
+# "GoblinSiege 5.8/.env"; the latter is ignored by that project's own
+# .gitignore. Never commit an API key.
+.env
+.env.*
