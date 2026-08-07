@@ -749,13 +749,15 @@ def engine_symbols() -> set[str]:
     return syms
 
 
-def stage_verify() -> None:
+def run_verify() -> dict:
     """
     Static cross-check of the generated code against the real codebase, before a
     human is asked to compile it. Catches the failure this agent is most prone to:
     confidently calling a symbol that does not exist. Not a compiler — it cannot
     check types, overloads or includes — but it turns the most common class of
     hallucination into a caught error instead of a build break.
+
+    Returns the report so the refiner can consume it; `stage_verify` prints it.
     """
     index = need("codebase.json")
     known_types = set(index["symbols"])
@@ -831,11 +833,15 @@ def stage_verify() -> None:
         "clean": not (unknown_types or hygiene or (unknown_calls and not calls_advisory)),
     }
     save("verify.json", report)
+    return report
 
-    print(f"  checked {len(gen_files)} files")
-    for label, items in (("unknown type refs", unknown_types),
-                         ("unresolved calls", unknown_calls),
-                         ("header hygiene", hygiene)):
+
+def print_verify(report: dict) -> None:
+    print(f"  checked {len(report['files_checked'])} files")
+    for label, key in (("unknown type refs", "unknown_type_references"),
+                       ("unresolved calls", "unknown_method_calls"),
+                       ("header hygiene", "header_hygiene")):
+        items = report[key]
         if items:
             print(f"  {label}: {len(items)}")
             for i in items[:12]:
@@ -846,6 +852,113 @@ def stage_verify() -> None:
           else "issues found; fix before compiling")
 
 
+def stage_verify() -> None:
+    print_verify(run_verify())
+
+
+REFINE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"},
+                    "what_changed": {"type": "string"},
+                },
+                "required": ["path", "content", "what_changed"],
+                "additionalProperties": False,
+            },
+        },
+        "diagnosis": {"type": "string"},
+    },
+    "required": ["files", "diagnosis"],
+    "additionalProperties": False,
+}
+
+REFINE_SYSTEM = """You repair generated Unreal Engine 5.8 C++ against specific, already-diagnosed
+findings from a static checker.
+
+Fix the documented failures and nothing else. Do not start over from scratch, do not restructure
+working code, and do not make unrelated "improvements" — every byte you change that was not named
+in a finding is a byte nobody asked you to touch and nobody will review.
+
+Return only the files you actually changed, complete and compilable. If a finding looks like a
+false positive in the checker rather than a defect in the code, say so in `diagnosis` and return
+that file unchanged rather than contorting the code to satisfy a bad rule."""
+
+MAX_REFINE_PASSES = 3
+
+
+def stage_refine() -> None:
+    """
+    GER's Refine step with a circuit breaker. Up to three passes at the findings;
+    then stop and hand a problem statement back rather than looping or shipping.
+    """
+    if not GEN.exists():
+        sys.exit("nothing generated yet — run `generate` first")
+
+    history = []
+    for p in range(1, MAX_REFINE_PASSES + 1):
+        report = run_verify()
+        findings = (report["unknown_type_references"] + report["unknown_method_calls"]
+                    + report["header_hygiene"])
+        if report["clean"]:
+            print(f"  pass {p}: clean — nothing to refine")
+            save("refine.json", {"passes": history, "outcome": "clean"})
+            return
+
+        print(f"  pass {p}: {len(findings)} finding(s) -> refining")
+        files = {str(f.relative_to(GEN)).replace("\\", "/"):
+                 f.read_text(encoding="utf-8", errors="replace")
+                 for f in sorted(GEN.rglob("*.h")) + sorted(GEN.rglob("*.cpp"))}
+        data = ask(
+            REFINE_SYSTEM,
+            f"""A static checker found these problems in generated code. Fix exactly these.
+
+FINDINGS:
+{chr(10).join('  - ' + f for f in findings)}
+
+CURRENT FILES:
+{chr(10).join(f'----- {k} -----{chr(10)}{v}' for k, v in files.items())}""",
+            REFINE_SCHEMA,
+            max_tokens=64000,
+        )
+        for f in data["files"]:
+            dest = GEN / f["path"].replace("\\", "/").lstrip("/")
+            if dest.exists():
+                dest.write_text(f["content"], encoding="utf-8")
+                print(f"    rewrote {f['path']}: {f['what_changed']}")
+        history.append({"pass": p, "findings": findings, "diagnosis": data["diagnosis"]})
+
+    # Circuit breaker: three passes spent, still failing. Escalate with a statement.
+    final = run_verify()
+    if final["clean"]:
+        print("  clean after the final pass")
+        save("refine.json", {"passes": history, "outcome": "clean"})
+        return
+
+    remaining = (final["unknown_type_references"] + final["unknown_method_calls"]
+                 + final["header_hygiene"])
+    statement = {
+        "outcome": "ESCALATED",
+        "passes": history,
+        "still_failing": remaining,
+        "problem_statement": (
+            f"{MAX_REFINE_PASSES} refine passes did not clear {len(remaining)} finding(s). "
+            f"Last diagnosis: {history[-1]['diagnosis'] if history else 'n/a'}. "
+            f"Needs a human decision — the checker may be wrong, or the generated design may "
+            f"need to change rather than be patched."
+        ),
+    }
+    save("refine.json", statement)
+    print(f"\n  CIRCUIT BREAKER: {statement['problem_statement']}")
+    for r in remaining:
+        print(f"    - {r}")
+
+
 STAGES = {
     "scan-gdd": stage_scan_gdd,
     "scan-code": stage_scan_code,
@@ -853,6 +966,7 @@ STAGES = {
     "plan": stage_plan,
     "generate": stage_generate,
     "verify": stage_verify,
+    "refine": stage_refine,
 }
 
 

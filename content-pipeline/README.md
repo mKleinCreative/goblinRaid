@@ -79,6 +79,27 @@ Covers clock nudges, per-objective barks, milestone whispers, and end verdicts.
 
 ## 3. How it works
 
+### It is a GER pipeline (named retroactively)
+
+This was built before the Generate → Evaluate → Refine vocabulary was introduced in class, and
+turned out to be one. Recording the mapping so the roles are explicit rather than incidental:
+
+| GER role | Here |
+|---|---|
+| **Generator** | `generate()` — the Writer agent, producing data-table rows from retrieved canon |
+| **Evaluator** | `lint()` **then** `critique()` — deterministic checks first (banned tier-1 terms, uncitable rows), then the Design Steward agent for judgment calls the code cannot make |
+| **Refiner** | `revise()` — applies *only* the filed findings, keeping every unflagged row byte-identical |
+| **Circuit breaker** | `--rounds` (default 2). The loop always terminates on a *verification* pass and reports `UNRESOLVED` rather than shipping unverified rows |
+
+The deterministic-before-agent ordering is deliberate and matches the principle *if code can
+verify it, use code*: a banned class name is a regex, so it should never cost an API call, and the
+critic's attention should go to register and canon judgement instead.
+
+**Generator–Evaluator contract.** The Writer produces data-table rows grounded in retrieved GDD
+chunks; the Evaluator enforces that every row cites real retrieved canon and contradicts none of
+it, and that no row names post-slice content. Both sides read the same retrieved context, so
+neither can drift onto rules the other has not seen.
+
 ```
 5 design docs
    └─ heading-aware chunker ────────────► 95 chunks (heading path preserved)
