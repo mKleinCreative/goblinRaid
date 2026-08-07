@@ -114,8 +114,48 @@ it lost — a ranking with no rejected alternative is not a decision.
 
 ## Were you able to run this in your game?
 
-**The code is placed in the project and statically verified; it has not been compiled yet, and
-that is a project constraint rather than an oversight.**
+**Yes — it compiles into the game, first try, with zero errors. It is not yet attached to a pawn,
+so it does not do anything at play time.** Both halves of that sentence matter.
+
+### It compiled
+
+Built 2026-08-06 22:34 as part of a normal project build. The evidence, from the build artifacts
+rather than from a console message I might have misread:
+
+| Fact | Value |
+|---|---|
+| UHT accepted all three headers | `GSStealthTypes`, `GSStealthSubsystem`, `GSSightPerceptionComponent` — each has `.generated.h` + `.gen.cpp` |
+| Unity translation unit holding both stealth `.cpp`s | `Module.GoblinSiege.2.cpp` |
+| That TU's object file | `Module.GoblinSiege.2.cpp.obj` @ **22:34:20** |
+| Editor DLL relinked | `UnrealEditor-GoblinSiege.dll` @ **22:34:22** |
+
+A translation unit with a compile error produces no `.obj`, and the link would have failed. The
+`.obj` exists and the DLL was written two seconds after it, so the agent's 981 lines are in the
+loaded editor module. **No fixes were needed** — not one error, not one warning I had to chase.
+
+Notably, my own predictions were wrong. Ticket #059 recorded that the most likely breakages were
+UHT rejecting `FGSDetectionTuning` and the `DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams`
+signature. UHT accepted both. The agent had also, unprompted, avoided the trap I went looking for:
+`FGSConfirmKey` is a `TMap` key and correctly supplies `operator==` and a `friend GetTypeHash`, and
+because it is a plain struct rather than a `USTRUCT`, the agent deliberately left every
+weak-pointer container un-reflected — commenting *"no UPROPERTY - weak pointers keep nothing
+alive."* That is exactly the reasoning that would have made it fail UHT if reversed.
+
+### It is not wired up
+
+Compiling is not the same as running. The component is drop-in but is **not attached to any guard
+pawn**, and `NotifyFirstObjectiveIgnited()` is not called from the ignition path. So at play time
+nothing yet constructs it and nothing observes anything. The agent listed exactly these as
+integration steps (`out/generated.json`), and they touch `AGSEnemyCharacter` and the burn-objective
+classes — other tickets' files, which ticket #059 did not claim, so it stopped at the boundary
+rather than reaching across it.
+
+The honest summary: **the agent wrote code that builds cleanly into a real 135-file UE project on
+the first attempt, and stopped short of wiring it in.**
+
+### Why the compile had to wait for a human
+
+Not an oversight — a project constraint.
 
 `GoblinSiege 5.8/CLAUDE.md` constraint 1 — the defining constraint of this project — is that agent
 sessions can read and write files on the dev machine but cannot *execute* on it: no compiles, no
@@ -124,17 +164,18 @@ queue with a build gate (`Nobody compiles until the queue is empty`), and other 
 while this ran. So the agent files a ticket and hands over, which is what every other agent on this
 project does.
 
-The five files are in `Source/GoblinSiege/Stealth/` under queue ticket **#059**. To compile:
+The five files went into `Source/GoblinSiege/Stealth/` under queue ticket **#059**, and were built
+by the project's own gated entry point:
 
 ```powershell
 cd D:\goblinRaid
 .\Build-GoblinSiege.ps1            # gated: refuses if the editor is open or the queue is busy
 ```
 
-No `GoblinSiege.Build.cs` change is required — the code uses only modules already declared
-(`Engine`, `Core`, `CoreUObject`, `GameplayTags`).
+No `GoblinSiege.Build.cs` change was required — the code uses only modules already declared
+(`Engine`, `Core`, `CoreUObject`, `GameplayTags`), which the clean build confirms.
 
-### What *was* verified, without a compiler
+### What was verified *before* the compiler, and what that was worth
 
 The `verify` stage cross-checks the generated code against reality:
 
@@ -152,6 +193,13 @@ It also confirmed the one thing most likely to break a build: `GSStealthSubsyste
 This is not a compiler. It cannot check types, overload resolution, or include order beyond the
 `.generated.h` rule. It catches the failure mode this kind of agent is actually prone to —
 confidently calling something that does not exist — and nothing more.
+
+**Did it earn its place?** The subsequent clean build says the static pass and the compiler agreed,
+which is the weakest possible evidence for a checker: it never got to disagree. Its real value was
+that it let the agent hand over code with a defensible claim attached rather than a hope, in a
+project where the compile is somebody else's step and hours away. On a run where the generator
+*had* invented a method, it would have caught it in seconds instead of costing a build cycle. One
+clean run does not prove that, and I am not going to claim it does.
 
 ---
 
