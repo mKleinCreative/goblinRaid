@@ -139,10 +139,15 @@ def test_house_composer() -> None:
     import random
     kit = synthetic_kit()
     h = compose_house(kit, random.Random(3), 0, 0, 2, 2, "h")
-    mods = len([p for p in h.placements if "Foundation" in p.mesh])
+    # Foundations ring the perimeter; FLOORS are the per-module count. Measuring the kit
+    # corrected this: SM_House_Foundation_5x4 is 500 x 50 x 300, a wall segment, not a plate.
+    floors = len([p for p in h.placements if "Floor" in p.mesh])
+    founds = len([p for p in h.placements if "Foundation" in p.mesh])
     roofs = len([p for p in h.placements if "Roof" in p.mesh])
-    check("every module gets a foundation", mods == 4, f"{mods}")
-    check("the roof covers every module", roofs >= mods, f"{roofs} roof vs {mods} modules")
+    check("every module gets a floor plate", floors == 4, f"{floors}")
+    check("the foundation rings the perimeter, not the cells", founds == 2 * 2 + 2 * 2,
+          f"{founds} segments for a 2x2")
+    check("the roof covers every module", roofs >= floors, f"{roofs} roof vs {floors} modules")
     check("the house has a door",
           any(p.mesh.startswith("SM_Door") for p in h.placements))
     check("the footprint matches the measured module grid",

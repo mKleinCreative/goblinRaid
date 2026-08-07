@@ -1,0 +1,4499 @@
+{
+  "measured_in_editor": true,
+  "engine": "UE 5.8",
+  "roots": [
+    "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House",
+    "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures"
+  ],
+  "count": 187,
+  "meshes": [
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_01",
+      "name": "SM_Balcony_01",
+      "size_cm": [
+        309.11,
+        503.82,
+        157.99
+      ],
+      "min_cm": [
+        -10.0,
+        -250.9,
+        -40.0
+      ],
+      "max_cm": [
+        299.11,
+        252.92,
+        117.99
+      ],
+      "pivot_from_min_cm": [
+        10.0,
+        250.9,
+        40.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_01_Support",
+      "name": "SM_Balcony_01_Support",
+      "size_cm": [
+        95.81,
+        398.87,
+        115.24
+      ],
+      "min_cm": [
+        -9.84,
+        -199.43,
+        -118.47
+      ],
+      "max_cm": [
+        85.97,
+        199.44,
+        -3.22
+      ],
+      "pivot_from_min_cm": [
+        9.84,
+        199.43,
+        118.47
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_01_Support_Extension",
+      "name": "SM_Balcony_01_Support_Extension",
+      "size_cm": [
+        95.81,
+        474.17,
+        112.6
+      ],
+      "min_cm": [
+        -54.36,
+        -236.73,
+        -118.47
+      ],
+      "max_cm": [
+        41.45,
+        237.44,
+        -5.87
+      ],
+      "pivot_from_min_cm": [
+        54.36,
+        236.73,
+        118.47
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Balcony_02",
+      "name": "SM_Balcony_02",
+      "size_cm": [
+        309.11,
+        1003.82,
+        157.99
+      ],
+      "min_cm": [
+        -10.0,
+        -500.9,
+        -40.0
+      ],
+      "max_cm": [
+        299.11,
+        502.92,
+        117.99
+      ],
+      "pivot_from_min_cm": [
+        10.0,
+        500.9,
+        40.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Bar_Corner",
+      "name": "SM_Bar_Corner",
+      "size_cm": [
+        100.29,
+        100.1,
+        110.0
+      ],
+      "min_cm": [
+        -0.1,
+        -50.0,
+        -5.0
+      ],
+      "max_cm": [
+        100.19,
+        50.1,
+        105.0
+      ],
+      "pivot_from_min_cm": [
+        0.1,
+        50.0,
+        5.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Bar_End",
+      "name": "SM_Bar_End",
+      "size_cm": [
+        100.0,
+        100.0,
+        110.0
+      ],
+      "min_cm": [
+        -100.0,
+        -50.0,
+        -5.0
+      ],
+      "max_cm": [
+        0.0,
+        50.0,
+        105.0
+      ],
+      "pivot_from_min_cm": [
+        100.0,
+        50.0,
+        5.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Bar_Main",
+      "name": "SM_Bar_Main",
+      "size_cm": [
+        400.0,
+        100.0,
+        110.0
+      ],
+      "min_cm": [
+        -200.0,
+        -50.0,
+        -5.0
+      ],
+      "max_cm": [
+        200.0,
+        50.0,
+        105.0
+      ],
+      "pivot_from_min_cm": [
+        200.0,
+        50.0,
+        5.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Barn",
+      "name": "SM_Barn",
+      "size_cm": [
+        713.9,
+        503.55,
+        569.95
+      ],
+      "min_cm": [
+        -365.96,
+        -261.78,
+        -14.02
+      ],
+      "max_cm": [
+        347.94,
+        241.78,
+        555.93
+      ],
+      "pivot_from_min_cm": [
+        365.96,
+        261.78,
+        14.02
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_BridgeMid",
+      "name": "SM_BridgeMid",
+      "size_cm": [
+        727.64,
+        914.91,
+        600.5
+      ],
+      "min_cm": [
+        -363.82,
+        -456.53,
+        -24.13
+      ],
+      "max_cm": [
+        363.82,
+        458.38,
+        576.37
+      ],
+      "pivot_from_min_cm": [
+        363.82,
+        456.53,
+        24.13
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/Collisions/SM_BridgeMid_Col",
+      "name": "SM_BridgeMid_Col",
+      "size_cm": [
+        722.64,
+        914.91,
+        598.67
+      ],
+      "min_cm": [
+        -361.1,
+        -456.53,
+        -23.78
+      ],
+      "max_cm": [
+        361.54,
+        458.38,
+        574.89
+      ],
+      "pivot_from_min_cm": [
+        361.1,
+        456.53,
+        23.78
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Chicken_Coop",
+      "name": "SM_Chicken_Coop",
+      "size_cm": [
+        230.22,
+        264.49,
+        222.62
+      ],
+      "min_cm": [
+        -152.86,
+        -133.44,
+        -10.0
+      ],
+      "max_cm": [
+        77.36,
+        131.04,
+        212.62
+      ],
+      "pivot_from_min_cm": [
+        152.86,
+        133.44,
+        10.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Chicken_Platform",
+      "name": "SM_Chicken_Platform",
+      "size_cm": [
+        121.65,
+        48.17,
+        73.33
+      ],
+      "min_cm": [
+        -67.69,
+        -24.03,
+        -7.59
+      ],
+      "max_cm": [
+        53.96,
+        24.14,
+        65.73
+      ],
+      "pivot_from_min_cm": [
+        67.69,
+        24.03,
+        7.59
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Docks_01",
+      "name": "SM_Docks_01",
+      "size_cm": [
+        625.54,
+        849.24,
+        520.0
+      ],
+      "min_cm": [
+        4.08,
+        -429.62,
+        -350.0
+      ],
+      "max_cm": [
+        629.62,
+        419.62,
+        170.0
+      ],
+      "pivot_from_min_cm": [
+        -4.08,
+        429.62,
+        350.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_A",
+      "name": "SM_Door_A",
+      "size_cm": [
+        131.99,
+        31.02,
+        256.42
+      ],
+      "min_cm": [
+        -132.8,
+        -19.31,
+        -126.74
+      ],
+      "max_cm": [
+        -0.82,
+        11.71,
+        129.69
+      ],
+      "pivot_from_min_cm": [
+        132.8,
+        19.31,
+        126.74
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_C",
+      "name": "SM_Door_C",
+      "size_cm": [
+        109.77,
+        34.01,
+        258.57
+      ],
+      "min_cm": [
+        -110.49,
+        -29.75,
+        -126.04
+      ],
+      "max_cm": [
+        -0.72,
+        4.26,
+        132.53
+      ],
+      "pivot_from_min_cm": [
+        110.49,
+        29.75,
+        126.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_D",
+      "name": "SM_Door_D",
+      "size_cm": [
+        131.99,
+        31.02,
+        282.63
+      ],
+      "min_cm": [
+        -130.27,
+        -19.31,
+        -126.74
+      ],
+      "max_cm": [
+        1.72,
+        11.71,
+        155.89
+      ],
+      "pivot_from_min_cm": [
+        130.27,
+        19.31,
+        126.74
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Door_E",
+      "name": "SM_Door_E",
+      "size_cm": [
+        109.77,
+        34.01,
+        316.04
+      ],
+      "min_cm": [
+        -110.49,
+        -29.75,
+        -126.04
+      ],
+      "max_cm": [
+        -0.72,
+        4.26,
+        190.0
+      ],
+      "pivot_from_min_cm": [
+        110.49,
+        29.75,
+        126.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Fireplace_Base",
+      "name": "SM_Fireplace_Base",
+      "size_cm": [
+        127.21,
+        145.13,
+        219.89
+      ],
+      "min_cm": [
+        -63.69,
+        -65.57,
+        -0.0
+      ],
+      "max_cm": [
+        63.51,
+        79.55,
+        219.89
+      ],
+      "pivot_from_min_cm": [
+        63.69,
+        65.57,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Fireplace_Tiling",
+      "name": "SM_Fireplace_Tiling",
+      "size_cm": [
+        92.0,
+        88.64,
+        103.71
+      ],
+      "min_cm": [
+        -46.0,
+        -44.33,
+        -0.0
+      ],
+      "max_cm": [
+        46.0,
+        44.31,
+        103.71
+      ],
+      "pivot_from_min_cm": [
+        46.0,
+        44.33,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Fireplace_Top",
+      "name": "SM_Fireplace_Top",
+      "size_cm": [
+        115.1,
+        109.74,
+        92.27
+      ],
+      "min_cm": [
+        -57.55,
+        -54.87,
+        -0.0
+      ],
+      "max_cm": [
+        57.55,
+        54.87,
+        92.27
+      ],
+      "pivot_from_min_cm": [
+        57.55,
+        54.87,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_01",
+      "name": "SM_House_Corner_01",
+      "size_cm": [
+        40.41,
+        40.05,
+        400.0
+      ],
+      "min_cm": [
+        -290.0,
+        249.95,
+        0.0
+      ],
+      "max_cm": [
+        -249.59,
+        290.0,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        290.0,
+        -249.95,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_02",
+      "name": "SM_House_Corner_02",
+      "size_cm": [
+        98.58,
+        102.0,
+        400.77
+      ],
+      "min_cm": [
+        -340.0,
+        -293.62,
+        -0.0
+      ],
+      "max_cm": [
+        -241.42,
+        -191.62,
+        400.77
+      ],
+      "pivot_from_min_cm": [
+        340.0,
+        293.62,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_02_Front",
+      "name": "SM_House_Corner_02_Front",
+      "size_cm": [
+        103.81,
+        40.24,
+        400.24
+      ],
+      "min_cm": [
+        -345.23,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        -241.42,
+        -249.96,
+        400.24
+      ],
+      "pivot_from_min_cm": [
+        345.23,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_02_SIde",
+      "name": "SM_House_Corner_02_SIde",
+      "size_cm": [
+        40.04,
+        102.0,
+        400.77
+      ],
+      "min_cm": [
+        -340.0,
+        -293.62,
+        -0.0
+      ],
+      "max_cm": [
+        -299.96,
+        -191.62,
+        400.77
+      ],
+      "pivot_from_min_cm": [
+        340.0,
+        293.62,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Corners/SM_House_Corner_Beam",
+      "name": "SM_House_Corner_Beam",
+      "size_cm": [
+        31.48,
+        30.37,
+        397.88
+      ],
+      "min_cm": [
+        -30.76,
+        -30.63,
+        0.0
+      ],
+      "max_cm": [
+        0.72,
+        -0.26,
+        397.88
+      ],
+      "pivot_from_min_cm": [
+        30.76,
+        30.63,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_01",
+      "name": "SM_House_Floor_5x4_01",
+      "size_cm": [
+        500.75,
+        500.0,
+        35.97
+      ],
+      "min_cm": [
+        -249.83,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        250.92,
+        249.46,
+        5.97
+      ],
+      "pivot_from_min_cm": [
+        249.83,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_01",
+      "name": "SM_House_Floor_5x4_Hatch_01",
+      "size_cm": [
+        504.3,
+        500.0,
+        41.1
+      ],
+      "min_cm": [
+        -252.13,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        252.17,
+        249.46,
+        11.1
+      ],
+      "pivot_from_min_cm": [
+        252.13,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_02",
+      "name": "SM_House_Floor_5x4_Hatch_02",
+      "size_cm": [
+        500.75,
+        502.67,
+        41.1
+      ],
+      "min_cm": [
+        -249.83,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        250.92,
+        252.13,
+        11.1
+      ],
+      "pivot_from_min_cm": [
+        249.83,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_03",
+      "name": "SM_House_Floor_5x4_Hatch_03",
+      "size_cm": [
+        505.46,
+        512.53,
+        41.1
+      ],
+      "min_cm": [
+        -252.13,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        253.33,
+        261.99,
+        11.1
+      ],
+      "pivot_from_min_cm": [
+        252.13,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Hatch_04",
+      "name": "SM_House_Floor_5x4_Hatch_04",
+      "size_cm": [
+        508.71,
+        505.46,
+        41.1
+      ],
+      "min_cm": [
+        -257.79,
+        -253.33,
+        -30.0
+      ],
+      "max_cm": [
+        250.92,
+        252.13,
+        11.1
+      ],
+      "pivot_from_min_cm": [
+        257.79,
+        253.33,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_LargeHatch",
+      "name": "SM_House_Floor_5x4_LargeHatch",
+      "size_cm": [
+        1000.88,
+        504.78,
+        41.17
+      ],
+      "min_cm": [
+        -749.96,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        250.92,
+        254.23,
+        11.17
+      ],
+      "pivot_from_min_cm": [
+        749.96,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Overang",
+      "name": "SM_House_Floor_5x4_Overang",
+      "size_cm": [
+        500.0,
+        75.11,
+        26.82
+      ],
+      "min_cm": [
+        -249.46,
+        -324.19,
+        -16.82
+      ],
+      "max_cm": [
+        250.54,
+        -249.08,
+        10.0
+      ],
+      "pivot_from_min_cm": [
+        249.46,
+        324.19,
+        16.82
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_5x4_Overang_Beam",
+      "name": "SM_House_Floor_5x4_Overang_Beam",
+      "size_cm": [
+        75.19,
+        500.0,
+        40.0
+      ],
+      "min_cm": [
+        249.08,
+        -249.46,
+        -30.0
+      ],
+      "max_cm": [
+        324.27,
+        250.54,
+        10.0
+      ],
+      "pivot_from_min_cm": [
+        -249.08,
+        249.46,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Floors/SM_House_Floor_Beam",
+      "name": "SM_House_Floor_Beam",
+      "size_cm": [
+        500.37,
+        29.67,
+        20.0
+      ],
+      "min_cm": [
+        -249.58,
+        -4.83,
+        -30.0
+      ],
+      "max_cm": [
+        250.79,
+        24.83,
+        -10.0
+      ],
+      "pivot_from_min_cm": [
+        249.58,
+        4.83,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_2x4",
+      "name": "SM_House_Foundation_2x4",
+      "size_cm": [
+        250.0,
+        50.0,
+        300.0
+      ],
+      "min_cm": [
+        -250.0,
+        -305.0,
+        -250.0
+      ],
+      "max_cm": [
+        0.0,
+        -255.0,
+        50.0
+      ],
+      "pivot_from_min_cm": [
+        250.0,
+        305.0,
+        250.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4",
+      "name": "SM_House_Foundation_5x4",
+      "size_cm": [
+        500.0,
+        50.0,
+        300.0
+      ],
+      "min_cm": [
+        -250.0,
+        -305.0,
+        -250.0
+      ],
+      "max_cm": [
+        250.0,
+        -255.0,
+        50.0
+      ],
+      "pivot_from_min_cm": [
+        250.0,
+        305.0,
+        250.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4_Corner",
+      "name": "SM_House_Foundation_5x4_Corner",
+      "size_cm": [
+        566.3,
+        72.6,
+        305.48
+      ],
+      "min_cm": [
+        -316.3,
+        -316.3,
+        -250.0
+      ],
+      "max_cm": [
+        250.0,
+        -243.7,
+        55.48
+      ],
+      "pivot_from_min_cm": [
+        316.3,
+        316.3,
+        250.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4_Corner_Extended",
+      "name": "SM_House_Foundation_5x4_Corner_Extended",
+      "size_cm": [
+        706.3,
+        72.6,
+        305.48
+      ],
+      "min_cm": [
+        -316.3,
+        -316.3,
+        -250.0
+      ],
+      "max_cm": [
+        390.0,
+        -243.7,
+        55.48
+      ],
+      "pivot_from_min_cm": [
+        316.3,
+        316.3,
+        250.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Foundation/SM_House_Foundation_5x4_Extemded",
+      "name": "SM_House_Foundation_5x4_Extemded",
+      "size_cm": [
+        590.0,
+        50.0,
+        300.0
+      ],
+      "min_cm": [
+        -290.0,
+        -305.0,
+        -250.0
+      ],
+      "max_cm": [
+        300.0,
+        -255.0,
+        50.0
+      ],
+      "pivot_from_min_cm": [
+        290.0,
+        305.0,
+        250.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Inner_Extended",
+      "name": "SM_House_Roof_01_Corner_Inner_Extended",
+      "size_cm": [
+        502.03,
+        501.07,
+        696.91
+      ],
+      "min_cm": [
+        -501.59,
+        -500.97,
+        -71.17
+      ],
+      "max_cm": [
+        0.44,
+        0.11,
+        625.73
+      ],
+      "pivot_from_min_cm": [
+        501.59,
+        500.97,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Inner_Standard",
+      "name": "SM_House_Roof_01_Corner_Inner_Standard",
+      "size_cm": [
+        503.8,
+        502.91,
+        589.69
+      ],
+      "min_cm": [
+        -551.58,
+        -550.69,
+        -71.17
+      ],
+      "max_cm": [
+        -47.77,
+        -47.77,
+        518.52
+      ],
+      "pivot_from_min_cm": [
+        551.58,
+        550.69,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Outer_Extended",
+      "name": "SM_House_Roof_01_Corner_Outer_Extended",
+      "size_cm": [
+        691.52,
+        690.98,
+        709.83
+      ],
+      "min_cm": [
+        -250.44,
+        -250.69,
+        -71.17
+      ],
+      "max_cm": [
+        441.08,
+        440.29,
+        638.66
+      ],
+      "pivot_from_min_cm": [
+        250.44,
+        250.69,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Corner_Outer_Standard",
+      "name": "SM_House_Roof_01_Corner_Outer_Standard",
+      "size_cm": [
+        382.77,
+        383.27,
+        589.69
+      ],
+      "min_cm": [
+        -0.44,
+        -0.92,
+        -71.17
+      ],
+      "max_cm": [
+        382.33,
+        382.36,
+        518.52
+      ],
+      "pivot_from_min_cm": [
+        0.44,
+        0.92,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_End_Base",
+      "name": "SM_House_Roof_01_End_Base",
+      "size_cm": [
+        314.1,
+        165.9,
+        410.71
+      ],
+      "min_cm": [
+        -387.62,
+        -155.47,
+        -68.29
+      ],
+      "max_cm": [
+        -73.52,
+        10.43,
+        342.42
+      ],
+      "pivot_from_min_cm": [
+        387.62,
+        155.47,
+        68.29
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_End_Top",
+      "name": "SM_House_Roof_01_End_Top",
+      "size_cm": [
+        122.41,
+        177.86,
+        206.73
+      ],
+      "min_cm": [
+        -114.52,
+        -167.86,
+        314.51
+      ],
+      "max_cm": [
+        7.9,
+        10.0,
+        521.24
+      ],
+      "pivot_from_min_cm": [
+        114.52,
+        167.86,
+        -314.51
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_End_TopExtended",
+      "name": "SM_House_Roof_01_End_TopExtended",
+      "size_cm": [
+        176.36,
+        184.49,
+        319.08
+      ],
+      "min_cm": [
+        -114.52,
+        -174.49,
+        314.51
+      ],
+      "max_cm": [
+        61.84,
+        10.0,
+        633.59
+      ],
+      "pivot_from_min_cm": [
+        114.52,
+        174.49,
+        -314.51
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Middle_Tiling_WindowFrame",
+      "name": "SM_House_Roof_01_Middle_Tiling_WindowFrame",
+      "size_cm": [
+        449.67,
+        500.9,
+        564.41
+      ],
+      "min_cm": [
+        -479.37,
+        -250.22,
+        -71.17
+      ],
+      "max_cm": [
+        -29.69,
+        250.69,
+        493.24
+      ],
+      "pivot_from_min_cm": [
+        479.37,
+        250.22,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Middle_Tiling_Window_01",
+      "name": "SM_House_Roof_01_Middle_Tiling_Window_01",
+      "size_cm": [
+        32.4,
+        226.76,
+        226.07
+      ],
+      "min_cm": [
+        -331.59,
+        -113.28,
+        38.04
+      ],
+      "max_cm": [
+        -299.18,
+        113.48,
+        264.11
+      ],
+      "pivot_from_min_cm": [
+        331.59,
+        113.28,
+        -38.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Middle_Tiling_Window_02",
+      "name": "SM_House_Roof_01_Middle_Tiling_Window_02",
+      "size_cm": [
+        29.53,
+        226.76,
+        226.07
+      ],
+      "min_cm": [
+        -329.43,
+        -113.28,
+        38.04
+      ],
+      "max_cm": [
+        -299.9,
+        113.48,
+        264.11
+      ],
+      "pivot_from_min_cm": [
+        329.43,
+        113.28,
+        -38.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Base",
+      "name": "SM_House_Roof_01_Tiling_Base",
+      "size_cm": [
+        307.94,
+        500.9,
+        410.18
+      ],
+      "min_cm": [
+        -383.11,
+        -250.22,
+        -71.17
+      ],
+      "max_cm": [
+        -75.17,
+        250.69,
+        339.0
+      ],
+      "pivot_from_min_cm": [
+        383.11,
+        250.22,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Half_Base",
+      "name": "SM_House_Roof_01_Tiling_Half_Base",
+      "size_cm": [
+        306.85,
+        250.9,
+        410.18
+      ],
+      "min_cm": [
+        -382.02,
+        -120.22,
+        -71.17
+      ],
+      "max_cm": [
+        -75.17,
+        130.69,
+        339.0
+      ],
+      "pivot_from_min_cm": [
+        382.02,
+        120.22,
+        71.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Half_Top",
+      "name": "SM_House_Roof_01_Tiling_Half_Top",
+      "size_cm": [
+        111.03,
+        250.0,
+        199.32
+      ],
+      "min_cm": [
+        -108.81,
+        -120.0,
+        319.2
+      ],
+      "max_cm": [
+        2.23,
+        130.0,
+        518.52
+      ],
+      "pivot_from_min_cm": [
+        108.81,
+        120.0,
+        -319.2
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Half_TopExtended",
+      "name": "SM_House_Roof_01_Tiling_Half_TopExtended",
+      "size_cm": [
+        158.82,
+        250.13,
+        306.54
+      ],
+      "min_cm": [
+        -108.81,
+        -120.13,
+        319.2
+      ],
+      "max_cm": [
+        50.01,
+        130.0,
+        625.73
+      ],
+      "pivot_from_min_cm": [
+        108.81,
+        120.13,
+        -319.2
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_Top",
+      "name": "SM_House_Roof_01_Tiling_Top",
+      "size_cm": [
+        111.03,
+        500.0,
+        199.32
+      ],
+      "min_cm": [
+        -108.81,
+        -250.0,
+        319.2
+      ],
+      "max_cm": [
+        2.23,
+        250.0,
+        518.52
+      ],
+      "pivot_from_min_cm": [
+        108.81,
+        250.0,
+        -319.2
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_Tiling_TopExtended",
+      "name": "SM_House_Roof_01_Tiling_TopExtended",
+      "size_cm": [
+        158.82,
+        500.57,
+        306.54
+      ],
+      "min_cm": [
+        -158.81,
+        -250.13,
+        319.2
+      ],
+      "max_cm": [
+        0.01,
+        250.44,
+        625.73
+      ],
+      "pivot_from_min_cm": [
+        158.81,
+        250.13,
+        -319.2
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Extended_01",
+      "name": "SM_House_Roof_01_WallBottom_Extended_01",
+      "size_cm": [
+        42.51,
+        233.31,
+        308.11
+      ],
+      "min_cm": [
+        -11.36,
+        123.3,
+        -8.77
+      ],
+      "max_cm": [
+        31.15,
+        356.6,
+        299.34
+      ],
+      "pivot_from_min_cm": [
+        11.36,
+        -123.3,
+        8.77
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Extended_02",
+      "name": "SM_House_Roof_01_WallBottom_Extended_02",
+      "size_cm": [
+        42.51,
+        233.31,
+        308.11
+      ],
+      "min_cm": [
+        -11.36,
+        123.3,
+        -8.77
+      ],
+      "max_cm": [
+        31.15,
+        356.6,
+        299.34
+      ],
+      "pivot_from_min_cm": [
+        11.36,
+        -123.3,
+        8.77
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Standard_01",
+      "name": "SM_House_Roof_01_WallBottom_Standard_01",
+      "size_cm": [
+        38.03,
+        178.98,
+        279.77
+      ],
+      "min_cm": [
+        -9.7,
+        119.62,
+        0.05
+      ],
+      "max_cm": [
+        28.33,
+        298.59,
+        279.82
+      ],
+      "pivot_from_min_cm": [
+        9.7,
+        -119.62,
+        -0.05
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallBottom_Standard_02",
+      "name": "SM_House_Roof_01_WallBottom_Standard_02",
+      "size_cm": [
+        38.03,
+        178.98,
+        279.77
+      ],
+      "min_cm": [
+        -9.7,
+        119.62,
+        0.05
+      ],
+      "max_cm": [
+        28.33,
+        298.59,
+        279.82
+      ],
+      "pivot_from_min_cm": [
+        9.7,
+        -119.62,
+        -0.05
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_01",
+      "name": "SM_House_Roof_01_WallMiddle_A_01",
+      "size_cm": [
+        41.17,
+        249.85,
+        299.66
+      ],
+      "min_cm": [
+        -10.04,
+        -124.58,
+        -0.0
+      ],
+      "max_cm": [
+        31.13,
+        125.27,
+        299.66
+      ],
+      "pivot_from_min_cm": [
+        10.04,
+        124.58,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_02",
+      "name": "SM_House_Roof_01_WallMiddle_A_02",
+      "size_cm": [
+        249.85,
+        41.17,
+        299.66
+      ],
+      "min_cm": [
+        -124.58,
+        -31.13,
+        0.0
+      ],
+      "max_cm": [
+        125.27,
+        10.04,
+        299.66
+      ],
+      "pivot_from_min_cm": [
+        124.58,
+        31.13,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_03",
+      "name": "SM_House_Roof_01_WallMiddle_A_03",
+      "size_cm": [
+        41.17,
+        249.85,
+        299.66
+      ],
+      "min_cm": [
+        -10.04,
+        -124.58,
+        -0.0
+      ],
+      "max_cm": [
+        31.13,
+        125.27,
+        299.66
+      ],
+      "pivot_from_min_cm": [
+        10.04,
+        124.58,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_04",
+      "name": "SM_House_Roof_01_WallMiddle_A_04",
+      "size_cm": [
+        43.63,
+        249.85,
+        299.66
+      ],
+      "min_cm": [
+        -10.04,
+        -124.58,
+        -0.0
+      ],
+      "max_cm": [
+        33.59,
+        125.27,
+        299.66
+      ],
+      "pivot_from_min_cm": [
+        10.04,
+        124.58,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_05",
+      "name": "SM_House_Roof_01_WallMiddle_A_05",
+      "size_cm": [
+        43.33,
+        249.85,
+        299.66
+      ],
+      "min_cm": [
+        -10.04,
+        -124.64,
+        -0.0
+      ],
+      "max_cm": [
+        33.29,
+        125.2,
+        299.66
+      ],
+      "pivot_from_min_cm": [
+        10.04,
+        124.64,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallMiddle_A_06",
+      "name": "SM_House_Roof_01_WallMiddle_A_06",
+      "size_cm": [
+        43.23,
+        249.85,
+        299.66
+      ],
+      "min_cm": [
+        -10.04,
+        -124.58,
+        -0.0
+      ],
+      "max_cm": [
+        33.19,
+        125.27,
+        299.66
+      ],
+      "pivot_from_min_cm": [
+        10.04,
+        124.58,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Extended_01",
+      "name": "SM_House_Roof_01_WallTop_Extended_01",
+      "size_cm": [
+        320.17,
+        41.2,
+        302.05
+      ],
+      "min_cm": [
+        -160.08,
+        -10.04,
+        -0.83
+      ],
+      "max_cm": [
+        160.08,
+        31.15,
+        301.23
+      ],
+      "pivot_from_min_cm": [
+        160.08,
+        10.04,
+        0.83
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Extended_02",
+      "name": "SM_House_Roof_01_WallTop_Extended_02",
+      "size_cm": [
+        41.2,
+        320.17,
+        302.05
+      ],
+      "min_cm": [
+        -10.04,
+        -160.08,
+        -0.83
+      ],
+      "max_cm": [
+        31.15,
+        160.08,
+        301.23
+      ],
+      "pivot_from_min_cm": [
+        10.04,
+        160.08,
+        0.83
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Standard_01",
+      "name": "SM_House_Roof_01_WallTop_Standard_01",
+      "size_cm": [
+        41.17,
+        207.13,
+        201.29
+      ],
+      "min_cm": [
+        -12.83,
+        -103.57,
+        0.0
+      ],
+      "max_cm": [
+        28.33,
+        103.57,
+        201.29
+      ],
+      "pivot_from_min_cm": [
+        12.83,
+        103.57,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_01/SM_House_Roof_01_WallTop_Standard_02",
+      "name": "SM_House_Roof_01_WallTop_Standard_02",
+      "size_cm": [
+        41.17,
+        207.13,
+        201.29
+      ],
+      "min_cm": [
+        -12.83,
+        -103.57,
+        0.0
+      ],
+      "max_cm": [
+        28.33,
+        103.57,
+        201.29
+      ],
+      "pivot_from_min_cm": [
+        12.83,
+        103.57,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Corner_Inner",
+      "name": "SM_House_Roof_02_Corner_Inner",
+      "size_cm": [
+        761.05,
+        761.58,
+        963.68
+      ],
+      "min_cm": [
+        -7.61,
+        -751.38,
+        -64.32
+      ],
+      "max_cm": [
+        753.43,
+        10.2,
+        899.36
+      ],
+      "pivot_from_min_cm": [
+        7.61,
+        751.38,
+        64.32
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Corner_Outer",
+      "name": "SM_House_Roof_02_Corner_Outer",
+      "size_cm": [
+        898.39,
+        904.36,
+        967.4
+      ],
+      "min_cm": [
+        -644.31,
+        -253.44,
+        -68.05
+      ],
+      "max_cm": [
+        254.08,
+        650.92,
+        899.36
+      ],
+      "pivot_from_min_cm": [
+        644.31,
+        253.44,
+        68.05
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_End",
+      "name": "SM_House_Roof_02_End",
+      "size_cm": [
+        655.36,
+        192.59,
+        969.07
+      ],
+      "min_cm": [
+        -647.68,
+        -170.87,
+        -64.32
+      ],
+      "max_cm": [
+        7.68,
+        21.72,
+        904.75
+      ],
+      "pivot_from_min_cm": [
+        647.68,
+        170.87,
+        64.32
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Tiling",
+      "name": "SM_House_Roof_02_Tiling",
+      "size_cm": [
+        651.2,
+        502.0,
+        963.68
+      ],
+      "min_cm": [
+        -643.52,
+        -262.3,
+        -64.32
+      ],
+      "max_cm": [
+        7.68,
+        239.7,
+        899.36
+      ],
+      "pivot_from_min_cm": [
+        643.52,
+        262.3,
+        64.32
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_Tiling_Half",
+      "name": "SM_House_Roof_02_Tiling_Half",
+      "size_cm": [
+        651.48,
+        252.5,
+        963.68
+      ],
+      "min_cm": [
+        -643.87,
+        -121.51,
+        -64.32
+      ],
+      "max_cm": [
+        7.61,
+        130.99,
+        899.36
+      ],
+      "pivot_from_min_cm": [
+        643.87,
+        121.51,
+        64.32
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_WallSide_01",
+      "name": "SM_House_Roof_02_WallSide_01",
+      "size_cm": [
+        335.28,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        250.59,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        585.87,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        -250.59,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Roof_02/SM_House_Roof_02_WallTop_01",
+      "name": "SM_House_Roof_02_WallTop_01",
+      "size_cm": [
+        583.79,
+        40.24,
+        510.0
+      ],
+      "min_cm": [
+        -291.89,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        291.89,
+        -249.96,
+        510.0
+      ],
+      "pivot_from_min_cm": [
+        291.89,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Roof_Beam_End",
+      "name": "SM_House_Roof_Beam_End",
+      "size_cm": [
+        38.38,
+        284.91,
+        260.52
+      ],
+      "min_cm": [
+        -19.67,
+        -268.38,
+        -22.94
+      ],
+      "max_cm": [
+        18.71,
+        16.53,
+        237.59
+      ],
+      "pivot_from_min_cm": [
+        19.67,
+        268.38,
+        22.94
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Roof_Beam_Half_Tiling",
+      "name": "SM_House_Roof_Beam_Half_Tiling",
+      "size_cm": [
+        38.38,
+        262.93,
+        213.47
+      ],
+      "min_cm": [
+        -19.67,
+        -133.76,
+        -22.88
+      ],
+      "max_cm": [
+        18.71,
+        129.17,
+        190.59
+      ],
+      "pivot_from_min_cm": [
+        19.67,
+        133.76,
+        22.88
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Roof_Beam_Tiling",
+      "name": "SM_House_Roof_Beam_Tiling",
+      "size_cm": [
+        38.38,
+        512.79,
+        217.73
+      ],
+      "min_cm": [
+        -19.67,
+        -252.78,
+        -22.88
+      ],
+      "max_cm": [
+        18.71,
+        260.01,
+        194.85
+      ],
+      "pivot_from_min_cm": [
+        19.67,
+        252.78,
+        22.88
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_2_5x4_01",
+      "name": "SM_House_Wall_2_5x4_01",
+      "size_cm": [
+        250.05,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        0.65,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_2_5x4_02",
+      "name": "SM_House_Wall_2_5x4_02",
+      "size_cm": [
+        250.05,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        0.65,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_2_5x4_03",
+      "name": "SM_House_Wall_2_5x4_03",
+      "size_cm": [
+        250.05,
+        40.04,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.0,
+        -0.0
+      ],
+      "max_cm": [
+        0.65,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.0,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_A_01",
+      "name": "SM_House_Wall_5x4_A_01",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_A_02",
+      "name": "SM_House_Wall_5x4_A_02",
+      "size_cm": [
+        500.05,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.48,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.57,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.48,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_A_03",
+      "name": "SM_House_Wall_5x4_A_03",
+      "size_cm": [
+        500.05,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.56,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.56,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_A_01",
+      "name": "SM_House_Wall_5x4_Door_A_01",
+      "size_cm": [
+        499.9,
+        43.45,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.8,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -247.36,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.8,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_A_02",
+      "name": "SM_House_Wall_5x4_Door_A_02",
+      "size_cm": [
+        499.9,
+        43.45,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.8,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -247.36,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.8,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_A_03",
+      "name": "SM_House_Wall_5x4_Door_A_03",
+      "size_cm": [
+        499.9,
+        43.45,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.8,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -247.36,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.8,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_B_01",
+      "name": "SM_House_Wall_5x4_Door_B_01",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_B_02",
+      "name": "SM_House_Wall_5x4_Door_B_02",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_B_03",
+      "name": "SM_House_Wall_5x4_Door_B_03",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_C_01",
+      "name": "SM_House_Wall_5x4_Door_C_01",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_C_02",
+      "name": "SM_House_Wall_5x4_Door_C_02",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_C_03",
+      "name": "SM_House_Wall_5x4_Door_C_03",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_D_01",
+      "name": "SM_House_Wall_5x4_Door_D_01",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_D_02",
+      "name": "SM_House_Wall_5x4_Door_D_02",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_D_03",
+      "name": "SM_House_Wall_5x4_Door_D_03",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_E_01",
+      "name": "SM_House_Wall_5x4_Door_E_01",
+      "size_cm": [
+        499.9,
+        40.24,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.19,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.19,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Door_E_02",
+      "name": "SM_House_Wall_5x4_Door_E_02",
+      "size_cm": [
+        499.9,
+        40.04,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -290.0,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        290.0,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_B_01",
+      "name": "SM_House_Wall_5x4_Interior_Door_B_01",
+      "size_cm": [
+        499.9,
+        33.18,
+        391.12
+      ],
+      "min_cm": [
+        -249.41,
+        217.0,
+        0.0
+      ],
+      "max_cm": [
+        250.5,
+        250.18,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.0,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_C_01",
+      "name": "SM_House_Wall_5x4_Interior_Door_C_01",
+      "size_cm": [
+        499.9,
+        33.18,
+        391.17
+      ],
+      "min_cm": [
+        -249.41,
+        217.0,
+        0.0
+      ],
+      "max_cm": [
+        250.5,
+        250.18,
+        391.17
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.0,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_D_01",
+      "name": "SM_House_Wall_5x4_Interior_Door_D_01",
+      "size_cm": [
+        499.9,
+        32.41,
+        391.12
+      ],
+      "min_cm": [
+        -249.41,
+        217.34,
+        0.0
+      ],
+      "max_cm": [
+        250.5,
+        249.74,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.34,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Door_E_01",
+      "name": "SM_House_Wall_5x4_Interior_Door_E_01",
+      "size_cm": [
+        499.9,
+        32.41,
+        391.12
+      ],
+      "min_cm": [
+        -249.41,
+        217.34,
+        0.0
+      ],
+      "max_cm": [
+        250.5,
+        249.74,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.34,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_5x4_Interior_Window_B_01",
+      "name": "SM_House_Wall_5x4_Interior_Window_B_01",
+      "size_cm": [
+        499.9,
+        35.87,
+        391.12
+      ],
+      "min_cm": [
+        -249.41,
+        213.53,
+        0.0
+      ],
+      "max_cm": [
+        250.5,
+        249.41,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -213.53,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_A_01",
+      "name": "SM_House_Wall_5x4_Window_A_01",
+      "size_cm": [
+        499.9,
+        48.2,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -298.16,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        298.16,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_A_02",
+      "name": "SM_House_Wall_5x4_Window_A_02",
+      "size_cm": [
+        499.9,
+        48.2,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -298.16,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        298.16,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_A_03",
+      "name": "SM_House_Wall_5x4_Window_A_03",
+      "size_cm": [
+        499.9,
+        48.2,
+        400.96
+      ],
+      "min_cm": [
+        -249.41,
+        -298.16,
+        -0.96
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        298.16,
+        0.96
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_B_01",
+      "name": "SM_House_Wall_5x4_Window_B_01",
+      "size_cm": [
+        499.9,
+        45.55,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -295.51,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        295.51,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_B_02",
+      "name": "SM_House_Wall_5x4_Window_B_02",
+      "size_cm": [
+        499.9,
+        45.55,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -295.51,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        295.51,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_B_03",
+      "name": "SM_House_Wall_5x4_Window_B_03",
+      "size_cm": [
+        499.9,
+        45.55,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -295.51,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        295.51,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_C_01",
+      "name": "SM_House_Wall_5x4_Window_C_01",
+      "size_cm": [
+        499.9,
+        42.16,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -292.12,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        292.12,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_C_02",
+      "name": "SM_House_Wall_5x4_Window_C_02",
+      "size_cm": [
+        499.9,
+        42.16,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -292.12,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        292.12,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls/SM_House_Wall_5x4_Window_C_03",
+      "name": "SM_House_Wall_5x4_Window_C_03",
+      "size_cm": [
+        499.9,
+        42.16,
+        400.0
+      ],
+      "min_cm": [
+        -249.41,
+        -292.12,
+        -0.0
+      ],
+      "max_cm": [
+        250.5,
+        -249.96,
+        400.0
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        292.12,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_2_5x4_01",
+      "name": "SM_House_Wall_Interior_2_5x4_01",
+      "size_cm": [
+        250.05,
+        32.07,
+        391.12
+      ],
+      "min_cm": [
+        -249.41,
+        217.34,
+        0.0
+      ],
+      "max_cm": [
+        0.65,
+        249.41,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.34,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_2_5x4_02",
+      "name": "SM_House_Wall_Interior_2_5x4_02",
+      "size_cm": [
+        250.05,
+        32.84,
+        391.12
+      ],
+      "min_cm": [
+        -249.41,
+        217.34,
+        0.0
+      ],
+      "max_cm": [
+        0.65,
+        250.18,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.34,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_A_01",
+      "name": "SM_House_Wall_Interior_A_01",
+      "size_cm": [
+        499.9,
+        32.41,
+        391.22
+      ],
+      "min_cm": [
+        -249.41,
+        217.0,
+        -0.05
+      ],
+      "max_cm": [
+        250.5,
+        249.41,
+        391.17
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.0,
+        0.05
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_Extension",
+      "name": "SM_House_Wall_Interior_Extension",
+      "size_cm": [
+        69.88,
+        32.41,
+        391.22
+      ],
+      "min_cm": [
+        -317.95,
+        217.0,
+        -0.05
+      ],
+      "max_cm": [
+        -248.07,
+        249.41,
+        391.17
+      ],
+      "pivot_from_min_cm": [
+        317.95,
+        -217.0,
+        0.05
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Walls_Interior/SM_House_Wall_Interior_Stairs_01",
+      "name": "SM_House_Wall_Interior_Stairs_01",
+      "size_cm": [
+        200.0,
+        32.41,
+        391.22
+      ],
+      "min_cm": [
+        -249.41,
+        217.0,
+        -0.1
+      ],
+      "max_cm": [
+        -49.41,
+        249.41,
+        391.12
+      ],
+      "pivot_from_min_cm": [
+        249.41,
+        -217.0,
+        0.1
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_A",
+      "name": "SM_House_Window_A",
+      "size_cm": [
+        151.03,
+        20.44,
+        186.68
+      ],
+      "min_cm": [
+        -75.51,
+        -15.25,
+        -5.18
+      ],
+      "max_cm": [
+        75.51,
+        5.18,
+        181.5
+      ],
+      "pivot_from_min_cm": [
+        75.51,
+        15.25,
+        5.18
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_B",
+      "name": "SM_House_Window_B",
+      "size_cm": [
+        217.54,
+        20.44,
+        186.68
+      ],
+      "min_cm": [
+        -105.67,
+        -15.25,
+        -5.18
+      ],
+      "max_cm": [
+        111.86,
+        5.18,
+        181.5
+      ],
+      "pivot_from_min_cm": [
+        105.67,
+        15.25,
+        5.18
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_B_Alternate",
+      "name": "SM_House_Window_B_Alternate",
+      "size_cm": [
+        217.04,
+        20.44,
+        186.68
+      ],
+      "min_cm": [
+        -106.5,
+        -15.25,
+        -5.18
+      ],
+      "max_cm": [
+        110.54,
+        5.18,
+        181.5
+      ],
+      "pivot_from_min_cm": [
+        106.5,
+        15.25,
+        5.18
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_C",
+      "name": "SM_House_Window_C",
+      "size_cm": [
+        139.67,
+        18.53,
+        194.35
+      ],
+      "min_cm": [
+        -70.46,
+        -16.77,
+        3.68
+      ],
+      "max_cm": [
+        69.21,
+        1.76,
+        198.03
+      ],
+      "pivot_from_min_cm": [
+        70.46,
+        16.77,
+        -3.68
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/SM_House_Window_D",
+      "name": "SM_House_Window_D",
+      "size_cm": [
+        167.24,
+        19.75,
+        135.2
+      ],
+      "min_cm": [
+        -88.63,
+        -13.35,
+        -5.56
+      ],
+      "max_cm": [
+        78.61,
+        6.39,
+        129.64
+      ],
+      "pivot_from_min_cm": [
+        88.63,
+        13.35,
+        5.56
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketStallStructure",
+      "name": "SM_MarketStallStructure",
+      "size_cm": [
+        300.0,
+        274.0,
+        297.35
+      ],
+      "min_cm": [
+        -150.0,
+        -220.0,
+        -0.0
+      ],
+      "max_cm": [
+        150.0,
+        54.0,
+        297.35
+      ],
+      "pivot_from_min_cm": [
+        150.0,
+        220.0,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable",
+      "name": "SM_MarketTable",
+      "size_cm": [
+        229.21,
+        86.18,
+        71.59
+      ],
+      "min_cm": [
+        -115.51,
+        -43.18,
+        -0.0
+      ],
+      "max_cm": [
+        113.69,
+        43.0,
+        71.59
+      ],
+      "pivot_from_min_cm": [
+        115.51,
+        43.18,
+        0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_MarketTable_Addon",
+      "name": "SM_MarketTable_Addon",
+      "size_cm": [
+        241.58,
+        81.32,
+        43.6
+      ],
+      "min_cm": [
+        -120.53,
+        -41.55,
+        -2.48
+      ],
+      "max_cm": [
+        121.05,
+        39.78,
+        41.12
+      ],
+      "pivot_from_min_cm": [
+        120.53,
+        41.55,
+        2.48
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_01_Straight",
+      "name": "SM_Pillar_Exterior_01_Straight",
+      "size_cm": [
+        52.03,
+        192.33,
+        490.0
+      ],
+      "min_cm": [
+        -26.01,
+        -96.16,
+        -100.0
+      ],
+      "max_cm": [
+        26.01,
+        96.16,
+        390.0
+      ],
+      "pivot_from_min_cm": [
+        26.01,
+        96.16,
+        100.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Basic",
+      "name": "SM_Pillar_Exterior_02_Basic",
+      "size_cm": [
+        28.6,
+        28.6,
+        423.8
+      ],
+      "min_cm": [
+        -14.3,
+        -14.3,
+        -33.8
+      ],
+      "max_cm": [
+        14.3,
+        14.3,
+        390.0
+      ],
+      "pivot_from_min_cm": [
+        14.3,
+        14.3,
+        33.8
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Corner",
+      "name": "SM_Pillar_Exterior_02_Corner",
+      "size_cm": [
+        110.08,
+        110.08,
+        423.8
+      ],
+      "min_cm": [
+        -95.78,
+        -95.78,
+        -33.8
+      ],
+      "max_cm": [
+        14.3,
+        14.3,
+        390.0
+      ],
+      "pivot_from_min_cm": [
+        95.78,
+        95.78,
+        33.8
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Cross",
+      "name": "SM_Pillar_Exterior_02_Cross",
+      "size_cm": [
+        191.56,
+        191.56,
+        423.8
+      ],
+      "min_cm": [
+        -95.78,
+        -95.78,
+        -33.8
+      ],
+      "max_cm": [
+        95.78,
+        95.78,
+        390.0
+      ],
+      "pivot_from_min_cm": [
+        95.78,
+        95.78,
+        33.8
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_StoneBase",
+      "name": "SM_Pillar_Exterior_02_StoneBase",
+      "size_cm": [
+        57.23,
+        57.23,
+        100.05
+      ],
+      "min_cm": [
+        -28.62,
+        -28.62,
+        -100.0
+      ],
+      "max_cm": [
+        28.62,
+        28.62,
+        0.05
+      ],
+      "pivot_from_min_cm": [
+        28.62,
+        28.62,
+        100.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Pillar_Exterior_02_Straight",
+      "name": "SM_Pillar_Exterior_02_Straight",
+      "size_cm": [
+        191.56,
+        28.6,
+        423.8
+      ],
+      "min_cm": [
+        -95.78,
+        -14.3,
+        -33.8
+      ],
+      "max_cm": [
+        95.78,
+        14.3,
+        390.0
+      ],
+      "pivot_from_min_cm": [
+        95.78,
+        14.3,
+        33.8
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Platform_Exterior_01",
+      "name": "SM_Platform_Exterior_01",
+      "size_cm": [
+        187.0,
+        236.36,
+        123.32
+      ],
+      "min_cm": [
+        -94.53,
+        -106.14,
+        -34.12
+      ],
+      "max_cm": [
+        92.47,
+        130.22,
+        89.2
+      ],
+      "pivot_from_min_cm": [
+        94.53,
+        106.14,
+        34.12
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Platform_Exterior_02",
+      "name": "SM_Platform_Exterior_02",
+      "size_cm": [
+        199.04,
+        220.71,
+        122.39
+      ],
+      "min_cm": [
+        -94.53,
+        -90.49,
+        -34.12
+      ],
+      "max_cm": [
+        104.51,
+        130.22,
+        88.27
+      ],
+      "pivot_from_min_cm": [
+        94.53,
+        90.49,
+        34.12
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Platform_Exterior_03",
+      "name": "SM_Platform_Exterior_03",
+      "size_cm": [
+        199.04,
+        220.71,
+        123.32
+      ],
+      "min_cm": [
+        -94.53,
+        -90.49,
+        -34.12
+      ],
+      "max_cm": [
+        104.51,
+        130.22,
+        89.2
+      ],
+      "pivot_from_min_cm": [
+        94.53,
+        90.49,
+        34.12
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_RoofSpike",
+      "name": "SM_RoofSpike",
+      "size_cm": [
+        93.49,
+        93.49,
+        395.41
+      ],
+      "min_cm": [
+        -46.74,
+        -46.74,
+        -47.14
+      ],
+      "max_cm": [
+        46.74,
+        46.74,
+        348.28
+      ],
+      "pivot_from_min_cm": [
+        46.74,
+        46.74,
+        47.14
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_RoofTIles",
+      "name": "SM_RoofTIles",
+      "size_cm": [
+        2236.21,
+        2235.97,
+        2709.39
+      ],
+      "min_cm": [
+        -1120.78,
+        -1107.01,
+        -120.47
+      ],
+      "max_cm": [
+        1115.43,
+        1128.96,
+        2588.92
+      ],
+      "pivot_from_min_cm": [
+        1120.78,
+        1107.01,
+        120.47
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_SideBridge",
+      "name": "SM_SideBridge",
+      "size_cm": [
+        721.53,
+        394.34,
+        592.87
+      ],
+      "min_cm": [
+        -359.73,
+        445.43,
+        -23.37
+      ],
+      "max_cm": [
+        361.8,
+        839.77,
+        569.5
+      ],
+      "pivot_from_min_cm": [
+        359.73,
+        -445.43,
+        23.37
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/Collisions/SM_SideBridge_Col",
+      "name": "SM_SideBridge_Col",
+      "size_cm": [
+        706.3,
+        381.56,
+        590.58
+      ],
+      "min_cm": [
+        -352.58,
+        456.72,
+        -23.37
+      ],
+      "max_cm": [
+        353.73,
+        838.27,
+        567.22
+      ],
+      "pivot_from_min_cm": [
+        352.58,
+        -456.72,
+        23.37
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StairSlabs_Left",
+      "name": "SM_StairSlabs_Left",
+      "size_cm": [
+        254.24,
+        205.74,
+        60.08
+      ],
+      "min_cm": [
+        -100.74,
+        -3.75,
+        -0.07
+      ],
+      "max_cm": [
+        153.5,
+        201.99,
+        60.01
+      ],
+      "pivot_from_min_cm": [
+        100.74,
+        3.75,
+        0.07
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StairSlabs_Mid",
+      "name": "SM_StairSlabs_Mid",
+      "size_cm": [
+        254.21,
+        205.74,
+        60.08
+      ],
+      "min_cm": [
+        -100.57,
+        -3.75,
+        -0.07
+      ],
+      "max_cm": [
+        153.64,
+        201.99,
+        60.01
+      ],
+      "pivot_from_min_cm": [
+        100.57,
+        3.75,
+        0.07
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StairSlabs_Right",
+      "name": "SM_StairSlabs_Right",
+      "size_cm": [
+        200.76,
+        205.74,
+        60.08
+      ],
+      "min_cm": [
+        -100.45,
+        -3.75,
+        -0.07
+      ],
+      "max_cm": [
+        100.31,
+        201.99,
+        60.01
+      ],
+      "pivot_from_min_cm": [
+        100.45,
+        3.75,
+        0.07
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Bricks_01",
+      "name": "SM_Stairs_Exterior_Bricks_01",
+      "size_cm": [
+        153.79,
+        275.44,
+        102.07
+      ],
+      "min_cm": [
+        -2.71,
+        -137.7,
+        -10.0
+      ],
+      "max_cm": [
+        151.09,
+        137.75,
+        92.07
+      ],
+      "pivot_from_min_cm": [
+        2.71,
+        137.7,
+        10.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Bricks_02",
+      "name": "SM_Stairs_Exterior_Bricks_02",
+      "size_cm": [
+        153.79,
+        275.44,
+        202.07
+      ],
+      "min_cm": [
+        -6.9,
+        -137.7,
+        -10.0
+      ],
+      "max_cm": [
+        146.9,
+        137.75,
+        192.07
+      ],
+      "pivot_from_min_cm": [
+        6.9,
+        137.7,
+        10.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Bricks_03",
+      "name": "SM_Stairs_Exterior_Bricks_03",
+      "size_cm": [
+        153.79,
+        275.44,
+        302.07
+      ],
+      "min_cm": [
+        -6.9,
+        -137.7,
+        -110.0
+      ],
+      "max_cm": [
+        146.9,
+        137.75,
+        192.07
+      ],
+      "pivot_from_min_cm": [
+        6.9,
+        137.7,
+        110.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Wood_01",
+      "name": "SM_Stairs_Exterior_Wood_01",
+      "size_cm": [
+        331.85,
+        170.0,
+        357.24
+      ],
+      "min_cm": [
+        -206.95,
+        -85.0,
+        -20.04
+      ],
+      "max_cm": [
+        124.9,
+        85.0,
+        337.2
+      ],
+      "pivot_from_min_cm": [
+        206.95,
+        85.0,
+        20.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Stairs_Exterior_Wood_01_Half",
+      "name": "SM_Stairs_Exterior_Wood_01_Half",
+      "size_cm": [
+        211.85,
+        170.0,
+        257.24
+      ],
+      "min_cm": [
+        -66.95,
+        -85.0,
+        -40.04
+      ],
+      "max_cm": [
+        144.9,
+        85.0,
+        217.2
+      ],
+      "pivot_from_min_cm": [
+        66.95,
+        85.0,
+        40.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_A_01",
+      "name": "SM_Stairs_Interior_A_01",
+      "size_cm": [
+        170.0,
+        315.79,
+        275.16
+      ],
+      "min_cm": [
+        -85.0,
+        -108.02,
+        -24.7
+      ],
+      "max_cm": [
+        85.0,
+        207.77,
+        250.46
+      ],
+      "pivot_from_min_cm": [
+        85.0,
+        108.02,
+        24.7
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_A_02",
+      "name": "SM_Stairs_Interior_A_02",
+      "size_cm": [
+        170.0,
+        207.51,
+        184.3
+      ],
+      "min_cm": [
+        -85.0,
+        -116.64,
+        -34.59
+      ],
+      "max_cm": [
+        85.0,
+        90.86,
+        149.72
+      ],
+      "pivot_from_min_cm": [
+        85.0,
+        116.64,
+        34.59
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_B_01",
+      "name": "SM_Stairs_Interior_B_01",
+      "size_cm": [
+        250.0,
+        315.79,
+        275.16
+      ],
+      "min_cm": [
+        -130.05,
+        -112.49,
+        -31.08
+      ],
+      "max_cm": [
+        119.95,
+        203.3,
+        244.08
+      ],
+      "pivot_from_min_cm": [
+        130.05,
+        112.49,
+        31.08
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_B_02",
+      "name": "SM_Stairs_Interior_B_02",
+      "size_cm": [
+        250.0,
+        207.51,
+        184.3
+      ],
+      "min_cm": [
+        -130.05,
+        -116.64,
+        -34.59
+      ],
+      "max_cm": [
+        119.95,
+        90.86,
+        149.72
+      ],
+      "pivot_from_min_cm": [
+        130.05,
+        116.64,
+        34.59
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_01",
+      "name": "SM_Stairs_Interior_C_01",
+      "size_cm": [
+        300.0,
+        252.06,
+        150.0
+      ],
+      "min_cm": [
+        -160.58,
+        -117.99,
+        6.68
+      ],
+      "max_cm": [
+        139.42,
+        134.07,
+        156.68
+      ],
+      "pivot_from_min_cm": [
+        160.58,
+        117.99,
+        -6.68
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_02",
+      "name": "SM_Stairs_Interior_C_02",
+      "size_cm": [
+        300.0,
+        374.02,
+        250.0
+      ],
+      "min_cm": [
+        -161.06,
+        -117.99,
+        6.68
+      ],
+      "max_cm": [
+        138.94,
+        256.03,
+        256.68
+      ],
+      "pivot_from_min_cm": [
+        161.06,
+        117.99,
+        -6.68
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails",
+      "name": "SM_Stairs_Interior_C_Handrails",
+      "size_cm": [
+        14.91,
+        184.57,
+        223.47
+      ],
+      "min_cm": [
+        125.84,
+        -116.68,
+        24.27
+      ],
+      "max_cm": [
+        140.75,
+        67.89,
+        247.74
+      ],
+      "pivot_from_min_cm": [
+        -125.84,
+        116.68,
+        -24.27
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_01",
+      "name": "SM_Stairs_Interior_C_Handrails_Top_01",
+      "size_cm": [
+        299.14,
+        14.25,
+        91.76
+      ],
+      "min_cm": [
+        -139.96,
+        -9.29,
+        5.17
+      ],
+      "max_cm": [
+        159.18,
+        4.96,
+        96.94
+      ],
+      "pivot_from_min_cm": [
+        139.96,
+        9.29,
+        -5.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_02",
+      "name": "SM_Stairs_Interior_C_Handrails_Top_02",
+      "size_cm": [
+        14.44,
+        198.09,
+        91.76
+      ],
+      "min_cm": [
+        -7.22,
+        -99.05,
+        5.17
+      ],
+      "max_cm": [
+        7.22,
+        99.04,
+        96.94
+      ],
+      "pivot_from_min_cm": [
+        7.22,
+        99.05,
+        -5.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_03",
+      "name": "SM_Stairs_Interior_C_Handrails_Top_03",
+      "size_cm": [
+        337.81,
+        14.62,
+        91.76
+      ],
+      "min_cm": [
+        -158.9,
+        -7.31,
+        5.17
+      ],
+      "max_cm": [
+        178.9,
+        7.31,
+        96.94
+      ],
+      "pivot_from_min_cm": [
+        158.9,
+        7.31,
+        -5.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_04",
+      "name": "SM_Stairs_Interior_C_Handrails_Top_04",
+      "size_cm": [
+        14.79,
+        471.03,
+        91.76
+      ],
+      "min_cm": [
+        -7.39,
+        -233.78,
+        5.17
+      ],
+      "max_cm": [
+        7.39,
+        237.24,
+        96.94
+      ],
+      "pivot_from_min_cm": [
+        7.39,
+        233.78,
+        -5.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Handrails_Top_05",
+      "name": "SM_Stairs_Interior_C_Handrails_Top_05",
+      "size_cm": [
+        636.94,
+        13.62,
+        91.76
+      ],
+      "min_cm": [
+        -249.96,
+        3.19,
+        5.17
+      ],
+      "max_cm": [
+        386.98,
+        16.81,
+        96.94
+      ],
+      "pivot_from_min_cm": [
+        249.96,
+        -3.19,
+        -5.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_C_Platform",
+      "name": "SM_Stairs_Interior_C_Platform",
+      "size_cm": [
+        356.87,
+        305.56,
+        30.41
+      ],
+      "min_cm": [
+        -160.58,
+        -162.78,
+        -9.12
+      ],
+      "max_cm": [
+        196.3,
+        142.78,
+        21.29
+      ],
+      "pivot_from_min_cm": [
+        160.58,
+        162.78,
+        9.12
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_Platform_01",
+      "name": "SM_Stairs_Interior_Platform_01",
+      "size_cm": [
+        172.93,
+        170.0,
+        163.95
+      ],
+      "min_cm": [
+        -85.83,
+        -84.58,
+        -10.0
+      ],
+      "max_cm": [
+        87.1,
+        85.42,
+        153.95
+      ],
+      "pivot_from_min_cm": [
+        85.83,
+        84.58,
+        10.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Objects/SM_Stairs_Interior_Platform_02",
+      "name": "SM_Stairs_Interior_Platform_02",
+      "size_cm": [
+        254.94,
+        254.94,
+        163.95
+      ],
+      "min_cm": [
+        -122.42,
+        -130.99,
+        -10.0
+      ],
+      "max_cm": [
+        132.53,
+        123.96,
+        153.95
+      ],
+      "pivot_from_min_cm": [
+        122.42,
+        130.99,
+        10.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_01",
+      "name": "SM_StallCover_01",
+      "size_cm": [
+        211.13,
+        243.02,
+        288.02
+      ],
+      "min_cm": [
+        -105.57,
+        -206.79,
+        10.17
+      ],
+      "max_cm": [
+        105.57,
+        36.23,
+        298.2
+      ],
+      "pivot_from_min_cm": [
+        105.57,
+        206.79,
+        -10.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_02",
+      "name": "SM_StallCover_02",
+      "size_cm": [
+        211.13,
+        243.02,
+        288.02
+      ],
+      "min_cm": [
+        -105.57,
+        -206.79,
+        10.17
+      ],
+      "max_cm": [
+        105.57,
+        36.23,
+        298.2
+      ],
+      "pivot_from_min_cm": [
+        105.57,
+        206.79,
+        -10.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StallCover_03",
+      "name": "SM_StallCover_03",
+      "size_cm": [
+        211.13,
+        243.02,
+        288.02
+      ],
+      "min_cm": [
+        -105.57,
+        -206.79,
+        10.17
+      ],
+      "max_cm": [
+        105.57,
+        36.23,
+        298.2
+      ],
+      "pivot_from_min_cm": [
+        105.57,
+        206.79,
+        -10.17
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01",
+      "name": "SM_StoneWall_01",
+      "size_cm": [
+        299.33,
+        34.79,
+        135.54
+      ],
+      "min_cm": [
+        -148.58,
+        -16.85,
+        0.29
+      ],
+      "max_cm": [
+        150.75,
+        17.94,
+        135.83
+      ],
+      "pivot_from_min_cm": [
+        148.58,
+        16.85,
+        -0.29
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01_Left",
+      "name": "SM_StoneWall_01_Left",
+      "size_cm": [
+        31.36,
+        32.03,
+        100.5
+      ],
+      "min_cm": [
+        126.94,
+        -16.02,
+        0.13
+      ],
+      "max_cm": [
+        158.3,
+        16.02,
+        100.63
+      ],
+      "pivot_from_min_cm": [
+        -126.94,
+        16.02,
+        -0.13
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_01_Right",
+      "name": "SM_StoneWall_01_Right",
+      "size_cm": [
+        25.76,
+        31.41,
+        128.64
+      ],
+      "min_cm": [
+        -140.25,
+        -15.37,
+        0.82
+      ],
+      "max_cm": [
+        -114.49,
+        16.04,
+        129.47
+      ],
+      "pivot_from_min_cm": [
+        140.25,
+        15.37,
+        -0.82
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02",
+      "name": "SM_StoneWall_02",
+      "size_cm": [
+        299.33,
+        33.6,
+        135.78
+      ],
+      "min_cm": [
+        -148.58,
+        -16.77,
+        0.29
+      ],
+      "max_cm": [
+        150.75,
+        16.83,
+        136.07
+      ],
+      "pivot_from_min_cm": [
+        148.58,
+        16.77,
+        -0.29
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02_Left",
+      "name": "SM_StoneWall_02_Left",
+      "size_cm": [
+        102.95,
+        51.54,
+        124.97
+      ],
+      "min_cm": [
+        121.02,
+        -19.13,
+        0.0
+      ],
+      "max_cm": [
+        223.97,
+        32.41,
+        124.97
+      ],
+      "pivot_from_min_cm": [
+        -121.02,
+        19.13,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_StoneWall_02_Right",
+      "name": "SM_StoneWall_02_Right",
+      "size_cm": [
+        123.99,
+        95.05,
+        130.79
+      ],
+      "min_cm": [
+        -225.36,
+        -49.21,
+        -0.57
+      ],
+      "max_cm": [
+        -101.38,
+        45.83,
+        130.22
+      ],
+      "pivot_from_min_cm": [
+        225.36,
+        49.21,
+        0.57
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Support_Arch_02",
+      "name": "SM_Support_Arch_02",
+      "size_cm": [
+        101.56,
+        18.83,
+        115.24
+      ],
+      "min_cm": [
+        -95.78,
+        -9.41,
+        -48.47
+      ],
+      "max_cm": [
+        5.78,
+        9.41,
+        66.78
+      ],
+      "pivot_from_min_cm": [
+        95.78,
+        9.41,
+        48.47
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Support_Pillar_01",
+      "name": "SM_Support_Pillar_01",
+      "size_cm": [
+        121.84,
+        119.88,
+        490.0
+      ],
+      "min_cm": [
+        -95.83,
+        -93.87,
+        -100.0
+      ],
+      "max_cm": [
+        26.01,
+        26.01,
+        390.0
+      ],
+      "pivot_from_min_cm": [
+        95.83,
+        93.87,
+        100.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_TableCloth_01",
+      "name": "SM_TableCloth_01",
+      "size_cm": [
+        248.57,
+        111.37,
+        45.77
+      ],
+      "min_cm": [
+        -122.18,
+        -56.25,
+        27.75
+      ],
+      "max_cm": [
+        126.4,
+        55.13,
+        73.52
+      ],
+      "pivot_from_min_cm": [
+        122.18,
+        56.25,
+        -27.75
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_TableCloth_02",
+      "name": "SM_TableCloth_02",
+      "size_cm": [
+        104.67,
+        85.59,
+        71.6
+      ],
+      "min_cm": [
+        24.05,
+        -28.92,
+        3.04
+      ],
+      "max_cm": [
+        128.73,
+        56.67,
+        74.64
+      ],
+      "pivot_from_min_cm": [
+        -24.05,
+        28.92,
+        -3.04
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Corner",
+      "name": "SM_Terrace_Floor_Corner",
+      "size_cm": [
+        520.18,
+        520.54,
+        135.33
+      ],
+      "min_cm": [
+        -250.18,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        270.0,
+        270.0,
+        105.33
+      ],
+      "pivot_from_min_cm": [
+        250.18,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Front",
+      "name": "SM_Terrace_Floor_Front",
+      "size_cm": [
+        519.83,
+        500.73,
+        135.33
+      ],
+      "min_cm": [
+        -249.83,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        270.0,
+        250.18,
+        105.33
+      ],
+      "pivot_from_min_cm": [
+        249.83,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Middle",
+      "name": "SM_Terrace_Floor_Middle",
+      "size_cm": [
+        500.75,
+        500.73,
+        35.97
+      ],
+      "min_cm": [
+        -249.83,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        250.92,
+        250.18,
+        5.97
+      ],
+      "pivot_from_min_cm": [
+        249.83,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Modular/House/Components/Exterior/SM_Terrace_Floor_Side",
+      "name": "SM_Terrace_Floor_Side",
+      "size_cm": [
+        501.1,
+        520.54,
+        135.33
+      ],
+      "min_cm": [
+        -250.18,
+        -250.54,
+        -30.0
+      ],
+      "max_cm": [
+        250.92,
+        270.0,
+        105.33
+      ],
+      "pivot_from_min_cm": [
+        250.18,
+        250.54,
+        30.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_VillageWall_End",
+      "name": "SM_VillageWall_End",
+      "size_cm": [
+        39.7,
+        40.75,
+        212.48
+      ],
+      "min_cm": [
+        -19.9,
+        -20.35,
+        0.0
+      ],
+      "max_cm": [
+        19.79,
+        20.39,
+        212.48
+      ],
+      "pivot_from_min_cm": [
+        19.9,
+        20.35,
+        -0.0
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_VillageWall_TIling",
+      "name": "SM_VillageWall_TIling",
+      "size_cm": [
+        201.44,
+        24.01,
+        202.47
+      ],
+      "min_cm": [
+        -100.89,
+        -12.01,
+        0.28
+      ],
+      "max_cm": [
+        100.55,
+        12.0,
+        202.75
+      ],
+      "pivot_from_min_cm": [
+        100.89,
+        12.01,
+        -0.28
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_VillageWall_TIling_2",
+      "name": "SM_VillageWall_TIling_2",
+      "size_cm": [
+        201.44,
+        24.01,
+        202.47
+      ],
+      "min_cm": [
+        -100.89,
+        -12.01,
+        0.28
+      ],
+      "max_cm": [
+        100.55,
+        12.0,
+        202.75
+      ],
+      "pivot_from_min_cm": [
+        100.89,
+        12.01,
+        -0.28
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WIndmill_Base",
+      "name": "SM_WIndmill_Base",
+      "size_cm": [
+        1708.92,
+        1607.43,
+        4437.11
+      ],
+      "min_cm": [
+        -854.46,
+        -806.68,
+        -3.56
+      ],
+      "max_cm": [
+        854.46,
+        800.75,
+        4433.54
+      ],
+      "pivot_from_min_cm": [
+        854.46,
+        806.68,
+        3.56
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WaterWheel",
+      "name": "SM_WaterWheel",
+      "size_cm": [
+        578.48,
+        316.21,
+        577.17
+      ],
+      "min_cm": [
+        -289.24,
+        -149.14,
+        -288.59
+      ],
+      "max_cm": [
+        289.24,
+        167.07,
+        288.59
+      ],
+      "pivot_from_min_cm": [
+        289.24,
+        149.14,
+        288.59
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Well",
+      "name": "SM_Well",
+      "size_cm": [
+        239.39,
+        168.66,
+        162.5
+      ],
+      "min_cm": [
+        -91.05,
+        -84.33,
+        1.5
+      ],
+      "max_cm": [
+        148.34,
+        84.33,
+        164.0
+      ],
+      "pivot_from_min_cm": [
+        91.05,
+        84.33,
+        -1.5
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_WellRoof",
+      "name": "SM_WellRoof",
+      "size_cm": [
+        231.22,
+        240.07,
+        232.96
+      ],
+      "min_cm": [
+        -115.61,
+        -120.48,
+        106.64
+      ],
+      "max_cm": [
+        115.61,
+        119.59,
+        339.6
+      ],
+      "pivot_from_min_cm": [
+        115.61,
+        120.48,
+        -106.64
+      ]
+    },
+    {
+      "path": "/Game/DreamscapeSeries/DreamscapeFarmlands/Meshes/Structures/SM_Windmill_Sail",
+      "name": "SM_Windmill_Sail",
+      "size_cm": [
+        1028.86,
+        5354.45,
+        5354.46
+      ],
+      "min_cm": [
+        0.0,
+        -2677.23,
+        -2677.23
+      ],
+      "max_cm": [
+        1028.86,
+        2677.23,
+        2677.23
+      ],
+      "pivot_from_min_cm": [
+        -0.0,
+        2677.23,
+        2677.23
+      ]
+    }
+  ]
+}

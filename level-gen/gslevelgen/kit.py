@@ -104,18 +104,28 @@ class Kit:
     @property
     def module(self) -> tuple[float, float]:
         """
-        The grid module, taken from the plain 5x4 foundation's measured footprint.
+        The grid module: the measured footprint of the piece that actually TILES a floor.
 
-        Not derived from the name. `SM_House_Foundation_5x4` is called 5x4; what that is in
-        centimetres is whatever the mesh says it is.
+        This is `SM_House_Floor_5x4_01`, and measuring it corrected a real mistake. The
+        obvious candidate is `SM_House_Foundation_5x4` — it is named for the grid and it
+        sounds like a floor plate. It measures [500, 50, 300]: fifty centimetres deep and
+        three metres tall. It is a perimeter foundation *wall*, not a plate, and deriving a
+        module from it gives a 500 x 50 grid that no house could ever sit on.
+
+        The floor measures [500.75, 500.0, 36]. The module is square, and "5x4" in the name
+        describes neither dimension in metres. Exactly why nothing here is inferred from a
+        name.
         """
-        for p in self.role("foundation"):
-            if re.match(r"^SM_House_Foundation_5x4$", p.name):
+        for p in self.role("floor"):
+            if re.match(r"^SM_House_Floor_5x4_01$", p.name):
                 return (round(p.footprint[0], 2), round(p.footprint[1], 2))
-        if self.role("foundation"):
-            p = self.role("foundation")[0]
-            return (round(p.footprint[0], 2), round(p.footprint[1], 2))
-        raise KitNotMeasured("kit contains no foundation piece — cannot derive the module grid")
+        for p in self.role("floor"):          # any plain floor plate will do
+            if "Hatch" not in p.name and "Overang" not in p.name and "Beam" not in p.name:
+                return (round(p.footprint[0], 2), round(p.footprint[1], 2))
+        raise KitNotMeasured(
+            "kit has no floor plate — the module grid is derived from the piece that tiles a "
+            "floor, and no foundation/wall piece is a substitute for it"
+        )
 
 
 def load_kit(path: Path | None = None) -> Kit:

@@ -77,7 +77,45 @@ Deterministic, because *if code can verify it, use code*:
 
 ## Did the pipeline catch something I would have missed?
 
-**Yes — twice, and both were mine, not the generator's.**
+**Yes — three times, and all three were mine, not the generator's.**
+
+### 0. The refusal to guess caught a wrong grid the moment it could
+
+This is the one I would never have found by reading. `kit.py` derived the module from
+`SM_House_Foundation_5x4` — it is named for the grid, and "foundation" sounds like the plate
+a house stands on. Measured, it is **[500, 50, 300]**: fifty centimetres deep and three
+metres tall. It is a perimeter foundation *wall*. A module derived from it is 500 × 50, and
+no house could ever sit on it.
+
+The piece that actually tiles a floor is `SM_House_Floor_5x4_01`, measuring
+**[500.75, 500.0, 36]**. **The module is square — 500 × 500 — and "5x4" describes neither
+dimension.** My synthetic kit had guessed 500 × 400 from the name, and been wrong in both
+the shape and the piece.
+
+The composer was wrong in the same way: it laid a foundation under every module cell. The
+real kit wants foundations **ringing the perimeter** and floor plates tiling the interior.
+
+Measuring also found the prefabs are nothing like their placeholders — the windmill base is
+**1709 × 1607** where I had assumed 900 × 900, and the sail sweeps **5354**. The objective
+footprint is now taken from the measured prefab, because a 2-module box would have let the
+overlap check happily pass a windmill whose sails scythe through a farmhouse.
+
+None of this cost a debugging session, because the generator **refuses to run without
+`kit.json`** rather than falling back on a plausible number.
+
+### 0b. …and then the real numbers broke the layout
+
+Swapping the synthetic kit for the measured one dropped the review gate from **5/8 seeds
+passing to 2/8**, drowning in overlap findings. The spacing constants had been tuned against
+invented footprints; real 500 × 500 modules and a 1709-wide windmill do not fit the ring I
+had sized for them.
+
+The fix was not a bigger radius. Spatial packing is arithmetic — the generator now places
+buildings by rejection against what is already down, with anchors (objectives) placed first
+because the granary sits where the guards are thickest and cannot be shoved. That returned
+the gate to **8/8**, and — the part that matters — the evaluator still catches **12–18
+failures per seed** on generation, now almost entirely cover-guarantee violations. The signal
+is the declared gameplay rule instead of noise about floor space.
 
 ### 1. The refiner could not close what the evaluator reported
 
@@ -132,10 +170,12 @@ prevent, and it survived in my refiner until a wider seed sweep made it obvious.
 - **Layer A**: every module gets a foundation, the roof covers every module, the house has a
   door, the footprint matches the measured module grid.
 
-Review gate over 8 seeds: **passed [1, 3, 4, 6, 7], escalated [2, 5, 8]**. The escalations
-are genuine — buildings competing for the same ground, and one case where clearing an overlap
-pushed a stall onto a road. Fix-one-break-another is precisely what a bounded loop should
-hand back rather than thrash on.
+Review gate over 8 seeds **against the measured kit**: all eight pass, each after 1–3 refine
+passes, having generated with **12–18 failures apiece**. The loop is doing work on every
+seed; it is not passing them because there was nothing wrong.
+
+The circuit breaker still fires — the fixture drives it with layouts that cannot be packed,
+and it escalates with a problem statement rather than shipping or looping.
 
 ---
 
@@ -150,25 +190,20 @@ the mesh says. If `kit.json` is absent the generator **refuses to run** rather t
 
 A `--synthetic-kit` exists for the fixtures, with invented round numbers. Plans built from it
 are stamped `synthetic: true`, and `apply_in_editor.py` refuses to place them — for exactly
-the reason the flag exists.
+the reason the flag exists. Its guesses were wrong about the module shape, the role of the
+foundation piece, and every prefab footprint, which is the best argument available for why
+the real pipeline is not allowed to make any.
 
-### Current state, honestly
+### Current state
 
-**The kit has not been measured yet.** The editor is running but its MCP server is not
-started, so `kit_manifest.py` cannot reach it. Everything above ran on the synthetic kit,
-which validates the *logic* of the loop and none of its *dimensions*. To measure for real,
-in the editor console:
-
-```
-ModelContextProtocol.StartServer
-```
-
-then:
+**The kit is measured.** `kit_manifest.py` ran in the editor and measured **187 meshes, zero
+skipped** — every piece of the modular House set and every whole-prefab Structure. All results
+above are against those real dimensions; `--synthetic-kit` now exists only for the fixtures.
 
 ```bash
-python gs_ue.py level-gen\kit_manifest.py --timeout 300   # writes kit.json
-python -m gslevelgen.pipeline --seed 1 --seeds 8          # real dimensions
-python gs_ue.py level-gen\apply_in_editor.py --timeout 600
+python gs_ue.py level-gen\kit_manifest.py --timeout 300   # done: 187 meshes -> kit.json
+python -m gslevelgen.pipeline --seed 1 --seeds 8          # done: 8/8 pass
+python gs_ue.py level-gen\apply_in_editor.py --timeout 600   # not yet run
 ```
 
 `apply_in_editor.py` refuses three things on purpose: a synthetic plan, a plan that did not

@@ -225,11 +225,13 @@ def check_building_integrity(plan: Plan) -> list[Finding]:
         if b.kind != "house":
             continue
         roofs = [p for p in b.placements if "Roof" in p.mesh]
-        founds = [p for p in b.placements if "Foundation" in p.mesh]
+        # Floors are the per-module count. Foundations are a perimeter ring — counting those
+        # as modules made a 1x1 house look like it needed four roof pieces.
+        floors = [p for p in b.placements if "Floor" in p.mesh]
         doors = [p for p in b.placements if p.mesh.startswith("SM_Door")]
-        if founds and len(roofs) < len(founds):
+        if floors and len(roofs) < len(floors):
             out.append(Finding("building_integrity", "2.8", "fail",
-                               f"{b.id}: {len(roofs)} roof pieces for {len(founds)} modules — "
+                               f"{b.id}: {len(roofs)} roof pieces for {len(floors)} modules — "
                                f"the roof does not close",
                                {"kind": "roof_gap", "building": b.id}))
         if not doors:

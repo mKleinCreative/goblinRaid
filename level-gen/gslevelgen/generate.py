@@ -104,22 +104,36 @@ def compose_house(kit: Kit, rng: random.Random, ox: float, oy: float,
     rect = Rect(ox, oy, w, h)
     pl: list[Placement] = []
 
-    found = kit.one("foundation")
-    floor = kit.role("floor")[0] if kit.role("floor") else found
+    # Measurement corrected this: the foundation is a perimeter WALL segment
+    # (500 x 50 x 300), not a floor plate. Floors tile the interior; foundations ring it.
+    found = next((p for p in kit.role("foundation") if p.name.endswith("_5x4")),
+                 kit.one("foundation"))
+    floor = next((p for p in kit.role("floor") if p.name.endswith("_5x4_01")),
+                 kit.role("floor")[0])
     walls = kit.role("wall_window") or kit.role("corner")
     corner = kit.role("corner")[0] if kit.role("corner") else None
     roof_tiles = kit.role("roof_tile")
     roof_end = kit.role("roof_end")
 
-    # Foundation + floor, one per module cell.
+    found_h = found.size[2]
+
+    # Foundation ring: one segment per perimeter module, standing on the ground.
+    for i in range(mods_w):
+        cx = ox + i * mw
+        pl.append(Placement(found.name, cx, oy, 0.0, yaw))
+        pl.append(Placement(found.name, cx, oy + h, 0.0, yaw + 180))
+    for j in range(mods_h):
+        cy = oy + j * mh
+        pl.append(Placement(found.name, ox, cy, 0.0, yaw + 90))
+        pl.append(Placement(found.name, ox + w, cy, 0.0, yaw + 270))
+
+    # Floor plates tile the footprint, sitting on top of the foundation ring.
     for i in range(mods_w):
         for j in range(mods_h):
-            cx, cy = ox + i * mw, oy + j * mh
-            pl.append(Placement(found.name, cx, cy, 0.0, yaw))
-            pl.append(Placement(floor.name, cx, cy, found.size[2], yaw))
+            pl.append(Placement(floor.name, ox + i * mw, oy + j * mh, found_h, yaw))
 
     # Perimeter walls. South/north run along X, west/east along Y.
-    wall_z = found.size[2]
+    wall_z = found_h + floor.size[2]
     for i in range(mods_w):
         cx = ox + i * mw
         pl.append(Placement(rng.choice(walls).name, cx, oy, wall_z, yaw))
@@ -198,22 +212,24 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
     if well:
         plan.buildings.append(well)
 
-    n_houses = rng.randint(5, 8)
-    for i in range(n_houses):
-        a = 2 * math.pi * i / n_houses + rng.uniform(-0.18, 0.18)
-        r = rng.uniform(1400, 2600)
-        hx = center[0] + r * math.cos(a)
-        hy = center[1] + r * math.sin(a)
-        b = compose_house(kit, rng, hx, hy, rng.randint(1, 2), rng.randint(1, 2), f"house_{i}")
-        plan.buildings.append(b)
-
-    for i in range(rng.randint(2, 4)):
-        a = rng.uniform(0, 2 * math.pi)
-        r = rng.uniform(500, 1100)
-        st = place_prefab(kit, "market", center[0] + r * math.cos(a),
-                          center[1] + r * math.sin(a), f"stall_{i}", "market")
-        if st:
-            plan.buildings.append(st)
+    # Ring placement with rejection against what is already down. Spatial packing is
+    # arithmetic, and an evaluator drowning in overlap findings cannot show you anything
+    # about the rule that actually matters. The generator stays naive where it counts —
+    # cover — and stops fighting itself over floor space.
+    #
+    # The radii below are derived from measured footprints, not chosen. Tuning them by hand
+    # against the synthetic kit is what dropped the pass rate to 2/8 the moment real
+    # dimensions arrived.
+    def free_spot(rect_w: float, rect_h: float, r_lo: float, r_hi: float,
+                  tries: int = 60) -> tuple[float, float] | None:
+        for _ in range(tries):
+            a = rng.uniform(0, 2 * math.pi)
+            r = rng.uniform(r_lo, r_hi)
+            cx, cy = center[0] + r * math.cos(a), center[1] + r * math.sin(a)
+            cand = Rect(cx - rect_w / 2, cy - rect_h / 2, rect_w, rect_h)
+            if not any(cand.overlaps(b.rect, 250.0) for b in plan.buildings):
+                return (cand.x, cand.y)
+        return None
 
     # --- objectives: exactly three, max two of a kind ---------------------------------
     kinds = ["granary", "field", "windmill"]
@@ -236,7 +252,16 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
             size = (mw * 6, mh * 6)
         else:
             r = rng.uniform(3400, 5200)           # the windmill is the landmark
-            size = (mw * 2, mh * 2)
+            # Sized from the MEASURED prefab, not from the module grid. The base is
+            # 1709 x 1607 and the sail sweeps 5354 — a 2-module box would have let the
+            # overlap check pass a windmill whose sails scythe through a farmhouse.
+            base = kit.role("windmill")
+            if base:
+                fw = max(p.footprint[0] for p in base)
+                fh = max(p.footprint[1] for p in base)
+                size = (fw, fh)
+            else:
+                size = (mw * 2, mh * 2)
         ox = center[0] + r * math.cos(a) - size[0] / 2
         oy = center[1] + r * math.sin(a) - size[1] / 2
         plan.objectives.append(Objective(id=f"obj_{i}_{kind}", kind=kind,
@@ -249,14 +274,38 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
                 wm.objective_id = plan.objectives[-1].id
                 plan.buildings.append(wm)
 
+
+    n_houses = rng.randint(5, 8)
+    house_ring = (mw * 3.0, mw * 7.0)
+    for i in range(n_houses):
+        mods_w, mods_h = rng.randint(1, 2), rng.randint(1, 2)
+        spot = free_spot(mods_w * mw, mods_h * mh, *house_ring)
+        if spot is None:
+            continue                     # the ring is full; fewer houses is not a failure
+        b = compose_house(kit, rng, spot[0], spot[1], mods_w, mods_h, f"house_{i}")
+        plan.buildings.append(b)
+
+    if kit.role("market"):
+        sw, sh = kit.one("market").footprint
+        for i in range(rng.randint(2, 4)):
+            spot = free_spot(sw, sh, mw * 1.2, mw * 2.6)
+            if spot is None:
+                continue
+            st = place_prefab(kit, "market", spot[0] + sw / 2, spot[1] + sh / 2,
+                              f"stall_{i}", "market")
+            if st:
+                plan.buildings.append(st)
+
     # --- farmstead: barn + coop out past the houses -----------------------------------
-    a = rng.uniform(0, 2 * math.pi)
-    fx, fy = center[0] + 4200 * math.cos(a), center[1] + 4200 * math.sin(a)
     for role, kind in (("barn", "barn"), ("coop", "coop")):
-        b = place_prefab(kit, role, fx + rng.uniform(-600, 600), fy + rng.uniform(-600, 600),
-                         f"{kind}_0", kind)
-        if b:
-            plan.buildings.append(b)
+        if not kit.role(role):
+            continue
+        fw, fh = kit.one(role).footprint
+        spot = free_spot(fw, fh, mw * 9.0, mw * 13.0)
+        if spot:
+            b = place_prefab(kit, role, spot[0] + fw / 2, spot[1] + fh / 2, f"{kind}_0", kind)
+            if b:
+                plan.buildings.append(b)
 
     # --- roads: treeline -> village core, converging (2.8 wayfinding) ------------------
     for i in range(rng.randint(2, 3)):
