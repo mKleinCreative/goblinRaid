@@ -90,10 +90,30 @@ void AGSBuildingObjective::BeginPlay()
 	}
 	else
 	{
+		// Report against the SHELL, because that is what RecomputeCompletion divides by. This line
+		// used to say CeilToInt(InitialPieceCount * Threshold), which on a kit that is ~28% interior
+		// over-reported the requirement by about 40% on every building - the one line a designer
+		// reads to sanity-check a house was describing a denominator nothing uses.
+		const int32 ShellCount = CountShellPieces();
 		UE_LOG(LogGSBuilding, Log,
-			TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) within %.0f uu; needs %d burnt (%.0f%%)."),
-			*GetName(), InitialPieceCount, AdoptRadius,
-			FMath::CeilToInt(InitialPieceCount * CompletionThreshold01), CompletionThreshold01 * 100.f);
+			TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) within %.0f uu, %d of them shell; ")
+			TEXT("needs %d shell piece(s) burnt (%.0f%%)."),
+			*GetName(), InitialPieceCount, AdoptRadius, ShellCount,
+			FMath::CeilToInt(ShellCount * CompletionThreshold01), CompletionThreshold01 * 100.f);
+
+		if (ShellCount == 0)
+		{
+			// Reachable today: InteriorNameFilters contains "Beam", so a detached roof-beam cluster
+			// adopts pieces, counts more than zero, and scores nothing. Without this the building
+			// just freezes at its last completion value forever with no line in the log - the same
+			// silent-dead-objective class as the InitialPieceCount == 0 case above, which has an
+			// Error precisely because it has burned this project before.
+			UE_LOG(LogGSBuilding, Error,
+				TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) but NONE of them are shell - ")
+				TEXT("every one matched InteriorNameFilters. Its completion can never move. Check ")
+				TEXT("InteriorNameFilters (note it contains \"Beam\") against this structure's meshes."),
+				*GetName(), InitialPieceCount);
+		}
 	}
 }
 
@@ -127,9 +147,23 @@ void AGSBuildingObjective::AdoptPieces()
 		//
 		// Subtracting the piece's own bounding radius means a large wall counts as adopted if ANY of
 		// it is inside the footprint, which is what "part of this building" actually means.
+		//
+		// That is the intent; the arithmetic used to overshoot it. `Dist(centre, centre) -
+		// PieceExtent.Size()` subtracts the box DIAGONAL - sqrt(x^2+y^2+z^2) - which is the radius of
+		// the sphere the box is inscribed in, not the box's reach toward this building. On a roof
+		// piece with extent (700, 700, 200) that is 1005 rather than 700, so the piece was treated as
+		// starting ~300 uu closer than it does, in EVERY direction at once. The class header names an
+		// over-large adopt radius as a route to an unwinnable objective, and it also inflates the
+		// completion denominator with pieces from next door.
+		//
+		// This is the exact distance from the building centre to the nearest point of the piece's
+		// box, which is zero when the centre is inside it.
 		FVector PieceOrigin, PieceExtent;
 		Other->GetActorBounds(false, PieceOrigin, PieceExtent);
-		const float EdgeDistance = FVector::Dist(PieceOrigin, Origin) - PieceExtent.Size();
+		const FVector Beyond = (Origin - PieceOrigin).GetAbs() - PieceExtent;
+		const float EdgeDistance = FVector(FMath::Max(Beyond.X, 0.f),
+										   FMath::Max(Beyond.Y, 0.f),
+										   FMath::Max(Beyond.Z, 0.f)).Size();
 		if (EdgeDistance > AdoptRadius)
 		{
 			continue;
@@ -532,6 +566,32 @@ void AGSBuildingObjective::RecomputeCompletion()
 	{
 		SetCompletion01(static_cast<float>(Burnt) / static_cast<float>(Shell));
 	}
+	else if (!bWarnedNoShell)
+	{
+		// Not silent. Skipping SetCompletion01 freezes completion at whatever it last held, forever,
+		// with nothing in the log to say why - a dead objective that reads exactly like one nobody
+		// has lit yet. BeginPlay reports this too; this catches the case where the shell disappears
+		// later (every shell piece destroyed and unregistered), which BeginPlay cannot see.
+		bWarnedNoShell = true;
+		UE_LOG(LogGSBuilding, Error,
+			TEXT("[GoblinSiege] Building '%s' has no shell pieces left to score (%d adopted, all ")
+			TEXT("interior or gone). Completion is frozen at %.2f and cannot advance."),
+			*GetName(), InitialPieceCount, GetCompletion01());
+	}
+}
+
+int32 AGSBuildingObjective::CountShellPieces() const
+{
+	int32 Shell = 0;
+	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
+	{
+		const UGSFlammableComponent* Flam = Weak.Get();
+		if (Flam && !IsInteriorPiece(Flam->GetOwner()))
+		{
+			++Shell;
+		}
+	}
+	return Shell;
 }
 
 // ====================================================================== lookup

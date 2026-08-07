@@ -11,6 +11,17 @@
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 
+// Warn-once latches, FILE-SCOPE STATIC rather than members (2026-08-06, code review).
+//
+// A torch projectile is spawned FRESH FOR EVERY THROW, so a per-instance latch latches nothing -
+// each new torch starts with it false, retries the failed synchronous package load, and warns
+// again. The documented "warn once, then fly on" was therefore a per-throw package lookup plus a
+// log line, in exactly the situation where the asset is missing and the player is spamming the
+// throw. Process-wide is the right scope: "this soft path does not resolve" is a fact about the
+// build, not about one projectile.
+static bool GSTorchMeshResolveFailed = false;
+static bool GSTorchFlameResolveFailed = false;
+
 AGSTorchProjectile::AGSTorchProjectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -89,7 +100,7 @@ void AGSTorchProjectile::BeginPlay()
 	// Light it. Same resolve-here-not-in-the-constructor rule as the mesh below, and the same
 	// warn-once-then-carry-on degradation: an unlit torch is harder to follow but still lands,
 	// still ignites and still spawns its fire volume.
-	if (!FlameSystem.IsNull() && !bFlameSystemResolveFailed && FlameFX)
+	if (!FlameSystem.IsNull() && !GSTorchFlameResolveFailed && FlameFX)
 	{
 		if (UNiagaraSystem* Flame = FlameSystem.LoadSynchronous())
 		{
@@ -98,7 +109,7 @@ void AGSTorchProjectile::BeginPlay()
 		}
 		else
 		{
-			bFlameSystemResolveFailed = true;
+			GSTorchFlameResolveFailed = true;
 			UE_LOG(LogTemp, Warning,
 				TEXT("[GoblinSiege] %s could not load its flame system (%s) - the throw will be "
 					 "hard to follow in the air. It still lands, ignites and spawns its fire."),
@@ -109,7 +120,7 @@ void AGSTorchProjectile::BeginPlay()
 	// Resolved here rather than in the constructor: the constructor runs on the CDO during module
 	// load, which is the one place a synchronous package load is genuinely unwelcome. Warn once,
 	// then fly on invisibly - the torch's job is fire, not looks.
-	if (!TorchMesh.IsNull() && !bTorchMeshResolveFailed && TorchMeshComponent)
+	if (!TorchMesh.IsNull() && !GSTorchMeshResolveFailed && TorchMeshComponent)
 	{
 		if (UStaticMesh* Mesh = TorchMesh.LoadSynchronous())
 		{
@@ -117,7 +128,7 @@ void AGSTorchProjectile::BeginPlay()
 		}
 		else
 		{
-			bTorchMeshResolveFailed = true;
+			GSTorchMeshResolveFailed = true;
 			UE_LOG(LogTemp, Warning,
 				TEXT("[GoblinSiege] %s could not load its torch mesh (%s) - the throw will be "
 					 "invisible in flight. It still sticks, still ignites, and still spawns its "

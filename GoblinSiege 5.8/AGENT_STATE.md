@@ -5,6 +5,17 @@ Human-editable; the agent reads it at run start and rewrites NEXT + appends BUIL
 end. Deep context lives in the Claude project docs; this is the distillation. Seeded 2026-08-04
 from the status-and-rebaseline doc, the decision queue, and a live scan.*
 
+> ## ⚠ READ `HANDOFF.md` BEFORE PICKING UP RANGED / TORCH / BUILDING WORK
+>
+> `GoblinSiege 5.8/HANDOFF.md`, written 2026-08-06. It holds **nine outstanding code-review
+> findings that nobody has fixed** — including a `TypeError` that kills `gs_buildings.py` on the
+> first non-mesh actor, a hole that lets `set -Status done` bypass every close check in
+> `gsqueue.ps1` (ticket 028 already slipped through it), and an adopt-radius double-count that can
+> make a building objective unwinnable. It also carries the ranged/torch state, the settled radial
+> weapon-wheel design, and the gotchas that cost this session the most time.
+>
+> Those findings live in closed tickets otherwise, and **nothing reads closed tickets at run start.**
+
 **Coordination lives in `AgentQueue/QUEUE.md`, not here.** Before editing any file, claim it:
 `& ".\AgentQueue\gsqueue.ps1" claim -Agent <slug> -Title "<t>" -Files "a,b"`. Lower ticket number
 has right of way on a shared file; nobody compiles until `gsqueue.ps1 buildgate` exits 0. Tickets
@@ -111,6 +122,17 @@ next agent rediscovers it.
   - **The co-op server path goes in now** (refines "replicate cheap root state only"): server RPC for
     begin/abort, payout + `SetAvailable` behind `HasAuthority`. Cheaper before five systems hook the
     completion delegate than after.
+- 2026-08-06 (Michael, on the ranged pass — **settled, do not re-litigate**):
+  - **An arrow STICKS in an ally; it does not pass through.** #038 stopped arrows damaging allied
+    goblins (`IsHostileTo`, the same rule melee has used since 2026-08-04), and the question was
+    whether they should also stop being blocked by them. They should not: an arrow is stopped by an
+    allied body, deals nothing, and the shot is wasted. Positioning is the player's problem. This was
+    asked with the horde case on the table (firing past your own line) and answered anyway — so a
+    future agent finding "every shot eaten by a friendly" is looking at intended behaviour, not a bug.
+  - **The radial weapon wheel is built C++-first**: `EGSWeaponSlot` and the selection maths in code
+    with `BlueprintReadOnly` state plus open/close/changed events; the UMG widget comes after, built
+    against a working backend. This supersedes fixing the torch throw directly — that work is
+    subsumed (see `HANDOFF.md` Part 3).
 - 2026-08-04 (three further rulings):
   - **No interacting or blocking while staggered.** Block already refused `State.GuardBroken`;
     interact now does too, and `BreakGuard` cancels an in-flight channel by tag so the kick stops a
@@ -122,23 +144,135 @@ next agent rediscovers it.
     becomes channelled.
 
 ## NEXT
-- [ELIGIBLE] u=10.0 **Interact framework — hold-E channels + carry** (block A) — missing: UGSInteractableComponent, UGSInteractionComponent, UGSGA_Interact, UGSCarryComponent
+
+*Refreshed 2026-08-06. Every `missing:` symbol below was re-checked against the tree that day; an
+item whose symbols all now exist was removed rather than left to rot. Three were: **interact
+framework** (u=10.0 — all four components exist in `Interaction/` and `Weapons/Abilities/`),
+**lives / respawn** (`AGSPlayerState` exists, `EGSRaidResult::OutOfLives` ends the raid, #009), and
+**runic site** (`AGSRunicSite` + `BP_GS_RunicSite` exist, #009/#011). The NEXT list had carried all
+three as outstanding for two days while they were being built.*
+
+**Ranked — u carried from run live-003, 2026-08-04. Not re-scored; treat the order as two days old.**
+
 - [EDITOR] u=6.0 **Death & hit-reaction clips retargeted ('nothing can die on screen')** (block B) — missing: AM_GS_Death
-- [ELIGIBLE] u=5.75 **Someone to fight — human race data, BT_Militia, enemy attack path** (block B) — missing: DA_Race_Human, BT_Militia, DA_Weapon_Greatclub
-- [ELIGIBLE] u=4.0 **Lives / respawn on PlayerState** (block E) — missing: Lives, AGSPlayerState
-- [BLOCKED] u=4.0 **Runic site — spawn/respawn, objective-gated portal, staging, 90s collapse** (block E) — missing: AGSRunicSite, Portal
+- [ELIGIBLE] u=5.75 **Someone to fight — the last piece** (block B) — DA_Race_Human and BT_Militia now EXIST and are PIE-verified; missing: DA_Weapon_Greatclub only
 - [BLOCKED] u=4.0 **Score system — deeds/loot two-kind tally + end screen** (block G) — missing: UGSScoreSubsystem, GSScore
-- [BLOCKED] u=3.2 **Horn & horde (subsystem, pool, BT, point command)** (block D) — missing: UGSHordeSubsystem, AGSHordeSpawnMarker, UGSGA_Horn, BT_HordeGoblin, AGSHordeGoblin
-- [BLOCKED] u=3.0 **The stealth five (noise, crouch-detect, takedown, corpse-suspicion, coin toss)** (block F) — missing: ReportGSNoise, Takedown, CoinToss, DT_NoiseEvents
+- [BLOCKED] u=3.2 **Horn & horde (subsystem, pool, BT, point command)** (block D) — AGSHordeGoblin EXISTS; missing: UGSHordeSubsystem, AGSHordeSpawnMarker, UGSGA_Horn, BT_HordeGoblin
+- [BLOCKED] u=3.0 **The stealth five (noise, crouch-detect, takedown, corpse-suspicion, coin toss)** (block F) — Takedown EXISTS (interact framework); missing: ReportGSNoise, CoinToss, DT_NoiseEvents
 - [BLOCKED] u=2.5 **Gore/gib system (intensity scalar, feather-poof)** (block G) — missing: UGSGibComponent
 - [ELIGIBLE] u=2.5 **Barks + Overlord whispers (runtime side)** (block H) — missing: UGSBarkSubsystem, DT_Barks
 - [BLOCKED] u=2.33 **Patrol director — 5-7 min cadence + castle reinforcements** (block F) — missing: UGSPatrolDirector
-- [BLOCKED] u=2.25 **Loot couriers — sacks + livestock cargo, point-to-courier** (block G) — missing: UGSCarryComponent
+- [ELIGIBLE] u=2.25 **Loot couriers — sacks + livestock cargo, point-to-courier** (block G) — was BLOCKED on UGSCarryComponent, which now EXISTS; nothing else gates it
 - [BLOCKED] u=1.75 **Civilians + livestock (routines, disbelief, brigade, flee)** (block G) — missing: BT_Civilian, DA_Race_Livestock
 
-*(ranking from run live-003, 2026-08-04)*
+**Unranked — raised after the live-003 ranking run, so they carry no u.** Do not read the order
+below as priority; it is grouped by kind. The first item is the only one anyone has called urgent.
+
+- [ELIGIBLE] **The nine outstanding code-review findings** — `HANDOFF.md` Part 1, full file:line. One is a **crash**: `gs_buildings.py:110` raises `TypeError` on the first actor with no static mesh, which is a PlayerStart or a light on every level. Two more are silent-failure holes in `gsqueue.ps1` itself (`set -Status done` bypasses every close check; the #024 stale-Evaluate gate resolves paths against the wrong root and fails open). Nobody has picked these up; both original authors closed their tickets.
+- [ELIGIBLE] **Radial weapon wheel** — `HANDOFF.md` Part 3. Michael's design, two decisions already settled and **not to be re-litigated**: Q opens a hold-drag-release wheel (top torch / bottom-left sword / bottom-right bow), and the torch becomes a real held weapon fired by the ATTACK button, retiring `IA_ThrowTorch`. Open: who builds the UMG. Note `bRangedMode` is a **bool**, so three slots is a type change (`EGSWeaponSlot`) touching every `IsInRangedMode()` caller. Subsumes the two torch items below.
+- [ELIGIBLE] **Torch throw has no animation and is barely visible in hand** — `AM_GS_ThrowTorch.uasset` EXISTS and is referenced by **nothing** in C++; `UGSGA_TorchToss` has no `PlayMontage`, the throw is a 0.25s timer. The held torch is un-readied by `EndAbility` the instant the projectile spawns, which is Michael's "it's never in your hand" — not a missing socket or mesh, both verified fine.
+- [ELIGIBLE] **Arrows ignore RaceTag** — zero occurrences of `RaceTag` in `GSArrowProjectile.cpp`. An arrow will hit allied goblins. Melee friendly-fire was added by a later pass and ranged was never brought in line.
+- [EDITOR] **Building burn duration** — Michael, 2026-08-06, after the first raid that worked end to end: *"burning buildings. Maybe it can take a little longer."* The knob is `UGSFlammableComponent::BurnDurationSeconds` (currently 12s). Data, no rebuild.
+- [ELIGIBLE] **Melee `AttackCooldownSeconds` is dead** — the twin of the bow bug closed in #034. `UGSWeaponDataAsset::AttackCooldownSeconds` (1.0s default) has **no reader anywhere**. Check first whether melee is already rate-limited by its montage before adding a second gate on top.
+- [ELIGIBLE] **The two lose paths have never been exercised** — `EGSRaidResult::LeftBehind` and `OutOfLives` are wired and neither has run; only `Extracted` is verified (#009). `GS.Raid.ExpireClock`, `GS.Raid.Kill` and `GS.Raid.SetLives` exist to drive them (#018).
+- [EDITOR] **`BP_GS_Arrow` subclass** — `AGSArrowProjectile::ArrowMeshOffset` is `EditDefaultsOnly` on the C++ class that is also the class spawned, so with no Blueprint subclass there is no CDO to edit and it is a rebuild-to-change knob. Only worth creating if the arrow is seen flying wrong (#034).
 
 ## FAILED
+
+- 2026-08-06 **A burn objective's Required/Optional state is ERASED before it tells anyone it
+  completed.** `AGSBurnObjectiveBase::HandleCompleted` calls `SetListState(Complete)` *before*
+  broadcasting `OnBurnObjectiveCompleted`, so every listener sees `Complete` and cannot tell what the
+  objective was a moment earlier. Anything that needs the distinction (scoring, barks, progression)
+  must track it itself — asking `UGSRaidDirector` instead makes the answer depend on delegate binding
+  order between two subsystems, which is not contractual. `UGSScoreSubsystem` keeps its own
+  scored-types set for exactly this reason (#053).
+- 2026-08-06 **BOTH lose paths fire correctly and NOTHING HAPPENS WHEN THEY DO.** First execution
+  ever of `EGSRaidResult::OutOfLives` and `LeftBehind` (#049). Both log `RAID ENDED: <result>`
+  exactly as designed — and then the game carries on. `UGSRaidDirector::EndRaid` sets the result,
+  logs, and broadcasts `OnRaidEnded`; the only subscriber is `UGSPlayerHUDWidget::HandleRaidEnded`,
+  which forwards to the **`BlueprintImplementableEvent` `OnRaidEnded`** — and `WBP_GSPlayerHUD` does
+  not implement it. So a finished raid produced one log line and no screen, no pause, no restart.
+  **Correction to my first reading of this:** all five HUD `BlueprintImplementableEvent`s are
+  unimplemented, but only `OnRaidEnded` mattered. The other four (`OnLivesChanged`,
+  `OnObjectiveListChanged`, `OnRaidClockPhaseChanged`, `OnAlarmPhaseChanged`) are *enrichment hooks*
+  over text `UGSPlayerHUDWidget` already writes to bound widgets itself — an unimplemented
+  `OnLivesChanged` costs a nicer lives display, not the lives display. `OnRaidEnded` was the only
+  output of the raid loop with no C++ fallback behind it. Fixed in #050 by giving it one
+  (`EndPanel` / `EndTitleText` / `EndDetailText`, C++-driven, BP event still fires after).
+  **Lesson: "the event is unimplemented" is not the same as "the feature is missing" — check whether
+  C++ already writes the primary path before counting a hook as a hole.**
+- 2026-08-06 **`EndRaid` does not stop the raid clock.** After `OutOfLives` the clock is still
+  `Running` and the timer keeps counting down (observed 1769s → 1762s across two `GS.Raid.Status`
+  calls *after* the raid had ended). `LeftBehind` looks like it stops the clock, but only because
+  the clock expiring is what ended the raid. Ending for any *other* reason leaves it ticking.
+- 2026-08-06 **The raid clock expiring does NOT strand you — it starts a 90s collapse.**
+  `GS.Raid.ExpireClock` moves phase 1 (Running) → phase 3 (Collapsing, 90s), and only a second
+  expiry reaches `LeftBehind`. Worth knowing before "the clock ran out and nothing happened" gets
+  filed as a bug: it is a two-stage transition and both stages must be driven.
+- 2026-08-06 **`EditorAssetSubsystem.load_asset` returns None WHILE PIE IS RUNNING**, and
+  `does_asset_exist` returns False, for assets that demonstrably exist and load fine once PIE stops.
+  Same family as `get_editor_world()` returning null during PIE. Stop PIE before inspecting assets,
+  or you will conclude an asset is missing when it is merely unavailable.
+- 2026-08-06 **A material used on a `USplineMeshComponent` needs `bUsedWithSplineMeshes`, or it
+  silently renders as the ENGINE DEFAULT.** `M_GS_AimArc` shipped without it, so the aim ribbon drew
+  with the default material from the day it was written — and recompiled the shader on every editor
+  launch. The only symptom is one `LogMaterial: Warning ... missing usage flag SplineMeshes` line at
+  load. It is a checkbox on the material; no rebuild. Check the flag on any material assigned to a
+  spline mesh, ribbon, or instanced mesh.
+- 2026-08-06 **A derived table must be recomputed from the values actually SHIPPED.** Ticket #043
+  computed camera-clearance figures at `AimArmLength = 250`, then set it to 320 in the same ticket
+  and shipped the old table. Drop is `ArmLength * sin(pitch)`, so the change that fixed one complaint
+  silently invalidated every row. The Evaluate flagged the wrong risk about the same number. If a
+  ticket changes an input to its own arithmetic, redo the arithmetic before closing.
+- 2026-08-06 **The aim camera's real obstacle on L_Tutorial_Island is the WHEAT, not the ground.**
+  `SM_VillageWheat_01/02` are 158 uu tall at ~91,500 instances each (~275k instances of 117–158 uu
+  cover). Any camera height under ~200 uu is inside the canopy regardless of collision, so aim-camera
+  clearance is a height problem, not a `bDoCollisionTest` problem.
+- 2026-08-06 **Iterating a Python-exposed `Array` of structs yields COPIES.** `for m in arr:
+  m.set_editor_property(...)` changes nothing, and the subsequent `save_loaded_asset` still returns
+  `True` — the first `IMC_Default` remap "succeeded" and the read-back showed the old action. Assign
+  back by index (`rows[i] = m`), then re-read after `collect_garbage()` + `load_asset`. This is the
+  concrete, repeatable cause behind "a successful tool call is not evidence".
+- 2026-08-06 **A guard that resolves paths against ONE root, when the data carries two conventions,
+  fails OPEN — and looks exactly like a guard that passed.** `gsqueue.ps1`'s stale-Evaluate check
+  (#024) joined every claimed path to the git root, but 102 of 126 claims across all tickets are
+  *project*-relative (`Source/…`, `Content/…`, living under `GoblinSiege 5.8/`) and only 24 are
+  repo-relative. `Test-Path` failed, the loop `continue`d, and the check silently examined nothing on
+  the majority of files for a full day. Fixed in #036 by resolving against **both** roots and
+  **reporting** anything that resolves nowhere. The lesson generalises: when a check skips what it
+  cannot resolve, "I could not look" is indistinguishable from "nothing changed".
+- 2026-08-06 **A code-review finding is a claim about a MOMENT — re-check it before acting.** The one
+  HIGH finding in `HANDOFF.md` (a `TypeError` crashing `gs_buildings.py` on any level) was already
+  gone when it was picked up: ticket #033's unrelated rewrite deleted the code, confirmed with
+  `git log -S PIECE_KEYS`. It had sat in the handoff as HIGH regardless. Cost of checking: one
+  command. Cost of not checking: debugging a bug that does not exist.
+- 2026-08-06 **A UPROPERTY with a sensible default and NO READER is invisible from both sides.**
+  `UGSWeaponDataAsset::RangedAttackCooldownSeconds` carried a 1.5s default and a design comment from
+  the day it was written, and nothing ever read it — so the bow fired as fast as the mouse could
+  click while `DA_Weapon_Scout` looked correctly configured, because it was. Found by Michael playing
+  it, not by any tool. Fixed in #034. **`AttackCooldownSeconds` (melee) is still dead.** Grep every
+  tuning field on a data asset for at least one reader.
+- 2026-08-06 **Dreamscape fog cards ship with collision ON.** 12 of them in L_Tutorial_Island
+  (`Plane`, `Plane4`-`Plane14`): `/Engine/BasicShapes/Plane` + `MI_Fog_02`, all `ECR_BLOCK` to
+  Pawn. A Plane mesh is single-sided and fog is translucent, so you see nothing and still cannot
+  walk through - one was a 111m x 8m x 51m slab across the village. Fixed by setting
+  `NO_COLLISION`, NOT by deleting (they are atmosphere art). **Expect the same in any new
+  Dreamscape scene.** `Plane2` is the village water (`MI_VillageWater`) and was deliberately left
+  blocking. Map backup: `D:\goblinRaid\Map_Backup_20260806\`.
+- 2026-08-06 **"Mesh is None" is the WRONG way to hunt invisible collision.** An empty
+  `StaticMeshComponent` has no collision geometry at all - 12 such actors in this level all report
+  `get_actor_bounds(True)` = (0,0,0) and block nothing, and one of them is a live `GSMillObjective`
+  that a "delete everything empty" sweep would have destroyed. Sort by `get_actor_bounds(True)`
+  instead. Note `PrimitiveComponent.bounds` is not readable from Python here;
+  `AActor.get_actor_bounds(bOnlyCollidingComponents)` is.
+- 2026-08-06 **For "something is blocking me", get the player's POSITION first.** Five structured
+  searches over 9,067 actors found nothing; one `sphere_overlap_actors` at the live PIE pawn
+  location found it immediately. Read the position off
+  `GameplayStatics.get_player_pawn(...).get_actor_location()`.
+- 2026-08-06 **`GEN_NavBounds_Village` is only (4000, 4000, 2998)** - an 80m x 80m navmesh box for
+  the entire village, at (-13000, 57000). This is why defenders freeze after chasing the player any
+  distance: they path straight out of it, and off the navmesh `move_to_location` returns FAILED.
+  Not yet fixed; wants its own ticket.
 
 - 2026-08-05 **The work queue is ADVISORY - it protects only against agents that actually run
   it, and the first one to breach it was the agent that built it.** `AgentQueue/` was created,

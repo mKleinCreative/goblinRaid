@@ -362,5 +362,15 @@ void UGSRaidDirector::EndRaid(EGSRaidResult Result)
 		ResultEnum ? *ResultEnum->GetNameStringByValue(static_cast<int64>(Result)) : TEXT("?"),
 		GetCompletedTypeCount(), RequiredTypes.Num());
 
+	// Time stops when the raid does. Before #049 it did not: a raid lost to OutOfLives kept counting
+	// down and would eventually enter the collapse phase it had already lost the right to.
+	if (const UWorld* World = GetWorld())
+	{
+		if (AGSGameState* GS = World->GetGameState<AGSGameState>())
+		{
+			GS->StopRaidClock();
+		}
+	}
+
 	OnRaidEnded.Broadcast(Result);
 }

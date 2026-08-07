@@ -2,7 +2,7 @@
 id: 032
 title: Handoff doc: outstanding code-review findings + ranged/torch state for the single-agent takeover
 agent: claude-ranged
-status: review
+status: done
 claimed: 2026-08-06T10:00Z
 build: none
 waiting_on:

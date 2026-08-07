@@ -82,6 +82,26 @@ public:
 	static int32 CountFlammable(const TArray<AActor*>& Actors);
 
 	/**
+	 * Nearest spot near Origin where a pawn-sized capsule can actually stand.
+	 *
+	 * Ground-traces down, then tests whether the capsule FITS - the second half being the check that
+	 * matters, because "a capsule fits here" and "this is outdoors" are different questions and the
+	 * first spawn fix for the runic site picked the inside of a house by only asking the first
+	 * (#009). Widens through rings of bearings if the origin itself is no good.
+	 *
+	 * Extracted from AGSRunicSite's private spawn search so a drowning can reuse it, seeded at the
+	 * water instead of at the site. Deliberately NOT navmesh projection: GEN_NavBounds_Village is
+	 * only 4000x4000 uu, so projection fails across most of the map (AGENT_STATE).
+	 *
+	 * @param IgnoreActor   Excluded from both traces - pass the pawn doing the asking.
+	 * @return false if nothing standable was found in any ring; OutSpot is untouched.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting",
+		meta = (WorldContext = "WorldContextObject"))
+	static bool FindStandableSpotNear(const UObject* WorldContextObject, FVector Origin,
+		FVector& OutSpot, const AActor* IgnoreActor = nullptr);
+
+	/**
 	 * Give an actor a UGSBreakableComponent - so a window can be smashed and become a way into a
 	 * building.
 	 *

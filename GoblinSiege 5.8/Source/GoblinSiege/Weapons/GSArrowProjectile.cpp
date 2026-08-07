@@ -1,4 +1,5 @@
 #include "Weapons/GSArrowProjectile.h"
+#include "Characters/GSCharacterBase.h"
 #include "Combat/GSGE_WeaponDamage.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
@@ -7,6 +8,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+
+// File-scope, not a member: see the note in the header. One warning per session for a broken mesh
+// reference, rather than one per arrow.
+static bool GArrowMeshResolveFailed = false;
 
 AGSArrowProjectile::AGSArrowProjectile()
 {
@@ -36,6 +41,11 @@ AGSArrowProjectile::AGSArrowProjectile()
 	// from one throw, and here it would be two damage applications from one arrow.
 	ArrowMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ArrowMeshComponent->SetGenerateOverlapEvents(false);
+
+	// The shaft itself. A soft path assigned on the CDO, resolved in BeginPlay - the reference is
+	// recorded here where it cannot be left blank, without the constructor doing a package load.
+	ArrowMesh = TSoftObjectPtr<UStaticMesh>(
+		FSoftObjectPath(TEXT("/Game/_Import/Weapons/GS_Arrow.GS_Arrow")));
 
 	// C++ default, matching UGSGA_SwordLight's DamageEffectClass and AGSTorchProjectile's
 	// FireVolumeClass. A null here would produce an arrow that flies perfectly and deals nothing,
@@ -69,19 +79,27 @@ void AGSArrowProjectile::BeginPlay()
 	// Resolved here rather than in the constructor: the constructor runs on the CDO during module
 	// load, which is the one place a synchronous package load is unwelcome. Warn once, then fly on
 	// invisibly - the arrow's job is damage, not looks.
-	if (!ArrowMesh.IsNull() && !bArrowMeshResolveFailed && ArrowMeshComponent)
+	if (ArrowMeshComponent && !GArrowMeshResolveFailed)
 	{
-		if (UStaticMesh* Mesh = ArrowMesh.LoadSynchronous())
+		if (UStaticMesh* Mesh = ArrowMesh.IsNull() ? nullptr : ArrowMesh.LoadSynchronous())
 		{
 			ArrowMeshComponent->SetStaticMesh(Mesh);
+			ArrowMeshComponent->SetRelativeTransform(ArrowMeshOffset);
 		}
 		else
 		{
-			bArrowMeshResolveFailed = true;
+			GArrowMeshResolveFailed = true;
+
+			// An empty reference is reported as loudly as a broken one. The previous guard was
+			// `!ArrowMesh.IsNull() && ...`, so an UNSET mesh skipped the whole block and warned about
+			// nothing - and unset was the shipping state. The bug that hid itself was the silence,
+			// not the missing mesh: the log said the arrow system was healthy while every shot was
+			// invisible.
 			UE_LOG(LogTemp, Warning,
-				TEXT("[GoblinSiege] %s could not load its arrow mesh (%s) - the shot will be "
-					 "invisible in flight. It still flies, still hits, and still deals damage."),
-				*GetName(), *ArrowMesh.ToString());
+				TEXT("[GoblinSiege] %s has no usable arrow mesh (%s) - shots will be invisible in "
+					 "flight. They still fly, still hit, and still deal damage."),
+				*GetName(),
+				ArrowMesh.IsNull() ? TEXT("reference is unset") : *ArrowMesh.ToString());
 		}
 	}
 }
@@ -113,6 +131,24 @@ void AGSArrowProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 	{
 		AActor* Shooter = GetInstigator() ? static_cast<AActor*>(GetInstigator()) : GetOwner();
 
+		// Same race, no damage - the rule UGSGA_SwordLight::…:271 already applies to every swing,
+		// and which ranged was never brought in line with. Without it an archer firing into a melee
+		// kills his own side, and once the horde lands (AGSHordeGoblin sets Race_Goblin in its
+		// constructor) the player would be doing it constantly.
+		//
+		// IsHostileTo returns TRUE for anything that is not an AGSCharacterBase - a wall, a barrel,
+		// a burnable - so this narrows nothing except character-on-character friendly fire, and an
+		// unset race on either side still counts as hostile ("no opinion must not make a pawn
+		// immune", GSCharacterBase.cpp).
+		//
+		// This skips only the DAMAGE. The arrow still stops and sticks in the ally, because bHasHit
+		// and StopMovementImmediately are already done by the time we get here, and because making
+		// an arrow pass through a friendly is a collision change rather than a damage one - it
+		// needs IgnoreActorWhenMoving at a point where the ally is not yet known. Flagged for a
+		// design call rather than guessed at.
+		const AGSCharacterBase* ShooterChar = Cast<AGSCharacterBase>(Shooter);
+		const bool bMayDamage = !ShooterChar || ShooterChar->IsHostileTo(OtherActor);
+
 		// The damage application below is UGSGA_SwordLight's, verbatim in shape. Reused rather than
 		// reinvented specifically so the arrow goes through UGSDamageExecCalculation's armour,
 		// blocking and frontal-arc rules on the same path a sword does - an arrow that ignored a
@@ -130,7 +166,7 @@ void AGSArrowProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 		}
 
 		// Both null is the overwhelmingly common case - an arrow in a wall - and is not an error.
-		if (SourceASC && TargetASC && OtherActor != Shooter)
+		if (SourceASC && TargetASC && OtherActor != Shooter && bMayDamage)
 		{
 			FGameplayEffectContextHandle Context = SourceASC->MakeEffectContext();
 			Context.AddInstigator(Shooter, this);

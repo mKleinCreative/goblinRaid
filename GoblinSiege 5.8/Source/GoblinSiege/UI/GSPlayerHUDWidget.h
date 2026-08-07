@@ -92,6 +92,52 @@ protected:
 	TObjectPtr<UTextBlock> AlarmText;
 
 	/**
+	 * Stamina, driven from UGSStaminaComponent::OnStaminaChanged - the same delegate shape HealthBar
+	 * already uses.
+	 *
+	 * These widgets already exist in WBP_GSPlayerHUD, but until now the Blueprint POLLED them every
+	 * widget tick: cast the owning pawn to BP_GSPlayerCharacter_C, read its SprintStamina float,
+	 * divide, SetPercent. Binding them here replaces a per-frame cast with an event, and means the
+	 * bar reads the same number the gameplay does rather than a Blueprint's private copy.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UProgressBar> StaminaBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> StaminaText;
+
+	UFUNCTION()
+	void HandleStaminaChanged(float NewStamina, float MaxStamina);
+
+	/**
+	 * The end-of-raid panel: a container that is hidden for the whole raid and shown once, when it
+	 * ends. Add a panel named `EndPanel` to WBP_GSPlayerHUD with `EndTitleText` and `EndDetailText`
+	 * inside it.
+	 *
+	 * This is C++-driven, unlike the four BlueprintImplementableEvents below, and that is a change of
+	 * position worth stating. Those four are enrichment hooks over text this class already writes -
+	 * an unimplemented OnLivesChanged costs you a nicer lives display, not the lives display. OnRaidEnded
+	 * had no such fallback: it was the ONLY output of the raid loop with nothing behind it, so a
+	 * finished raid produced one log line and no screen at all (#049). A game needs to be able to tell
+	 * you that you lost without a designer having implemented an event first.
+	 *
+	 * The Blueprint event still fires afterwards, so a real end screen can replace this entirely.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> EndPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> EndTitleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> EndDetailText;
+
+	/** The score line. Optional like the rest - if it is absent the score is appended to
+	 *  EndDetailText instead, because a missing widget should cost layout, not information. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> EndScoreText;
+
+	/**
 	 * A burn type with MORE carriers than this collapses to a single counted row.
 	 *
 	 * 2 by default, which keeps the tutorial's two wheat fields named individually ("The Wheat

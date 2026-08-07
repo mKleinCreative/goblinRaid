@@ -24,8 +24,30 @@ class UGSWeaponDataAsset;
 class UStaticMesh;
 class UStaticMeshComponent;
 
+/**
+ * What the goblin is holding. Replaces the `bRangedMode` bool (2026-08-06, Michael's radial-wheel
+ * design): three slots is not a bigger toggle, it is a different type, and the bool could not name
+ * the torch at all - the torch was a one-shot ability that borrowed the hand for 0.25s.
+ *
+ * Order is the wheel's own, clockwise from the top, so a UMG widget can iterate the enum and get
+ * the same arrangement the input maths produces. Do not reorder to "group the melee ones".
+ */
+UENUM(BlueprintType)
+enum class EGSWeaponSlot : uint8
+{
+	/** Top of the wheel. */
+	Torch	UMETA(DisplayName = "Torch"),
+	/** Bottom-right. */
+	Bow		UMETA(DisplayName = "Bow"),
+	/** Bottom-left, and the default a goblin starts a raid in. */
+	Sword	UMETA(DisplayName = "Sword")
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnOrbCountChanged, int32, NewCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWeaponModeChanged, bool, bRangedMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWeaponSlotChanged, EGSWeaponSlot, NewSlot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWheelOpenChanged, bool, bOpen);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWheelHighlightChanged, EGSWeaponSlot, Highlighted);
 
 UCLASS(ClassGroup = (GoblinSiege), meta = (BlueprintSpawnableComponent))
 class GOBLINSIEGE_API UGSWeaponComponent : public UActorComponent
@@ -54,8 +76,76 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon")
 	void ToggleRangedMode();
 
+	/** True only for the BOW. The torch is thrown, but it is not "ranged mode" - that flag gates the
+	 *  bow ability, the aim camera and the heavy-charge suppression, none of which the torch wants.
+	 *  Kept rather than replaced because a dozen callers and any Blueprint asking "am I holding the
+	 *  bow" still want exactly this question. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
-	bool IsInRangedMode() const { return bRangedMode; }
+	bool IsInRangedMode() const { return CurrentSlot == EGSWeaponSlot::Bow; }
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
+	EGSWeaponSlot GetCurrentSlot() const { return CurrentSlot; }
+
+	/**
+	 * Put a specific slot in hand. The single choke point every path goes through - the wheel, the
+	 * legacy sword/bow toggle, and anything a Blueprint does - so mesh placement, the torch prop and
+	 * the three broadcasts can never disagree about what is being held.
+	 *
+	 * Refuses the same three ways ToggleRangedMode does (swap lock, no weapon, no ranged half), each
+	 * naming its own cause, and refuses the Bow slot on a weapon with bHasRangedMode unticked.
+	 * Returns false if the slot did not change, for any reason.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon")
+	bool SetSlot(EGSWeaponSlot NewSlot);
+
+	// --- Radial wheel (2026-08-06) ---------------------------------------------------------------
+	//
+	// Michael's design: hold Q, drag a direction, release to commit; drag back to centre to cancel.
+	// The maths is here rather than in the widget because the selection must be identical whether or
+	// not a widget is on screen - the UMG layer is unbuilt, and this works without it.
+	//
+	// Accumulated mouse DELTA, deliberately, not cursor position: the game has no visible cursor and
+	// a position-based wheel would need one warped to centre on open, which fights the camera.
+
+	/** Begin a wheel selection. Zeroes the accumulator, so the drag is measured from wherever the
+	 *  mouse happens to be. Highlight starts at the CURRENT slot, so releasing without moving is a
+	 *  no-op rather than a random pick. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon|Wheel")
+	void OpenWeaponWheel();
+
+	/** Feed a frame's mouse delta in while the wheel is open. Screen convention: +X right, +Y DOWN. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon|Wheel")
+	void AddWheelInput(FVector2D Delta);
+
+	/** Release. bCommit false (or a drag still inside the dead zone) closes without changing slot. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon|Wheel")
+	void CloseWeaponWheel(bool bCommit = true);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
+	bool IsWheelOpen() const { return bWheelOpen; }
+
+	/** The slot that would be committed right now. Equals the current slot while inside the dead
+	 *  zone, which is what makes "drag back to centre" read as a cancel. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
+	EGSWeaponSlot GetWheelHighlight() const { return WheelHighlight; }
+
+	/** Accumulated drag, for a widget that wants to draw the stick. Not normalised. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
+	FVector2D GetWheelVector() const { return WheelAccum; }
+
+	/** True once the drag has left the dead zone - i.e. releasing now would actually change slot. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
+	bool IsWheelCommitted() const { return WheelAccum.Size() >= WheelDeadZone; }
+
+	/**
+	 * Direction -> slot, exposed so the widget draws the sectors the input actually uses instead of
+	 * a second copy that can drift. Screen convention (+Y down). Inside the dead zone this returns
+	 * FallbackSlot unchanged.
+	 *
+	 * Top is Torch, bottom-right is Bow, bottom-left is Sword - 120-degree sectors centred on each.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
+	EGSWeaponSlot SlotForDirection(FVector2D Direction, EGSWeaponSlot FallbackSlot) const;
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
 	UGSWeaponDataAsset* GetEquippedWeapon() const { return EquippedWeapon; }
@@ -113,8 +203,21 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Weapon")
 	FGSOnOrbCountChanged OnOrbCountChanged;
 
+	/** Kept, and still broadcast on every slot change, so existing C++ and Blueprint bindings survive
+	 *  the move to three slots. True only for Bow - see IsInRangedMode. Prefer OnWeaponSlotChanged. */
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Weapon")
 	FGSOnWeaponModeChanged OnWeaponModeChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Weapon")
+	FGSOnWeaponSlotChanged OnWeaponSlotChanged;
+
+	/** Wheel opened / closed. The widget's show and hide. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Weapon|Wheel")
+	FGSOnWheelOpenChanged OnWheelOpenChanged;
+
+	/** The highlighted sector changed while dragging. Fires only on CHANGE, not per frame. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Weapon|Wheel")
+	FGSOnWheelHighlightChanged OnWheelHighlightChanged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -195,7 +298,27 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> HeldTorchMeshComponent;
 
-	bool bRangedMode = false;
+	/** Sword by default: a goblin starts a raid with the blade out. */
+	EGSWeaponSlot CurrentSlot = EGSWeaponSlot::Sword;
+
+	// --- Wheel state. Purely local and input-driven; nothing here replicates. The SLOT is what
+	// matters to anyone else, and it changes through SetSlot like any other path.
+	bool bWheelOpen = false;
+	FVector2D WheelAccum = FVector2D::ZeroVector;
+	EGSWeaponSlot WheelHighlight = EGSWeaponSlot::Sword;
+
+	/**
+	 * How far the accumulated drag must travel before the wheel will commit to anything.
+	 *
+	 * In raw mouse-delta units, which are not pixels and not degrees - they are whatever the input
+	 * device reports per frame, so this needs tuning against a real mouse rather than derivation.
+	 * Too small and a twitch during a Q tap re-arms you mid-fight; too large and the wheel feels
+	 * unresponsive. 40 is a starting guess and is EditDefaultsOnly so it can be tuned without a
+	 * rebuild once the widget exists to see it against.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Weapon|Wheel", meta = (ClampMin = "1.0"))
+	float WheelDeadZone = 40.f;
+
 	bool bSwapLocked = false;
 	bool bTorchReadied = false;
 	int32 BloodOrbs = 0;

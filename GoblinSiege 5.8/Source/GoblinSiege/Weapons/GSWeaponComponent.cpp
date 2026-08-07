@@ -10,6 +10,21 @@
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
 
+namespace
+{
+	/** Log-only. Not UEnum::GetDisplayValueAsText: this runs on every slot change and the reflection
+	 *  lookup is not worth it for a line that says "is now holding Sword". */
+	FString SlotName(EGSWeaponSlot Slot)
+	{
+		switch (Slot)
+		{
+		case EGSWeaponSlot::Torch: return TEXT("Torch");
+		case EGSWeaponSlot::Bow:   return TEXT("Bow");
+		default:                   return TEXT("Sword");
+		}
+	}
+}
+
 UGSWeaponComponent::UGSWeaponComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -83,7 +98,10 @@ void UGSWeaponComponent::EquipWeapon(UGSWeaponDataAsset* NewWeapon)
 	}
 
 	EquippedWeapon = NewWeapon;
-	bRangedMode = false;
+	// Straight assignment, not SetSlot: this is an equip, not a swap. SetSlot would refuse under the
+	// anti-cancel lock, broadcast a slot change nobody is listening for yet, and ready a torch prop
+	// before the meshes below have been built.
+	CurrentSlot = EGSWeaponSlot::Sword;
 
 	// A new weapon gets a clean slate on both warn latches - it names its own asset paths and its
 	// own sockets, and the previous kit's failures say nothing about this one. See the header.
@@ -180,19 +198,65 @@ void UGSWeaponComponent::ToggleRangedMode()
 		return;
 	}
 
-	bRangedMode = !bRangedMode;
+	// The legacy two-way swap, now expressed as a slot change. Torch is deliberately NOT in this
+	// cycle: this is the sword<->bow key, and a player who has never opened the wheel should not
+	// find a torch in their hand because they tapped swap twice.
+	SetSlot(CurrentSlot == EGSWeaponSlot::Bow ? EGSWeaponSlot::Sword : EGSWeaponSlot::Bow);
+}
 
-	// Move the meshes BEFORE the broadcast, so anything listening (AGSPlayerCharacter's rotation
-	// mode today, a HUD or an AnimBP tomorrow) sees a character whose hands already agree with the
-	// mode flag it is being told about. No component is created or destroyed here - both halves
-	// already exist, they only change socket - which is why the swap stays cheap enough to spam.
+bool UGSWeaponComponent::SetSlot(EGSWeaponSlot NewSlot)
+{
+	if (NewSlot == CurrentSlot)
+	{
+		return false;
+	}
+
+	// Same three refusals ToggleRangedMode split out on 2026-08-05, each naming its own cause,
+	// because "I pressed swap and nothing happened" with one silent early-out cost real time.
+	if (bSwapLocked)
+	{
+		UE_LOG(LogTemp, Log,
+			TEXT("[GoblinSiege] Weapon slot change ignored on %s - the %.2fs anti-cancel lock is "
+				 "still up. Normal on a fast double tap."),
+			*GetNameSafe(GetOwner()), SwapInputLockSeconds);
+		return false;
+	}
+	if (!EquippedWeapon)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Weapon slot change refused on %s - no weapon equipped. Set "
+				 "EquippedWeapon on the character Blueprint's WeaponComponent."),
+			*GetNameSafe(GetOwner()));
+		return false;
+	}
+	if (NewSlot == EGSWeaponSlot::Bow && !EquippedWeapon->bHasRangedMode)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Bow slot refused on %s - '%s' has bHasRangedMode unticked, so it has "
+				 "no ranged half. Tick it under GoblinSiege|Weapon|RangedMode on the data asset; it "
+				 "is data, so no recompile is needed."),
+			*GetNameSafe(GetOwner()), *GetNameSafe(EquippedWeapon));
+		return false;
+	}
+
+	CurrentSlot = NewSlot;
+
+	// Hands first, broadcasts second - so anything listening (AGSPlayerCharacter's rotation mode
+	// today, a HUD or an AnimBP tomorrow) sees a character whose hands already agree with the state
+	// it is being told about. No component is created or destroyed for sword/bow; both halves exist
+	// and only change socket, which is why the swap stays cheap enough to spam.
 	RefreshWeaponMeshPlacement();
 
-	OnWeaponModeChanged.Broadcast(bRangedMode);
+	// The torch is a HELD weapon now, not a 0.25s loan during an ability (Michael, 2026-08-06).
+	// UGSGA_TorchToss still readies and un-readies around its own throw; making the slot own the
+	// prop is what stops the torch vanishing from the hand the instant the projectile spawns.
+	SetTorchReadied(CurrentSlot == EGSWeaponSlot::Torch);
 
-	UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] %s swapped to %s mode."),
-		*GetNameSafe(GetOwner()),
-		bRangedMode ? TEXT("RANGED (bow)") : TEXT("MELEE (sword)"));
+	OnWeaponSlotChanged.Broadcast(CurrentSlot);
+	OnWeaponModeChanged.Broadcast(IsInRangedMode());
+
+	UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] %s is now holding %s."),
+		*GetNameSafe(GetOwner()), *SlotName(CurrentSlot));
 
 	bSwapLocked = true;
 	if (UWorld* World = GetWorld())
@@ -201,6 +265,85 @@ void UGSWeaponComponent::ToggleRangedMode()
 			FTimerDelegate::CreateWeakLambda(this, [this]() { bSwapLocked = false; }),
 			SwapInputLockSeconds, false);
 	}
+	return true;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Radial wheel. See the header for why this is delta-based and why the maths lives here.
+// ---------------------------------------------------------------------------------------------
+
+EGSWeaponSlot UGSWeaponComponent::SlotForDirection(FVector2D Direction, EGSWeaponSlot FallbackSlot) const
+{
+	if (Direction.Size() < WheelDeadZone)
+	{
+		return FallbackSlot;
+	}
+
+	// Screen space has +Y DOWN, so negate it to get a conventional maths angle where up is +90.
+	// Getting this backwards silently mirrors the wheel top-to-bottom, which is the kind of bug
+	// that reads as "the sectors feel wrong" rather than as an error.
+	const float Degrees = FRotator::ClampAxis(
+		FMath::RadiansToDegrees(FMath::Atan2(-Direction.Y, Direction.X)));
+
+	// 120-degree sectors centred on 90 (top), 210 (bottom-left) and 330 (bottom-right).
+	if (Degrees >= 30.f && Degrees < 150.f)  { return EGSWeaponSlot::Torch; }
+	if (Degrees >= 150.f && Degrees < 270.f) { return EGSWeaponSlot::Sword; }
+	return EGSWeaponSlot::Bow;
+}
+
+void UGSWeaponComponent::OpenWeaponWheel()
+{
+	if (bWheelOpen)
+	{
+		return;
+	}
+	bWheelOpen = true;
+	WheelAccum = FVector2D::ZeroVector;
+
+	// Starts on what is already held, so a Q tap with no drag commits the slot you are in - i.e.
+	// nothing happens. Starting on Torch (enum 0) would arm the player for pressing a key.
+	WheelHighlight = CurrentSlot;
+
+	OnWheelOpenChanged.Broadcast(true);
+	OnWheelHighlightChanged.Broadcast(WheelHighlight);
+}
+
+void UGSWeaponComponent::AddWheelInput(FVector2D Delta)
+{
+	if (!bWheelOpen)
+	{
+		return;
+	}
+	WheelAccum += Delta;
+
+	const EGSWeaponSlot NewHighlight = SlotForDirection(WheelAccum, CurrentSlot);
+	if (NewHighlight != WheelHighlight)
+	{
+		WheelHighlight = NewHighlight;
+		// On change only. A per-frame broadcast would have the widget rebuilding itself 120 times a
+		// second to draw the same thing.
+		OnWheelHighlightChanged.Broadcast(WheelHighlight);
+	}
+}
+
+void UGSWeaponComponent::CloseWeaponWheel(bool bCommit)
+{
+	if (!bWheelOpen)
+	{
+		return;
+	}
+	bWheelOpen = false;
+
+	// Inside the dead zone the highlight still equals CurrentSlot, so "drag back to centre cancels"
+	// needs no special case - SetSlot returns false on a no-op change. The explicit bCommit exists
+	// for the caller that knows the gesture was aborted (menu opened, pawn died) without the player
+	// having dragged back.
+	const EGSWeaponSlot Chosen = bCommit ? WheelHighlight : CurrentSlot;
+
+	WheelAccum = FVector2D::ZeroVector;
+	OnWheelOpenChanged.Broadcast(false);
+
+	SetSlot(Chosen);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -212,12 +355,32 @@ UStaticMeshComponent* UGSWeaponComponent::GetActiveWeaponMesh() const
 {
 	// "Active" means in hand, not "exists": the holstered half is still a live component sitting on
 	// the goblin's back, and a hit trace must never pick it up.
-	const bool bRangedActive = bRangedMode && EquippedWeapon && EquippedWeapon->bHasRangedMode;
+	//
+	// The Torch slot returns the MELEE mesh, not null and not the torch. Holding a torch does not
+	// arm you with one - the header is explicit that a sword ability tracing along a torch would be
+	// a bug nobody would find - and callers already treat null as "no art yet", so returning null
+	// here would silently mean something else. GetHeldTorchMesh() is the torch's accessor.
+	const bool bRangedActive = IsInRangedMode() && EquippedWeapon && EquippedWeapon->bHasRangedMode;
 	return bRangedActive ? RangedMeshComponent : MeleeMeshComponent;
 }
 
 void UGSWeaponComponent::SetTorchReadied(bool bNewReadied)
 {
+	// The Torch SLOT outranks a caller asking to un-ready.
+	//
+	// UGSGA_TorchToss readies on activation and un-readies the instant the projectile spawns, which
+	// is Michael's "it's never in your hand" - the prop was visible for TorchWindupSeconds, 0.25s,
+	// and the socket and mesh were fine all along. Now that the torch is a held slot rather than a
+	// loan during an ability, the ability throwing one must not take the slot's torch away. It comes
+	// back for the next throw because the goblin is still holding it.
+	//
+	// Readying while in another slot is still allowed, so the old ability-driven behaviour survives
+	// untouched for anything that has not moved to slots.
+	if (!bNewReadied && CurrentSlot == EGSWeaponSlot::Torch)
+	{
+		return;
+	}
+
 	if (bTorchReadied == bNewReadied)
 	{
 		return;
@@ -282,10 +445,10 @@ void UGSWeaponComponent::RefreshWeaponMeshPlacement()
 		return;
 	}
 
-	// A weapon with no ranged half can never be "in ranged mode" visually, whatever the flag says -
-	// belt and braces against a future caller that sets the mode without going through
-	// ToggleRangedMode's bHasRangedMode guard.
-	const bool bRangedActive = bRangedMode && EquippedWeapon->bHasRangedMode;
+	// A weapon with no ranged half can never be "in ranged mode" visually, whatever the slot says -
+	// belt and braces against a future caller that sets the slot without going through SetSlot's
+	// bHasRangedMode guard.
+	const bool bRangedActive = IsInRangedMode() && EquippedWeapon->bHasRangedMode;
 
 	if (MeleeMeshComponent)
 	{

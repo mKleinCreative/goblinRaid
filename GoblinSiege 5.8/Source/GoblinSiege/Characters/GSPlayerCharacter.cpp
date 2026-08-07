@@ -3,6 +3,7 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameplayEffectExtension.h"
 #include "Interaction/GSCarryComponent.h"
+#include "Characters/GSStaminaComponent.h"
 #include "Interaction/GSInteractionComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSArrowProjectile.h"
@@ -18,6 +19,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
+#include "UI/GSWeaponWheelWidget.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -92,7 +97,29 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 		MoveComp->bOrientRotationToMovement = true;
 		MoveComp->RotationRate = FRotator(0.f, FMath::RadiansToDegrees(TurnRateRadPerSec), 0.f);
 		MoveComp->NavAgentProps.bCanCrouch = true;
+
+		// --- swimming -------------------------------------------------------------------------
+		// bCanSwim is the half that is easy to miss: without it the movement component REFUSES the
+		// switch to MOVE_Swimming and the pawn falls through a water volume as though it were empty
+		// air - which looks identical to the volume not being there. Both this and
+		// AGSWaterVolume::bWaterVolume are required.
+		MoveComp->NavAgentProps.bCanSwim = true;
+
+		// Deliberately slower than walking (BaseWalkSpeed 600). The GDD asks that horizontal
+		// traversal beat swimming, so water is a decision rather than a shortcut.
+		MoveComp->MaxSwimSpeed = 300.f;
+
+		// Buoyancy 1.0 floats you at the surface, which is what "standard surface swimming" means.
+		// Below 1 you sink while swimming, which needs a dive input to be legible and there is not
+		// one.
+		MoveComp->Buoyancy = 1.f;
+
+		// Upward push when swimming out at an edge. The engine default is 0, which means a goblin
+		// at the shoreline swims into the bank forever instead of climbing out.
+		MoveComp->OutofWaterZ = 420.f;
 	}
+
+	StaminaComponent = CreateDefaultSubobject<UGSStaminaComponent>(TEXT("StaminaComponent"));
 }
 
 void AGSPlayerCharacter::BeginPlay()
@@ -114,6 +141,33 @@ void AGSPlayerCharacter::BeginPlay()
 	if (FollowCamera)
 	{
 		HipFOV = FollowCamera->FieldOfView;
+	}
+
+	ApplyViewPitchLimits();
+
+	if (StaminaComponent)
+	{
+		StaminaComponent->OnExhausted.AddDynamic(this, &AGSPlayerCharacter::HandleStaminaExhausted);
+	}
+
+	// The wheel's on-screen half. Locally controlled only - a dedicated server or a remote pawn has
+	// no viewport, and CreateWidget against one is a warning at best.
+	//
+	// Created ONCE and left in the viewport collapsed, rather than spawned per gesture: Q is pressed
+	// often, and a construct/destruct cycle each time would rebind the component's delegates on every
+	// press. The widget hides itself; see UGSWeaponWheelWidget::HandleWheelOpenChanged.
+	if (WeaponWheelWidgetClass && IsLocallyControlled())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			WeaponWheelWidget = CreateWidget<UGSWeaponWheelWidget>(PC, WeaponWheelWidgetClass);
+			if (WeaponWheelWidget)
+			{
+				// Above the HUD: the wheel is momentary, and half a wheel behind the objective list
+				// is worse than no wheel.
+				WeaponWheelWidget->AddToViewport(10);
+			}
+		}
 	}
 
 	if (WeaponComponent)
@@ -237,25 +291,61 @@ void AGSPlayerCharacter::UpdateAimCamera(float DeltaSeconds)
 
 	const float Target = WantsAimCamera() ? 1.f : 0.f;
 
-	// Arrived: write nothing. This is why the blend is an explicit alpha rather than an FInterpTo -
-	// an asymptotic interp never equals its target, so this early-out could never fire and the boom
-	// would be rewritten every frame of the entire raid for no visible change.
-	if (FMath::IsNearlyEqual(CameraAimAlpha, Target))
+	const bool bSettled = FMath::IsNearlyEqual(CameraAimAlpha, Target);
+
+	// Settled AND fully hip: write nothing. This is why the blend is an explicit alpha rather than an
+	// FInterpTo - an asymptotic interp never equals its target, so this early-out could never fire and
+	// the boom would be rewritten every frame of the entire raid for no visible change.
+	//
+	// Settled-while-AIMING no longer returns, though: the pitch correction below has to track the
+	// camera every frame, and it is only ever needed while aiming. So the "don't touch the boom all
+	// raid" guarantee is kept exactly where it mattered and dropped exactly where it was wrong.
+	if (bSettled && CameraAimAlpha <= 0.f)
 	{
 		return;
 	}
 
-	const float Step = (AimBlendSeconds > 0.f) ? (DeltaSeconds / AimBlendSeconds) : 1.f;
-	CameraAimAlpha = (Target > CameraAimAlpha)
-		? FMath::Min(CameraAimAlpha + Step, Target)
-		: FMath::Max(CameraAimAlpha - Step, Target);
+	if (!bSettled)
+	{
+		const float Step = (AimBlendSeconds > 0.f) ? (DeltaSeconds / AimBlendSeconds) : 1.f;
+		CameraAimAlpha = (Target > CameraAimAlpha)
+			? FMath::Min(CameraAimAlpha + Step, Target)
+			: FMath::Max(CameraAimAlpha - Step, Target);
+	}
 
 	// Eased on READ, not stored eased: storing the eased value would feed it back into the next
 	// frame's easing and the blend would decelerate twice.
 	const float Eased = FMath::InterpEaseInOut(0.f, 1.f, CameraAimAlpha, 2.f);
 
-	CameraBoom->TargetArmLength = FMath::Lerp(HipArmLength, AimArmLength, Eased);
-	CameraBoom->SocketOffset = FMath::Lerp(HipSocketOffset, AimSocketOffset, Eased);
+	// --- pitch correction ------------------------------------------------------------------------
+	// Lobbing a torch means aiming UP, and a spring arm swings its far end DOWN by ArmLength*sin(pitch)
+	// when you do. On the 250uu aim arm at 45 degrees that is ~177uu below the boom pivot, which is
+	// below the ground - so bDoCollisionTest yanks the camera in against the goblin's back and the
+	// shot becomes unaimable. Michael reported it as "aiming to arch it correctly brings the camera
+	// into the ground", 2026-08-06, and it is the reason the torch is awkward to throw.
+	//
+	// Fixed by lifting the pivot UP - and LENGTHENING the arm - as pitch rises, rather than by
+	// clamping how far up you may look. A clamp would cap the arc itself, and the arc is the weapon.
+	//
+	// The first version pulled the arm IN instead, which is the cheaper way to buy ground clearance
+	// since the drop scales with arm length. It was the wrong trade: it put the goblin's back in the
+	// frame at exactly the moment you are trying to read an arc past him. Clearance is the lift's job
+	// now, and the arm grows so the model shrinks. Scaled by Eased as well as by pitch, so none of
+	// this leaks into the hip camera.
+	float PitchAlpha = 0.f;
+	if (AimHighPitchDegrees > 0.f)
+	{
+		const float PitchDeg = FRotator::NormalizeAxis(GetControlRotation().Pitch);
+		PitchAlpha = FMath::Clamp(PitchDeg / AimHighPitchDegrees, 0.f, 1.f);
+	}
+	const float Correction = PitchAlpha * Eased;
+
+	FVector Socket = FMath::Lerp(HipSocketOffset, AimSocketOffset, Eased);
+	Socket.Z += FMath::Lerp(0.f, AimHighPitchLift, Correction);
+
+	CameraBoom->TargetArmLength =
+		FMath::Lerp(HipArmLength, AimArmLength, Eased) * FMath::Lerp(1.f, AimHighPitchArmScale, Correction);
+	CameraBoom->SocketOffset = Socket;
 	FollowCamera->SetFieldOfView(FMath::Lerp(HipFOV, AimFOV, Eased));
 }
 
@@ -314,6 +404,9 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(SwapWeaponModeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_SwapWeaponMode);
+		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_WheelOpen);
+		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_WheelClose);
+		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_WheelClose);
 		EIC->BindAction(AimAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_AimStart);
 		EIC->BindAction(AimAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_AimStop);
 		EIC->BindAction(AimAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_AimStop);
@@ -352,13 +445,117 @@ void AGSPlayerCharacter::Input_Move(const FInputActionValue& Value)
 	// aim-facing (UpdateRotationMode) can override it without touching this function.
 }
 
+void AGSPlayerCharacter::HandleStaminaExhausted()
+{
+	// Only water is lethal. Running the pool dry on land costs you your sprint (the exhaustion latch
+	// pins you to a walk) and on a wall it costs you your grip - neither kills. The GDD is explicit
+	// that the failure state differs by medium, and this is the fork.
+	const UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (MoveComp && MoveComp->IsSwimming())
+	{
+		Drown();
+	}
+
+	// The climb's "lose grip and fall" is NOT handled here. It lives in the Blueprint's
+	// ClimbStaminaExits graph, which already owns the montage and the movement-mode change; adding a
+	// second exit path in C++ would mean two things deciding when a climb ends.
+}
+
+void AGSPlayerCharacter::Drown()
+{
+	if (!HasAuthority() || !IsAlive())
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %s drowned."), *GetName());
+
+	// Destroy the cargo BEFORE dying. AGSCharacterBase::HandleDeath fires
+	// UGSCarryComponent::HandleOwnerDied, which calls PutDown() and leaves the sack floating at the
+	// point of death - visible loot in deep water that the player may not be able to reach. Clearing
+	// it first means the normal drop path finds nothing to drop.
+	if (CarryComponent && CarryComponent->IsCarrying())
+	{
+		CarryComponent->DestroyCarried();
+	}
+
+	// Reuse the one death path rather than inventing a second. This zeroes Health, which flows
+	// through HandleDeath -> AGSGameMode::HandleGoblinDeath -> LoseLife() -> respawn, or
+	// EndRaid(OutOfLives) if that was the last one.
+	KillOutright();
+}
+
+void AGSPlayerCharacter::ApplyViewPitchLimits()
+{
+	// Why a clamp exists at all, having been argued against in #042.
+	//
+	// #042 rejected clamping because "the arc IS the weapon" and capping the look angle caps the
+	// throw. That is still true up to about 45 degrees, which is the maximum-RANGE launch angle -
+	// past it you are lobbing shorter, not further. What the clamp actually costs is the near-vertical
+	// throw nobody aims for; what it buys is the guarantee the pitch correction cannot make on its
+	// own, because AimHighPitchLift stops growing at AimHighPitchDegrees while sin(pitch) keeps
+	// climbing. Beyond ~60 degrees the camera falls back toward the wheat (158uu on
+	// L_Tutorial_Island, ~275,000 instances) and the throw becomes unaimable again.
+	//
+	// So: correction handles the useful range, the clamp handles the tail. Michael asked for exactly
+	// this after testing - "we need a maximum distance it'll pitch down".
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		// Not locally controlled yet, or an AI-possessed pawn. Re-applied from PossessedBy.
+		return;
+	}
+
+	// Engine default is +/-89.9. Positive pitch is looking UP, which is what swings the boom DOWN.
+	PC->PlayerCameraManager->ViewPitchMax = ViewPitchMaxDegrees;
+	PC->PlayerCameraManager->ViewPitchMin = ViewPitchMinDegrees;
+}
+
+void AGSPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// BeginPlay can run before a controller exists (spawn order is not contractually fixed, and the
+	// raid director respawns the pawn), so the limits are applied from both ends. Setting them twice
+	// is free; setting them never is a camera that dives into the wheat on every respawn.
+	ApplyViewPitchLimits();
+}
+
 void AGSPlayerCharacter::Input_Look(const FInputActionValue& Value)
 {
 	const FVector2D LookInput = Value.Get<FVector2D>();
+
+	// While the wheel is open the mouse is CHOOSING, not looking. Routing the existing look axis
+	// rather than adding a second 2D action is what lets the wheel ship with one new digital input:
+	// the delta is already here, already frame-scaled by Enhanced Input, and already the thing the
+	// player's hand is doing. Swallowing the camera movement is the point - a wheel you have to
+	// aim at while the world spins under you is unusable.
+	if (WeaponComponent && WeaponComponent->IsWheelOpen())
+	{
+		WeaponComponent->AddWheelInput(LookInput);
+		return;
+	}
+
 	if (Controller)
 	{
 		AddControllerYawInput(LookInput.X);
 		AddControllerPitchInput(LookInput.Y);
+	}
+}
+
+void AGSPlayerCharacter::Input_WheelOpen(const FInputActionValue& Value)
+{
+	if (WeaponComponent)
+	{
+		WeaponComponent->OpenWeaponWheel();
+	}
+}
+
+void AGSPlayerCharacter::Input_WheelClose(const FInputActionValue& Value)
+{
+	if (WeaponComponent)
+	{
+		WeaponComponent->CloseWeaponWheel(true);
 	}
 }
 
@@ -421,6 +618,28 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 	// aim, release to loose. That is what "sword <-> bow, live-swap" has to mean for a player - one
 	// key whose meaning follows the weapon, not a key they have to remember only applies half the
 	// time.
+	// The torch is a HELD weapon now (Michael, 2026-08-06), so ATTACK throws it exactly as ATTACK
+	// looses the bow - one key whose meaning follows what is in your hand. Checked before the bow
+	// because the two are mutually exclusive slots and this ordering keeps the bow branch below
+	// byte-identical to what it was.
+	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Torch
+		&& TorchTossAbilityClass)
+	{
+		// Same heavy-charge suppression the bow needs, and for the same reason: the heavy is a melee
+		// verb and its timer would otherwise fire a sword swing out of a raised torch at 1.5s.
+		bAttackHeld = false;
+		bHeavyFiredThisHold = false;
+		AttackPressedTime = -1.f;
+		GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
+		OnHeavyChargeChanged.Broadcast(0.f);
+
+		// Delegates to the existing torch press so there is ONE torch aim path, not a second copy
+		// that drifts. It handles the bTorchAimEnabled fallback and reads the projectile class off
+		// the ability CDO.
+		Input_ThrowTorchStart(Value);
+		return;
+	}
+
 	if (IsRangedAttackMode())
 	{
 		// No heavy charge in ranged mode. The heavy is a melee verb, and leaving its timer running
@@ -459,6 +678,15 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 
 void AGSPlayerCharacter::Input_AttackReleased(const FInputActionValue& Value)
 {
+	// Torch, gated on being mid-aim for the same reason the bow is below: a player who opens the
+	// wheel and swaps mid-throw should still resolve the throw they started. Delegates to the one
+	// torch release path rather than duplicating the push-aim / end-aim / activate sequence.
+	if (AimComponent && AimComponent->GetAimMode() == EGSAimMode::Torch)
+	{
+		Input_ThrowTorchRelease(Value);
+		return;
+	}
+
 	// Bow first, and gated on actually being mid-aim rather than on the current weapon mode: a player
 	// who swaps to melee while the bow is drawn should still resolve the shot they started, not have
 	// the release silently become a sword swing.

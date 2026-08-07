@@ -58,3 +58,7 @@ _MixamoStaging/
 
 # Fab plugin copied into the project - reinstallable from Fab
 Plugins/Marketplace/
+
+# Local secrets - never commit (Anthropic API key for the content pipeline)
+.env
+.env.*

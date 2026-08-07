@@ -93,11 +93,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch|Visual")
 	TSoftObjectPtr<UNiagaraSystem> FlameSystem;
 
-	/** One-shot warn latch for TorchMesh, matching the rest of the module's soft-asset pattern. */
-	bool bTorchMeshResolveFailed = false;
-
-	/** Same, for FlameSystem. */
-	bool bFlameSystemResolveFailed = false;
+	// The warn-once latches for TorchMesh and FlameSystem used to live here as members. They are
+	// now file-scope statics in the .cpp: this actor is spawned fresh per throw, so a per-instance
+	// latch never suppressed anything. See the comment beside them for the full argument.
 
 	bool bStuck = false;
 };

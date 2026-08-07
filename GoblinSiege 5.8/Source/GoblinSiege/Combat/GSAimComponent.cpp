@@ -324,8 +324,15 @@ bool UGSAimComponent::EnsureArcVisual()
 	ResolvedArcMesh = Mesh;
 	ArcMID = UMaterialInstanceDynamic::Create(SegmentMaterial, this);
 
-	ArcSegments.Reserve(MaxArcSegments);
-	for (int32 Index = 0; Index < MaxArcSegments; ++Index)
+	// Size the pool from the prediction that will feed it, rather than from a constant that has to
+	// be remembered. PredictProjectilePath emits about (MaxSimSeconds * SimFrequency) + 1 points, so
+	// one fewer segments; +2 is slack for rounding and the impact point. MaxArcSegments is only the
+	// ceiling. See MaxArcSegments' comment for the bug this replaced.
+	const int32 PoolSize = FMath::Clamp(
+		FMath::CeilToInt(MaxSimSeconds * SimFrequency) + 2, 8, MaxArcSegments);
+
+	ArcSegments.Reserve(PoolSize);
+	for (int32 Index = 0; Index < PoolSize; ++Index)
 	{
 		USplineMeshComponent* Segment = NewObject<USplineMeshComponent>(Owner,
 			USplineMeshComponent::StaticClass(), NAME_None, RF_Transient);
@@ -414,8 +421,10 @@ void UGSAimComponent::UpdateArcVisual(const TArray<FVector>& Path, bool bHit,
 		LandingMID->SetVectorParameterValue(ArcColourParameterName, Colour);
 	}
 
-	// One segment per pair of path points, capped by the pool. Running out of pool shortens the
-	// drawn arc rather than costing frames, and MaxArcSegments is the knob for that trade.
+	// One segment per pair of path points, capped by the pool. The pool is now sized from
+	// MaxSimSeconds * SimFrequency (see EnsureArcVisual), so in normal use this Min never bites -
+	// it is a guard, not a budget. It bit badly before that change: a fixed pool of 40 truncated a
+	// ~75-segment path and the ribbon stopped short of its own landing decal.
 	const int32 SegmentCount = FMath::Min(Path.Num() - 1, ArcSegments.Num());
 
 	// THE BIG SQUARE BUG (fixed 2026-08-06). USplineMeshComponent::SetStartScale takes a MULTIPLIER

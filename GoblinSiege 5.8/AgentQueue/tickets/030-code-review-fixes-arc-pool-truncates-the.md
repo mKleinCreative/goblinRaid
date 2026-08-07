@@ -2,7 +2,7 @@
 id: 030
 title: Code-review fixes: arc pool truncates the ribbon, decal depth reverted, flame warn-latch is per-instance
 agent: claude-ranged
-status: review
+status: done
 claimed: 2026-08-06T09:49Z
 build: required
 waiting_on:

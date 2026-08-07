@@ -140,12 +140,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 030 | review | claude-ranged | Code-review fixes: arc pool truncates the ribbon, decal depth reverted, flame warn-latch is per-instance | Source/GoblinSiege/Combat/GSAimComponent.h<br>Source/GoblinSiege/Destruction/GSTorchProjectile.cpp | required |
-| 032 | review | claude-ranged | Handoff doc: outstanding code-review findings + ranged/torch state for the single-agent takeover | GoblinSiege 5.8/HANDOFF.md<br>GoblinSiege 5.8/AGENT_STATE.md | none |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 31 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -180,8 +177,31 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 027 | done | claude-raid | Debug commands must resolve the game world; buildings must not double-own pieces |
 | 028 | done | claude-raid | Teleport reported success while TeleportTo silently failed |
 | 029 | done | claude-raid | Buildings: cluster on shell not interiors, merge floors, score the shell |
+| 030 | done | claude-ranged | Code-review fixes: arc pool truncates the ribbon, decal depth reverted, flame warn-latch is per-instance |
 | 031 | done | claude-raid | One building per ROOF: cover every roofed structure on the map |
+| 032 | done | claude-ranged | Handoff doc: outstanding code-review findings + ranged/torch state for the single-agent takeover |
 | 033 | done | claude-raid | A building is a merged house actor or an attached kit hierarchy - not a cluster radius |
+| 034 | done | claude-ranged2 | Bow: no fire-rate limit (RangedAttackCooldownSeconds is dead), and the arrow is invisible in flight |
+| 035 | done | claude-orchestrator | Refresh AGENT_STATE.md NEXT against what is actually built, then regenerate the decision-queue board |
+| 036 | done | claude-fixes | Code-review findings, tooling half: gs_buildings.py crash + three gsqueue.ps1 silent-failure holes |
+| 037 | done | claude-fixes | Code-review findings, C++ half: adopt radius double-count, silent completion freeze, two lying diagnostics |
+| 038 | done | claude-fixes | Arrows respect RaceTag (they currently damage allied goblins); document why melee AttackCooldownSeconds must stay unwired |
+| 039 | done | claude-wheel | Radial weapon wheel, C++ half: EGSWeaponSlot replaces the bRangedMode bool, selection maths, BP-facing state and events |
+| 040 | done | claude-wheel | Weapon wheel input + ATTACK routes by slot; torch throw moves onto the montage notify |
+| 041 | done | claude-wheel | Editor half of the weapon wheel: IA_WeaponWheel + Q mapping, retire IA_ThrowTorch, WBP_WeaponWheel widget |
+| 042 | done | claude-cam | Aim camera digs into the ground when you pitch up to lob a torch |
+| 043 | done | claude-cam | Aim camera: lengthen the arm at high pitch instead of shortening it - the goblin was crowding the frame |
+| 044 | done | claude-cam | Aim video: arc material missing SplineMeshes usage flag, and the aim camera sits inside the grass canopy |
+| 045 | done | claude-cam | Clamp view pitch so the aim camera cannot swing below the wheat; build WBP_WeaponWheel |
+| 046 | done | claude-wheel | Wire the wheel widget: UGSWeaponWheelWidget binds the slot delegates, character owns its lifetime |
+| 047 | done | claude-wheel | Fix C4458: local 'Slot' shadows UWidget::Slot in GSWeaponWheelWidget |
+| 048 | done | claude-wheel | RETROACTIVE: reparent WBP_WeaponWheel to GSWeaponWheelWidget, assign WeaponWheelWidgetClass, PIE-verify |
+| 049 | done | claude-raid2 | Exercise the two never-run lose paths: LeftBehind and OutOfLives |
+| 050 | done | claude-hud | End-of-raid panel in C++, and stop the clock when the raid ends |
+| 051 | done | claude-hud | End panel: title and detail run together on one line instead of stacking |
+| 052 | done | claude-content | Dynamic content pipeline: RAG over the GDD + critic loop, generating bark/whisper/tutorial-prompt data tables |
+| 053 | done | claude-score | Score system: UGSScoreSubsystem two-kind tally (deeds/loot), fed by real raid events, shown on the end panel |
+| 054 | done | claude-stamina | Stamina to C++, swimming and drowning, climb refinements (build 1: foundation) |
 
 <!-- BOARD:END -->
 

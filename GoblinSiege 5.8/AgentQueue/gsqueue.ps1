@@ -46,6 +46,12 @@ $QueueDir  = $PSScriptRoot
 $TicketDir = Join-Path $QueueDir 'tickets'
 $BoardFile = Join-Path $QueueDir 'QUEUE.md'
 $RepoRoot  = (Get-Item -LiteralPath $QueueDir).Parent.Parent.FullName
+# D:\goblinRaid\GoblinSiege 5.8 - the Unreal project, one level below the git root.
+# Both roots are needed because tickets record BOTH conventions and always have: 102 claims are
+# project-relative (Source/..., Content/...) and 24 are repo-relative (tools/..., CLAUDE.md,
+# "GoblinSiege 5.8/..."). Resolving against one root alone silently fails on the other
+# see Resolve-ClaimedPath.
+$ProjRoot  = (Get-Item -LiteralPath $QueueDir).Parent.FullName
 
 # Open = still holds its file claims AND still blocks the build gate.
 # Closed = releases its claims and lets the build through.
@@ -198,7 +204,31 @@ function Get-EvaluatedAt {
     param($Ticket)
     if (-not $Ticket.Evaluated) { return $null }
     $dt = [datetime]::MinValue
-    if ([datetime]::TryParse($Ticket.Evaluated, [ref]$dt)) { return $dt.ToUniversalTime() }
+    if (-not [datetime]::TryParse($Ticket.Evaluated, [ref]$dt)) { return $null }
+    $at = $dt.ToUniversalTime()
+
+    # Legacy minute-precision stamps (yyyy-MM-ddTHH:mmZ, written before seconds were stored) mean
+    # "some time in that minute". Comparing an mtime against the START of the minute flags every
+    # file saved in the same minute as the stamp - which is the NORMAL case, because you save and
+    # then immediately run `set -Status review`. Treat such a stamp as the END of its minute: exact
+    # for the guarantee it can actually make, rather than a tolerance guessed at both ends.
+    if ($Ticket.Evaluated -match '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z$') { $at = $at.AddSeconds(59) }
+    return $at
+}
+
+# Where a claimed path actually lives. Tickets record two conventions (see $ProjRoot), so try the
+# repo root first and the project root second. Repo-first matters: CLAUDE.md exists at BOTH roots,
+# and ticket #010 claims "CLAUDE.md" and "GoblinSiege 5.8/CLAUDE.md" as separate files - repo-first
+# is the order that resolves each to the one its author meant.
+# Returns $null when the path resolves nowhere, which the caller must REPORT rather than skip.
+function Resolve-ClaimedPath {
+    param([string]$Rel)
+    if ([string]::IsNullOrWhiteSpace($Rel)) { return $null }
+    $rel = $Rel -replace '/', '\'
+    foreach ($root in @($RepoRoot, $ProjRoot)) {
+        $full = Join-Path $root $rel
+        if (Test-Path -LiteralPath $full) { return $full }
+    }
     return $null
 }
 
@@ -209,11 +239,19 @@ function Get-FilesTouchedSinceEvaluate {
     if (-not $at) { return @() }
     $late = @()
     foreach ($rel in $Ticket.Files) {
-        $full = Join-Path $RepoRoot ($rel -replace '/', '\')
-        if (-not (Test-Path -LiteralPath $full)) { continue }
+        $full = Resolve-ClaimedPath -Rel $rel
+        if (-not $full) {
+            # Unresolvable is NOT the same as unchanged. The previous code resolved against the
+            # repo root only, so every "Source/..." claim missed, Test-Path failed, and the check
+            # `continue`d - it passed silently on the majority of claimed files. A guard that
+            # fails open is the exact shape of bug this check was written to catch, so an
+            # unresolvable path is now surfaced instead of swallowed.
+            $late += [pscustomobject]@{ Path = $rel; Modified = $null; Unresolved = $true }
+            continue
+        }
         $m = (Get-Item -LiteralPath $full).LastWriteTimeUtc
         if ($m -gt $at) {
-            $late += [pscustomobject]@{ Path = $rel; Modified = $m }
+            $late += [pscustomobject]@{ Path = $rel; Modified = $m; Unresolved = $false }
         }
     }
     return @($late)
@@ -537,6 +575,22 @@ function Invoke-Set {
     $t = Get-TicketById $Id
     if (-not $t) { throw "No ticket #$Id." }
 
+    # `set -Status done` used to write straight to the ticket, skipping every check Invoke-Done
+    # makes: the G/E/R placeholder scan, the "never passed through review" gate, and the late-file
+    # comparison. It was not hypothetical - ticket 028 is on disk as `status: done` with an empty
+    # `evaluated:` and three <!-- REPLACE placeholders still in it, closed without review by
+    # exactly this route. `done` reaches Invoke-Set through $script:DoneChecked, so the checked
+    # path still works and only the bypass is refused.
+    # `abandoned` is deliberately still allowed here: abandoning means you reverted the work, and
+    # demanding a finished Evaluate for it would push agents toward closing as `done` instead.
+    if ($Status -eq 'done' -and -not $script:DoneChecked) {
+        Write-Output "REFUSED - use 'done -Id $($t.Id)', not 'set -Status done'."
+        Write-Output 'set writes the status straight to the ticket and skips every close check:'
+        Write-Output '  the Generate/Evaluate/Refine placeholder scan, the review gate, and the'
+        Write-Output '  late-file comparison. Ticket 028 closed unreviewed through this exact hole.'
+        exit 1
+    }
+
     # -WaitingOn takes a ticket number or plain prose. Setting it alone (no -Status)
     # is legal, so nobody has to hand-edit frontmatter to explain a stall.
     if ($PassedArgs.ContainsKey('WaitingOn')) {
@@ -565,8 +619,12 @@ function Invoke-Set {
     # Moving to `review` is the moment the agent says "this G/E/R is what I stand behind".
     # Stamp it, so `done` can tell whether the work carried on afterwards.
     if ($Status -eq 'review') {
+        # Seconds included. Stamping to the minute and then comparing against a file mtime flagged
+        # any file saved earlier in the SAME minute as the stamp - the normal case, since you save
+        # and then immediately mark review - so a clean close demanded -Reaffirm for no reason.
+        # Get-EvaluatedAt still reads the old minute-only stamps on existing tickets.
         Set-TicketField -Path $t.Path -Key 'evaluated' `
-            -Value ((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ'))
+            -Value ((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))
     }
     if ($Note) { Add-Content -LiteralPath $t.Path -Value "`n> $((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ')) $Note" -Encoding UTF8 }
     Update-Board
@@ -628,12 +686,26 @@ function Invoke-Done {
         exit 1
     }
 
-    $late = @(Get-FilesTouchedSinceEvaluate -Ticket $t)
+    $checked    = @(Get-FilesTouchedSinceEvaluate -Ticket $t)
+    $unresolved = @($checked | Where-Object { $_.Unresolved })
+    $late       = @($checked | Where-Object { -not $_.Unresolved })
+
+    # Reported always, and never silently. A path that resolves nowhere was NOT checked, and
+    # before Resolve-ClaimedPath that was the majority of every ticket's claims. It does not
+    # refuse on its own - a deleted file or a "no-files-claimed-yet" placeholder is not a reason
+    # to block a close - but "I could not look" must never again read the same as "unchanged".
+    if ($unresolved.Count -gt 0) {
+        Write-Output "NOTE - #$($t.Id) has $($unresolved.Count) claimed path(s) that resolve to no file"
+        Write-Output "under either $RepoRoot or $ProjRoot, so they could not be checked:"
+        foreach ($f in $unresolved) { Write-Output "  $($f.Path)" }
+        Write-Output ''
+    }
+
     if ($late.Count -gt 0 -and -not $Reaffirm) {
         Write-Output "REFUSED - #$($t.Id) kept working after you wrote its Evaluate ($($t.Evaluated))."
         Write-Output 'These claimed files were written AFTER that point:'
         foreach ($f in $late) {
-            Write-Output ("  {0}   (modified {1}Z)" -f $f.Path, $f.Modified.ToString('yyyy-MM-ddTHH:mm'))
+            Write-Output ("  {0}   (modified {1}Z)" -f $f.Path, $f.Modified.ToString('yyyy-MM-ddTHH:mm:ss'))
         }
         Write-Output ''
         Write-Output 'An Evaluate that is honest about a tree that no longer exists is worse than'
@@ -646,6 +718,9 @@ function Invoke-Done {
         exit 1
     }
 
+    # Tells Invoke-Set that this `done` arrived through the checks above rather than straight off
+    # the command line. See the guard at the top of Invoke-Set.
+    $script:DoneChecked = $true
     $script:Status = 'done'
     Invoke-Set
 }

@@ -205,10 +205,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual")
 	FName ArcColourParameterName = TEXT("Colour");
 
-	/** Ceiling on the segment pool. Path points beyond this are dropped, which shortens the drawn
-	 *  arc rather than dropping frames. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "4"))
-	int32 MaxArcSegments = 40;
+	/**
+	 * HARD CEILING on the segment pool - not the pool size. The pool is sized from the prediction
+	 * itself (MaxSimSeconds * SimFrequency) in EnsureArcVisual; this only stops a silly combination
+	 * of those two from allocating hundreds of primitives.
+	 *
+	 * 2026-08-06: it used to BE the pool size, fixed at 40, and that was a real bug the moment the
+	 * torch got faster. 5s at 15Hz is ~75 segments, so the ribbon was truncated at 40 and stopped
+	 * roughly three-quarters of the way along - visibly failing to reach the landing decal it exists
+	 * to lead the eye to. Deriving the size removes the third number that has to be kept in step
+	 * with the other two, which is what let this drift in the first place.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "8"))
+	int32 MaxArcSegments = 160;
 
 	/**
 	 * Ribbon thickness in WORLD UNITS, not a mesh multiplier.
@@ -222,15 +231,20 @@ protected:
 	float ArcSegmentWidth = 8.f;
 
 	/**
-	 * X is the decal's PROJECTION DEPTH, not a radius - Y and Z are the ring's half-extents.
+	 * X is the decal's HALF-DEPTH of projection about the component origin - Y and Z are the ring's
+	 * half-extents. The decal sits exactly on the impact point, so X projects that far both in
+	 * front of and behind the surface.
 	 *
-	 * 2026-08-06: depth 40 -> 250. A decal only paints surfaces within its depth of the component's
-	 * origin, so 40 meant that if the predicted impact point sat even slightly off the actual
-	 * ground - a sloped face, a kerb, a trace that stopped on a blade of grass - the ring painted
-	 * nothing at all and read as "the reticle is broken". Depth is cheap; being invisible is not.
+	 * Held at 40 (80uu of projection in total). It was briefly raised to 250 on the theory that a
+	 * shallow depth was why no reticle appeared; that theory was WRONG - the real cause was that
+	 * ArcMaterial and LandingDecalMaterial were assigned to each other's slots, so a decal-domain
+	 * material was on the meshes and a surface material was on the decal (#026). 250 has a genuine
+	 * cost the shallow value does not: projecting a quarter of a metre through the surface smears
+	 * the ring up any wall the impact point is near, and paints the player's own mesh on a close
+	 * throw. Reverted, and recorded so the theory is not retried.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual")
-	FVector LandingDecalSize = FVector(250.f, 55.f, 55.f);
+	FVector LandingDecalSize = FVector(40.f, 55.f, 55.f);
 
 	/** Torch orange - carried over verbatim from AGSPlayerCharacter::TorchAimArcColour, which this
 	 *  component replaced. */

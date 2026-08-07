@@ -394,9 +394,23 @@ void AGSCharacterBase::HandleDeath()
 	}
 }
 
-void AGSCharacterBase::DebugKill()
+void AGSCharacterBase::KillOutright()
 {
 	if (!HasAuthority() || !AbilitySystemComponent || !AttributeSetBase || bIsDead)
+	{
+		return;
+	}
+
+	// Zeroing the attribute rather than applying a damage effect, deliberately: this is a
+	// non-combat death (a debug command, a drowning) with no instigator, no damage type and nothing
+	// for UGSDamageExecCalculation's armour or blocking rules to act on. Routing it through damage
+	// would invite a raised shield to survive a drowning.
+	AbilitySystemComponent->SetNumericAttributeBase(UGSAttributeSetBase::GetHealthAttribute(), 0.f);
+}
+
+void AGSCharacterBase::DebugKill()
+{
+	if (bIsDead)
 	{
 		return;
 	}
@@ -404,7 +418,7 @@ void AGSCharacterBase::DebugKill()
 	UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Raid.Kill: %s (hp %.0f -> 0)"),
 		*GetName(), GetHealth());
 
-	AbilitySystemComponent->SetNumericAttributeBase(UGSAttributeSetBase::GetHealthAttribute(), 0.f);
+	KillOutright();
 }
 
 void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float InvulnerabilitySeconds)

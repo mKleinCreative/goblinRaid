@@ -38,6 +38,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Carry")
 	AActor* PutDown();
 
+	/**
+	 * Destroy what is being carried instead of putting it down.
+	 *
+	 * Added for drowning (Michael, 2026-08-06: "loss of whatever's on you"). Dying on land drops your
+	 * cargo where you fell and you can go back for it; drowning takes it with you. Without this the
+	 * normal death path would leave a sack floating in deep water - visible loot the player may have
+	 * no way to reach, which reads as a bug rather than a penalty.
+	 *
+	 * Safe to call when carrying nothing.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Carry")
+	void DestroyCarried();
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Carry")
 	bool IsCarrying() const { return IsValid(CarriedActor); }
 

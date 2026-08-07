@@ -60,6 +60,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Debug")
 	void DebugKill();
 
+	/**
+	 * Kill this character now, with no instigator and no damage type.
+	 *
+	 * The shared body of DebugKill and of drowning. Zeroes Health directly rather than applying a
+	 * damage effect: there is nothing for armour, blocking or the frontal-arc rule to act on, and
+	 * routing a drowning through damage would let a raised shield survive it.
+	 */
+	void KillOutright();
+
 	/** Per-archetype/per-weapon turn-rate identity (Brute turns like a barge, Slasher/Scout turns
 	 *  sharp - design doc "Turn rate"). Pushes the value into CharacterMovementComponent::RotationRate
 	 *  so bOrientRotationToMovement-driven turning actually uses it. Called by UGSWeaponComponent on

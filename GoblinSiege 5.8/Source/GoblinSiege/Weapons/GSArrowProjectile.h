@@ -53,10 +53,35 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Arrow|Visual")
 	TObjectPtr<UStaticMeshComponent> ArrowMeshComponent;
 
-	/** Soft and unset by default, like every other content reference in this project. An invisible
-	 *  arrow still flies, still hits, and still deals its damage. */
+	/**
+	 * The shaft mesh, C++-defaulted to /Game/_Import/Weapons/GS_Arrow.
+	 *
+	 * It was previously soft AND unset, "like every other content reference in this project" - but
+	 * the comparison was wrong. The bow, quiver, sword and torch meshes are unset here because they
+	 * are per-weapon kit identity chosen by UGSWeaponDataAsset, which really does assign them. Nothing
+	 * anywhere assigned this one, so the arrow shipped invisible from the day it was written: a shot
+	 * you cannot see is a shot you cannot lead, aim off, or learn the droop of.
+	 *
+	 * Defaulted in C++ for the same reason DamageEffectClass on this class is - the arrow's appearance
+	 * belongs to the projectile, not to the weapon that fired it, and a default in code cannot be left
+	 * blank by a data asset nobody edited. Override it on a Blueprint subclass when an arrow needs to
+	 * look different; do not clear it.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow|Visual")
 	TSoftObjectPtr<UStaticMesh> ArrowMesh;
+
+	/**
+	 * Applied to the mesh component after the mesh resolves, to line the shaft up with the direction
+	 * of travel.
+	 *
+	 * ProjectileMovement has bRotationFollowsVelocity, so the ACTOR's +X always points along the
+	 * flight path; whether the mesh's own long axis agrees is a property of the FBX and not of
+	 * anything in code. Identity is the default because GS_Arrow's authored orientation has not been
+	 * confirmed in flight - if the arrow flies sideways or tail-first, this is the knob, and it needs
+	 * a Blueprint subclass to be editable at all since the spawned class is this C++ one.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow|Visual")
+	FTransform ArrowMeshOffset;
 
 	/**
 	 * Damage on hit, passed as the SetByCaller magnitude under GSTags::Damage_Bow.
@@ -81,7 +106,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow", meta = (ClampMin = "0.1"))
 	float MaxFlightSeconds = 8.f;
 
-	bool bArrowMeshResolveFailed = false;
+	// The warn-once latch for a failed mesh resolve is a file-scope static in the .cpp, NOT a member.
+	// An arrow is spawned fresh for every shot, so a member starts false on each one and warns again
+	// on every arrow forever - the exact bug ticket #030 fixed on AGSTorchProjectile's two latches.
+	// This was the third twin.
 
 	/** Latched on the first contact. A single arrow deals damage once, even if the engine reports
 	 *  two contacts on the same frame - the same guard AGSTorchProjectile::bStuck provides for its

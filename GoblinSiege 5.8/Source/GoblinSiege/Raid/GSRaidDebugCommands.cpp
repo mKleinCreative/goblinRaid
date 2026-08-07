@@ -504,13 +504,22 @@ static FAutoConsoleCommandWithWorld GSRaidBuildingStatusCmd(
 		}
 
 		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		if (!Pawn)
+		{
+			// Without a pawn every distance below is 0, so "nearest" silently became "whichever the
+			// actor iterator happened to return first" while the help text promised the nearest.
+			// GS.Raid.BurnHere directly above bails out loudly in exactly this situation.
+			GSRaidDebug::Log(TEXT("no player pawn - cannot tell which building is nearest. Use GS.Raid.GotoBuilding <n> first."));
+			return;
+		}
+
 		AGSBuildingObjective* Nearest = nullptr;
 		float BestSq = TNumericLimits<float>::Max();
 		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
 		{
 			if (AGSBuildingObjective* B = *It)
 			{
-				const float D = Pawn ? FVector::DistSquared(B->GetActorLocation(), Pawn->GetActorLocation()) : 0.f;
+				const float D = FVector::DistSquared(B->GetActorLocation(), Pawn->GetActorLocation());
 				if (D < BestSq) { BestSq = D; Nearest = B; }
 			}
 		}
@@ -525,21 +534,32 @@ static FAutoConsoleCommandWithWorld GSRaidBuildingStatusCmd(
 		// GS_BurnAmount (FX runs and paints nothing).
 		int32 Pieces = 0, WithFlam = 0, WithFX = 0, Burning = 0, Burnt = 0, WithParam = 0;
 		float MaxBurn = 0.f;
-		const FVector Centre = Nearest->GetActorLocation();
 
-		for (TActorIterator<AActor> It(World); It; ++It)
+		// Ask the building which pieces are ITS pieces, rather than re-deriving them here. The old
+		// sweep took "any actor with a flammable within 2500 uu of GetActorLocation()", which is
+		// wrong three ways at once: it measures pivot-to-pivot (the bug 270d107 fixed in AdoptPieces,
+		// where this kit offsets meshes up to 671 uu from their pivot), 2500 is unrelated to this
+		// building's AdoptRadius, and it counts the neighbours. On a tavern spanning more than
+		// 2500 uu it under-counted; between two close houses it reported the wrong house's pieces.
+		// A diagnostic whose whole job is "prove char is being applied to THIS building" must not
+		// describe a different set of actors from the one the building scores.
+		for (const TWeakObjectPtr<AActor>& Weak : Nearest->GetPieces())
 		{
-			AActor* A = *It;
-			if (!A || FVector::Dist(A->GetActorLocation(), Centre) > 2500.f)
+			AActor* A = Weak.Get();
+			if (!A)
 			{
 				continue;
 			}
 			UGSFlammableComponent* F = A->FindComponentByClass<UGSFlammableComponent>();
+			++Pieces;
 			if (!F)
 			{
+				// Counted, not skipped: an adopted piece with no flammable is one of the three
+				// failures this command exists to surface, and the old radius sweep could not see it
+				// at all because a missing flammable was its filter for "not a piece".
 				continue;
 			}
-			++Pieces; ++WithFlam;
+			++WithFlam;
 			if (A->FindComponentByClass<UGSBurnFXComponent>()) { ++WithFX; }
 			if (F->IsBurning()) { ++Burning; }
 			if (F->HasBurnedDown()) { ++Burnt; }

@@ -79,6 +79,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Building")
 	int32 GetPieceCount() const { return Pieces.Num(); }
 
+	/** The pieces this building actually adopted. Not a UFUNCTION - TWeakObjectPtr does not cross
+	 *  into Blueprint - but public because a diagnostic that RE-DERIVES the piece set is not a
+	 *  diagnostic of this building. GS.Raid.BuildingStatus used to rebuild it as "anything flammable
+	 *  within a flat 2500 uu of the pivot", which is both the pivot-vs-geometry bug commit 270d107
+	 *  fixed in AdoptPieces and a radius unrelated to this building's AdoptRadius. */
+	const TArray<TWeakObjectPtr<AActor>>& GetPieces() const { return Pieces; }
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Building")
 	int32 GetBurntPieceCount() const { return BurntPieceCount; }
 
@@ -198,6 +205,10 @@ protected:
 	/** True if this piece is interior - adopted and flammable, but not scored. */
 	bool IsInteriorPiece(const AActor* Piece) const;
 
+	/** Adopted pieces that are NOT interior: the denominator RecomputeCompletion actually divides by.
+	 *  Exists so the BeginPlay diagnostic and the live score cannot describe different numbers. */
+	int32 CountShellPieces() const;
+
 	/** Substrings a piece's mesh must match to be adopted at all. Empty adopts anything with a
 	 *  static mesh inside the radius, which drags in barrels and market tables. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
@@ -283,6 +294,11 @@ protected:
 	int32 InitialPieceCount = 0;
 
 	int32 BurntPieceCount = 0;
+
+	/** Warn-once latch for "no shell left to score". A member, not a file-scope static, because this
+	 *  is per-building state on a level-placed actor - unlike the projectile latches in #030/#034,
+	 *  which were members on actors spawned fresh every shot and so could never latch at all. */
+	bool bWarnedNoShell = false;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Alight)
 	bool bAlight = false;

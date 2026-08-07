@@ -98,6 +98,14 @@ protected:
 
 	void Input_ThrowTorch(const FInputActionValue& Value);
 	void Input_SwapWeaponMode(const FInputActionValue& Value);
+
+	/** Q down: open the radial wheel. While it is open, Input_Look feeds the drag instead of the
+	 *  camera - see the comment there. */
+	void Input_WheelOpen(const FInputActionValue& Value);
+
+	/** Q up: commit whatever sector is highlighted. Bound to Completed AND Canceled, so losing focus
+	 *  mid-drag closes the wheel rather than leaving it stuck open eating the mouse. */
+	void Input_WheelClose(const FInputActionValue& Value);
 	void Input_AimStart(const FInputActionValue& Value);
 	void Input_AimStop(const FInputActionValue& Value);
 	void Input_ToggleCrouch(const FInputActionValue& Value);
@@ -154,6 +162,30 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Aim")
 	TObjectPtr<UGSAimComponent> AimComponent;
 
+	/**
+	 * The stamina pool. BlueprintReadOnly so BP_GSPlayerCharacter's sprint and traversal graphs can
+	 * call TryConsume / SetDrainRate on it instead of owning a float of their own.
+	 *
+	 * On AGSPlayerCharacter rather than AGSCharacterBase: only the player spends stamina today. AI
+	 * melee is paced by UBTTask_MeleeAttack's own cooldown, and giving every militiaman a ticking
+	 * stamina component would be per-frame work for a number nothing reads.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Stamina")
+	TObjectPtr<class UGSStaminaComponent> StaminaComponent;
+
+	/** Drowning: OnExhausted fires while swimming. Bound in BeginPlay. */
+	UFUNCTION()
+	void HandleStaminaExhausted();
+
+	/**
+	 * Kills the goblin and destroys whatever they were carrying.
+	 *
+	 * Separate from a normal death because the loss rule differs: dying on land drops your sack
+	 * where you fell (UGSCarryComponent::HandleOwnerDied -> PutDown), and drowning takes it with you.
+	 * Michael's call, 2026-08-06.
+	 */
+	void Drown();
+
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
@@ -194,6 +226,16 @@ protected:
 	/** Guard break - X. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> GuardBreakAction;
+
+	/**
+	 * Radial weapon wheel - Q. Hold, drag a direction, release to commit (Michael's design, settled).
+	 *
+	 * A plain digital action: the DIRECTION comes from the look axis while the wheel is open, so
+	 * there is no second 2D action to create and no cursor to warp. Leave it unset and the wheel is
+	 * simply unreachable - every other input keeps working, including the sword/bow swap key.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> WeaponWheelAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> ThrowTorchAction;
@@ -278,6 +320,93 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera|Aim", meta = (ClampMin = "20.0", ClampMax = "170.0"))
 	float AimFOV = 70.f;
+
+	/**
+	 * Control pitch, in degrees, at which the aim camera's pitch correction is fully applied.
+	 *
+	 * A lobbed torch is aimed UP, and a spring arm answers that by swinging its far end DOWN by
+	 * ArmLength * sin(pitch). At the 250uu aim arm, 45 degrees puts the camera ~177uu below the boom
+	 * pivot - underground - so the collision probe drags it in against the goblin's back. 45 rather
+	 * than 90 because a 45-degree launch is already the maximum-range throw; past that you are
+	 * lobbing shorter, not further, so full correction by then is the useful shape.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera", meta = (ClampMin = "1.0", ClampMax = "89.0"))
+	float AimHighPitchDegrees = 45.f;
+
+	/**
+	 * Arm-length multiplier at AimHighPitchDegrees. Above 1 LENGTHENS the arm as you look up.
+	 *
+	 * This was 0.5 for about ten minutes, on the reasoning that the camera's drop is proportional to
+	 * arm length so pulling in is the cheapest way to keep it off the floor. That is true and it was
+	 * the wrong trade: Michael, 2026-08-06 - "the player model crowds the camera a little too much" -
+	 * and halving the arm makes the goblin fill the frame at exactly the moment you are trying to
+	 * read an arc past him. Ground clearance now comes from AimHighPitchLift alone, and the arm grows
+	 * instead, so the goblin gets SMALLER as you aim higher.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera", meta = (ClampMin = "0.1", ClampMax = "2.0"))
+	float AimHighPitchArmScale = 1.15f;
+
+	/**
+	 * Extra SocketOffset.Z at AimHighPitchDegrees. This is now the whole ground-clearance mechanism.
+	 *
+	 * At the 250uu aim arm the camera falls 177uu at 45 degrees, from a pivot 165uu up - so it needs
+	 * roughly 150uu of lift to sit at chest height instead of underfoot. Applied AFTER the collision
+	 * probe (see the constructor's note), which is safe going UP in a way the -55 lateral offset is
+	 * not: raising the camera vertically cannot push it through the wall behind the player.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera", meta = (ClampMin = "0.0"))
+	float AimHighPitchLift = 190.f;
+
+	/**
+	 * Hard ceiling on how far UP the player may look, in degrees. Engine default is 89.9.
+	 *
+	 * Looking up is what swings the spring arm DOWN, and AimHighPitchLift stops growing at
+	 * AimHighPitchDegrees while sin(pitch) does not - so past roughly 60 degrees the camera falls
+	 * back toward the wheat canopy (158uu on L_Tutorial_Island, ~275,000 instances) and the throw
+	 * stops being aimable. 55 keeps it clear with margin and costs only the near-vertical lob, which
+	 * is past the max-range angle anyway.
+	 *
+	 * #042 argued against a clamp on the grounds that the arc IS the weapon. That holds up to the
+	 * max-range angle; beyond it a clamp costs nothing real and is the only thing that bounds the
+	 * tail, because the lift cannot keep growing forever without putting the camera in orbit.
+	 *
+	 * Applies to the hip camera too, which has the same geometry and a LONGER arm (450), so it dives
+	 * harder for the same pitch - it has simply never been complained about, because the collision
+	 * probe hides it as a pull-in rather than a clip.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera", meta = (ClampMin = "5.0", ClampMax = "89.0"))
+	float ViewPitchMaxDegrees = 55.f;
+
+	/** Floor on how far DOWN the player may look. Looking down RAISES the camera, so this is not a
+	 *  ground-clearance concern - it only stops the boom swinging far enough overhead to stare
+	 *  through the goblin's own skull. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Camera", meta = (ClampMin = "-89.0", ClampMax = "-5.0"))
+	float ViewPitchMinDegrees = -70.f;
+
+	/** Pushes the two limits above onto the player camera manager. Called from BeginPlay AND
+	 *  PossessedBy, because either can run first. */
+	void ApplyViewPitchLimits();
+
+	/**
+	 * The radial wheel's on-screen half. Set to WBP_WeaponWheel on BP_GSPlayerCharacter.
+	 *
+	 * Created once on BeginPlay for the locally controlled pawn and left in the viewport for the
+	 * raid, collapsed until the wheel opens - the widget hides itself rather than being created and
+	 * destroyed per gesture, because Q is pressed often and a construct/destruct cycle per press
+	 * would rebind the delegates every time.
+	 *
+	 * Leave it unset and the wheel keeps working exactly as it does today: selection, mesh swap and
+	 * the torch prop are all component-side. You simply drag blind, which is the state #039-#041
+	 * shipped in.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|UI")
+	TSubclassOf<class UGSWeaponWheelWidget> WeaponWheelWidgetClass;
+
+	/** The live instance, kept so it is not garbage collected out from under the viewport. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UGSWeaponWheelWidget> WeaponWheelWidget;
+
+	virtual void PossessedBy(AController* NewController) override;
 
 	/**
 	 * Seconds for the full blend, in BOTH directions.
