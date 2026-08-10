@@ -268,6 +268,18 @@ void AGSPlayerCharacter::Tick(float DeltaSeconds)
 
 	UpdateAimCamera(DeltaSeconds);
 
+	// The guard can drop without the player releasing the button - a guard break, the recoil from a
+	// blocked swing, death - and every one of those ends the block through the ability system rather
+	// than through input. UpdateRotationMode is only called from the five input paths, so without
+	// this the body would stay locked to the camera after a guard the player never lowered. Edge
+	// -triggered rather than called every frame: the work is trivial but it also writes ASC tags.
+	const bool bBlockingNow = IsBlocking();
+	if (bBlockingNow != bWasBlockingLastFrame)
+	{
+		bWasBlockingLastFrame = bBlockingNow;
+		UpdateRotationMode();
+	}
+
 	// A 1.5s hold threshold with no visible fill is guesswork for the player - "I held it and got
 	// a light attack" is the complaint that follows. Broadcast every frame while charging so a HUD
 	// can draw the ring; stop once the heavy has fired so the ring doesn't sit full afterwards.
@@ -924,14 +936,42 @@ void AGSPlayerCharacter::Input_SwapWeaponMode(const FInputActionValue& Value)
 	}
 }
 
+// RIGHT MOUSE FOLLOWS THE WEAPON, the same rule Input_Attack already applies to the left button:
+// one key whose meaning is whatever the equipped slot makes it, rather than a key the player has to
+// remember only applies half the time. Sword -> raise the guard. Bow or torch -> aim.
+//
+// Michael's call, 2026-08-10: with the sword out this is PURELY a block - no aim camera, no
+// strafe-facing - and G was retired as the block key, so blocking is deliberately impossible while
+// holding bow or torch. Input_Block* below stays bound to IA_Block so the ability keeps a rebindable
+// path even though IMC_Default no longer maps a key to it.
+bool AGSPlayerCharacter::IsSwordEquipped() const
+{
+	// No weapon component at all means the sword is the sensible assumption - it is CurrentSlot's
+	// own default, and a character that cannot answer the question should not silently lose its
+	// guard.
+	return !WeaponComponent || WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Sword;
+}
+
 void AGSPlayerCharacter::Input_AimStart(const FInputActionValue& Value)
 {
+	if (IsSwordEquipped())
+	{
+		StartBlocking();
+		return;
+	}
+
 	bIsAiming = true;
 	UpdateRotationMode();
 }
 
 void AGSPlayerCharacter::Input_AimStop(const FInputActionValue& Value)
 {
+	// Release BOTH, unconditionally, and do not branch on the current slot. Swapping weapons with
+	// the button still held would otherwise strand whichever state was entered under the old slot:
+	// press with the sword, wheel to the bow, release -> the guard never comes down. Clearing both
+	// costs nothing when only one was ever set.
+	StopBlocking();
+
 	bIsAiming = false;
 	UpdateRotationMode();
 }
@@ -1011,10 +1051,25 @@ void AGSPlayerCharacter::UpdateRotationMode()
 	// the goblin faced his movement direction - you aimed one way and the character pointed another.
 	const bool bShouldFaceAim = WantsAimFacing();
 
-	bUseControllerRotationYaw = bShouldFaceAim;
+	// BLOCKING STEERS TOO, but it is not aiming. Michael, 2026-08-10: "I'd still like for you to be
+	// able to change the direction of the block and camera when you press rmb, just don't zoom in
+	// like we're aiming."
+	//
+	// This is exactly the split WantsAimFacing / WantsAimCamera already exists to express, so the
+	// block joins the FACING term only and never the camera one - RMB with a sword turns the body
+	// to the camera and leaves the arm length alone. It is not cosmetic: GSDamageExecCalculation
+	// tests the block arc against GetActorForwardVector, so steering the body IS steering which
+	// attacks the guard catches.
+	//
+	// The State.Aiming tag below deliberately stays on bShouldFaceAim rather than this. Nothing in
+	// C++ reads that tag, which means a Blueprint might - a reticle is the obvious candidate - and
+	// raising a guard should not put an aiming reticle on screen.
+	const bool bShouldFaceLock = bShouldFaceAim || IsBlocking();
+
+	bUseControllerRotationYaw = bShouldFaceLock;
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		MoveComp->bOrientRotationToMovement = !bShouldFaceAim;
+		MoveComp->bOrientRotationToMovement = !bShouldFaceLock;
 	}
 
 	if (AbilitySystemComponent)

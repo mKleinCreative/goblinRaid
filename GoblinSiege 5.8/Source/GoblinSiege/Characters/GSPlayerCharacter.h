@@ -106,6 +106,14 @@ protected:
 	/** Q up: commit whatever sector is highlighted. Bound to Completed AND Canceled, so losing focus
 	 *  mid-drag closes the wheel rather than leaving it stuck open eating the mouse. */
 	void Input_WheelClose(const FInputActionValue& Value);
+	/** True when the right mouse button should mean BLOCK rather than AIM. Sword, or no weapon
+	 *  component at all - see the comment on Input_AimStart. */
+	bool IsSwordEquipped() const;
+
+	/** Edge-detect for the guard, so UpdateRotationMode also runs when a block ENDS without the
+	 *  player releasing the button (guard break, recoil, death). See Tick. */
+	bool bWasBlockingLastFrame = false;
+
 	void Input_AimStart(const FInputActionValue& Value);
 	void Input_AimStop(const FInputActionValue& Value);
 	void Input_ToggleCrouch(const FInputActionValue& Value);

@@ -159,7 +159,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 53 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 54 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -285,6 +285,8 @@ _Queue is empty. The build gate is OPEN._
 | 118 | done | claude-anim | CombatBugs video: humans T-pose in melee, and debug spheres draw in normal play |
 | 119 | done | claude-anim | Repoint the human montages off the root-locked A_MX_Gob copies onto the clean A_HU_ import |
 | 120 | done | claude-wrapup | GS.Combat.Debug must not default to on, and record the three-in-a-row unwatched-fix failure in AGENT_STATE |
+| 121 | done | claude-animsmooth | Animation smoothness pass 1: swings play at real speed, with press-to-contact timings rescaled to match |
+| 122 | done | claude-input2 | Right mouse blocks when the sword is out; retire G |
 
 <!-- BOARD:END -->
 
