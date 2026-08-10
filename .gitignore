@@ -1,8 +1,11 @@
 # Goblin Siege — repo root ignores
 #
-# NOTE: .gitignore does not untrack files already in the index. Several
-# *_Backup_* directories and some __pycache__ files were committed before this
-# file existed and remain tracked; they need `git rm --cached` to remove.
+# NOTE: .gitignore does not untrack files already in the index. The
+# *_Backup_* directories were committed before this file existed and remain
+# tracked; they need `git rm --cached` to remove (still outstanding — it is
+# Michael's call, since untracking them removes them for anyone else on the
+# branch while leaving his local rollback copies intact).
+# The __pycache__ half of that debt was cleared in #115.
 # These rules stop NEW ones from entering.
 
 # Editor-side map/asset backups. Large binary .umap/.uasset copies of content
@@ -12,6 +15,23 @@
 # Python bytecode
 __pycache__/
 *.pyc
+
+# UBT console transcripts from the scratch build wrappers, and gs_step.py, the
+# scratch buffer gs_run.ps1 executes (it is whatever you last wanted to run in
+# the editor, so its contents are never worth versioning).
+#
+# ROOT-ANCHORED ON PURPOSE. A bare `*.log` would also bury
+# content-pipeline/out/**/run.log and coding-agent/run*.log, which are
+# deliberately-kept pipeline run records — content-pipeline/.gitignore says
+# outright "out/ is deliberately NOT ignored", and ticket 052 cites one as
+# evidence.
+/*.log
+/gs_step.py
+
+# Windows artefact of a `> /dev/null` redirect — never a real directory here.
+# The four git-lfs hooks that landed in it were byte-identical to .git/hooks/*
+# and git never ran them (core.hooksPath is unset).
+dev/null/
 
 # Local secrets. The pipeline's loader also reads ./.env and
 # "GoblinSiege 5.8/.env"; the latter is ignored by that project's own

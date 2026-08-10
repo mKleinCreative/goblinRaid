@@ -5,9 +5,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "Characters/GSCharacterBase.h"
-#include "Combat/GSEngagementComponent.h"
 #include "Engine/World.h"
-#include "GameFramework/CharacterMovementComponent.h"
 
 UBTTask_MenaceOrbit::UBTTask_MenaceOrbit()
 {

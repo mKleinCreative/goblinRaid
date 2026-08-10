@@ -167,8 +167,13 @@ appeared. Also set `BowShotAbilityClass=GSGA_BowShot`, `ranged_mesh=GS_Bow_Only`
   time. That comment misled two of my diagnoses. Delete it.
 - `UGSAimComponent` hardcodes `SetForwardAxis(ESplineMeshAxis::X)`. Any segment mesh whose long
   axis is not X renders wrong, with no property to fix it. Currently `1M_Cube` (symmetric, fine).
-- Arrows do not respect `RaceTag` — an arrow will hit allied goblins. Melee friendly-fire was
-  added by another pass; ranged was never brought in line.
+- ~~Arrows do not respect `RaceTag`~~ — **FALSE, and was false when this was written.** #038
+  brought ranged in line with melee: `GSArrowProjectile.cpp` gates damage on
+  `ShooterChar->IsHostileTo(OtherActor)`. Re-verified 2026-08-07 (#073) and again in #115.
+  What arrows *do* is **STICK** in an allied body, dealing nothing and wasting the shot. That is
+  intended: Michael's settled ruling of 2026-08-06, taken with the horde case (firing past your
+  own line) explicitly on the table — see `AGENT_STATE.md` DECISIONS, *"do not re-litigate"*.
+  An agent finding "every shot is eaten by a friendly" is looking at working behaviour.
 
 ---
 

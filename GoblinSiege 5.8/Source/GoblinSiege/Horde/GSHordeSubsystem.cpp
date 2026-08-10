@@ -134,7 +134,7 @@ void UGSHordeSubsystem::ScanForThreats()
 				// Idempotent - refreshes an existing entry's timestamp rather than stacking, so
 				// re-registering the same guard every 0.5s is exactly how his threat stays alive
 				// while he is nearby and expires ThreatMemorySeconds after he leaves.
-				RegisterThreat(Candidate, nullptr);
+				RegisterThreat(Candidate);
 				++Registered;
 				bInRange = true;
 				break;
@@ -451,7 +451,7 @@ void UGSHordeSubsystem::BroadcastPoolChanged()
 
 // ---- the stimulus bus ---------------------------------------------------------------------
 
-void UGSHordeSubsystem::RegisterThreat(AActor* Threat, AActor* Provoker)
+void UGSHordeSubsystem::RegisterThreat(AActor* Threat)
 {
 	if (!IsValid(Threat))
 	{
@@ -466,24 +466,14 @@ void UGSHordeSubsystem::RegisterThreat(AActor* Threat, AActor* Provoker)
 		if (Existing.Threat.Get() == Threat)
 		{
 			Existing.LastRefreshedTime = Now;
-			Existing.Provoker = Provoker;
 			return;
 		}
 	}
 
 	FGSHordeThreat Added;
 	Added.Threat = Threat;
-	Added.Provoker = Provoker;
 	Added.LastRefreshedTime = Now;
 	Threats.Add(Added);
-}
-
-void UGSHordeSubsystem::UnregisterThreat(AActor* Threat)
-{
-	Threats.RemoveAll([Threat](const FGSHordeThreat& Entry)
-		{
-			return !Entry.Threat.IsValid() || Entry.Threat.Get() == Threat;
-		});
 }
 
 void UGSHordeSubsystem::PruneStaleThreats()

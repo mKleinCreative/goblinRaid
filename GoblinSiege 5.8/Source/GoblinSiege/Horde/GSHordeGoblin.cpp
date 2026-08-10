@@ -134,7 +134,7 @@ void AGSHordeGoblin::HandleDamagedForFrenzy(AActor* Attacker, float Damage)
 	{
 		if (Attacker && IsHostileTo(Attacker))
 		{
-			Horde->RegisterThreat(Attacker, this);
+			Horde->RegisterThreat(Attacker);
 		}
 	}
 }
@@ -148,7 +148,7 @@ void AGSHordeGoblin::HandleSummonerDealtDamage(AActor* Victim)
 	{
 		if (Victim && IsHostileTo(Victim))
 		{
-			Horde->RegisterThreat(Victim, BoundSummoner.Get());
+			Horde->RegisterThreat(Victim);
 		}
 	}
 }
@@ -159,7 +159,7 @@ void AGSHordeGoblin::HandleSummonerDamaged(AActor* Attacker, float Damage)
 	{
 		if (Attacker && IsHostileTo(Attacker))
 		{
-			Horde->RegisterThreat(Attacker, BoundSummoner.Get());
+			Horde->RegisterThreat(Attacker);
 		}
 	}
 }

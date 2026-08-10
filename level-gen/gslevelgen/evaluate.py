@@ -263,12 +263,9 @@ def check_roof_coverage(plan: Plan) -> list[Finding]:
     for b in plan.buildings:
         if b.kind != "house":
             continue
-        if any(p.mesh == "__ROOF_TOO_NARROW__" for p in b.placements):
-            out.append(Finding("roof_coverage", "2.8", "fail",
-                               f"{b.id}: the standard roof set cannot span this house — it "
-                               f"needs the Extended pieces, which are not implemented",
-                               {"kind": "roof_too_narrow", "building": b.id}))
-            continue
+        # The __ROOF_TOO_NARROW__ sentinel branch that used to sit here was unreachable: commit
+        # 1ba0a7b ("Stop synthesising buildings") deleted the only line that ever emitted the
+        # sentinel, leaving a consumer with no producer. Removed in #115.
         roofs = [p for p in b.placements if "Roof" in p.mesh and p.bb]
         if not roofs:
             out.append(Finding("roof_coverage", "2.8", "fail", f"{b.id} has no roof",

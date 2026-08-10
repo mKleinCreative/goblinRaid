@@ -42,11 +42,6 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	if (AIPerceptionComponent)
-	{
-		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AGSAIControllerBase::HandlePerceptionUpdated);
-	}
-
 	if (const AGSEnemyCharacter* Enemy = Cast<AGSEnemyCharacter>(InPawn))
 	{
 		if (const UGSRaceDataAsset* RaceData = Enemy->GetRaceData())
@@ -73,17 +68,5 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 
 void AGSAIControllerBase::OnUnPossess()
 {
-	if (AIPerceptionComponent)
-	{
-		AIPerceptionComponent->OnTargetPerceptionUpdated.RemoveDynamic(this, &AGSAIControllerBase::HandlePerceptionUpdated);
-	}
 	Super::OnUnPossess();
-}
-
-void AGSAIControllerBase::HandlePerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus)
-{
-	// Target selection (nearest, lowest-HP, highest-threat) is intentionally left to an EQS query
-	// run from the Behavior Tree rather than decided here, so different archetypes (Archer:
-	// prioritize-range vs Knight: prioritize-nearest) can use different EQS generators/tests
-	// against the same perceived-actor list without controller code branching per archetype.
 }

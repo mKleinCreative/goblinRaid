@@ -113,8 +113,10 @@ ground.**
 `compose_house` placed every piece at a grid corner as if its pivot were at the mesh's min
 corner. It is not — `kit_manifest.py` measures `pivot_from_min` for precisely this reason and
 the composer ignored it. Rotation compounded it: yaw spins a piece about its pivot, so a
-centre-pivoted wall turned 90° lands half its length away. Fixed with `origin_for()`, which
-rotates the local box and offsets by where its min corner actually ends up.
+centre-pivoted wall turned 90° lands half its length away. Fixed by rotating the local box and
+offsetting by where its min corner actually ends up. (The `origin_for()` helper that first did
+this went unused once `compose_house` moved to stamping hand-authored templates, and was deleted
+in #115; `rotated_extent` / `world_bb` carry the same pivot-aware maths.)
 
 **Every deterministic check passed throughout.** Roof count ≥ floor count, door present,
 footprint on the module grid — all counts, and a count cannot see a wall 250 cm out of place.

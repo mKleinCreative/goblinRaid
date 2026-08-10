@@ -29,7 +29,6 @@ struct FGSRangedAttackMemory
 	/** When the current draw resolves into a released arrow. */
 	float ShotAtTime = 0.f;
 
-	bool bDrawing = false;
 };
 
 UCLASS()

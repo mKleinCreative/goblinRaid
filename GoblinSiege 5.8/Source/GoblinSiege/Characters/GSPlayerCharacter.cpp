@@ -817,25 +817,17 @@ void AGSPlayerCharacter::Input_Horn(const FInputActionValue& Value)
 
 void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)
 {
-	if (AbilitySystemComponent && BlockAbilityClass)
-	{
-		AbilitySystemComponent->TryActivateAbilityByClass(BlockAbilityClass);
-	}
+	// One implementation for everybody. #069 hoisted the guard onto AGSCharacterBase so the player,
+	// the defenders (via GrantCombatAbilities) and BTTask_Block all raise it the same way; these
+	// handlers stay only because they are what the input bindings point at.
+	StartBlocking();
 }
 
 void AGSPlayerCharacter::Input_BlockStop(const FInputActionValue& Value)
 {
-	if (!AbilitySystemComponent)
-	{
-		return;
-	}
-
-	// Cancel by TAG, not by passing nullptr - nullptr means "cancel everything", which would abort
-	// a swing already in flight every time the guard came down. UGSGA_Block carries State.Blocking
-	// as an ability tag precisely so this filter can find it and nothing else.
-	FGameplayTagContainer BlockTags;
-	BlockTags.AddTag(GSTags::State_Blocking);
-	AbilitySystemComponent->CancelAbilities(&BlockTags);
+	// AGSCharacterBase::StopBlocking cancels by TAG, never CancelAbilities(nullptr) - nullptr means
+	// "cancel everything", which would abort a swing already in flight every time the guard dropped.
+	StopBlocking();
 }
 
 void AGSPlayerCharacter::Input_ThrowTorchStart(const FInputActionValue& Value)

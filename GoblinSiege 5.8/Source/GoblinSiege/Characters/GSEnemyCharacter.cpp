@@ -1,11 +1,8 @@
 #include "Characters/GSEnemyCharacter.h"
 #include "Combat/GSRaceDataAsset.h"
 #include "AI/GSAIControllerBase.h"
-#include "AbilitySystemComponent.h"
-#include "Combat/GSGameplayTags.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSWeaponDataAsset.h"
-#include "Abilities/GameplayAbility.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 

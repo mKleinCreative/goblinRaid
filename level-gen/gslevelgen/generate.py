@@ -379,32 +379,6 @@ def world_bb(piece, wx: float, wy: float, yaw: float) -> tuple[float, float, flo
     return (wx + x0, wy + y0, wx + x1, wy + y1)
 
 
-def origin_for(piece, min_x: float, min_y: float, z: float, yaw: float) -> tuple[float, float]:
-    """
-    World origin for a piece whose ROTATED footprint should start at (min_x, min_y).
-
-    Kit pivots are not at the mesh's min corner — `kit_manifest.py` measures
-    `pivot_from_min` for exactly this reason, and the first composer ignored it, placing
-    every piece at a grid corner as if the pivot were there. On screen that put walls
-    inside their own floor, roofs off-centre, and foundation beams sticking out past the
-    footprint. Every count-based check passed the whole time.
-
-    Rotation compounds it: yaw spins a piece about its pivot, so a centre-pivoted wall
-    turned 90 degrees lands half its length away. So: rotate the local box, find where its
-    min corner ends up, and offset by that.
-    """
-    px, py, _ = piece.pivot_from_min
-    lx0, ly0 = -px, -py                       # local min corner relative to the pivot
-    lx1, ly1 = lx0 + piece.size[0], ly0 + piece.size[1]
-    rad = math.radians(yaw)
-    c, s = math.cos(rad), math.sin(rad)
-    xs, ys = [], []
-    for (lx, ly) in ((lx0, ly0), (lx1, ly0), (lx1, ly1), (lx0, ly1)):
-        xs.append(lx * c - ly * s)
-        ys.append(lx * s + ly * c)
-    return (min_x - min(xs), min_y - min(ys))
-
-
 def place_prefab(kit: Kit, role: str, x: float, y: float, bid: str, kind: str,
                  yaw: float = 0.0) -> Building | None:
     """Drop a whole-prefab structure (barn, coop, well, market stall...) at x,y."""

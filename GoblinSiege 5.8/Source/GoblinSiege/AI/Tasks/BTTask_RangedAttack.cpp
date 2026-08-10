@@ -78,7 +78,6 @@ EBTNodeResult::Type UBTTask_RangedAttack::ExecuteTask(UBehaviorTreeComponent& Ow
 
 	if (Memory)
 	{
-		Memory->bDrawing = true;
 		Memory->ShotAtTime = Now + DrawSeconds;
 	}
 
@@ -143,7 +142,6 @@ void UBTTask_RangedAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
 			*GetNameSafe(Target), bFired ? TEXT("away") : TEXT("REFUSED (rate limit or blocked)")));
 	}
 
-	Memory->bDrawing = false;
 	Memory->NextAllowedShotTime = Now + ShotCooldownSeconds + FMath::FRandRange(0.f, ShotCooldownJitter);
 
 	FinishLatentTask(OwnerComp, bFired ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
@@ -158,11 +156,6 @@ void UBTTask_RangedAttack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uin
 	if (AAIController* Controller = OwnerComp.GetAIOwner())
 	{
 		Controller->ClearFocus(EAIFocusPriority::Gameplay);
-	}
-
-	if (FGSRangedAttackMemory* Memory = CastInstanceNodeMemory<FGSRangedAttackMemory>(NodeMemory))
-	{
-		Memory->bDrawing = false;
 	}
 
 	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);

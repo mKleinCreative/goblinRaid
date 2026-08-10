@@ -324,10 +324,10 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 				// is a statement about what WORKS, and a 25% discount would not read as working.
 				FinalDamage = DamageAfterRace;
 			}
-			else
-			{
-				FinalDamage = FMath::Max(0.f, DamageAfterRace - Armor);
-			}
+			// No final else: the three branches above are exhaustive for Armor > 0, and every path
+			// that reaches here with Armor <= 0 already holds FinalDamage = DamageAfterRace from the
+			// initialiser. The else that used to sit here subtracted a non-positive Armor, i.e. it
+			// would AMPLIFY a hit if an armour-sunder effect ever drove the attribute negative.
 		}
 	}
 

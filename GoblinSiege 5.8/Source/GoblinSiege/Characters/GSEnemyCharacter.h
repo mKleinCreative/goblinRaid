@@ -7,14 +7,12 @@
 #include "CoreMinimal.h"
 #include "Characters/GSCharacterBase.h"
 // For EGSWeaponSlot, which DefaultSlot holds by value - a UENUM used in a UPROPERTY cannot be
-// forward-declared, so the header comes in even though the component itself stays a forward decl.
+// forward-declared, so the whole header comes in and the component needs no forward decl.
 #include "Weapons/GSWeaponComponent.h"
 #include "GSEnemyCharacter.generated.h"
 
 class UGSRaceDataAsset;
-class UGSWeaponComponent;
 class UGSWeaponDataAsset;
-class UGameplayAbility;
 
 UCLASS()
 class GOBLINSIEGE_API AGSEnemyCharacter : public AGSCharacterBase

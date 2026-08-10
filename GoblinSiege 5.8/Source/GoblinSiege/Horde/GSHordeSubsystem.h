@@ -33,7 +33,7 @@
 // central subsystem, which is what makes ten concurrent goblins cheap", and §3.1 calls it "the
 // game's quietest performance trick". Before this class, AGSHordeAIController inherited
 // AGSAIControllerBase's UAIPerceptionComponent and a 1200uu sight sense - ten independent sight
-// queries per frame feeding a HandlePerceptionUpdated that does nothing at all. The threat registry
+// queries per frame feeding an empty perception handler (since deleted, #115). The threat registry
 // below is the replacement: things that matter announce themselves once, and every goblin reads the
 // same resolved answer.
 #pragma once
@@ -134,9 +134,7 @@ public:
 	 *
 	 * Idempotent: re-registering an existing threat refreshes its timestamp rather than stacking.
 	 */
-	void RegisterThreat(AActor* Threat, AActor* Provoker);
-
-	void UnregisterThreat(AActor* Threat);
+	void RegisterThreat(AActor* Threat);
 
 	// The three below take a NON-const AGSHordeGoblin* deliberately. UnrealHeaderTool rejects a
 	// `const T*` parameter on a UFUNCTION outright ("not supported by blueprint"), so const-correct
@@ -209,7 +207,6 @@ private:
 	struct FGSHordeThreat
 	{
 		TWeakObjectPtr<AActor> Threat;
-		TWeakObjectPtr<AActor> Provoker;
 		float LastRefreshedTime = 0.f;
 	};
 

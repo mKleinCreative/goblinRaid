@@ -14,8 +14,9 @@
 // connects: an AI that would chase something it cannot damage, or ignore something that can damage
 // it, is a bug waiting to be found in a playtest instead of at compile time.
 //
-// Note what did NOT happen: no EQS query, no IGenericTeamAgentInterface, no revival of
-// AGSAIControllerBase::HandlePerceptionUpdated. GSAIControllerBase.cpp:28-33 records the standing
+// Note what did NOT happen: no EQS query, no IGenericTeamAgentInterface, no revival of the
+// perception handler on AGSAIControllerBase (which was empty and was deleted in #115). The
+// DetectionByAffiliation comment in AGSAIControllerBase's constructor records the standing
 // ruling that RaceTag is the only friend/foe truth in this project and that a second source would
 // be worse than a crude first one. This is the "real selection" that comment was waiting for; it
 // just reaches it through the tag rather than through the perception system.

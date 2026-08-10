@@ -95,18 +95,13 @@ protected:
 	 * Stamina, driven from UGSStaminaComponent::OnStaminaChanged - the same delegate shape HealthBar
 	 * already uses.
 	 *
-	 * These widgets already exist in WBP_GSPlayerHUD, but until now the Blueprint POLLED them every
-	 * widget tick: cast the owning pawn to BP_GSPlayerCharacter_C, read its SprintStamina float,
-	 * divide, SetPercent. Binding them here replaces a per-frame cast with an event, and means the
-	 * bar reads the same number the gameplay does rather than a Blueprint's private copy.
-	 */
-	/**
 	 * BlueprintReadOnly is LOAD-BEARING on these two, unlike every other binding in this class.
 	 *
-	 * WBP_GSPlayerHUD's own EventGraph still reads `StaminaBar` and `StaminaText` on Tick - it polls
-	 * the character's SprintStamina and writes them itself, because the C++ stamina component is not
-	 * fed yet (the Blueprint migration is still outstanding). A `BindWidgetOptional` property with no
-	 * Blueprint visibility is invisible to that graph, and the compiler does not warn - it ERRORS:
+	 * WBP_GSPlayerHUD's own EventGraph read `StaminaBar` and `StaminaText` on Tick - it polled the
+	 * character's SprintStamina and wrote them itself, back when the C++ stamina component was not
+	 * fed yet. #076 retired that poll, but the hazard it exposed is permanent: a `BindWidgetOptional`
+	 * property with no Blueprint visibility is invisible to any graph that reads it, and the compiler
+	 * does not warn - it ERRORS:
 	 *   "GSPlayerHUDWidget.StaminaBar is not blueprint visible ... Get StaminaBar"
 	 * which fails the WHOLE widget Blueprint, so the Tick poll never runs and the bar freezes at
 	 * whatever C++ last wrote. That is exactly how this shipped in #054 and what Michael saw.

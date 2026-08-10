@@ -72,5 +72,6 @@ days here. Use it.
 
 `-IgnoreQueue` skips the gate — only when Michael says so. These bypass it entirely and should
 not be used while other agents are working: `Plugins/VibeUE/BuildAndLaunchGame.ps1` (a separate
-git repo, so a gate added there would be lost on a plugin update), `build_gs.bat`, `gs_build.bat`,
-`_build_now.bat`.
+git repo, so a gate added there would be lost on a plugin update), `build_gs.bat`,
+`_build_now.bat`. (`gs_build.bat` was a third copy of the same raw-UBT wrapper and was deleted
+in #115.)

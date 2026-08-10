@@ -29,8 +29,8 @@ public:
 	 *
 	 * Added 2026-08-07 (#069). Until then this constructor built a UAIPerceptionComponent and a
 	 * 1200uu sight sense unconditionally, and AGSHordeAIController inherited both - so ten summoned
-	 * goblins meant ten independent sight queries a frame, all feeding a HandlePerceptionUpdated
-	 * that does nothing. GDD §3.4 requires the exact opposite for the horde: "a crowd of
+	 * goblins meant ten independent sight queries a frame, all feeding an empty handler (deleted in
+	 * #115). GDD §3.4 requires the exact opposite for the horde: "a crowd of
 	 * perception-less agents fed stimuli by a central subsystem, which is what makes ten concurrent
 	 * goblins cheap." Defenders keep their senses; the horde reads UGSHordeSubsystem instead.
 	 */
@@ -39,13 +39,11 @@ public:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 
-	/** False on anything that declined the component above. Nothing may assume it exists. */
-	bool HasPerception() const { return AIPerceptionComponent != nullptr; }
-
 protected:
-	UFUNCTION()
-	void HandlePerceptionUpdated(AActor* UpdatedActor, FAIStimulus Stimulus);
-
+	// The perception component below has no C++ consumer: the empty HandlePerceptionUpdated handler
+	// that used to listen to it was deleted in #115, since it only ever documented that target
+	// selection happens elsewhere. The component itself stays until BT_Militia has been checked
+	// in-editor for a stock node or EQS query that reads it (see #115's Refine).
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|AI")
 	TObjectPtr<UAIPerceptionComponent> AIPerceptionComponent;
 

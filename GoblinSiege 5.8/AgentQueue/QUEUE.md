@@ -157,9 +157,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 115 | review | claude-bloat | Apply the verified bloat-audit findings: delete leftover scripts and staging dupes, untrack build logs and pycache, strip dead C++ and Python | gs_ue.ps1<br>gs_run2.ps1<br>gs_step.py<br>gs_step2.py<br>gs_build.bat<br>tools/gs_editor.py<br>Baked/_probe.fbx<br>dev/null<br>.gitignore<br>CLAUDE.md<br>Build-GoblinSiege.ps1<br>level-gen/gslevelgen/evaluate.py<br>level-gen/gslevelgen/generate.py<br>level-gen/README.md<br>GoblinSiege 5.8/HANDOFF.md<br>GoblinSiege 5.8/Tools/CodeArchitect/out/PROMOTED.md<br>GoblinSiege 5.8/Tools/CodeArchitect/out/runs/live-003/staging/Source<br>GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeSubsystem.h<br>GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeSubsystem.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/AI/Tasks/BTTask_RangedAttack.h<br>GoblinSiege 5.8/Source/GoblinSiege/AI/Tasks/BTTask_RangedAttack.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/AI/Tasks/BTTask_MenaceOrbit.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/AI/GSAIControllerBase.h<br>GoblinSiege 5.8/Source/GoblinSiege/AI/GSAIControllerBase.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/Weapons/Abilities/GSGA_Horn.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/Characters/GSEnemyCharacter.h<br>GoblinSiege 5.8/Source/GoblinSiege/Characters/GSEnemyCharacter.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/Characters/GSPlayerCharacter.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/Combat/GSDamageExecCalculation.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.h | required |
 
-**BUILD GATE: OPEN - and 49 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
