@@ -100,10 +100,24 @@ protected:
 	 * divide, SetPercent. Binding them here replaces a per-frame cast with an event, and means the
 	 * bar reads the same number the gameplay does rather than a Blueprint's private copy.
 	 */
-	UPROPERTY(meta = (BindWidgetOptional))
+	/**
+	 * BlueprintReadOnly is LOAD-BEARING on these two, unlike every other binding in this class.
+	 *
+	 * WBP_GSPlayerHUD's own EventGraph still reads `StaminaBar` and `StaminaText` on Tick - it polls
+	 * the character's SprintStamina and writes them itself, because the C++ stamina component is not
+	 * fed yet (the Blueprint migration is still outstanding). A `BindWidgetOptional` property with no
+	 * Blueprint visibility is invisible to that graph, and the compiler does not warn - it ERRORS:
+	 *   "GSPlayerHUDWidget.StaminaBar is not blueprint visible ... Get StaminaBar"
+	 * which fails the WHOLE widget Blueprint, so the Tick poll never runs and the bar freezes at
+	 * whatever C++ last wrote. That is exactly how this shipped in #054 and what Michael saw.
+	 *
+	 * The other bindings here (HealthBar, ClockText, EndPanel...) get away without it only because no
+	 * Blueprint graph reads them. Add BlueprintReadOnly to any binding a designer might touch.
+	 */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
 	TObjectPtr<class UProgressBar> StaminaBar;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
 	TObjectPtr<UTextBlock> StaminaText;
 
 	UFUNCTION()

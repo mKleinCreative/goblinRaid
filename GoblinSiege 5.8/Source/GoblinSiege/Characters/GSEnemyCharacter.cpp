@@ -3,6 +3,8 @@
 #include "AI/GSAIControllerBase.h"
 #include "AbilitySystemComponent.h"
 #include "Combat/GSGameplayTags.h"
+#include "Weapons/GSWeaponComponent.h"
+#include "Weapons/GSWeaponDataAsset.h"
 #include "Abilities/GameplayAbility.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -29,6 +31,10 @@ AGSEnemyCharacter::AGSEnemyCharacter()
 		Move->AvoidanceWeight = 0.5f;
 		Move->AvoidanceConsiderationRadius = 600.f;
 	}
+
+	// The same component the player carries. A defender with no weapon component cannot hold
+	// anything at all - which is why every guard in the game has been fighting bare-handed.
+	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
 }
 
 void AGSEnemyCharacter::BeginPlay()
@@ -40,62 +46,18 @@ void AGSEnemyCharacter::BeginPlay()
 		InitializeFromArchetype(RaceData, ArchetypeRowName);
 	}
 
-	if (HasAuthority())
+	// The four grants and the verbs that use them live on AGSCharacterBase since #069; this is the
+	// one call that replaced them here.
+	GrantCombatAbilities();
+
+	// Put the weapon in his hand. The slot is chosen per Blueprint rather than by the component,
+	// because a defender has no weapon wheel to choose with: DefaultSlot defaults to Sword for a
+	// garrison, and BP_ErikaArcher sets Bow. That "once it has bow content of its own" is now.
+	if (WeaponComponent && DefaultWeapon)
 	{
-		GrantIfSet(LightAttackAbilityClass);
-		GrantIfSet(HeavyAttackAbilityClass);
-		GrantIfSet(GuardBreakAbilityClass);
-		GrantIfSet(BlockAbilityClass);
+		WeaponComponent->EquipWeapon(DefaultWeapon);
+		WeaponComponent->SetSlot(DefaultSlot);
 	}
-}
-
-void AGSEnemyCharacter::GrantIfSet(TSubclassOf<UGameplayAbility> AbilityClass)
-{
-	if (AbilityClass && AbilitySystemComponent)
-	{
-		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this));
-	}
-}
-
-bool AGSEnemyCharacter::TryActivate(TSubclassOf<UGameplayAbility> AbilityClass)
-{
-	return AbilityClass && AbilitySystemComponent
-		&& AbilitySystemComponent->TryActivateAbilityByClass(AbilityClass);
-}
-
-bool AGSEnemyCharacter::TryLightAttack()
-{
-	// No extra gating here on purpose. GAS already refuses to re-activate an ability that is
-	// running, and UGSGA_SwordLight treats that refusal as the combo buffer - so an AI that
-	// spams this gets the same chained combo a player gets by mashing, for free.
-	return TryActivate(LightAttackAbilityClass);
-}
-
-bool AGSEnemyCharacter::TryHeavyAttack()
-{
-	return TryActivate(HeavyAttackAbilityClass);
-}
-
-bool AGSEnemyCharacter::TryGuardBreak()
-{
-	return TryActivate(GuardBreakAbilityClass);
-}
-
-bool AGSEnemyCharacter::StartBlocking()
-{
-	return TryActivate(BlockAbilityClass);
-}
-
-void AGSEnemyCharacter::StopBlocking()
-{
-	if (!AbilitySystemComponent)
-	{
-		return;
-	}
-	// By tag, never CancelAbilities(nullptr) - that would also kill a swing or a dodge in flight.
-	FGameplayTagContainer BlockTags;
-	BlockTags.AddTag(GSTags::State_Blocking);
-	AbilitySystemComponent->CancelAbilities(&BlockTags);
 }
 
 void AGSEnemyCharacter::InitializeFromArchetype(UGSRaceDataAsset* InRaceData, FName InArchetypeRowName)

@@ -18,7 +18,16 @@ enum class EGSAlarmSource : uint8
 	FireDamage,
 	BarracksDestroyed,
 	FireExtinguishedByDefenders,
-	ObjectiveProgress
+	ObjectiveProgress,
+
+	/** The player blew the war-horn (GDD §2.5). APPENDED, never inserted: GSGameState.cpp,
+	 *  GSSpawnerActor.cpp and BTTask_Firefight.cpp reference these entries by name, and a
+	 *  BlueprintType enum's numeric values are serialised into any asset that stores one -
+	 *  reordering would silently reassign every saved value.
+	 *
+	 *  Distinct from CombatNoise on purpose: the horn is not a scuffle overheard, it is the
+	 *  deliberate end of the quiet half, and it is the one alarm source the player chooses. */
+	HornBlast
 };
 
 /**

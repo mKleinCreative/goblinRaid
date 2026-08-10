@@ -2,11 +2,11 @@
 id: 066
 title: Learn building composition from hand-authored examples (Showcase + tutorial island kitbashes), write a style guide, rebuild the composer to follow it
 agent: claude-styleguide
-status: queued
+status: done
 claimed: 2026-08-07T08:20Z
 build: none
-waiting_on:
-evaluated:
+waiting_on: settlement packing for template-sized buildings: 1/8 seeds pass, handed back rather than tuned a fourth time
+evaluated: 2026-08-07T08:36:01Z
 files: 
   - ../level-gen/gslevelgen/generate.py
   - ../level-gen/STYLE_GUIDE.md

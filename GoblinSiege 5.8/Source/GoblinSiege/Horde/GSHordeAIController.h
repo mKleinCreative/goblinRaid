@@ -1,15 +1,46 @@
-// Minimal vertical slice of the horde AI controller (tech design doc §18, AGSHordeAIController).
-// Possesses a AGSHordeGoblin and makes it follow the local player pawn in a loose scamper - the
-// "Follow" state from design doc §5's Follow/Frenzy/Commanded model. Frenzy (auto-engage nearby
-// enemies), Commanded (point command), Courier, the horn-summon reserve pool
-// (UGSHordeSubsystem), and shared DetourCrowd avoidance are NOT implemented here yet - this is
-// deliberately just enough to see one follower on screen moving with the player. Multiple
-// followers will currently each run their own MoveToLocation rather than a shared crowd solve.
+// Controller for one allied horde goblin (GDD §2.5, repo export §5).
+//
+// Runs a Behavior Tree and feeds its blackboard from UGSHordeSubsystem. It does NOT sense anything:
+// the constructor declines AGSAIControllerBase's UAIPerceptionComponent outright, because §3.4 makes
+// the horde's cheapness a design requirement - "a crowd of perception-less agents fed stimuli by a
+// central subsystem, which is what makes ten concurrent goblins cheap." Before #069 this class
+// inherited a 1200uu sight sense and a comment recommending it.
+//
+// The blackboard refresh is a timer, not Tick. Ten goblins ticking to ask the same subsystem the
+// same question is the cost this design exists to avoid; a shared cadence answers it well enough
+// for a follower, and BT_HordeGoblin re-evaluates on key change rather than on frame.
 #pragma once
 
 #include "CoreMinimal.h"
 #include "AI/GSAIControllerBase.h"
 #include "GSHordeAIController.generated.h"
+
+class UBehaviorTree;
+
+/** What a horde goblin is currently doing. Written to the blackboard as a byte so BT_HordeGoblin
+ *  can branch on it without a C++ decorator per state. Ordered by priority, highest first, which
+ *  is the order the tree's root Selector should test them in. */
+UENUM(BlueprintType)
+enum class EGSHordeState : uint8
+{
+	/** Fire blocks every exit, including vault points. Repo GDD §5's Panic-Stranded. */
+	PanicStranded UMETA(DisplayName = "Panic-Stranded"),
+
+	/** Cannot reach its summoner at all. Idles, is free to re-horn, and trudges home to reserve. */
+	Stranded      UMETA(DisplayName = "Stranded"),
+
+	/** Executing an explicit point command - swarm, smash, or courier. */
+	Commanded     UMETA(DisplayName = "Commanded"),
+
+	/** Auto-engaging a threat the subsystem published. */
+	Frenzy        UMETA(DisplayName = "Frenzy"),
+
+	/** Trailing the summoner in a loose scamper - the default. */
+	Follow        UMETA(DisplayName = "Follow"),
+
+	/** No summoner at all. Should be transient. */
+	Idle          UMETA(DisplayName = "Idle")
+};
 
 UCLASS()
 class GOBLINSIEGE_API AGSHordeAIController : public AGSAIControllerBase
@@ -17,31 +48,39 @@ class GOBLINSIEGE_API AGSHordeAIController : public AGSAIControllerBase
 	GENERATED_BODY()
 
 public:
-	AGSHordeAIController();
+	AGSHordeAIController(const FObjectInitializer& ObjectInitializer);
 
 	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnUnPossess() override;
 
 protected:
-	virtual void Tick(float DeltaSeconds) override;
-
-	/** Local player pawn this companion trails. Set on possess; re-resolved if null (e.g. player
-	 *  respawn). TODO: replace with an explicit summoner reference once UGSHordeSubsystem exists -
-	 *  "always follow player 0" doesn't hold up in co-op. */
-	UPROPERTY(Transient)
-	TObjectPtr<APawn> FollowTarget;
-
-	/** How far around the target the goblin tries to sit - "loose scamper" per design doc §5. */
+	/** The companion tree. Soft so a goblin Blueprint with no tree assigned still spawns and stands
+	 *  there visibly doing nothing, rather than failing to load. Lives on this class rather than on
+	 *  AGSAIControllerBase because the defender path picks its tree from archetype data instead. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde")
-	float FollowRadius = 220.f;
+	TSoftObjectPtr<UBehaviorTree> CompanionBehaviorTree;
 
-	/** Only re-issue MoveTo once the target has wandered this far from our last aim point, so we
-	 *  don't re-path every tick while the goblin is already sitting near the player. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde")
-	float RepathThreshold = 150.f;
+	/** Seconds between blackboard refreshes. At 0.2 a goblin reacts within a fifth of a second,
+	 *  which is well inside the time it takes one to cross the gap to a guard. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde", meta = (ClampMin = "0.05"))
+	float StimulusRefreshInterval = 0.2f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde")
-	float RepathInterval = 0.5f;
+	/** Blackboard key names, matching BB_HordeGoblin. Exposed so a renamed key is a data fix
+	 *  rather than a six-minute rebuild. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName TargetActorKey = TEXT("TargetActor");
 
-	FVector LastMoveGoal = FVector::ZeroVector;
-	float TimeSinceLastRepath = 0.f;
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName FollowTargetKey = TEXT("FollowTarget");
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName FollowSlotKey = TEXT("FollowSlot");
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName HordeStateKey = TEXT("HordeState");
+
+private:
+	void RefreshStimulus();
+
+	FTimerHandle StimulusTimer;
 };

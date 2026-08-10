@@ -110,6 +110,10 @@ protected:
 	void Input_AimStop(const FInputActionValue& Value);
 	void Input_ToggleCrouch(const FInputActionValue& Value);
 
+	/** Blow the war-horn. Activates UGSGA_Horn, which owns the alarm promotion and the summon -
+	 *  this only presses the button. */
+	void Input_Horn(const FInputActionValue& Value);
+
 	/** Hold E to channel, release to abort. Release is routed straight at the interaction component
 	 *  because the ability is activated by class rather than through an ASC input ID, so GAS's own
 	 *  InputReleased never fires for it. */
@@ -251,6 +255,40 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> CrouchAction;
 
+	/**
+	 * The war-horn - universal kit (GDD §2.3), bound to MIDDLE MOUSE.
+	 *
+	 * Not G, which both design docs say: G is IA_Block since the 2026-08-06 movement remap (#058),
+	 * which was Michael's own explicit ask, and IMC_Default has 17 rows across 17 distinct keys with
+	 * nothing doubled up. Michael's ruling 2026-08-07 put the horn on the mouse rather than move a
+	 * binding he had just set. The GDD's "G" is an erratum.
+	 *
+	 * MUST BE ASSIGNED ON THE BLUEPRINT CDO. A TObjectPtr<UInputAction> does not fill itself in, and
+	 * an unset one here means the horn silently never fires - the exact failure InteractAction and
+	 * JumpAction (#060) both shipped with.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> HornAction;
+
+	/**
+	 * Jump - SpaceBar. STRICTLY a jump: never a vault, never a mantle, never a climb (Michael,
+	 * 2026-08-06). Those three moved to E, where the Blueprint's existing 120/217 height tiers
+	 * already choose between them.
+	 *
+	 * Bound straight to ACharacter::Jump / StopJumping. No ability, no montage, no stamina cost - a
+	 * jump you have to afford is a different design, and the GDD only prices the CLIMB jump.
+	 *
+	 * TUNING LIVES ELSEWHERE, and this is the trap: distance is `JumpZVelocity` (which sets airtime)
+	 * multiplied by the horizontal speed you carry in, plus `AirControl` for mid-air steering. Both
+	 * are on BP_GSPlayerCharacter's CharacterMovement, which OVERRIDES the C++ defaults - the
+	 * Blueprint holds JumpZVelocity 490.5 where the engine default is 420, which proves it is an
+	 * override. Setting either in code changes nothing while that override stands. Measured
+	 * 2026-08-06: at 490.5 / AirControl 0.05 a sprint-jump covers ~819uu and steers barely at all;
+	 * 620 / 0.35 gives ~1035uu and is the value Michael was testing when he asked for more distance.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> JumpAction;
+
 	/** Hold-E interact (GDD §8). Bound to Started and Completed/Canceled - the channel runs exactly
 	 *  as long as the key is down. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
@@ -272,20 +310,32 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> SwordHeavyAbilityClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
-	TSubclassOf<UGameplayAbility> BlockAbilityClass;
-
-	/** Guard break. Another UGSGA_SwordLight Blueprint child - one stage, low damage, with
-	 *  bBreaksGuard set. Not C++-defaulted, for the same reason as the heavy: a default would
-	 *  silently hand it the light's stage array and it would behave like a second light attack. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
-	TSubclassOf<UGameplayAbility> GuardBreakAbilityClass;
+	// BlockAbilityClass and GuardBreakAbilityClass were declared HERE until #069 (2026-08-07) and
+	// are now INHERITED from AGSCharacterBase, which grew the shared combat-ability slots when the
+	// verbs were hoisted off AGSEnemyCharacter. Re-declaring them here would not merely double-grant
+	// - two UPROPERTYs of one name in a class hierarchy is a UnrealHeaderTool error, so this is not
+	// optional tidying. Every use in GSPlayerCharacter.cpp resolves to the inherited property
+	// unchanged, and BP_GSPlayerCharacter's saved values follow the name, not the declaring class.
+	//
+	// Guard break is still not C++-defaulted, for the reason the old comment gave: a default would
+	// silently hand it the light attack's stage array and it would behave like a second light swing.
+	//
+	// NOTE the player deliberately keeps its OWN SwordLightAbilityClass / SwordHeavyAbilityClass
+	// above rather than using the base's LightAttackAbilityClass / HeavyAttackAbilityClass - the
+	// names differ, so there is no collision, and the player's two are driven by the weapon wheel
+	// rather than by GrantCombatAbilities().
 
 	/** Universal interact channel - C++-defaulted to UGSGA_Interact, same reasoning as
 	 *  SwordLightAbilityClass: a framework verb nobody remembers to fill in is a framework nobody
 	 *  can test. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> InteractAbilityClass;
+
+	/** The war-horn. C++-defaulted to UGSGA_Horn for the same reason as the interact channel: it is
+	 *  universal kit every class carries (GDD §2.3), so leaving it for a Blueprint to remember is
+	 *  how it ends up unset on the one character that matters. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> HornAbilityClass;
 
 	/** The Scout's ranged half. Routed from the ATTACK button while the weapon component reports
 	 *  ranged mode - "sword <-> bow, live-swap" means one attack key whose meaning follows the mode,

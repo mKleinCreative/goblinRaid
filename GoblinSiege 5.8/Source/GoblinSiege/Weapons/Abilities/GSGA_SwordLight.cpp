@@ -1,7 +1,10 @@
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Combat/GSGE_WeaponDamage.h"
+#include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "Characters/GSCharacterBase.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GameFramework/Character.h"
@@ -31,6 +34,54 @@ bool GSCombatDebugEnabled()
 	return GSCombatDebug > 0;
 }
 
+// THE TELEGRAPH. Set to exactly 0 or 1 rather than Add/RemoveLooseGameplayTag, because those are
+// reference-counted and this window has three exits (the damage window opening, the ability ending
+// normally, and the ability being cancelled mid-windup by a death or a dodge). A refcounted pair
+// that gets removed twice on one of those paths leaves the count negative and the NEXT swing's
+// telegraph invisible - a bug that would present as "the AI blocks sometimes" and cost an evening.
+// Idempotent by construction is worth more here than symmetry.
+static void GSSetWindupTelegraph(UAbilitySystemComponent* ASC, bool bWindingUp)
+{
+	if (ASC)
+	{
+		ASC->SetLooseGameplayTagCount(GSTags::State_Attacking_Windup, bWindingUp ? 1 : 0);
+	}
+}
+
+// Lock/unlock this attacker's grant on every victim it currently holds one from. The attacker does
+// not track who it reserved against - the ledger lives on the victim - so this asks the character
+// it is about to hit. In practice that is the one target it is swinging at; sweeping all of them
+// would need a registry for no benefit at this scale.
+static void GSSetTokenLocked(AActor* Avatar, bool bLocked)
+{
+	const AGSCharacterBase* Attacker = Cast<AGSCharacterBase>(Avatar);
+	if (!Attacker)
+	{
+		return;
+	}
+
+	// Ask the AI what it is attacking. A player swing locks nothing, which is correct: the player
+	// never holds a token (nothing rations HIM), he is rationed by what may attack him.
+	const AController* Controller = Attacker->GetController();
+	const AAIController* AICon = Cast<AAIController>(Controller);
+	const UBlackboardComponent* BB = AICon ? AICon->GetBlackboardComponent() : nullptr;
+	if (!BB)
+	{
+		return;
+	}
+
+	AActor* Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetActor")));
+	if (!IsValid(Target))
+	{
+		return;
+	}
+
+	if (UGSEngagementComponent* Engagement = Target->FindComponentByClass<UGSEngagementComponent>())
+	{
+		Engagement->SetTokenLocked(const_cast<AGSCharacterBase*>(Attacker), bLocked);
+	}
+}
+
 UGSGA_SwordLight::UGSGA_SwordLight()
 {
 	// InstancedPerActor: this ability owns per-chain state (stage index, buffer flag, hit set,
@@ -40,12 +91,22 @@ UGSGA_SwordLight::UGSGA_SwordLight()
 
 	DamageEffectClass = UGSGE_WeaponDamage::StaticClass();
 
+	// "This character is mid-swing", held by GAS for exactly the ability's lifetime. Coarse on
+	// purpose - it spans recovery and the whole combo chain, so it answers "is he busy" rather than
+	// "is a hit coming". UBTTask_Block reads it to avoid raising a guard in the middle of its own
+	// swing; the Windup child below is what a defender actually reacts to.
+	ActivationOwnedTags.AddTag(GSTags::State_Attacking);
+
 	ActivationBlockedTags.AddTag(GSTags::State_Dead);
 	ActivationBlockedTags.AddTag(GSTags::State_Dodging);
 
 	// Hands full, or hands busy mid-channel (GDD §8, ruling 2026-08-04).
 	ActivationBlockedTags.AddTag(GSTags::State_Carrying);
 	ActivationBlockedTags.AddTag(GSTags::State_Interacting);
+
+	// Your last swing was turned aside. Half of the punish window is this refusal - the other half
+	// is UGSGA_Block refusing too, so a blocked attacker can neither swing again nor hide.
+	ActivationBlockedTags.AddTag(GSTags::State_Recoil);
 
 	// One default stage so a freshly-made Blueprint child swings before anyone fills the array in.
 	Stages.Add(FGSSwingStage());
@@ -167,10 +228,23 @@ void UGSGA_SwordLight::RunStage()
 
 	if (S.WindupSeconds > 0.f)
 	{
+		// The swing is now committed and the pose has started. Raise the telegraph for exactly the
+		// windup: this is the frame the player sees the arm go back, so it is the frame a defender
+		// is allowed to know about. Cleared in OpenDamageWindow - see GSSetWindupTelegraph.
+		GSSetWindupTelegraph(GetAbilitySystemComponentFromActorInfo(), true);
+
+		// Lock the attack token for the committed frames. An on-screen attacker may preempt an
+		// off-screen one, but never one that is already swinging - cancelling an animation the
+		// player is watching to save someone else a wait looks far worse than the wait.
+		GSSetTokenLocked(Avatar, true);
+
 		World->GetTimerManager().SetTimer(WindupTimer, this, &UGSGA_SwordLight::OpenDamageWindow, S.WindupSeconds, false);
 	}
 	else
 	{
+		// A zero-windup stage is unreactable by design (the guard break is the intended user). No
+		// telegraph is raised at all rather than one raised and cleared in the same frame, which
+		// nothing sampling at any rate could observe anyway.
 		OpenDamageWindow();
 	}
 }
@@ -194,6 +268,10 @@ void UGSGA_SwordLight::OpenDamageWindow()
 	}
 
 	bBufferOpen = true;
+
+	// The windup is over - the blade is live. Anyone who has not decided to block by now is late,
+	// which is exactly the property that makes a short windup unblockable without a probability roll.
+	GSSetWindupTelegraph(GetAbilitySystemComponentFromActorInfo(), false);
 
 	// The step and the strike start on the same frame, so the lunge reads as part of the attack
 	// rather than a separate hop into it.
@@ -314,6 +392,16 @@ void UGSGA_SwordLight::DoSweep()
 			bBrokeGuard ? S.Damage * S.GuardBreakDamageScale : S.Damage);
 
 		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data, TargetASC);
+
+		// Frenzy, "anything you attack" (GDD §2.5). Announced from the swing rather than from the
+		// attribute path, because only the swing knows both ends of the hit - the victim's
+		// HandleHealthChanged can name its attacker but nothing downstream can name the attacker's
+		// victim. The hostility test three blocks up has already run, so a friendly-fire hit on your
+		// own horde can never reach here and put a goblin on the threat list.
+		if (AGSCharacterBase* AttackerChar = Cast<AGSCharacterBase>(Avatar))
+		{
+			AttackerChar->NotifyDealtDamage(Target);
+		}
 
 		if (bShowDebug)
 		{
@@ -442,6 +530,15 @@ void UGSGA_SwordLight::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	// character permanently slowed after a swing that got interrupted.
 	ClearAllTimers();
 	RestoreMoveSpeed();
+
+	// A swing cancelled DURING its windup must not strand the telegraph on the actor - every
+	// defender in earshot would hold a guard against a hit that is never coming, and on a corpse it
+	// would never clear at all. Unconditional because the normal path has already zeroed it.
+	GSSetWindupTelegraph(GetAbilitySystemComponentFromActorInfo(), false);
+
+	// Same reasoning for the lock: a swing that ended any way at all is no longer committed, and a
+	// grant left locked is one the preemption pass can never reclaim.
+	GSSetTokenLocked(GetAvatarActorFromActorInfo(), false);
 
 	if (bWasCancelled)
 	{

@@ -6,14 +6,31 @@ otherwise only exist in closed tickets, which nothing loads at run start.*
 
 ---
 
-## PART 1 — OUTSTANDING CODE-REVIEW FINDINGS (nobody has fixed these)
+## PART 1 — CODE-REVIEW FINDINGS — ✅ ALL NINE FIXED (closed 2026-08-07)
+
+> **DO NOT WORK THIS LIST.** Every finding below is resolved. It is kept as the record of what was
+> found and why, not as a queue.
+>
+> - **#036** closed four: finding 2 (`set -Status done` bypass), finding 3 (stale-Evaluate gate),
+>   finding 9 (`evaluated` stamp truncating seconds), and reported finding 1 as **already gone** —
+>   `git log -S PIECE_KEYS` shows #033's "a building is a merged house actor" rewrite deleted the
+>   crashing block as a side effect, after the review was taken. #036 correctly declined to invent
+>   a fix for a bug that no longer existed.
+> - **#037** closed the five C++ ones: the adopt-radius diagonal, the silent completion freeze, the
+>   lying BeginPlay diagnostic, `BuildingStatus` re-deriving the piece set, and "nearest" with no pawn.
+>
+> Verified independently on 2026-08-07 (#073) before this banner was written — not taken on trust
+> from the tickets. Two of the fixes were confirmed by hitting them: `set -Id 070 -Status done` was
+> refused with the message citing ticket 028, and `evaluated:` now stamps seconds.
+>
+> **This heading previously read "nobody has fixed these", and `AGENT_STATE.md` carried a banner at
+> the top of the file — the first thing every agent reads at run start — repeating it. Both were
+> wrong for a full day after the work landed.** Neither #036 nor #037 updated the two documents that
+> advertise their own work as outstanding. If you close findings from a list, close the list.
 
 From a `/code-review` over `origin/interact-framework...HEAD` plus the working tree, 2026-08-06.
-Twelve findings. **Three were mine and are fixed in #030.** The nine below are NOT fixed and are
-not mine — they belong to `claude-raid` and `claude-queue`, both of whom have since closed their
-tickets. **These will not be rediscovered unless someone acts on this list.**
-
-Ordered by severity.
+Twelve findings. Three were `claude-ranged`'s own and were fixed in #030; the nine below were not,
+and are now closed as above. Ordered by severity.
 
 ### HIGH — `tools/hamlet/gs_buildings.py:110` — the script crashes on any level
 

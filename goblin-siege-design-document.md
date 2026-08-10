@@ -175,6 +175,33 @@ None of this replaces the comedy — it gives it a floor. Every civilian a playe
 
 ---
 
+## 2.11 Traversal — stamina-gated free climbing and swimming
+
+*Written down 2026-08-07. This spec existed only in chat until now, which is why three separate tickets built against a paraphrase of it and one of them shipped a wrong value. It is the authority for climbing; the numbers live with the code.*
+
+Climbing and swimming share **one stamina pool**, and the failure state differs by medium: run out on a wall and you fall, run out in deep water and you drown. Vertical freedom is the point — a goblin who can go over the fence, up the wall, and across the roofline reads as a raider rather than a soldier, and it is the traversal answer to a town built to be entered on its own terms.
+
+**Climbing**
+
+- **Trigger:** move directly into any vertical or sloped surface while holding the movement stick, and the character transitions into climbing automatically. Entry is *gated on actually being blocked* by the surface — brushing a fence post or a doorframe must not glue you to it (decided 2026-08-07, against pure-Genshin auto-entry, whose false positives are its most-criticised behaviour). Hold-E remains a manual override for a wall you are standing still beside.
+- **Action:** jump up a short vertical distance for extra stamina, or drop down safely. A refused climb jump costs you nothing and drops you nowhere — it is a strain, never a fall.
+- **Surface rules:** almost all exterior walls, trees, cliffs and man-made structures are climbable. Non-climbable is an **authored exception** (a `NoClimb` tag), not a whitelist — the default is yes.
+- **Idle hold:** hanging still drains **zero** stamina. It also does not regenerate (decided 2026-08-07): a wall is a place to pause and look, not a place to rest, so a tall building stays one commitment.
+- **Vertical movement:** continuous climbing drains at a steady rate, charged against *achieved* movement — a climb that is jammed against geometry must not bleed you dry.
+- **Climb jump:** a quick upward burst that spikes stamina.
+- **Depletion:** at zero the goblin loses grip and falls.
+
+**Swimming**
+
+- **Trigger:** entering water deeper than wading height. Surface swimming is slow; a dash costs more stamina for more speed.
+- **Drowning:** stamina at zero while swimming is a death — a life lost, and **whatever you were carrying is gone with it**. Loot is not recovered from the riverbed.
+
+**Speed ordering (a balance rule, not a number):** horizontal traversal beats climbing and swimming. Running is the fast way across a hamlet; going up and going through water are both deliberate costs.
+
+**What the player should feel:** the town has no back door, so you make one. The roofline is a route, the well is a hazard, and the decision to climb the market wall with a sack on your back is a real one because the bar says so.
+
+---
+
 # 3. AI Architecture
 
 *Goblin Siege's development team is one human (design authority, art director, hands on the editor) plus ten specialized AI agents running through Claude sessions attached to a shared project workspace. Six of them are **game-system agents**, each owning one cluster of player-facing mechanics end-to-end — it writes the C++ for its systems, then wires them up inside the running editor over MCP. The other four are **studio agents** with craft roles that cut across systems. Every agent below is named, given its development role in one sentence, and — per this course's grounding requirement — described through what the player will actually see because of it.*

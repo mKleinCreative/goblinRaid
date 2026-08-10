@@ -36,6 +36,14 @@ void UGSStaminaComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 
 	SecondsSinceSpend += DeltaTime;
+
+	// Suppressed = the pool is frozen, not merely not-draining. Hanging on a wall costs nothing and
+	// gives nothing back. The delay timer keeps running so letting go does not restart it.
+	if (bRegenSuppressed)
+	{
+		return;
+	}
+
 	if (RegenRate > 0.f && SecondsSinceSpend >= RegenDelaySeconds && Stamina < MaxStamina)
 	{
 		SetStamina(Stamina + RegenRate * DeltaTime);
@@ -72,10 +80,18 @@ void UGSStaminaComponent::SetDrainRate(float PerSecond)
 	DrainRate = FMath::Max(0.f, PerSecond);
 }
 
+void UGSStaminaComponent::SetRegenSuppressed(bool bSuppressed)
+{
+	bRegenSuppressed = bSuppressed;
+}
+
 void UGSStaminaComponent::ResetToFull()
 {
 	DrainRate = 0.f;
 	SecondsSinceSpend = 0.f;
+	// A respawn must clear this. Dying mid-climb would otherwise leave the pool frozen for the rest
+	// of the raid, with nothing on screen to explain why stamina stopped coming back.
+	bRegenSuppressed = false;
 
 	const bool bWasExhausted = bExhausted;
 	bExhausted = false;

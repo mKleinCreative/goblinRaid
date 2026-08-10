@@ -76,9 +76,12 @@ protected:
 	 *
 	 * ProjectileMovement has bRotationFollowsVelocity, so the ACTOR's +X always points along the
 	 * flight path; whether the mesh's own long axis agrees is a property of the FBX and not of
-	 * anything in code. Identity is the default because GS_Arrow's authored orientation has not been
-	 * confirmed in flight - if the arrow flies sideways or tail-first, this is the knob, and it needs
-	 * a Blueprint subclass to be editable at all since the spawned class is this C++ one.
+	 * anything in code.
+	 *
+	 * CONFIRMED 2026-08-09 by measuring the asset rather than by eye: GS_Arrow is 59.5uu long, its
+	 * long axis is +Z, and its pivot is at the tail. The default in the constructor is the
+	 * correction for exactly that, and the reasoning is written out there. It was identity until
+	 * now, which is why arrows flew standing straight up out of their own collision sphere.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow|Visual")
 	FTransform ArrowMeshOffset;
@@ -92,6 +95,45 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow", meta = (ClampMin = "0.0"))
 	float Damage = 20.f;
+
+	/**
+	 * Damage multiplier for an arrow that strikes the head.
+	 *
+	 * The reward for the shot the bow is actually for. It also sharpens the knight answer from GDD
+	 * §217 - a bow already ignores plate, and a headshot turns "a bow shot placed at the gaps" from
+	 * a way through his armour into a way to end him.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow", meta = (ClampMin = "1.0"))
+	float HeadshotMultiplier = 2.5f;
+
+	/**
+	 * Bone-name fragments that count as a head, matched case-insensitively as SUBSTRINGS.
+	 *
+	 * Substrings because this project runs two skeletons with different retargeting histories
+	 * (GOB_Scout_v2 and SK_Human_Skeleton), and Mixamo-derived rigs prefix bones - "mixamorig:Head"
+	 * and "head" both have to match. An exact name would silently never fire on one of the two
+	 * skeletons, and a headshot bonus that quietly does nothing is worse than not having one.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow")
+	TArray<FName> HeadBoneFragments = { TEXT("head"), TEXT("neck") };
+
+	/** True when BoneName contains any HeadBoneFragments entry. An empty/None bone - a hit on a
+	 *  simple collision capsule rather than a physics asset - is never a headshot, which is the
+	 *  right default: a body with no bones to aim at should not award a bonus for luck. */
+	bool IsHeadBone(FName BoneName) const;
+
+	/** Did this land on the head? Uses the reported bone when the mesh was hit directly, and
+	 *  otherwise measures the impact point against the head bone's world position - because the
+	 *  arrow usually stops on the CAPSULE, which carries no bone name. */
+	bool IsHeadshot(const AActor* HitActor, const FHitResult& Hit) const;
+
+	/** How close to the head bone an impact must land to count.
+	 *
+	 *  This is a head-sized number, and it has to be: the earlier version asked the skeleton for its
+	 *  NEAREST bone instead, and a chest-height hit on the capsule is nearer the neck than anything
+	 *  else on these rigs - so every arrow was a headshot and archers did a flat 50 damage. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow", meta = (ClampMin = "1.0"))
+	float HeadshotRadius = 22.f;
 
 	/**
 	 * Carries UGSDamageExecCalculation. C++-defaulted to UGSGE_WeaponDamage in the constructor, the

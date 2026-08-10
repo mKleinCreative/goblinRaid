@@ -39,6 +39,31 @@ Project memory (read at run start): `GoblinSiege 5.8/AGENT_STATE.md`.
 
 ---
 
+# Clean up after yourself
+
+**If you create temporary files, scripts or helper files to iterate with, delete them before you
+hand the task back.** Scratch generators, one-off probe scripts, `test_*.py` you wrote to check one
+thing, dumped JSON, `*.bak`, half-finished patches, debug `.bat` wrappers — if it existed only to
+get you to the answer, it does not survive the task.
+
+Prefer writing scratch work **outside the repo** in the first place: your session scratchpad
+directory is there for exactly this and never shows up in `git status`. Anything you do write inside
+the repo is something you have to remember to remove.
+
+Two things this is not:
+
+- **Not a licence to delete files you did not create.** Another agent's work-in-progress and a
+  leftover of your own look identical from here. If you did not write it this session, leave it.
+- **Not a reason to throw away something worth keeping.** If a helper turned out to be genuinely
+  useful, say so and let Michael decide where it should live — do not silently promote it into the
+  repo, and do not silently bin it either. A discarded diff that had real thinking in it can be
+  saved as a patch in the scratchpad and referenced from your ticket.
+
+Check with `git status` before you hand back. Untracked files you introduced should be gone or
+explained; a working tree that is noisier than when you started is part of the task, not a detail.
+
+---
+
 # Building
 
 **`.\Build-GoblinSiege.ps1`** — the gated entry point. Refuses to run while the editor is open,

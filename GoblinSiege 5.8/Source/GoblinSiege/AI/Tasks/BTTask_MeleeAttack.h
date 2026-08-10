@@ -14,6 +14,9 @@
 struct FGSMeleeAttackMemory
 {
 	float NextAllowedAttackTime = 0.f;
+
+	/** Separate from the swing cooldown so a guard break is a read rather than rotation filler. */
+	float NextAllowedGuardBreakTime = 0.f;
 };
 
 UCLASS()
@@ -40,6 +43,42 @@ protected:
 	 *  would flail at empty air next to a player it is standing beside. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege")
 	bool bFaceTargetBeforeSwing = true;
+
+	/** Largest instant yaw correction allowed before a swing, in degrees.
+	 *
+	 *  This used to be uncapped, which made every defender a turret: it would snap 180 degrees onto
+	 *  whoever was behind it and swing in the same frame, so circling did nothing and no attack
+	 *  could ever be made to whiff. Missing has to be possible or there is no spacing, and with no
+	 *  spacing there is nothing to watch. A defender that needs more correction than this simply
+	 *  fails and lets the chase branch walk it round. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float MaxFacingSnapDegrees = 120.f;
+
+	// ---- guard break (2026-08-08) ---------------------------------------------------------
+	// Folded into this node rather than given its own BTTask_GuardBreak: it answers the same
+	// question ("what do I do at melee range"), and a separate node would duplicate the range test,
+	// the facing test and the cooldown bookkeeping while letting a tree order the two in a way that
+	// makes no sense. The cost is that the order is fixed in code; that is acceptable for a verb
+	// only one faction has.
+	//
+	// The ASYMMETRY is the design, not an oversight (GSCharacterBase.h:228-231): humans carry
+	// GuardBreakAbilityClass, allied goblins leave it unset. CanGuardBreak() is exactly that null
+	// check, so a goblin skips this branch for free and must out-flank or out-wait a raised guard
+	// instead. BlockHoldSeconds on UBTTask_Block is therefore what decides whether goblin-vs-human
+	// is winnable at all.
+
+	/** Chance to answer a raised guard with a guard break instead of another blocked swing. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|GuardBreak", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GuardBreakChance = 0.7f;
+
+	/** Gap between this agent's guard breaks. Long enough that it reads as a decision rather than
+	 *  part of a rotation, and short enough to answer a defender that re-blocks on cooldown. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|GuardBreak", meta = (ClampMin = "0.0"))
+	float GuardBreakCooldownSeconds = 4.f;
+
+	/** Shorter than AttackRange: the kick has less reach than the blade. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|GuardBreak", meta = (ClampMin = "0.0"))
+	float GuardBreakRange = 200.f;
 
 	/** Fallback pause between this agent's swings when its archetype has no AttackCooldownSeconds.
 	 *  Three defenders reaching the player together were swinging on the same frame forever, which

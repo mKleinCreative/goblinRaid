@@ -2,11 +2,11 @@
 id: 065
 title: Roof does not close: tile by measured piece width, and give the evaluator a geometric coverage check that can see it
 agent: claude-roofgen
-status: active
+status: done
 claimed: 2026-08-07T08:10Z
 build: none
 waiting_on:
-evaluated:
+evaluated: 2026-08-07T08:19:30Z
 files: 
   - ../level-gen/gslevelgen/generate.py
   - ../level-gen/gslevelgen/evaluate.py

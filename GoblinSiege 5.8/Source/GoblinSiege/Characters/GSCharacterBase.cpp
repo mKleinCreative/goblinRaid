@@ -1,9 +1,13 @@
 #include "Characters/GSCharacterBase.h"
 #include "Attributes/GSAttributeSetBase.h"
+#include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbility.h"
 #include "GameplayEffectExtension.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
 #include "Core/GSGameMode.h"
 #include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
@@ -19,6 +23,12 @@ AGSCharacterBase::AGSCharacterBase()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	AttributeSetBase = CreateDefaultSubobject<UGSAttributeSetBase>(TEXT("AttributeSetBase"));
+
+	// On the base, so the player is rationed by exactly the same rules as everyone else. A crowd
+	// that visibly takes turns on a militiaman but mobs the player would be the first thing anyone
+	// noticed - and the token budget is also what stops FOUR defenders deleting the player in a
+	// second, which is the same bug pointed the other way.
+	EngagementComponent = CreateDefaultSubobject<UGSEngagementComponent>(TEXT("EngagementComponent"));
 }
 
 void AGSCharacterBase::PossessedBy(AController* NewController)
@@ -142,6 +152,75 @@ bool AGSCharacterBase::IsBlocking() const
 	return AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_Blocking);
 }
 
+bool AGSCharacterBase::IsRecoiling() const
+{
+	return AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(GSTags::State_Recoil);
+}
+
+void AGSCharacterBase::NotifyAttackWasBlocked(AActor* Blocker, float RecoilSeconds)
+{
+	if (!AbilitySystemComponent || bIsDead || RecoilSeconds <= 0.f)
+	{
+		return;
+	}
+
+	// Set rather than Add: this is a state with a deadline, not a stack. Two of your swings blocked
+	// in quick succession should refresh one window, not queue two that outlive the fight.
+	AbilitySystemComponent->SetLooseGameplayTagCount(GSTags::State_Recoil, 1);
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// CANCEL NEXT FRAME, NOT NOW. We are currently inside the blocked swing's own
+	// ApplyGameplayEffectSpecToTarget call, which is itself inside UGSGA_SwordLight::DoSweep's loop
+	// over its overlap results. Cancelling the ability here re-enters EndAbility, clears the timers
+	// and resets CurrentStage while that loop is still running - so the sweep would carry on
+	// iterating against an ability that has already torn its own state down. The loose tag above
+	// already stops anything NEW from starting, so one frame of delay costs nothing.
+	TWeakObjectPtr<AGSCharacterBase> WeakSelf(this);
+	World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [WeakSelf]()
+	{
+		if (AGSCharacterBase* Self = WeakSelf.Get())
+		{
+			if (UAbilitySystemComponent* ASC = Self->AbilitySystemComponent)
+			{
+				// By TAG, never CancelAbilities(nullptr) - that would also take a dodge the player
+				// started on the same frame to escape this very punish.
+				FGameplayTagContainer CancelTags;
+				CancelTags.AddTag(GSTags::State_Attacking);
+				ASC->CancelAbilities(&CancelTags);
+			}
+		}
+	}));
+
+	// Clear the window. Weak against this actor so a fighter killed during their own recoil does not
+	// keep a timer alive, and so the tag cannot outlive them onto a respawn.
+	FTimerHandle RecoilHandle;
+	World->GetTimerManager().SetTimer(RecoilHandle,
+		FTimerDelegate::CreateWeakLambda(this, [WeakSelf]()
+		{
+			if (AGSCharacterBase* Self = WeakSelf.Get())
+			{
+				if (UAbilitySystemComponent* ASC = Self->AbilitySystemComponent)
+				{
+					ASC->SetLooseGameplayTagCount(GSTags::State_Recoil, 0);
+				}
+			}
+		}),
+		RecoilSeconds, false);
+
+	// Sell it. The flinch is what tells a spectator eight metres away that the clang mattered -
+	// without it a blocked hit and a whiff look identical from outside, which the research calls the
+	// most common failure in NPC-vs-NPC melee.
+	if (IsValid(Blocker))
+	{
+		PlayHitReact(Blocker->GetActorLocation() - GetActorLocation());
+	}
+}
+
 // GS.Combat.LogHitReact 1 makes every flinch decision say what it decided and why. A flinch that
 // does not appear is otherwise indistinguishable from one that played and ended before you looked,
 // which cost most of an evening on 2026-08-03.
@@ -155,6 +234,30 @@ static TAutoConsoleVariable<int32> CVarGSLogHitReact(
 	{ \
 		UE_LOG(LogTemp, Warning, TEXT("[GS.HitReact] %s: ") Format, *GetName(), ##__VA_ARGS__); \
 	}
+
+float AGSCharacterBase::PlayAnimMontage(UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)
+{
+	// The one gate every montage in the game passes through - abilities, flinches, the horn, the
+	// torch throw - because the mismatch is a property of the character, not of any one caller.
+	if (AnimMontage)
+	{
+		const USkeletalMeshComponent* MeshComp = GetMesh();
+		const USkeletalMesh* SkelMesh = MeshComp ? MeshComp->GetSkeletalMeshAsset() : nullptr;
+		const USkeleton* MySkeleton = SkelMesh ? SkelMesh->GetSkeleton() : nullptr;
+		const USkeleton* MontageSkeleton = AnimMontage->GetSkeleton();
+
+		// Only refuse when BOTH are known and they differ. An unknown skeleton is not evidence of a
+		// mismatch, and refusing on it would silently kill the player's animations too.
+		if (MySkeleton && MontageSkeleton && MySkeleton != MontageSkeleton)
+		{
+			GS_HITREACT_LOG(TEXT("REFUSED montage %s: authored for %s, this character is %s"),
+				*AnimMontage->GetName(), *MontageSkeleton->GetName(), *MySkeleton->GetName());
+			return 0.f;
+		}
+	}
+
+	return Super::PlayAnimMontage(AnimMontage, InPlayRate, StartSectionName);
+}
 
 void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
 {
@@ -265,6 +368,29 @@ void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 	// Blueprint or UMG at all.
 	OnHealthChanged.Broadcast(Data.NewValue, MaxHealth, Delta);
 
+	// Resolve the attacker BEFORE anything gates on damage size. This read used to live inside the
+	// flinch branch below, which meant it only ran for hits big enough to stagger - fine for a
+	// hit-react, useless for the horde's Frenzy rule, which has to answer "who is hitting my
+	// summoner" for a chip-damage arrow just as much as for a greatclub. Moved up 2026-08-07 (#069).
+	//
+	// Prefer the attacker handed over by UGSAttributeSetBase. Data.GEModData is null on the path
+	// damage actually takes (SetHealth is a base-value write), so it is only a fallback for any
+	// future effect that modifies Health directly. Not named "Instigator": AActor already has a
+	// member of that name and this module builds with warnings-as-errors.
+	AActor* Attacker = PendingDamageInstigator.Get();
+	if (!Attacker && Data.GEModData)
+	{
+		Attacker = const_cast<AActor*>(Data.GEModData->EffectSpec.GetContext().GetInstigator());
+	}
+	PendingDamageInstigator = nullptr;
+
+	// Every damaging hit, no size gate. Fires before HandleDeath so a killing blow still tells the
+	// horde who did it - a goblin whose summoner was just executed should still swarm the executioner.
+	if (Delta < 0.f)
+	{
+		OnDamaged.Broadcast(Attacker, -Delta);
+	}
+
 	if (!bIsDead && Data.NewValue <= 0.f)
 	{
 		HandleDeath();
@@ -275,25 +401,91 @@ void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 	// from making everyone standing in it twitch four times a second.
 	if (Delta < 0.f && MaxHealth > 0.f && (-Delta / MaxHealth) >= HitReactMinDamageFraction)
 	{
-		// Prefer the attacker handed over by UGSAttributeSetBase. Data.GEModData is null on the
-		// path damage actually takes (SetHealth is a base-value write), so it is only a fallback
-		// for any future effect that modifies Health directly. Not named "Instigator": AActor
-		// already has a member of that name and this module builds with warnings-as-errors.
-		FVector FromAttacker = FVector::ZeroVector;
-		const AActor* Attacker = PendingDamageInstigator.Get();
-		if (!Attacker && Data.GEModData)
-		{
-			Attacker = Data.GEModData->EffectSpec.GetContext().GetInstigator();
-		}
-		if (Attacker)
-		{
-			FromAttacker = Attacker->GetActorLocation() - GetActorLocation();
-		}
-		PendingDamageInstigator = nullptr;
+		const FVector FromAttacker = Attacker
+			? (Attacker->GetActorLocation() - GetActorLocation())
+			: FVector::ZeroVector;
 		GS_HITREACT_LOG(TEXT("damage %.1f of %.0f -> requesting flinch (attacker dir %s)"),
 			-Delta, MaxHealth, *FromAttacker.ToCompactString());
 		PlayHitReact(FromAttacker);
 	}
+}
+
+void AGSCharacterBase::NotifyDealtDamage(AActor* Victim)
+{
+	if (Victim && Victim != this)
+	{
+		OnDealtDamage.Broadcast(Victim);
+	}
+}
+
+// ---- combat verbs (hoisted from AGSEnemyCharacter 2026-08-07, #069) -----------------------
+
+void AGSCharacterBase::GrantCombatAbilities()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	GrantIfSet(LightAttackAbilityClass);
+	GrantIfSet(HeavyAttackAbilityClass);
+	GrantIfSet(GuardBreakAbilityClass);
+	GrantIfSet(BlockAbilityClass);
+	GrantIfSet(RangedAttackAbilityClass);
+}
+
+bool AGSCharacterBase::TryRangedAttack()
+{
+	return TryActivate(RangedAttackAbilityClass);
+}
+
+void AGSCharacterBase::GrantIfSet(TSubclassOf<UGameplayAbility> AbilityClass)
+{
+	if (AbilityClass && AbilitySystemComponent)
+	{
+		AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, this));
+	}
+}
+
+bool AGSCharacterBase::TryActivate(TSubclassOf<UGameplayAbility> AbilityClass)
+{
+	return AbilityClass && AbilitySystemComponent
+		&& AbilitySystemComponent->TryActivateAbilityByClass(AbilityClass);
+}
+
+bool AGSCharacterBase::TryLightAttack()
+{
+	// No extra gating here on purpose. GAS already refuses to re-activate an ability that is
+	// running, and UGSGA_SwordLight treats that refusal as the combo buffer - so an AI that
+	// spams this gets the same chained combo a player gets by mashing, for free. A BT task must
+	// therefore treat a false return as "not yet", never as failure - see BTTask_MeleeAttack.
+	return TryActivate(LightAttackAbilityClass);
+}
+
+bool AGSCharacterBase::TryHeavyAttack()
+{
+	return TryActivate(HeavyAttackAbilityClass);
+}
+
+bool AGSCharacterBase::TryGuardBreak()
+{
+	return TryActivate(GuardBreakAbilityClass);
+}
+
+bool AGSCharacterBase::StartBlocking()
+{
+	return TryActivate(BlockAbilityClass);
+}
+
+void AGSCharacterBase::StopBlocking()
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+	// By tag, never CancelAbilities(nullptr) - that would also kill a swing or a dodge in flight.
+	FGameplayTagContainer BlockTags;
+	BlockTags.AddTag(GSTags::State_Blocking);
+	AbilitySystemComponent->CancelAbilities(&BlockTags);
 }
 
 void AGSCharacterBase::HandleDeath()

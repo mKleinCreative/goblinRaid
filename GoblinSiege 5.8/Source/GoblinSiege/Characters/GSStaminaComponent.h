@@ -58,6 +58,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Stamina")
 	void ResetToFull();
 
+	/**
+	 * Hold the pool still: no drain, no regen. The wall.
+	 *
+	 * `SetDrainRate(0)` is NOT enough for this, and that is the whole reason this exists. Zero drain
+	 * means regen resumes, so hanging on a wall would slowly refill you - and then any building is
+	 * climbable in stages and the meter stops gating verticality at all.
+	 *
+	 * Michael's ruling (2026-08-07): hanging is FREE but not RESTFUL. You can stop and look around
+	 * without being punished for it, but you cannot park on a wall to reset a long climb, so a tall
+	 * building stays one commitment. That is the GDD's "idle hold drains zero" without Genshin's
+	 * idle-drain, which is its second most-complained-about behaviour.
+	 *
+	 * Suppression does not touch the regen DELAY timer - releasing the wall resumes regen from
+	 * wherever the delay had got to, rather than restarting it and punishing you twice.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Stamina")
+	void SetRegenSuppressed(bool bSuppressed);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Stamina")
+	bool IsRegenSuppressed() const { return bRegenSuppressed; }
+
+	/** The rate currently being drained, per second. 0 when nothing is draining. Exposed so a caller
+	 *  can tell "idle on the wall" from "not climbing" without tracking that state a second time. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Stamina")
+	float GetDrainRate() const { return DrainRate; }
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Stamina")
 	float GetStamina() const { return Stamina; }
 
@@ -129,4 +155,8 @@ private:
 
 	float DrainRate = 0.f;
 	float SecondsSinceSpend = 0.f;
+
+	/** Set while attached to a wall. Not replicated: the server owns the pool and drives the number,
+	 *  and a client that guessed at suppression would only diverge between corrections. */
+	bool bRegenSuppressed = false;
 };

@@ -10,6 +10,7 @@
 #include "Weapons/Abilities/GSGA_Interact.h"
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Weapons/Abilities/GSGA_Block.h"
+#include "Weapons/Abilities/GSGA_Horn.h"
 #include "Weapons/Abilities/GSGA_BowShot.h"
 #include "Weapons/Abilities/GSGA_TorchToss.h"
 #include "Destruction/GSTorchProjectile.h"
@@ -50,6 +51,7 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	SwordLightAbilityClass = UGSGA_SwordLight::StaticClass();
 	BlockAbilityClass = UGSGA_Block::StaticClass();
 	InteractAbilityClass = UGSGA_Interact::StaticClass();
+	HornAbilityClass = UGSGA_Horn::StaticClass();
 	// SwordHeavyAbilityClass is deliberately NOT defaulted: it and the light share a class, so a
 	// C++ default would silently give the heavy the light's stage array and the two would feel
 	// identical for no visible reason. Better to have the heavy do nothing until it is pointed at
@@ -97,6 +99,17 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 		MoveComp->bOrientRotationToMovement = true;
 		MoveComp->RotationRate = FRotator(0.f, FMath::RadiansToDegrees(TurnRateRadPerSec), 0.f);
 		MoveComp->NavAgentProps.bCanCrouch = true;
+
+		// Publish the player to the avoidance manager. Until 2026-08-09 he was invisible to it
+		// (bUseRVOAvoidance false, AvoidanceWeight 0), so NPCs did not steer around him at all - they
+		// discovered him by walking into his capsule, which is a large part of why a melee reads as a
+		// scrum. AvoidanceWeight 1.0 is deliberately the maximum: in UCharacterMovementComponent an
+		// agent at full weight is published as an obstacle that others yield to while never yielding
+		// itself, so the crowd parts around the player and the player's own movement is untouched.
+		// That last part is why this is safe to do to a human-controlled pawn.
+		MoveComp->bUseRVOAvoidance = true;
+		MoveComp->AvoidanceWeight = 1.0f;
+		MoveComp->AvoidanceConsiderationRadius = 600.f;
 
 		// --- swimming -------------------------------------------------------------------------
 		// bCanSwim is the half that is easy to miss: without it the movement component REFUSES the
@@ -221,6 +234,10 @@ void AGSPlayerCharacter::BeginPlay()
 		if (InteractAbilityClass)
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(InteractAbilityClass, 1, INDEX_NONE, this));
+		}
+		if (HornAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(HornAbilityClass, 1, INDEX_NONE, this));
 		}
 		if (BowShotAbilityClass)
 		{
@@ -411,6 +428,22 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(AimAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_AimStop);
 		EIC->BindAction(AimAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_AimStop);
 		EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ToggleCrouch);
+
+		// The war-horn (#069). Guarded, like the block above it and unlike the unguarded run from
+		// ThrowTorchAction down - an unset TObjectPtr<UInputAction> here would crash on BindAction
+		// rather than politely doing nothing, and this project has shipped an unset input action
+		// twice already (InteractAction from the day it was written, JumpAction in #060).
+		if (HornAction)
+		{
+			EIC->BindAction(HornAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Horn);
+		}
+
+		// Jump straight to ACharacter's own handlers. Started/Completed rather than a single pin
+		// because StopJumping is what ends the variable-height hold - bind only Started and every
+		// jump is a full-height jump regardless of how briefly the key was tapped.
+		EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		EIC->BindAction(JumpAction, ETriggerEvent::Canceled, this, &ACharacter::StopJumping);
 
 		// Light/heavy attack and the "E" ability are bound by the currently-granted ability set's
 		// own AbilityTask_WaitInputPress/Release (standard GAS pattern), not hardcoded here, so
@@ -759,6 +792,27 @@ void AGSPlayerCharacter::Input_GuardBreak(const FInputActionValue& Value)
 		return;
 	}
 	AbilitySystemComponent->TryActivateAbilityByClass(GuardBreakAbilityClass);
+}
+
+void AGSPlayerCharacter::Input_Horn(const FInputActionValue& Value)
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+	if (!HornAbilityClass)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Horn pressed but HornAbilityClass is unset on %s. It is C++-defaulted "
+				 "to UGSGA_Horn, so an empty value here means a Blueprint cleared it."),
+			*GetName());
+		return;
+	}
+
+	// A refused activation is the normal case, not an error: UGSGA_Horn blocks on its own State.Horn
+	// tag so a held button cannot summon a wave per frame, and it blocks on State.Carrying because a
+	// goblin with a pig over its shoulder has no free hand for a horn.
+	AbilitySystemComponent->TryActivateAbilityByClass(HornAbilityClass);
 }
 
 void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)

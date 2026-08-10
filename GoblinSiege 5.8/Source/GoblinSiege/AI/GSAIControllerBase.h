@@ -21,10 +21,26 @@ class GOBLINSIEGE_API AGSAIControllerBase : public AAIController
 	GENERATED_BODY()
 
 public:
-	AGSAIControllerBase();
+	/**
+	 * Takes an FObjectInitializer so a subclass can decline the perception component entirely:
+	 *
+	 *     AGSHordeAIController::AGSHordeAIController(const FObjectInitializer& OI)
+	 *         : Super(OI.DoNotCreateDefaultSubobject(TEXT("AIPerceptionComponent")))
+	 *
+	 * Added 2026-08-07 (#069). Until then this constructor built a UAIPerceptionComponent and a
+	 * 1200uu sight sense unconditionally, and AGSHordeAIController inherited both - so ten summoned
+	 * goblins meant ten independent sight queries a frame, all feeding a HandlePerceptionUpdated
+	 * that does nothing. GDD §3.4 requires the exact opposite for the horde: "a crowd of
+	 * perception-less agents fed stimuli by a central subsystem, which is what makes ten concurrent
+	 * goblins cheap." Defenders keep their senses; the horde reads UGSHordeSubsystem instead.
+	 */
+	AGSAIControllerBase(const FObjectInitializer& ObjectInitializer);
 
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
+
+	/** False on anything that declined the component above. Nothing may assume it exists. */
+	bool HasPerception() const { return AIPerceptionComponent != nullptr; }
 
 protected:
 	UFUNCTION()

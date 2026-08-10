@@ -382,6 +382,22 @@ builds that should take under a minute. Machine has 32 GB RAM; close browsers du
   reparented `Character` -> `AGSEnemyCharacter` with capsule half-height/radius, mesh relative
   transform, skeletal mesh, anim class and max walk speed all byte-identical afterwards. Re-fetch the
   CDO after `reparent_blueprint` + `compile_blueprint` though - the old pointer is stale.
+- **On FBX-imported material instances, assigning a texture parameter does NOTHING on its own.** The
+  Interchange parent `FBXLegacyPhongSurfaceMaterial` blends each map against a flat colour through a
+  scalar - `DiffuseColorMapWeight`, `NormalMapWeight`, `SpecularColorMapWeight` - which **defaults to
+  0**. An instance with `DiffuseColorMap` correctly set and the weight unset renders as flat white and
+  reads exactly like a missing texture. **Set the matching `*MapWeight` to 1.0.** (Cost most of #099;
+  the texture, the UVs and the mesh were all fine the whole time.)
+- **`unreal.Rotator(a, b, c)` is `(roll, pitch, yaw)`.** `Rotator(0, 180, 0)` is pitch 180, not yaw
+  180 - it stands a placed character on its head. For a yaw, write `Rotator(0, 0, yaw)`. (Confirmed:
+  `unreal.Rotator(1,2,3)` reports `pitch=2 yaw=3 roll=1`.)
+- **"0.0uu from the socket" does NOT prove a weapon is held right way round.** That measures the
+  socket to the component's ORIGIN, and says nothing about which end of the mesh the origin sits at -
+  `GS_Sword`'s pivot is at the hilt but `GS_Sword_Guard`'s is at the **tip**, so the guard gripped
+  the point and still measured 0.0uu (#100). Transform the mesh's two local endpoints
+  (`z=0` and `z=length`) into world space and measure BOTH. A tip-pivot needs a translation of
+  `-(MeshLength * Scale)` along `Rotation.RotateVector(0,0,1)`; rotation alone can never fix it,
+  because the pivot is what sits on the socket.
 
 ## BuildAndLaunchGame.ps1 on this machine
 

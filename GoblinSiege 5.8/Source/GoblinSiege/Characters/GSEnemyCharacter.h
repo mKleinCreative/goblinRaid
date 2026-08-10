@@ -6,9 +6,14 @@
 
 #include "CoreMinimal.h"
 #include "Characters/GSCharacterBase.h"
+// For EGSWeaponSlot, which DefaultSlot holds by value - a UENUM used in a UPROPERTY cannot be
+// forward-declared, so the header comes in even though the component itself stays a forward decl.
+#include "Weapons/GSWeaponComponent.h"
 #include "GSEnemyCharacter.generated.h"
 
 class UGSRaceDataAsset;
+class UGSWeaponComponent;
+class UGSWeaponDataAsset;
 class UGameplayAbility;
 
 UCLASS()
@@ -27,36 +32,19 @@ public:
 	const UGSRaceDataAsset* GetRaceData() const { return RaceData; }
 	FName GetArchetypeRowName() const { return ArchetypeRowName; }
 
-	// ---- combat verbs (2026-08-04) -------------------------------------------------------
-	// Deliberately the SAME abilities the player runs, not an AI-only reimplementation. If a
-	// defender's swing were its own code path it would drift from the player's within a week -
-	// different reach, different windup, different feel - and every combat tuning pass would have
-	// to be done twice. These just activate the granted ability and report whether it took.
+	// The combat verbs (TryLightAttack / TryHeavyAttack / TryGuardBreak / Start+StopBlocking,
+	// CanGuardBreak) and the four ability-class UPROPERTYs that back them moved DOWN to
+	// AGSCharacterBase on 2026-08-07 (#069) so AGSHordeGoblin could have them without being
+	// reparented to this class. They are inherited now, so callers are unchanged.
 	//
-	// Which verbs a given character HAS is data, not code: allied goblins get light and heavy,
-	// humans additionally get the guard break (Michael's ruling, 2026-08-04). Leave a class unset
-	// and that character simply cannot do that thing.
-
-	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Enemy|Combat")
-	bool TryLightAttack();
-
-	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Enemy|Combat")
-	bool TryHeavyAttack();
-
-	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Enemy|Combat")
-	bool TryGuardBreak();
-
-	/** Raises the guard and leaves it up until StopBlocking. */
-	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Enemy|Combat")
-	bool StartBlocking();
-
-	/** Drops the guard. Cancels by tag, never by class, so a swing in flight survives. */
-	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Enemy|Combat")
-	void StopBlocking();
-
-	/** True when this character has a guard break available - the one verb allied goblins lack. */
-	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Enemy|Combat")
-	bool CanGuardBreak() const { return GuardBreakAbilityClass != nullptr; }
+	// MUST BE VERIFIED IN-EDITOR, not assumed: the four EditDefaultsOnly ability slots on the six
+	// adversary Blueprints are expected to survive because UE resolves serialised properties by
+	// NAME within the class hierarchy and the names did not change - only the class declaring
+	// them moved one level up. That is the normal behaviour for hoisting a property to a parent,
+	// but this project has been bitten before by "the reparent preserved everything" assumptions.
+	// Open BP_CastleGuard01 after the build and confirm LightAttack/Heavy/GuardBreak/Block are
+	// still assigned before trusting any PIE result. If they came back empty, #048 is the
+	// precedent for a retroactive re-assignment pass.
 
 protected:
 	virtual void BeginPlay() override;
@@ -70,25 +58,35 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Enemy")
 	FName ArchetypeRowName = TEXT("Militia");
 
-	/** UGSGA_SwordLight Blueprint child - the multi-stage combo. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Enemy|Combat")
-	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
+	/**
+	 * Lets a defender actually HOLD its weapon.
+	 *
+	 * Until 2026-08-09 UGSWeaponComponent existed only on AGSPlayerCharacter, so every guard in the
+	 * game fought bare-handed - swinging, blocking and dying with nothing in their hands. The
+	 * component is the same one the player uses, so a defender's sword goes through the same data
+	 * asset, the same socket resolution and the same holster logic rather than a parallel path.
+	 *
+	 * Deliberately on AGSEnemyCharacter rather than hoisted to AGSCharacterBase: the player already
+	 * creates its own in its constructor, and adding a second on the base would give him two. Moving
+	 * his is a bigger change than this ticket, and AGSHordeGoblin wants the same treatment
+	 * separately.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Enemy")
+	TObjectPtr<UGSWeaponComponent> WeaponComponent;
 
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Enemy|Combat")
-	TSubclassOf<UGameplayAbility> HeavyAttackAbilityClass;
+	/** Equipped in BeginPlay. Leave unset and the defender is unarmed, which is the old behaviour
+	 *  and correct for a civilian. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Enemy")
+	TObjectPtr<UGSWeaponDataAsset> DefaultWeapon;
 
-	/** Left unset on allied goblins on purpose - the guard break is a human answer to turtling,
-	 *  and giving it to everyone would make blocking worthless for both sides. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Enemy|Combat")
-	TSubclassOf<UGameplayAbility> GuardBreakAbilityClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Enemy|Combat")
-	TSubclassOf<UGameplayAbility> BlockAbilityClass;
-
-private:
-	/** Grants a class if set and returns the spec, so BeginPlay reads as a list rather than four
-	 *  copies of the same null check. */
-	void GrantIfSet(TSubclassOf<UGameplayAbility> AbilityClass);
-
-	bool TryActivate(TSubclassOf<UGameplayAbility> AbilityClass);
+	/**
+	 * Which hand the defender fights with, chosen once at BeginPlay.
+	 *
+	 * A defender has no weapon wheel, so the slot has to be decided for it. Sword is the honest
+	 * default for a garrison; the archer sets Bow. Before this existed BeginPlay hardcoded Sword,
+	 * which put Erika's bow on RangedHolsterSocket - `back_bow`, a socket the human skeleton does
+	 * not have - so it would have attached at the actor root and floated at her feet.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Enemy")
+	EGSWeaponSlot DefaultSlot = EGSWeaponSlot::Sword;
 };
