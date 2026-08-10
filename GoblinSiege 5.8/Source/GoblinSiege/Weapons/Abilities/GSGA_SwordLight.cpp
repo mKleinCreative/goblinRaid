@@ -22,7 +22,14 @@
 // the console without editing a Blueprint and without a rebuild.
 //   GS.Combat.Debug 0   -> player view
 //   GS.Combat.Debug 1   -> trace spheres, hit markers, combo stage readout
-static int32 GSCombatDebug = 1;
+//
+// DEFAULTS TO 0 (#120). It shipped as 1, which made this the only debug cvar in the project that
+// was on unless someone remembered to turn it off - so every session, for every combatant, drew
+// cyan trace spheres and red hit markers over the game. Michael's CombatBugs recording of 2026-08-09
+// is full of them; that recording was made to show an animation bug, and the debug geometry was in
+// every frame of it. A debug view you have to remember to disable is one you ship by accident.
+// Turn it on with `GS.Combat.Debug 1`, or use `GS.PlayerView` to sweep every channel at once.
+static int32 GSCombatDebug = 0;
 static FAutoConsoleVariableRef CVarGSCombatDebug(
 	TEXT("GS.Combat.Debug"),
 	GSCombatDebug,

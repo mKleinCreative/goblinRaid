@@ -159,7 +159,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 52 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 53 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -284,6 +284,7 @@ _Queue is empty. The build gate is OPEN._
 | 117 | done | claude-correctness | PIE says the punish still never fires: the recoil flinch sets State.HitReact, which vetoes it in turn |
 | 118 | done | claude-anim | CombatBugs video: humans T-pose in melee, and debug spheres draw in normal play |
 | 119 | done | claude-anim | Repoint the human montages off the root-locked A_MX_Gob copies onto the clean A_HU_ import |
+| 120 | done | claude-wrapup | GS.Combat.Debug must not default to on, and record the three-in-a-row unwatched-fix failure in AGENT_STATE |
 
 <!-- BOARD:END -->
 

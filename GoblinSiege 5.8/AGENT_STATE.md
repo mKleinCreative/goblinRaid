@@ -438,6 +438,27 @@ below as priority; it is grouped by kind. The first item is the only one anyone 
 
 ## FAILED
 
+- 2026-08-10 **THREE FIXES IN A ROW SHIPPED WITHOUT ANYONE WATCHING THEM RUN, AND ALL THREE WERE
+  WRONG** (#113, #116, #118). The pattern, not the individual bugs, is the entry worth reading:
+  - **#113** set `force_root_lock=True` on 9 human clips to stop attacks popping upward, and closed
+    saying *"the root lock has not been seen in play"*. It did not fix the pop — it replaced it with
+    a collapsed mesh, because locking the root pins it to the ref pose while the hips keep 88uu of
+    authored travel. **Michael diagnosed this at the time — "the root node is getting snapped to the
+    ground" — and was told no.** He was right. Fixed in #119 by repointing the montages at the clean
+    `A_HU_*` import; the `A_MX_*_Gob` copies are the old attempt.
+  - **#116** fixed the recoil punish by argument. The first duel run: 17 blocks landed, 0 punishes.
+    The veto had simply moved from `State.Recoil` to `State.HitReact`, because the flinch that sells
+    a block sets that tag too (#117).
+  - A **skeleton-mismatch theory** for the T-pose survived a full code read and died in one run —
+    zero `REFUSED montage` lines.
+  - **What actually worked, every time: a log line or an eyeball.** `GS.Combat.LogAI 1` +
+    `GS.Combat.Duel 3` settled the punish in one run. Michael previewing ONE montage settled #119
+    before the other ten were touched. Static reads confirm what is *configured*; they never show
+    what the engine *does* with it. Two questions cut the search fastest, both from him: *does
+    distance change it?* and *only during the action, or also at rest?*
+  - **Two probes that lie.** `SkeletonService.get_bone_transform` returns success for any bone name,
+    including `mixamorig1:Hips`. A `.uasset` name-table grep proves a reference exists in the
+    package, not that a property is assigned — read the CDO.
 - 2026-08-09 **NO HUMAN MESH HAS ANY WEAPON SOCKET** (#097). Checked all eight defender meshes for
   `hand_r_weapon` / `hand_l_weapon` / `back_sword` / `back_bow` / `spine_quiver` — every one missing,
   while `GOB_Scout_v2` has all five. Each guard also has its OWN skeleton (`SK_CastleGuard01_Skeleton`
