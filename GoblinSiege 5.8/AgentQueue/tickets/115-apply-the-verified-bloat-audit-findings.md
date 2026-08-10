@@ -2,7 +2,7 @@
 id: 115
 title: Apply the verified bloat-audit findings: delete leftover scripts and staging dupes, untrack build logs and pycache, strip dead C++ and Python
 agent: claude-bloat
-status: review
+status: done
 claimed: 2026-08-10T19:45Z
 build: required
 waiting_on:
