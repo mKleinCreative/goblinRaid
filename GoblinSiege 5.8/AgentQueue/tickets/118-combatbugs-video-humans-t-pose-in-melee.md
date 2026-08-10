@@ -2,11 +2,11 @@
 id: 118
 title: CombatBugs video: humans T-pose in melee, and debug spheres draw in normal play
 agent: claude-anim
-status: active
+status: done
 claimed: 2026-08-10T21:40Z
 build: none
 waiting_on: Michael - does the T-pose still happen in a live fight? The video predates the last edit to GA_HU_SwordLight by 24 minutes, so it cannot answer this.
-evaluated:
+evaluated: 2026-08-10T22:19:37Z
 files: 
   - GoblinSiege 5.8/Content/Blueprints/Abilities/Human/GA_HU_SwordLight.uasset
   - GoblinSiege 5.8/Content/Blueprints/Adversaries/BP_CastleGuard01.uasset
@@ -70,6 +70,23 @@ so their history begins at my checkpoint.
 cover it and the skeleton gate only logs refusals. Attacks definitely *activate* (telegraph SEEN
 lines are present), so the open question is narrow: does `AM_HU_Atk_Light` visually play on
 `SK_Human_Skeleton`, or does the guard hold ref pose through the swing?
+
+## RESOLVED by #119 (2026-08-10)
+
+The T-pose is fixed and Michael confirmed it in PIE: *"the issue was solved."*
+
+Cause, which none of the eliminations below found and which Michael named himself: the montages
+referenced the `A_MX_*_Gob` clips carrying `force_root_lock=True` from #113, pinning the root to the
+reference pose while the hips kept 88uu of authored travel. #119 repointed all 11 montages onto the
+clean `A_HU_*` import. He had raised root snapping before and it was rejected at the time.
+
+The elimination map below stays as written - it is what proved the fault was NOT in the wiring, and
+it is what made the two-parallel-sets discovery possible. The head wiggle he noticed afterwards is
+accepted, see #119.
+
+**Still open from this ticket and NOT carried by #119:** `GS.Combat.Debug` defaults to `1`
+(`GSGA_SwordLight.cpp:25`), which is why cyan trace spheres and red hit markers are drawn in normal
+play throughout the CombatBugs video. One-line C++ change, needs a build, unclaimed.
 
 ## Refine
 

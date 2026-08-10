@@ -2,11 +2,11 @@
 id: 119
 title: Repoint the human montages off the root-locked A_MX_Gob copies onto the clean A_HU_ import
 agent: claude-anim
-status: review
+status: done
 claimed: 2026-08-10T22:05Z
 build: none
 waiting_on:
-evaluated: 2026-08-10T22:14:07Z
+evaluated: 2026-08-10T22:19:35Z
 files: 
   - GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Light.uasset
   - GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Spin.uasset
@@ -85,10 +85,10 @@ repointing back.
 
 **NOT verified:**
 
-- **In-game.** Only the asset preview has been seen. Everything today says preview and runtime are
-  different questions. Michael is running PIE himself from the already-open editor rather than
-  having an agent read a log at it - he judges the feel directly. **This ticket is not done until he
-  reports back.**
+- ~~**In-game.**~~ **VERIFIED.** Michael ran PIE himself from the open editor and reported: *"the
+  issue was solved."* Both halves are now confirmed by eye - the asset preview after the first swap,
+  and a live fight after all eleven. This is the first fix in this run of tickets to be watched
+  working before being called done.
 - **A residual head wiggle**, reported by Michael on the fixed preview, and accepted by him as
   liveable - see Refine.
 - The other adversaries (`BP_KnightDPelegrini`, `BP_ErikaArcher`, `BP_PeasantMan`,

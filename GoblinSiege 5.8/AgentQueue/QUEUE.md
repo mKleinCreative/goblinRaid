@@ -157,12 +157,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 118 | active (waiting on: Michael - does the T-pose still happen in a live fight? The video predates the last edit to GA_HU_SwordLight by 24 minutes, so it cannot answer this.) | claude-anim | CombatBugs video: humans T-pose in melee, and debug spheres draw in normal play | GoblinSiege 5.8/Content/Blueprints/Abilities/Human/GA_HU_SwordLight.uasset<br>GoblinSiege 5.8/Content/Blueprints/Adversaries/BP_CastleGuard01.uasset | none |
-| 119 | review | claude-anim | Repoint the human montages off the root-locked A_MX_Gob copies onto the clean A_HU_ import | GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Light.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Spin.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Flurry.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Heavy.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Chop.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Overhead.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Kick.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Block_Idle.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_Block_React.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_HitReact_Front.uasset<br>GoblinSiege 5.8/Content/Characters/Humans/Anims_Combat/AM_HU_HitReact_Left.uasset | none |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 52 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -285,6 +282,8 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 115 | done | claude-bloat | Apply the verified bloat-audit findings: delete leftover scripts and staging dupes, untrack build logs and pycache, strip dead C++ and Python |
 | 116 | done | claude-correctness | Code-review correctness fixes: the recoil punish is unreachable, LoseRadius never takes effect, JumpAction is bound unguarded |
 | 117 | done | claude-correctness | PIE says the punish still never fires: the recoil flinch sets State.HitReact, which vetoes it in turn |
+| 118 | done | claude-anim | CombatBugs video: humans T-pose in melee, and debug spheres draw in normal play |
+| 119 | done | claude-anim | Repoint the human montages off the root-locked A_MX_Gob copies onto the clean A_HU_ import |
 
 <!-- BOARD:END -->
 
