@@ -159,7 +159,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 51 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 52 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -281,6 +281,7 @@ _Queue is empty. The build gate is OPEN._
 | 114 | done | claude-gobkit | A blocked swing must actually be cancelled: SwordLight needs State.Attacking as an ASSET tag |
 | 115 | done | claude-bloat | Apply the verified bloat-audit findings: delete leftover scripts and staging dupes, untrack build logs and pycache, strip dead C++ and Python |
 | 116 | done | claude-correctness | Code-review correctness fixes: the recoil punish is unreachable, LoseRadius never takes effect, JumpAction is bound unguarded |
+| 117 | done | claude-correctness | PIE says the punish still never fires: the recoil flinch sets State.HitReact, which vetoes it in turn |
 
 <!-- BOARD:END -->
 

@@ -139,18 +139,38 @@ bool UGSEngagementComponent::CanBeAttacked(bool bRecoilCountsAsOpening) const
 		return true;
 	}
 
-	// The three states in which piling on is not a fight, it is a deletion. These veto absolutely.
+	const bool bRecoiling = ASC->HasMatchingGameplayTag(GSTags::State_Recoil);
+
+	// Recoil is the odd one out: it is a punishable OPENING, not a mercy (#087). Only the melee
+	// punish passes true here; token acquisition and everyone else still treat it as a veto, so a
+	// recoiling target cannot attract a fresh crowd mid-window.
+	const bool bIsTheOpening = bRecoilCountsAsOpening && bRecoiling;
+
+	// Death and a broken guard veto absolutely, whoever is asking.
 	if (ASC->HasMatchingGameplayTag(GSTags::State_Dead)
-		|| ASC->HasMatchingGameplayTag(GSTags::State_HitReact)
 		|| ASC->HasMatchingGameplayTag(GSTags::State_GuardBroken))
 	{
 		return false;
 	}
 
-	// Recoil is the fourth, and the odd one out: it is a punishable OPENING, not a mercy (#087).
-	// Only the melee punish passes true here; token acquisition and everyone else still treat it as
-	// a veto, so a recoiling target cannot attract a fresh crowd mid-window.
-	return bRecoilCountsAsOpening || !ASC->HasMatchingGameplayTag(GSTags::State_Recoil);
+	// HitReact normally vetoes too - piling onto a flinching target is the deletion this component
+	// exists to prevent. But during THE opening it must not, and PIE is what proved it: 17 blocks
+	// landed and the punish fired 0 times, because AGSCharacterBase::NotifyAttackWasBlocked ends by
+	// calling PlayHitReact to sell the clang, and PlayHitReact adds State.HitReact. A recoiling
+	// fighter is therefore ALWAYS also flinching, so exempting recoil alone just moved the veto from
+	// one tag to the other and the punish stayed dead code.
+	//
+	// That flinch is the blocked swing's OWN flinch - the same event, not evidence of a second
+	// attacker - so it cannot be grounds for refusing the punish that the same event created. A
+	// genuine third-party hit landing inside the 0.6s window is indistinguishable from it here and
+	// will also be allowed through; that is accepted, because a recoiling target is punishable by
+	// design for exactly that window.
+	if (!bIsTheOpening && ASC->HasMatchingGameplayTag(GSTags::State_HitReact))
+	{
+		return false;
+	}
+
+	return bRecoilCountsAsOpening || !bRecoiling;
 }
 
 int32 UGSEngagementComponent::GetReservedWeight() const
