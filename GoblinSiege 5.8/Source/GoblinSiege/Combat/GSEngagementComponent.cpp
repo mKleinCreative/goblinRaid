@@ -122,7 +122,7 @@ int32 UGSEngagementComponent::RelevancePriority(const AActor* Actor)
 	return Priority;
 }
 
-bool UGSEngagementComponent::CanBeAttacked() const
+bool UGSEngagementComponent::CanBeAttacked(bool bRecoilCountsAsOpening) const
 {
 	const AActor* Owner = GetOwner();
 	if (!IsValid(Owner))
@@ -139,11 +139,18 @@ bool UGSEngagementComponent::CanBeAttacked() const
 		return true;
 	}
 
-	// The four states in which piling on is not a fight, it is a deletion.
-	return !ASC->HasMatchingGameplayTag(GSTags::State_Dead)
-		&& !ASC->HasMatchingGameplayTag(GSTags::State_HitReact)
-		&& !ASC->HasMatchingGameplayTag(GSTags::State_GuardBroken)
-		&& !ASC->HasMatchingGameplayTag(GSTags::State_Recoil);
+	// The three states in which piling on is not a fight, it is a deletion. These veto absolutely.
+	if (ASC->HasMatchingGameplayTag(GSTags::State_Dead)
+		|| ASC->HasMatchingGameplayTag(GSTags::State_HitReact)
+		|| ASC->HasMatchingGameplayTag(GSTags::State_GuardBroken))
+	{
+		return false;
+	}
+
+	// Recoil is the fourth, and the odd one out: it is a punishable OPENING, not a mercy (#087).
+	// Only the melee punish passes true here; token acquisition and everyone else still treat it as
+	// a veto, so a recoiling target cannot attract a fresh crowd mid-window.
+	return bRecoilCountsAsOpening || !ASC->HasMatchingGameplayTag(GSTags::State_Recoil);
 }
 
 int32 UGSEngagementComponent::GetReservedWeight() const

@@ -103,6 +103,19 @@ AGSCharacterBase* UBTService_AcquireTarget::FindNearestHostile(const AGSCharacte
 	const FVector SelfLoc = Self.GetActorLocation();
 	const float AcquireRadiusSq = AcquireRadius * AcquireRadius;
 
+	// The incumbent is admitted out to LoseRadius, everyone else only to AcquireRadius. Without the
+	// distinction the hysteresis band did not exist: the caller's keep-or-drop test correctly kept a
+	// target out to LoseRadius (2000), then this scan rejected it at AcquireRadius (1500), returned
+	// null, and the caller cleared the very target it had just ruled legal. A goblin stepping from
+	// 1400uu to 1600uu was dropped within one ReacquireIntervalSeconds and the defender fell to its
+	// idle branch - so both the documented band and the TargetSwitchHysteresis discount below were
+	// dead beyond 1500uu, which is precisely where they were supposed to start working.
+	//
+	// Acquire < Lose is the invariant that makes this hysteresis rather than a wobble. Guard it here
+	// rather than trusting the two EditAnywhere dials to stay in order.
+	const float EffectiveLoseRadius = FMath::Max(LoseRadius, AcquireRadius);
+	const float LoseRadiusSq = EffectiveLoseRadius * EffectiveLoseRadius;
+
 	AGSCharacterBase* Best = nullptr;
 	float BestScoreSq = TNumericLimits<float>::Max();
 
@@ -119,7 +132,8 @@ AGSCharacterBase* UBTService_AcquireTarget::FindNearestHostile(const AGSCharacte
 		}
 
 		const float DistSq = FVector::DistSquared(SelfLoc, Candidate->GetActorLocation());
-		if (DistSq > AcquireRadiusSq)
+		const bool bIsIncumbent = (Candidate == CurrentTarget);
+		if (DistSq > (bIsIncumbent ? LoseRadiusSq : AcquireRadiusSq))
 		{
 			continue;
 		}
@@ -140,7 +154,7 @@ AGSCharacterBase* UBTService_AcquireTarget::FindNearestHostile(const AGSCharacte
 		// Hysteresis, applied as a discount on the INCUMBENT rather than a penalty on challengers,
 		// so the comparison stays a single sorted scan. Squared because the whole scan is.
 		float ScoreSq = DistSq;
-		if (Candidate == CurrentTarget)
+		if (bIsIncumbent)
 		{
 			ScoreSq *= (TargetSwitchHysteresis * TargetSwitchHysteresis);
 		}
@@ -180,8 +194,11 @@ void UBTService_AcquireTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
 		// otherwise the hysteresis discount above would keep defending an unreachable incumbent.
 		if (Target)
 		{
+			// Same clamp FindNearestHostile applies, so the drop test and the rescan cannot disagree
+			// about where the band ends if the two dials are ever authored out of order.
 			const bool bStillLegal = IsEngageable(*Self, Target)
-				&& FVector::Dist(Target->GetActorLocation(), Self->GetActorLocation()) <= LoseRadius;
+				&& FVector::Dist(Target->GetActorLocation(), Self->GetActorLocation())
+					<= FMath::Max(LoseRadius, AcquireRadius);
 
 			if (!bStillLegal)
 			{

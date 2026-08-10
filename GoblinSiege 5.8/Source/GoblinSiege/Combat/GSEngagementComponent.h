@@ -112,9 +112,16 @@ public:
 	 * swing or dead cannot be piled on. One check, applied to every attacker at once - which is the
 	 * difference between a defender stumbling and recovering, and a defender deleted in 0.4s by four
 	 * simultaneous sweeps that all passed their own range checks.
+	 *
+	 * bRecoilCountsAsOpening flips the ONE state in that list that is a reward rather than a mercy.
+	 * A blocked swing leaves the attacker recoiling, and Michael's ruling of 2026-08-08 (#087) is
+	 * that this "opens the attacker up" - so the punish in UBTTask_MeleeAttack passes true and is
+	 * allowed through, while Dead, HitReact and GuardBroken still veto absolutely. Everything else,
+	 * including TryAcquireToken, passes false: no NEW attacker may take a token against a recoiling
+	 * target, so the opening is punished by whoever was already engaged rather than by a fresh crowd.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
-	bool CanBeAttacked() const;
+	bool CanBeAttacked(bool bRecoilCountsAsOpening = false) const;
 
 	/** Weight currently reserved. For GS.Combat.CrowdStats - a cap you cannot observe is a cap you
 	 *  cannot trust. */

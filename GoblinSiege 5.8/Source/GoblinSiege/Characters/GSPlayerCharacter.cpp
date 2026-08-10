@@ -441,9 +441,24 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Jump straight to ACharacter's own handlers. Started/Completed rather than a single pin
 		// because StopJumping is what ends the variable-height hold - bind only Started and every
 		// jump is a full-height jump regardless of how briefly the key was tapped.
-		EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-		EIC->BindAction(JumpAction, ETriggerEvent::Canceled, this, &ACharacter::StopJumping);
+		//
+		// Guarded for the reason the horn comment above gives, which named THIS property as one of
+		// the two that had already shipped unset - and then bound it unguarded three lines later.
+		// BindAction does not assert on a null action in 5.8; it registers a binding that never
+		// resolves, so an unset JumpAction is a dead space bar with no log, no error and nothing to
+		// search for. The warning turns the third occurrence of that bug into a one-line diagnosis.
+		if (JumpAction)
+		{
+			EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+			EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+			EIC->BindAction(JumpAction, ETriggerEvent::Canceled, this, &ACharacter::StopJumping);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GS.Input] JumpAction is unset on %s - the jump key will "
+				"do nothing. Assign IA_Jump on the character Blueprint (see #060, #116)."),
+				*GetNameSafe(this));
+		}
 
 		// Light/heavy attack and the "E" ability are bound by the currently-granted ability set's
 		// own AbilityTask_WaitInputPress/Release (standard GAS pattern), not hardcoded here, so

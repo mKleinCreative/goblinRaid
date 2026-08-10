@@ -69,13 +69,26 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 	}
 
 	// The victim's veto, checked here as well as in the decorator. The decorator reserved a token
-	// possibly several ticks ago; between then and now the target may have started flinching,
-	// had its guard broken, or been left recoiling by a blocked swing. Swinging into any of those
-	// is the stunlock this whole system exists to prevent, and holding a token is not a licence to
-	// ignore the state of the thing you are holding it against.
+	// possibly several ticks ago; between then and now the target may have started flinching or had
+	// its guard broken. Swinging into either is the stunlock this whole system exists to prevent,
+	// and holding a token is not a licence to ignore the state of the thing you are holding it
+	// against.
+	//
+	// EXCEPT when the target is open from a blocked swing. CanBeAttacked() used to refuse on
+	// State.Recoil unconditionally, which made THE PUNISH above unreachable: the two conditions are
+	// exact opposites,
+	// so every path that set bTargetIsOpen then failed here and the reward for reading an attack was
+	// that the attacker became briefly un-hittable. Michael's ruling of 2026-08-08 (#087) is that a
+	// blocked swing "opens the attacker up" - recoil is the opening, not a protection.
+	//
+	// Expressed as a parameter rather than by skipping the check, so Dead, HitReact and GuardBroken
+	// still veto absolutely - a target killed or staggered by someone else DURING its recoil window
+	// is not a free hit. And recoil stays a veto inside TryAcquireToken, so no NEW attacker can take
+	// a token mid-window: the opening is punished by whoever was already engaged, not by a fresh
+	// crowd. The anti-pile-on rule survives intact; only the punish becomes reachable.
 	if (const UGSEngagementComponent* Engagement = Target->FindComponentByClass<UGSEngagementComponent>())
 	{
-		if (!Engagement->CanBeAttacked())
+		if (!Engagement->CanBeAttacked(/*bRecoilCountsAsOpening=*/ bTargetIsOpen))
 		{
 			if (GSAIDebug::IsLogging())
 			{
@@ -84,6 +97,12 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 			}
 			return EBTNodeResult::Failed;
 		}
+	}
+
+	if (bTargetIsOpen && GSAIDebug::IsLogging())
+	{
+		GSAIDebug::Log(Self, FString::Printf(TEXT("PUNISH - %s is recoiling, swinging out of turn"),
+			*GetNameSafe(Target)));
 	}
 
 	if (bFaceTargetBeforeSwing)
