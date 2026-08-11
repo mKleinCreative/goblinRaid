@@ -293,6 +293,8 @@ _Queue is empty. The build gate is OPEN._
 | 126 | done | claude-arena | Arena spawn puts the camera over the void: move the PlayerStart in off the rim |
 | 127 | done | claude-arena | Hill arena: a calibrated slope range for testing melee up and down gradients |
 | 128 | done | claude-animsmooth | Attacking freezes the player: the goblin attack clips hand movement to root motion that contributes nothing |
+| 129 | done | claude-animsplit | Upper-body split for humans: move the attack montages onto the UpperBody slot ABP_Human already has |
+| 130 | done | claude-crowd2 | RETROACTIVE - guards get their swing commitment back after 85 percent made them crowd |
 
 <!-- BOARD:END -->
 
