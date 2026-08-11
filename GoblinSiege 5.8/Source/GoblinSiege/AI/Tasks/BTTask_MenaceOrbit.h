@@ -100,6 +100,34 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0", ClampMax = "2.0"))
 	float FeintSpeedScale = 0.9f;
 
+	// ---- personal space ------------------------------------------------------------------------
+	// These are MARGINS on top of the two bodies, never absolute distances. The absolute-distance
+	// approach is what produced the bug: every spacing number in this system was chosen watching
+	// 52uu goblins, and the 68.6uu guards inherited numbers that never fitted them.
+
+	/**
+	 * Surface daylight guaranteed between an attacker and its victim at rest, on top of both capsule
+	 * radii. 30 gives floors of 150.6 (guard->player), 168.8 (guard->guard), 134.0 (goblin->goblin) -
+	 * every one INSIDE the 180uu station, so the floor and the station never argue. The floor only
+	 * forbids the closer half of OnStationTolerance's band, which is the half that was letting agents
+	 * settle at 120uu inside capsule contact.
+	 *
+	 * This is the dial for how much room "personal space" means. The ceiling before guards start
+	 * standing outside their own sword reach is roughly 65 at the authored sweep sizes.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Personal Space", meta = (ClampMin = "0.0"))
+	float PersonalSpaceMargin = 30.f;
+
+	/** The feint may still close to capsule contact - a real step in - but not through it. 0 is the
+	 *  most aggressive setting that is not clipping. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Personal Space", meta = (ClampMin = "0.0"))
+	float FeintMargin = 0.f;
+
+	/** Depth inside the floor at which the back-off saturates at full StrafeSpeedScale. At the
+	 *  measured 129uu guard-on-guard case the depth is 39.8, so 40 is essentially full push. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Personal Space", meta = (ClampMin = "1.0"))
+	float BackOffFullDepth = 40.f;
+
 	/**
 	 * Beyond this the node FAILS so the Selector falls through to the chase branch.
 	 *

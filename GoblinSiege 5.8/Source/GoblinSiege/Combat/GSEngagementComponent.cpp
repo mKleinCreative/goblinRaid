@@ -3,6 +3,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Characters/GSCharacterBase.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/Character.h"
 #include "Combat/GSGameplayTags.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/Engine.h"
@@ -402,6 +404,56 @@ int32 UGSEngagementComponent::GetEngagedCount() const
 		}
 	}
 	return Count;
+}
+
+void UGSEngagementComponent::GetEngagedActors(TArray<AActor*>& Out) const
+{
+	Out.Reset();
+	for (const TWeakObjectPtr<AActor>& Actor : Engaged)
+	{
+		// Same corpse filter as GetEngagedCount, deliberately - a diagnostic that disagrees with the
+		// count it sits next to is worse than no diagnostic. #106 published a crowding baseline
+		// measured partly on bodies and it took a while to notice.
+		if (!GSIsDeadOrGone(Actor))
+		{
+			Out.Add(Actor.Get());
+		}
+	}
+}
+
+AActor* UGSEngagementComponent::GetSlotClaimant(int32 SlotIndex) const
+{
+	if (!RingSlots.IsValidIndex(SlotIndex))
+	{
+		return nullptr;
+	}
+	const TWeakObjectPtr<AActor>& Claimant = RingSlots[SlotIndex].Claimant;
+	return GSIsDeadOrGone(Claimant) ? nullptr : Claimant.Get();
+}
+
+// ---------------------------------------------------------------------------- body size
+
+float UGSEngagementComponent::GetBodyRadius(const AActor* A)
+{
+	// Scaled, not the raw property: a character scaled up in its Blueprint has a collision radius
+	// larger than CapsuleRadius reports, and spacing derived from the unscaled number would be
+	// exactly as wrong as the hardcoded constants this exists to replace.
+	if (const ACharacter* Char = Cast<ACharacter>(A))
+	{
+		if (const UCapsuleComponent* Capsule = Char->GetCapsuleComponent())
+		{
+			return Capsule->GetScaledCapsuleRadius();
+		}
+	}
+	// Not a character, or a character with no capsule. Zero rather than a guessed default: a caller
+	// adding two radii gets the other body's real size and its own margin, which degrades to
+	// "keep Margin apart" instead of silently spacing on a number nobody chose.
+	return 0.f;
+}
+
+float UGSEngagementComponent::GetMinSeparation(const AActor* A, const AActor* B, float Margin)
+{
+	return GetBodyRadius(A) + GetBodyRadius(B) + FMath::Max(0.f, Margin);
 }
 
 // ---------------------------------------------------------------------------- ring slots

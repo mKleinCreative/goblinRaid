@@ -5,7 +5,25 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "Characters/GSCharacterBase.h"
+#include "Combat/GSEngagementComponent.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
+
+// A/B the floor inside ONE PIE session instead of across two builds. Every crowding ticket before
+// this one compared a memory of yesterday's fight against today's, which is how four of them closed
+// on "the caps hold" while the crowd still looked wrong. 0 makes this file behave exactly as it did
+// before the floor existed, except that the feint still stops at capsule contact.
+static int32 GSPersonalSpace = 1;
+static FAutoConsoleVariableRef CVarGSPersonalSpace(
+	TEXT("GS.Combat.PersonalSpace"),
+	GSPersonalSpace,
+	TEXT("1 = attackers hold a capsule-derived minimum distance from their victim. 0 = pre-#131 behaviour."),
+	ECVF_Cheat);
+
+static bool GSPersonalSpaceEnabled()
+{
+	return GSPersonalSpace > 0;
+}
 
 UBTTask_MenaceOrbit::UBTTask_MenaceOrbit()
 {
@@ -191,10 +209,46 @@ void UBTTask_MenaceOrbit::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 	ToStation.Z = 0.f;
 	const float StationError = ToStation.Size();
 
+	// PERSONAL SPACE. The ring was never the thing that failed: the station is 180uu and the bodies
+	// need 138.8 (guard-to-guard), so the nominal geometry has 41uu of daylight. What failed is that
+	// the on-station test below is UNSIGNED - "within OnStationTolerance of my station" is satisfied
+	// at 180 - 60 = 120uu, which is INSIDE capsule contact for every pair in this game, including
+	// guard-to-player (touch at 120.6). Agents were not overshooting a good target; they were being
+	// told that a bad one was acceptable. Measured in a live duel: closest pair 129uu against 138.8
+	// needed, i.e. interpenetrating, with others at 140/149/178.
+	//
+	// So the floor is per-PAIR and derived from both capsules rather than a constant, because a
+	// constant is what got us here - every distance in this system was tuned on 52uu goblins and the
+	// humans arrived later at 68.6.
+	const float MinDist = UGSEngagementComponent::GetMinSeparation(Self, Target, PersonalSpaceMargin);
+	const float FeintFloor = UGSEngagementComponent::GetMinSeparation(Self, Target, FeintMargin);
+	const float Depth = GSPersonalSpaceEnabled() ? (MinDist - Distance) : -1.f;
+
 	FVector Input;
-	if (bFeinting)
+	if (bFeinting && Distance > FeintFloor)
 	{
+		// Unchanged, except that it now stops at capsule contact instead of driving through it. The
+		// feint is the one motion in this node that deliberately closes, so it gets its own floor
+		// (margin 0) rather than the resting one.
 		Input = Forward * FeintSpeedScale;
+	}
+	else if (Depth > 0.f)
+	{
+		// BACK UP, radially away, tapered by how far inside the boundary we are.
+		//
+		// Tapered rather than a fixed shove because a boolean push at a threshold is how two agents
+		// build a limit cycle: each shoves at full strength, overshoots, re-enters, shoves again.
+		// With the force proportional to depth, both its magnitude AND its derivative go to zero at
+		// the boundary, so this settles against the station's inward spring instead of arguing with
+		// it. The equilibrium is ~2uu inside the floor, where the outward taper equals the shuffle's
+		// inward pull.
+		//
+		// This is Michael's "volume that makes them back up", implemented as a distance test in the
+		// node that already computes Forward and already steers - not as a trigger volume with its
+		// own opinion about where the agent belongs. A second position authority is exactly the bug
+		// #108 was written to kill.
+		const float Gain = FMath::Clamp(Depth / FMath::Max(BackOffFullDepth, 1.f), 0.f, 1.f);
+		Input = -Forward * (StrafeSpeedScale * Gain);
 	}
 	else if (StationError > OnStationTolerance)
 	{

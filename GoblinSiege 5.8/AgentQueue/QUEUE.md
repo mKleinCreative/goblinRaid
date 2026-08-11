@@ -295,6 +295,7 @@ _Queue is empty. The build gate is OPEN._
 | 128 | done | claude-animsmooth | Attacking freezes the player: the goblin attack clips hand movement to root motion that contributes nothing |
 | 129 | done | claude-animsplit | Upper-body split for humans: move the attack montages onto the UpperBody slot ABP_Human already has |
 | 130 | done | claude-crowd2 | RETROACTIVE - guards get their swing commitment back after 85 percent made them crowd |
+| 131 | done | claude-space | Personal space: a capsule-derived minimum-distance floor in the orbit, plus the spatial instrumentation nobody had |
 
 <!-- BOARD:END -->
 

@@ -63,7 +63,16 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 		return EBTNodeResult::Failed;
 	}
 
-	if (FVector::Dist(Target->GetActorLocation(), Self->GetActorLocation()) > AttackRange)
+	// Dist2D, not Dist. A 355uu guard's actor origin sits ~57uu above a 240uu goblin's, and a 3D
+	// distance spends that height out of the same 250uu budget: the real horizontal reach was
+	// sqrt(250^2 - 57.5^2) = 243.3uu against a worst legal resting distance of 240. Three uu of
+	// margin is why "they stand there and never swing" has been intermittent rather than theoretical,
+	// and it gets worse the taller the attacker. Horizontally is the only way this range was ever
+	// meant to be read - the sweep itself has a separate SweepHeightOffset for the vertical.
+	//
+	// The value stays 250. This only ever makes swinging MORE likely, which is what makes the
+	// personal-space floor safe to ship alongside it.
+	if (FVector::Dist2D(Target->GetActorLocation(), Self->GetActorLocation()) > AttackRange)
 	{
 		return EBTNodeResult::Failed;
 	}
@@ -185,7 +194,9 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 		const bool bTargetTurtling = TargetChar && TargetChar->IsBlocking();
 
 		if (bTargetTurtling
-			&& FVector::Dist(Target->GetActorLocation(), Self->GetActorLocation()) <= GuardBreakRange
+			// Dist2D for the same reason as the attack gate above - a height difference should not
+			// eat the guard-break's reach budget. Value unchanged at 200.
+			&& FVector::Dist2D(Target->GetActorLocation(), Self->GetActorLocation()) <= GuardBreakRange
 			&& FMath::FRand() < GuardBreakChance
 			&& Self->TryGuardBreak())
 		{

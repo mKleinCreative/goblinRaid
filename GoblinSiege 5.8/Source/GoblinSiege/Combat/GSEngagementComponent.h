@@ -192,6 +192,42 @@ public:
 	 *  data resolves, so a knight can be worth more attention than a levy without a Blueprint edit. */
 	void ConfigureFromArchetype(int32 InTokenBudget, int32 InMaxEngaged);
 
+	// ------------------------------------------------------------------ who is on me (#131)
+	//
+	// GetEngagedCount / GetAttackerCount answer "how many", which is why #105-#110 could all report
+	// that the caps were holding while the crowd still looked wrong. These answer "WHICH", so
+	// GS.Combat.CrowdStats can say whether a too-close pair is an attacker and its own victim, two
+	// ring-mates on one victim, or two agents not engaged with each other at all. Those three have
+	// three different fixes.
+
+	/** Live claimants only - dead and destroyed holders are filtered, matching every other query. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	void GetEngagedActors(TArray<AActor*>& Out) const;
+
+	/** Who holds ring slot N, or null. Index out of range returns null rather than asserting. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	AActor* GetSlotClaimant(int32 SlotIndex) const;
+
+	// ------------------------------------------------------------------ body size (#131)
+	//
+	// There is no capsule-size accessor anywhere in this module: the sweep height offset, the climb
+	// probe and the sight sampler each read the capsule inline, GSDebugCommands carries two
+	// byte-identical HalfHeightOf lambdas, and GSRaidLibrary hardcodes 42. Spacing has to be a
+	// function of BOTH bodies or it is wrong for every pair except the one it was tuned on - these
+	// distances were tuned on 52uu goblins and the guards arrived later at 68.6.
+	//
+	// Static and taking AActor* deliberately: the callers are BT tasks holding pawns, not
+	// components, and a pawn without a capsule must answer something sane rather than crash.
+
+	/** Scaled capsule radius, or 0 for an actor with no capsule. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	static float GetBodyRadius(const AActor* A);
+
+	/** rA + rB + max(0, Margin): the centre-to-centre distance at which two bodies have Margin of
+	 *  daylight between their surfaces. Margin 0 is exactly capsule contact. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	static float GetMinSeparation(const AActor* A, const AActor* B, float Margin);
+
 protected:
 	virtual void BeginPlay() override;
 

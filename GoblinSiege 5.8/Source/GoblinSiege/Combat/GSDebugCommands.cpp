@@ -512,6 +512,21 @@ static FAutoConsoleCommandWithWorldAndArgs GSCmdSpawnPatrol(
 
 #include "Combat/GSEngagementComponent.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
+
+// Defined below, called from CrowdStats so one command gives both the caps and the distances.
+void GSLogSpacing(UWorld* World);
+
+// The personal-space switch lives as a file-static in BTTask_MenaceOrbit.cpp. Read it back through
+// the console manager rather than exporting a symbol for it: the readout only wants to LABEL which
+// side of the A/B a measurement came from, and that is not worth widening another module's surface.
+// A missing cvar reports OFF rather than asserting, so this cannot break the readout it annotates.
+static bool GSPersonalSpaceIsOn()
+{
+	static IConsoleVariable* CVar =
+		IConsoleManager::Get().FindConsoleVariable(TEXT("GS.Combat.PersonalSpace"));
+	return CVar && CVar->GetInt() > 0;
+}
 
 static FAutoConsoleCommandWithWorld GSCombatCrowdStatsCmd(
 	TEXT("GS.Combat.CrowdStats"),
@@ -581,4 +596,305 @@ static FAutoConsoleCommandWithWorld GSCombatCrowdStatsCmd(
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Cyan, Summary);
 			}
+
+			GSLogSpacing(World);
+		}));
+
+// -------------------------------------------------------------------- GS.Space (#131)
+//
+// CrowdStats above answers "how many", which is why #105 through #110 could all report that the
+// caps were holding while the crowd still looked wrong. Nothing in this project has ever printed a
+// DISTANCE, so "they clip into each other" has never had a number attached to it and every fix was
+// judged by memory of yesterday's fight.
+//
+// The two load-bearing columns are `same` and `role`. A pair standing 129uu apart has three
+// different causes with three different fixes: an attacker and its own victim (the #131 floor),
+// two ring-mates on one victim (ring geometry), or two agents engaged with different victims
+// (nothing in the codebase governs it). Printing the distance without the relationship would leave
+// the same guessing game one decimal place better off.
+
+static const TCHAR* GSPairRole(const AGSCharacterBase* A, const AGSCharacterBase* B, bool& bOutSameVictim)
+{
+	bOutSameVictim = false;
+
+	// Is one the other's victim? Engagement lives on the VICTIM, listing its attackers.
+	TArray<AActor*> Engaged;
+	if (const UGSEngagementComponent* EA = A->GetEngagement())
+	{
+		EA->GetEngagedActors(Engaged);
+		if (Engaged.Contains(const_cast<AGSCharacterBase*>(B)))
+		{
+			return TEXT("victim");    // B is attacking A
+		}
+	}
+	if (const UGSEngagementComponent* EB = B->GetEngagement())
+	{
+		EB->GetEngagedActors(Engaged);
+		if (Engaged.Contains(const_cast<AGSCharacterBase*>(A)))
+		{
+			return TEXT("victim");    // A is attacking B
+		}
+	}
+
+	// Otherwise: are they queued on the same third party?
+	for (TActorIterator<AGSCharacterBase> It(A->GetWorld()); It; ++It)
+	{
+		const AGSCharacterBase* Third = *It;
+		if (!IsValid(Third) || Third == A || Third == B)
+		{
+			continue;
+		}
+		if (const UGSEngagementComponent* ET = Third->GetEngagement())
+		{
+			ET->GetEngagedActors(Engaged);
+			if (Engaged.Contains(const_cast<AGSCharacterBase*>(A))
+				&& Engaged.Contains(const_cast<AGSCharacterBase*>(B)))
+			{
+				bOutSameVictim = true;
+				return TEXT("ring");
+			}
+		}
+	}
+	return TEXT("cross");   // engaged with different victims, or not engaged at all
+}
+
+void GSLogSpacing(UWorld* World)
+{
+	if (!World)
+	{
+		return;
+	}
+
+	TArray<AGSCharacterBase*> Live;
+	for (TActorIterator<AGSCharacterBase> It(World); It; ++It)
+	{
+		AGSCharacterBase* C = *It;
+		// Corpses excluded. #106 published a crowding baseline measured partly on bodies; a dead
+		// guard lying inside a live one is not a spacing failure.
+		if (IsValid(C) && C->IsAlive())
+		{
+			Live.Add(C);
+		}
+	}
+
+	int32 Rows = 0;
+	int32 Interpenetrating = 0;
+	float WorstClear = TNumericLimits<float>::Max();
+	FString WorstPair;
+
+	for (int32 i = 0; i < Live.Num(); ++i)
+	{
+		for (int32 j = i + 1; j < Live.Num(); ++j)
+		{
+			AGSCharacterBase* A = Live[i];
+			AGSCharacterBase* B = Live[j];
+			const float D = FVector::Dist2D(A->GetActorLocation(), B->GetActorLocation());
+			if (D > 400.f)
+			{
+				continue;   // out of any plausible spacing interest
+			}
+
+			const float RA = UGSEngagementComponent::GetBodyRadius(A);
+			const float RB = UGSEngagementComponent::GetBodyRadius(B);
+			const float Touch = RA + RB;
+			const float Clear = D - Touch;
+
+			bool bSameVictim = false;
+			const TCHAR* Role = GSPairRole(A, B, bSameVictim);
+
+			if (Clear < 0.f)
+			{
+				++Interpenetrating;
+			}
+			if (Clear < WorstClear)
+			{
+				WorstClear = Clear;
+				WorstPair = FString::Printf(TEXT("%s <-> %s"), *A->GetName(), *B->GetName());
+			}
+
+			UE_LOG(LogGSAI, Warning,
+				TEXT("[GS.Space] %-22s(%.0f) %-22s(%.0f) same=%s role=%-6s d2D=%-6.0f touch=%-6.0f clear=%-7.1f%s"),
+				*A->GetName(), RA, *B->GetName(), RB,
+				bSameVictim ? TEXT("Y") : TEXT("N"), Role, D, Touch, Clear,
+				(Clear < 0.f) ? TEXT("  <-- INTERPENETRATING") : TEXT(""));
+			++Rows;
+		}
+	}
+
+	if (Rows == 0)
+	{
+		UE_LOG(LogGSAI, Warning, TEXT("[GS.Space] no pair within 400uu."));
+		return;
+	}
+	UE_LOG(LogGSAI, Warning,
+		TEXT("[GS.Space] %d pair(s) under 400uu, %d interpenetrating, worst clearance %.1fuu (%s)"),
+		Rows, Interpenetrating, WorstClear, *WorstPair);
+}
+
+// ---------------------------------------------------------------- GS.Combat.CrowdWatch (#131)
+//
+// A snapshot cannot catch a transient. Two guards can pass through each other during a lunge and be
+// 200uu apart by the time anyone types a command, which is exactly how "they clip" and "the numbers
+// look fine" coexisted. This samples the same pair set continuously and reports the RUNNING MINIMUM
+// per relationship, so the answer survives the moment it happened in.
+
+namespace GSCrowdWatch
+{
+	struct FBucket
+	{
+		float MinClear = TNumericLimits<float>::Max();
+		int32 Negative = 0;
+		FString WorstPair;
+	};
+
+	static FTimerHandle Handle;
+	static TWeakObjectPtr<UWorld> WatchWorld;
+	static int32 Samples = 0;
+	static int32 SamplesRemaining = 0;
+	static FBucket Victim, Ring, Cross;
+	// Pairs whose surfaces have been overlapping continuously - a momentary brush is not the same
+	// failure as two bodies parked inside each other.
+	static TMap<FString, float> OverlapSince;
+	static float PinnedWorst = 0.f;
+
+	static void Reset()
+	{
+		Samples = 0;
+		Victim = Ring = Cross = FBucket();
+		OverlapSince.Empty();
+		PinnedWorst = 0.f;
+	}
+
+	static void Sample()
+	{
+		UWorld* World = WatchWorld.Get();
+		if (!World)
+		{
+			return;
+		}
+		++Samples;
+		const float Now = World->GetTimeSeconds();
+
+		TArray<AGSCharacterBase*> Live;
+		for (TActorIterator<AGSCharacterBase> It(World); It; ++It)
+		{
+			AGSCharacterBase* C = *It;
+			if (IsValid(C) && C->IsAlive())
+			{
+				Live.Add(C);
+			}
+		}
+
+		TSet<FString> OverlappingNow;
+		for (int32 i = 0; i < Live.Num(); ++i)
+		{
+			for (int32 j = i + 1; j < Live.Num(); ++j)
+			{
+				AGSCharacterBase* A = Live[i];
+				AGSCharacterBase* B = Live[j];
+				const float D = FVector::Dist2D(A->GetActorLocation(), B->GetActorLocation());
+				if (D > 400.f)
+				{
+					continue;
+				}
+				const float Clear = D - UGSEngagementComponent::GetMinSeparation(A, B, 0.f);
+
+				bool bSame = false;
+				const FString Role = GSPairRole(A, B, bSame);
+				FBucket& Bucket = (Role == TEXT("victim")) ? Victim
+					: (Role == TEXT("ring") ? Ring : Cross);
+				if (Clear < Bucket.MinClear)
+				{
+					Bucket.MinClear = Clear;
+					Bucket.WorstPair = FString::Printf(TEXT("%s<->%s"), *A->GetName(), *B->GetName());
+				}
+				if (Clear < 0.f)
+				{
+					++Bucket.Negative;
+					const FString Key = FString::Printf(TEXT("%s|%s"), *A->GetName(), *B->GetName());
+					OverlappingNow.Add(Key);
+					const float* Since = OverlapSince.Find(Key);
+					if (!Since)
+					{
+						OverlapSince.Add(Key, Now);
+					}
+					else
+					{
+						PinnedWorst = FMath::Max(PinnedWorst, Now - *Since);
+					}
+				}
+			}
+		}
+		// Anything that stopped overlapping resets its clock, so "pinned" means continuously stuck.
+		for (auto It = OverlapSince.CreateIterator(); It; ++It)
+		{
+			if (!OverlappingNow.Contains(It.Key()))
+			{
+				It.RemoveCurrent();
+			}
+		}
+
+		if (--SamplesRemaining <= 0)
+		{
+			World->GetTimerManager().ClearTimer(Handle);
+
+			auto Report = [](const TCHAR* Name, const FBucket& B)
+			{
+				if (B.MinClear == TNumericLimits<float>::Max())
+				{
+					UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch]   %-8s no pairs observed"), Name);
+					return;
+				}
+				UE_LOG(LogGSAI, Warning,
+					TEXT("[GS.Watch]   %-8s min clearance %-8.1f negative samples %-5d worst %s%s"),
+					Name, B.MinClear, B.Negative, *B.WorstPair,
+					(B.MinClear < 0.f) ? TEXT("  <-- INTERPENETRATED") : TEXT(""));
+			};
+
+			UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch] %d samples. PersonalSpace=%s"),
+				Samples, GSPersonalSpaceIsOn() ? TEXT("ON") : TEXT("OFF"));
+			Report(TEXT("victim"), Victim);
+			Report(TEXT("ring"), Ring);
+			Report(TEXT("cross"), Cross);
+			UE_LOG(LogGSAI, Warning,
+				TEXT("[GS.Watch] longest continuous overlap %.2fs %s"),
+				PinnedWorst, (PinnedWorst > 2.f) ? TEXT("<-- PINNED PAIR") : TEXT(""));
+
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Yellow,
+					FString::Printf(TEXT("CrowdWatch: victim min %.0f  ring min %.0f  cross min %.0f  pinned %.1fs"),
+						Victim.MinClear, Ring.MinClear, Cross.MinClear, PinnedWorst));
+			}
+		}
+	}
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GSCombatCrowdWatchCmd(
+	TEXT("GS.Combat.CrowdWatch"),
+	TEXT("GS.Combat.CrowdWatch [seconds=20] [hz=20] - sample pairwise spacing for a while and report "
+		 "the running MINIMUM clearance per relationship (victim / ring / cross). A snapshot misses "
+		 "transients; this does not."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* InWorld)
+		{
+			UWorld* World = GSHordeGameWorld(InWorld);
+			if (!World)
+			{
+				UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch] no game world - are you in PIE?"));
+				return;
+			}
+			const float Seconds = (Args.Num() > 0) ? FMath::Clamp(FCString::Atof(*Args[0]), 1.f, 120.f) : 20.f;
+			const float Hz = (Args.Num() > 1) ? FMath::Clamp(FCString::Atof(*Args[1]), 1.f, 60.f) : 20.f;
+
+			GSCrowdWatch::Reset();
+			GSCrowdWatch::WatchWorld = World;
+			GSCrowdWatch::SamplesRemaining = FMath::Max(1, FMath::RoundToInt(Seconds * Hz));
+
+			World->GetTimerManager().ClearTimer(GSCrowdWatch::Handle);
+			World->GetTimerManager().SetTimer(GSCrowdWatch::Handle,
+				FTimerDelegate::CreateStatic(&GSCrowdWatch::Sample), 1.f / Hz, true);
+
+			UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch] sampling %.0fs at %.0fHz (%d samples)..."),
+				Seconds, Hz, GSCrowdWatch::SamplesRemaining);
 		}));
