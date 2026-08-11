@@ -292,6 +292,7 @@ _Queue is empty. The build gate is OPEN._
 | 125 | done | claude-animsmooth | Light swings keep 85 percent of your speed so an archer can actually be chased down |
 | 126 | done | claude-arena | Arena spawn puts the camera over the void: move the PlayerStart in off the rim |
 | 127 | done | claude-arena | Hill arena: a calibrated slope range for testing melee up and down gradients |
+| 128 | done | claude-animsmooth | Attacking freezes the player: the goblin attack clips hand movement to root motion that contributes nothing |
 
 <!-- BOARD:END -->
 
