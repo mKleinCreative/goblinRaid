@@ -287,6 +287,10 @@ _Queue is empty. The build gate is OPEN._
 | 120 | done | claude-wrapup | GS.Combat.Debug must not default to on, and record the three-in-a-row unwatched-fix failure in AGENT_STATE |
 | 121 | done | claude-animsmooth | Animation smoothness pass 1: swings play at real speed, with press-to-contact timings rescaled to match |
 | 122 | done | claude-input2 | Right mouse blocks when the sword is out; retire G |
+| 123 | done | claude-animsmooth | Animation pass 2a: lengthen the outlier montage blends so flinches stop cutting in |
+| 124 | done | claude-animsmooth | Animation pass 2b: the melee facing snap turns 120 degrees in one frame |
+| 125 | done | claude-animsmooth | Light swings keep 85 percent of your speed so an archer can actually be chased down |
+| 126 | done | claude-arena | Arena spawn puts the camera over the void: move the PlayerStart in off the rim |
 
 <!-- BOARD:END -->
 

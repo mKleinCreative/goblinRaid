@@ -15,6 +15,11 @@ struct FGSMeleeAttackMemory
 {
 	float NextAllowedAttackTime = 0.f;
 
+	/** When this node last stepped the facing. The turn is rate-limited against elapsed WALL CLOCK
+	 *  rather than frame delta, because ExecuteTask runs on tree re-activation and not every frame -
+	 *  see the facing block in ExecuteTask. */
+	float LastFacingStepTime = 0.f;
+
 	/** Separate from the swing cooldown so a guard break is a read rather than rotation filler. */
 	float NextAllowedGuardBreakTime = 0.f;
 };

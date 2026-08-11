@@ -125,7 +125,41 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 		// guaranteeing that a badly-facing agent comes round within a tick or two and recovers.
 		const float CurrentYaw = Self->GetActorRotation().Yaw;
 		const float NeededYaw = FMath::FindDeltaAngleDegrees(CurrentYaw, Look.Yaw);
-		const float AppliedYaw = FMath::Clamp(NeededYaw, -MaxFacingSnapDegrees, MaxFacingSnapDegrees);
+
+		// RATE-LIMITED, not snapped. This used to apply MaxFacingSnapDegrees (120) in a single frame
+		// with no time term at all, so a defender whipped up to 120 degrees instantaneously in the
+		// frame before every swing - which is what reads as characters snap-rotating to face. The two
+		// other places that turn a pawn, UBTTask_Block and UBTTask_MenaceOrbit, both step at
+		// TurnRateRadPerSec * DeltaSeconds and look correct; this one was the odd one out.
+		//
+		// Measured against elapsed WALL CLOCK rather than frame delta, deliberately. ExecuteTask runs
+		// when the tree re-activates this node, NOT once per frame, so scaling by DeltaSeconds would
+		// tie the turn speed to how often the tree happens to come back around - and if that is
+		// slower than the frame rate the agent turns in slow motion and may never face its target,
+		// which is the deadlock the comment below was written about. Elapsed time gives the same
+		// degrees-per-second whatever the activation rate.
+		//
+		// MaxFacingSnapDegrees survives as an absolute ceiling per activation: after a long gap the
+		// elapsed term would otherwise permit an arbitrarily large step, which is the snap again.
+		// Now/World are already resolved at the top of ExecuteTask - reuse them rather than asking
+		// the pawn for its world a second time.
+		const float SinceLastStep = (Memory && Memory->LastFacingStepTime > 0.f)
+			? FMath::Clamp(Now - Memory->LastFacingStepTime, 0.f, 0.25f)
+			: 0.f;
+		if (Memory)
+		{
+			Memory->LastFacingStepTime = Now;
+		}
+
+		const float TurnRateDegPerSec = FMath::RadiansToDegrees(
+			FMath::Max(Self->GetTurnRateRadPerSec(), 0.01f));
+		// A first activation has no elapsed time to work with. One frame at 60fps is the smallest
+		// honest step; without it the very first tick would turn by zero and the node would fail
+		// forever against a target standing behind it.
+		const float StepBudgetDeg = FMath::Min(
+			TurnRateDegPerSec * FMath::Max(SinceLastStep, 1.f / 60.f), MaxFacingSnapDegrees);
+
+		const float AppliedYaw = FMath::Clamp(NeededYaw, -StepBudgetDeg, StepBudgetDeg);
 		Self->SetActorRotation(FRotator(0.f, CurrentYaw + AppliedYaw, 0.f));
 
 		if (!FMath::IsNearlyEqual(AppliedYaw, NeededYaw))
