@@ -291,6 +291,7 @@ _Queue is empty. The build gate is OPEN._
 | 124 | done | claude-animsmooth | Animation pass 2b: the melee facing snap turns 120 degrees in one frame |
 | 125 | done | claude-animsmooth | Light swings keep 85 percent of your speed so an archer can actually be chased down |
 | 126 | done | claude-arena | Arena spawn puts the camera over the void: move the PlayerStart in off the rim |
+| 127 | done | claude-arena | Hill arena: a calibrated slope range for testing melee up and down gradients |
 
 <!-- BOARD:END -->
 
