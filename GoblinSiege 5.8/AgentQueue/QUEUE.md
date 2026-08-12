@@ -296,6 +296,7 @@ _Queue is empty. The build gate is OPEN._
 | 129 | done | claude-animsplit | Upper-body split for humans: move the attack montages onto the UpperBody slot ABP_Human already has |
 | 130 | done | claude-crowd2 | RETROACTIVE - guards get their swing commitment back after 85 percent made them crowd |
 | 131 | done | claude-space | Personal space: a capsule-derived minimum-distance floor in the orbit, plus the spatial instrumentation nobody had |
+| 132 | done | claude-space2 | Four attackers at once, and the spacing floor still lets them press in |
 
 <!-- BOARD:END -->
 

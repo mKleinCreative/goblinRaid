@@ -188,9 +188,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Engagement")
 	void ReleaseAll(AActor* Requester);
 
-	/** Applies the archetype's numbers. Called by AGSEnemyCharacter/AGSHordeGoblin after their race
-	 *  data resolves, so a knight can be worth more attention than a levy without a Blueprint edit. */
-	void ConfigureFromArchetype(int32 InTokenBudget, int32 InMaxEngaged);
+	/**
+	 * Override this victim's two caps at construction or spawn time.
+	 *
+	 * Was ConfigureFromArchetype, written for per-archetype race data and never called by anything -
+	 * so the defaults below were the only numbers this system had ever run on. It has a caller now:
+	 * AGSPlayerCharacter holds the OLD budget of 2 while every NPC victim moves to 4 (#132). Renamed
+	 * because "archetype" was a promise about where the numbers come from that the function does not
+	 * keep; it applies whatever it is handed.
+	 */
+	void ConfigureLimits(int32 InTokenBudget, int32 InMaxEngaged);
+
+	/** Live attackers on this victim, NOT counting Ignore. The exclusion is the whole point: an agent
+	 *  asking "is this target already crowded?" is itself usually on the list, and counting itself is
+	 *  how a spread-out rule turns into an agent fleeing its own engagement. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	int32 GetEngagedCountExcluding(const AActor* Ignore) const;
 
 	// ------------------------------------------------------------------ who is on me (#131)
 	//
@@ -231,14 +244,38 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/** Total attack WEIGHT that may be in flight against this actor. See the header. */
+	/**
+	 * Total attack WEIGHT that may be in flight against this actor. See the header.
+	 *
+	 * WAS 2. Michael's call of 2026-08-11: "goblins tend to sit around and not attack, I want to up
+	 * the limit of attacking goblins at a time up to 4 so we don't run into a circle stand still."
+	 * At TokenCost 1 per light swing that is literally four swingers.
+	 *
+	 * THE PLAYER IS EXEMPT, and deliberately so - AGSPlayerCharacter calls ConfigureLimits(2, 3) to
+	 * hold the old numbers. GSCharacterBase.cpp names "FOUR defenders deleting the player in a
+	 * second" as the bug this budget exists to prevent, so raising it to exactly four everywhere
+	 * would have re-enabled a documented failure to fix an unrelated one. The two complaints point
+	 * in opposite directions and get opposite answers: goblins queueing on a militiaman is a
+	 * standstill, four guards on the player is a deletion.
+	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "1"))
-	int32 TokenBudget = 2;
+	int32 TokenBudget = 4;
 
-	/** How many attackers may be assigned at once. Deliberately larger than the token budget: the
-	 *  extra ones are the menace ring, circling and feinting rather than queueing motionless. */
+	/**
+	 * How many attackers may be assigned at once. Deliberately larger than the token budget: the
+	 * extra ones are the menace ring, circling and feinting rather than queueing motionless.
+	 *
+	 * 3 -> 6 alongside the budget, and the ratio matters more than either number. This is the gate
+	 * FindNearestHostile checks, so an agent refused here does not get a menace slot - it gets NO
+	 * TARGET AT ALL and falls to its idle branch. At 3 assigned / 2 swinging there was exactly one
+	 * circler per victim and everyone else was standing in the corner; that is the other half of
+	 * "goblins sit around and not attack", and it was never a token problem.
+	 *
+	 * 6 is RingSlotCount, so every assigned attacker can hold a place on the ring rather than
+	 * overflowing to the hold-outside path on arrival.
+	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "1"))
-	int32 MaxEngagedAttackers = 3;
+	int32 MaxEngagedAttackers = 6;
 
 	/**
 	 * Evenly spaced angular positions. Spacing S = 2*R*sin(pi/N).
@@ -248,17 +285,33 @@ protected:
 	 * of guard capsules, so two guards on adjacent slots are interpenetrating before either has
 	 * moved, and RVO rather than the ring decides where anyone actually stands.
 	 *
-	 * 6 at radius 180 gives S = 2*180*sin(30deg) = 180uu: 41uu of daylight past the worst guard pair,
-	 * and past the 168.5uu that RVO's 1.2 radius expansion asks for. The radius stays 180 on purpose
-	 * - clearance is bought from the slot COUNT because radius is the axis that spends AttackRange
-	 * headroom (RingRadius + arrival tolerance must stay under AttackRange 250), and S responds
-	 * harder to N than to R. 6 slots against MaxEngagedAttackers 3 leaves three spare for churn.
+	 * 6 at radius 200 gives S = 2*200*sin(30deg) = 200uu: 61uu of daylight past the worst guard pair,
+	 * and past the 168.5uu that RVO's 1.2 radius expansion asks for. Clearance is still bought from
+	 * the slot COUNT rather than the radius - S responds harder to N than to R - and 6 slots now
+	 * exactly matches MaxEngagedAttackers, so every assigned attacker has a place to stand.
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "1", ClampMax = "32"))
 	int32 RingSlotCount = 6;
 
+	/**
+	 * 180 -> 200, and this is the one number here that had to be PAID for rather than simply chosen.
+	 *
+	 * The binding constraint is RingRadius + arrival tolerance < BTTask_MeleeAttack's AttackRange
+	 * (250), or agents stand off and never swing. #107 rejected growing the radius twice on exactly
+	 * that ground: it is the axis that spends attack headroom, and it bought nothing at the time.
+	 *
+	 * It buys something now, because #132 cut UBTTask_MenaceOrbit::OnStationTolerance from 60 to 40
+	 * for independent reasons (its justifying comment was measuring a station that has not existed
+	 * since #108). That freed exactly 20uu of the same budget, so 200 + 40 = 240uu is the worst legal
+	 * stand - byte for byte what 180 + 60 was before. The attack gate sees no change at all.
+	 *
+	 * What the 20uu buys: ring spacing 180 -> 200uu, and headroom for PersonalSpaceMargin to rise
+	 * from 30 to 50 without the floor colliding with the station. Michael asked for more personal
+	 * space; at radius 180 the guard-to-guard floor (138.8uu of capsule) left a ceiling of 41 on that
+	 * margin, so this is what made his ask possible rather than a separate opinion about the ring.
+	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "0.0"))
-	float RingRadius = 180.f;
+	float RingRadius = 200.f;
 
 	/** A claimant that is neither on its slot nor closing on it for this long loses it, so an agent
 	 *  stuck on geometry cannot hold a place in the ring for the rest of the fight. Raised 4 -> 6 now
@@ -268,7 +321,7 @@ protected:
 	float SlotClaimTimeoutSeconds = 6.f;
 
 	/** Close enough to the slot to count as standing on it. Must stay under half the slot spacing
-	 *  (90uu at 6 slots x radius 180) or "arrived" could mean "on my neighbour's slot". */
+	 *  (100uu at 6 slots x radius 200) or "arrived" could mean "on my neighbour's slot". */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "0.0"))
 	float SlotArrivedRadius = 70.f;
 

@@ -528,6 +528,19 @@ static bool GSPersonalSpaceIsOn()
 	return CVar && CVar->GetInt() > 0;
 }
 
+// The #132 companion. Two independent switches now shape the numbers this readout prints, and a
+// sample labelled with only one of them cannot be reproduced later: PersonalSpace governs the
+// `victim` bucket (an attacker's floor against its own target) and Separation governs `ring` and
+// `cross` (agent against agent, which nothing steered before). Reading it back through the console
+// manager rather than exporting the file-static from AI/GSAIControllerBase.cpp, for the same reason
+// as above - the readout only wants to LABEL the sample.
+static bool GSSeparationIsOn()
+{
+	static IConsoleVariable* CVar =
+		IConsoleManager::Get().FindConsoleVariable(TEXT("GS.Combat.Separation"));
+	return CVar && CVar->GetInt() > 0;
+}
+
 static FAutoConsoleCommandWithWorld GSCombatCrowdStatsCmd(
 	TEXT("GS.Combat.CrowdStats"),
 	TEXT("Per-victim engagement: attackers assigned, attack weight reserved vs budget, ring slots "
@@ -851,8 +864,10 @@ namespace GSCrowdWatch
 					(B.MinClear < 0.f) ? TEXT("  <-- INTERPENETRATED") : TEXT(""));
 			};
 
-			UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch] %d samples. PersonalSpace=%s"),
-				Samples, GSPersonalSpaceIsOn() ? TEXT("ON") : TEXT("OFF"));
+			UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch] %d samples. PersonalSpace=%s Separation=%s"),
+				Samples,
+				GSPersonalSpaceIsOn() ? TEXT("ON") : TEXT("OFF"),
+				GSSeparationIsOn() ? TEXT("ON") : TEXT("OFF"));
 			Report(TEXT("victim"), Victim);
 			Report(TEXT("ring"), Ring);
 			Report(TEXT("cross"), Cross);

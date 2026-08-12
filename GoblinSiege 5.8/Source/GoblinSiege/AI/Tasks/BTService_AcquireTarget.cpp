@@ -142,6 +142,7 @@ AGSCharacterBase* UBTService_AcquireTarget::FindNearestHostile(const AGSCharacte
 		// conga line pointed the other way, and it is worse for defenders because they are the side
 		// the player watches. An agent already assigned always passes, so nobody drops and
 		// re-acquires in a loop at the cap.
+		int32 CrowdSurplus = 0;
 		if (const UGSEngagementComponent* Engagement =
 				Candidate->FindComponentByClass<UGSEngagementComponent>())
 		{
@@ -149,6 +150,13 @@ AGSCharacterBase* UBTService_AcquireTarget::FindNearestHostile(const AGSCharacte
 			{
 				continue;
 			}
+
+			// SPREAD OUT (#132). How many attackers this candidate already has that are not me. The
+			// exclusion is load-bearing: without it an agent's own registration counts against the
+			// target it is standing on, every incumbent scores itself one attacker worse than a
+			// stranger would, and the whole warband rotates targets on every scan.
+			CrowdSurplus = FMath::Max(0,
+				Engagement->GetEngagedCountExcluding(&Self) - CrowdedAttackerThreshold);
 		}
 
 		// Hysteresis, applied as a discount on the INCUMBENT rather than a penalty on challengers,
@@ -157,6 +165,21 @@ AGSCharacterBase* UBTService_AcquireTarget::FindNearestHostile(const AGSCharacte
 		if (bIsIncumbent)
 		{
 			ScoreSq *= (TargetSwitchHysteresis * TargetSwitchHysteresis);
+		}
+
+		// The crowding penalty, applied to the same score in the same units. Squared for the same
+		// reason the hysteresis is - this scan compares squared distances throughout, so a linear
+		// multiplier applied here would be a square root of the intended effect and the readout
+		// would disagree with the dial's documentation.
+		//
+		// Applied AFTER the incumbent discount, and to incumbents too. That ordering is what makes
+		// this a "go find someone else" rule rather than only a "pick someone else next time" rule:
+		// a goblin that is the fourth man on one militiaman must be able to lose its own target to a
+		// free one, and the hysteresis still means it takes a clearly better option to move it.
+		if (CrowdSurplus > 0 && CrowdedDistancePenalty > 0.f)
+		{
+			const float Penalty = 1.f + CrowdedDistancePenalty * static_cast<float>(CrowdSurplus);
+			ScoreSq *= (Penalty * Penalty);
 		}
 
 		if (ScoreSq < BestScoreSq)

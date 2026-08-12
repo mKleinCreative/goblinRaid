@@ -15,6 +15,7 @@
 #include "Weapons/Abilities/GSGA_TorchToss.h"
 #include "Destruction/GSTorchProjectile.h"
 #include "Combat/GSAimComponent.h"
+#include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
@@ -39,6 +40,19 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	// The player is a goblin, so allied goblins and the horde cannot cut him down by standing too
 	// close. Set here rather than on the Blueprint for the same reason the ability classes are.
 	RaceTag = GSTags::Race_Goblin;
+
+	// THE ONE EXEMPTION FROM THE #132 CROWD LIMITS. Every NPC victim now grants 4 attack tokens to
+	// 6 assigned attackers, because two swingers on a militiaman had a warband standing in a circle
+	// waiting its turn. Pointed at the player those same numbers are the failure GSCharacterBase's
+	// constructor comment names outright - "FOUR defenders deleting the player in a second" - so he
+	// keeps the pre-#132 pair.
+	//
+	// The base class has already run CreateDefaultSubobject by the time this constructor body
+	// executes, so the component exists to be configured. Michael's ruling of 2026-08-11.
+	if (EngagementComponent)
+	{
+		EngagementComponent->ConfigureLimits(/*TokenBudget=*/ 2, /*MaxEngaged=*/ 3);
+	}
 
 	// Respawn must not be refusable. The default handling aborts the spawn on any overlap, and the
 	// thing most likely to be overlapping a PlayerStart is the pack of defenders that just killed

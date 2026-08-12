@@ -130,6 +130,41 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float TargetSwitchHysteresis = 0.75f;
 
+	// ---- spread out (#132) ---------------------------------------------------------------------
+	//
+	// Michael, 2026-08-11: "have goblins do a quick search in their area for other victims if more
+	// than 2 are focusing on a single enemy."
+	//
+	// Expressed as a PREFERENCE, not a second cap. MaxEngagedAttackers is already a hard gate and it
+	// has exactly the failure mode a hard gate has: an agent refused by it gets no target at all and
+	// stands in the corner. A scoring penalty instead means a crowded victim is merely a worse deal
+	// than a lonely one - so the warband fans out across the militia when there is a choice, and
+	// still converges when the crowded man is the last one standing. That difference is the whole
+	// reason this is not just MaxEngagedAttackers = 2.
+	//
+	// It also costs nothing extra to evaluate: FindNearestHostile is already walking every candidate
+	// and already reading each one's engagement component for the capacity gate.
+
+	/** Attackers a victim may already have before it starts looking unattractive. Michael's number.
+	 *  Counted EXCLUDING the agent asking, so an incumbent does not push itself off its own target. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Spread Out", meta = (ClampMin = "0"))
+	int32 CrowdedAttackerThreshold = 2;
+
+	/**
+	 * How much further an agent will walk per surplus attacker, as a fraction of the distance to the
+	 * crowded candidate.
+	 *
+	 * 0.6 means the third attacker treats a mobbed victim as 60% further away than it is, the fourth
+	 * as 120% further, and so on - so a lone militiaman anywhere inside ~1.6x the distance wins. Big
+	 * enough to actually redirect a warband; not so big that the surplus agents run across the map
+	 * past a fight they should be joining.
+	 *
+	 * 0 restores the pre-#132 behaviour (nearest hostile with room, crowding ignored), which is the
+	 * A/B if the fan-out ever reads as the goblins losing interest.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Spread Out", meta = (ClampMin = "0.0"))
+	float CrowdedDistancePenalty = 0.6f;
+
 	/** Seconds between candidate scans. Decoupled from Interval on purpose: the node has to tick
 	 *  fast enough to catch a 0.22s windup, but the O(actors) scan does not need to run that often. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0"))
@@ -150,13 +185,20 @@ protected:
 	 *  identical point, so three of them arrived on the same spot and shoved - capsules block, so
 	 *  they never interpenetrate, but they pile into a single knot and read as one merged blob.
 	 *
-	 *  180 with 8 slots puts adjacent slots 2*180*sin(22.5) = 138uu apart, which is the ~137uu
-	 *  capsule-touch distance ticket #008 measured. The old pairing (30 degrees of jitter at radius
-	 *  170) gave only ~89uu and was recorded there as known-undersized.
+	 *  ONLY REACHED for a target with no engagement component - a practice dummy, a breakable. Every
+	 *  real combatant is positioned by UGSEngagementComponent's claimed ring slot instead, and the
+	 *  block above returns before this is read. It is also the base for the ring-full hold distance
+	 *  (StandoffRadius * 1.8), which is the one path a real combatant can still take.
+	 *
+	 *  180 -> 200 to track RingRadius, which #132 moved for the personal-space margin. The two are not
+	 *  wired together because they answer to different owners - the ring is the component's geometry,
+	 *  this is a fallback lattice - but they should not silently disagree either: a dummy that pulls
+	 *  agents 20uu closer than a militiaman does is a spacing bug that only shows up in the one place
+	 *  nobody tests.
 	 *
 	 *  Keep it under BTTask_MeleeAttack's AttackRange (250) or they stand off and never swing. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0"))
-	float StandoffRadius = 180.f;
+	float StandoffRadius = 200.f;
 
 	/** Number of evenly spaced bearings around the target.
 	 *

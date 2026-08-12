@@ -224,6 +224,30 @@ void UBTTask_MenaceOrbit::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 	const float FeintFloor = UGSEngagementComponent::GetMinSeparation(Self, Target, FeintMargin);
 	const float Depth = GSPersonalSpaceEnabled() ? (MinDist - Distance) : -1.f;
 
+	// LATCHED, with a deadband. #131 fired the back-off exactly while Distance < MinDist, which meant
+	// it switched off at the boundary - the instant the agent reached the place it was trying to
+	// reach, the station's inward spring took over and walked it back in. The measured equilibrium
+	// was ~2uu INSIDE the floor: mathematically a settle, visually a character that never actually
+	// moves away from you.
+	//
+	// Latching to MinDist + BackOffExitMargin means the push has somewhere to finish. That is what
+	// turns "leaning out of contact" into "taking a step back", and it is also what makes the
+	// minimum gain below safe - there is no single threshold left for two agents to chatter across.
+	if (Memory)
+	{
+		if (Depth > 0.f)
+		{
+			Memory->bBackingOff = true;
+		}
+		else if (Memory->bBackingOff && Distance >= MinDist + BackOffExitMargin)
+		{
+			Memory->bBackingOff = false;
+		}
+	}
+	// Without node memory there is nothing to latch in, so fall back to the bare test rather than
+	// backing off forever.
+	const bool bBackingOff = Memory ? (Memory->bBackingOff && GSPersonalSpaceEnabled()) : (Depth > 0.f);
+
 	FVector Input;
 	if (bFeinting && Distance > FeintFloor)
 	{
@@ -232,23 +256,29 @@ void UBTTask_MenaceOrbit::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 		// (margin 0) rather than the resting one.
 		Input = Forward * FeintSpeedScale;
 	}
-	else if (Depth > 0.f)
+	else if (bBackingOff)
 	{
 		// BACK UP, radially away, tapered by how far inside the boundary we are.
 		//
-		// Tapered rather than a fixed shove because a boolean push at a threshold is how two agents
-		// build a limit cycle: each shoves at full strength, overshoots, re-enters, shoves again.
-		// With the force proportional to depth, both its magnitude AND its derivative go to zero at
-		// the boundary, so this settles against the station's inward spring instead of arguing with
-		// it. The equilibrium is ~2uu inside the floor, where the outward taper equals the shuffle's
-		// inward pull.
+		// Still tapered, because a boolean push at a threshold is how two agents build a limit cycle:
+		// each shoves at full strength, overshoots, re-enters, shoves again. What has changed is what
+		// the taper is measured against and where it bottoms out. #131 ran it from full depth to zero
+		// AT the boundary, which made the taper do two jobs - anti-chatter, and "ease off as you
+		// arrive" - and the second job is what made the common case invisible. The latch above owns
+		// anti-chatter now, so the taper only has to shape the approach, and it bottoms out at
+		// BackOffMinScale instead of at nothing.
+		//
+		// Depth is negative once the agent is past the floor and still inside the exit margin, which
+		// is the whole point of the deadband: the clamp holds the gain at the minimum through that
+		// last stretch and the agent walks the step out rather than stalling on the line.
 		//
 		// This is Michael's "volume that makes them back up", implemented as a distance test in the
 		// node that already computes Forward and already steers - not as a trigger volume with its
 		// own opinion about where the agent belongs. A second position authority is exactly the bug
 		// #108 was written to kill.
-		const float Gain = FMath::Clamp(Depth / FMath::Max(BackOffFullDepth, 1.f), 0.f, 1.f);
-		Input = -Forward * (StrafeSpeedScale * Gain);
+		const float Taper = FMath::Clamp(Depth / FMath::Max(BackOffFullDepth, 1.f), 0.f, 1.f);
+		const float Gain = FMath::Max(Taper, BackOffMinScale);
+		Input = -Forward * (BackOffSpeedScale * Gain);
 	}
 	else if (StationError > OnStationTolerance)
 	{

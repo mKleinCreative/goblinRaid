@@ -32,7 +32,7 @@ float UGSEngagementComponent::NowSeconds() const
 	return World ? World->GetTimeSeconds() : 0.f;
 }
 
-void UGSEngagementComponent::ConfigureFromArchetype(int32 InTokenBudget, int32 InMaxEngaged)
+void UGSEngagementComponent::ConfigureLimits(int32 InTokenBudget, int32 InMaxEngaged)
 {
 	if (InTokenBudget > 0)
 	{
@@ -399,6 +399,21 @@ int32 UGSEngagementComponent::GetEngagedCount() const
 		// live gang. The readout said "engaged 3" on four dead guards and that is what sent an
 		// investigation after a freeze that was really just everyone being dead.
 		if (!GSIsDeadOrGone(Actor))
+		{
+			++Count;
+		}
+	}
+	return Count;
+}
+
+int32 UGSEngagementComponent::GetEngagedCountExcluding(const AActor* Ignore) const
+{
+	int32 Count = 0;
+	for (const TWeakObjectPtr<AActor>& Actor : Engaged)
+	{
+		// Same corpse filter as GetEngagedCount - a spread-out rule that counted bodies would send
+		// agents away from a victim nobody live is actually on, which is #106 pointed the other way.
+		if (!GSIsDeadOrGone(Actor) && Actor.Get() != Ignore)
 		{
 			++Count;
 		}
