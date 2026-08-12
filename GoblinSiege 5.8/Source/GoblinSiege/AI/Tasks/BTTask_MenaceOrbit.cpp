@@ -1,6 +1,7 @@
 #include "AI/Tasks/BTTask_MenaceOrbit.h"
 
 #include "AIController.h"
+#include "AI/GSAIControllerBase.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
@@ -160,13 +161,26 @@ void UBTTask_MenaceOrbit::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 	//
 	// TurnRateRadPerSec is the character's own dial, already used for exactly this by UBTTask_Block,
 	// so a goblin turns like a goblin rather than at a rate invented here.
-	const float DesiredYaw = Forward.Rotation().Yaw;
-	const float CurrentYaw = Self->GetActorRotation().Yaw;
-	const float MaxStepDeg = FMath::RadiansToDegrees(FMath::Max(Self->GetTurnRateRadPerSec(), 0.01f))
-		* DeltaSeconds;
-	const float DeltaYaw = FMath::Clamp(FMath::FindDeltaAngleDegrees(CurrentYaw, DesiredYaw),
-		-MaxStepDeg, MaxStepDeg);
-	Self->SetActorRotation(FRotator(0.f, CurrentYaw + DeltaYaw, 0.f));
+	//
+	// SUPERSEDED BY THE CONTROLLER WHEN GS.Combat.FaceTarget IS ON (#133). The rate limit below was
+	// never the whole story: these pawns ship bUseControllerRotationYaw=true, so APawn::FaceRotation
+	// re-assigned the yaw from the control rotation in the same frame this ran, and a carefully
+	// rate-limited turn was overwritten by an un-rate-limited one. AGSAIControllerBase::TickFacing now
+	// aims the control rotation at the target and lets the movement component interpolate, which is
+	// the same intent enforced where it cannot be undone.
+	//
+	// Kept, not deleted, so GS.Combat.FaceTarget 0 is a true pre-#133 comparison - see
+	// AGSAIControllerBase::IsFacingAuthorityEnabled for why that matters more than tidiness here.
+	if (!AGSAIControllerBase::IsFacingAuthorityEnabled())
+	{
+		const float DesiredYaw = Forward.Rotation().Yaw;
+		const float CurrentYaw = Self->GetActorRotation().Yaw;
+		const float MaxStepDeg = FMath::RadiansToDegrees(FMath::Max(Self->GetTurnRateRadPerSec(), 0.01f))
+			* DeltaSeconds;
+		const float DeltaYaw = FMath::Clamp(FMath::FindDeltaAngleDegrees(CurrentYaw, DesiredYaw),
+			-MaxStepDeg, MaxStepDeg);
+		Self->SetActorRotation(FRotator(0.f, CurrentYaw + DeltaYaw, 0.f));
+	}
 
 	// Feint: a committed step in, then back out. Started on a per-agent clock so a ring of waiting
 	// enemies pulses raggedly rather than lunging in unison.

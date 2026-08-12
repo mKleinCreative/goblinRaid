@@ -5,6 +5,7 @@
 #include "Combat/GSRaceDataAsset.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "CollisionQueryParams.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -23,6 +24,23 @@ static FAutoConsoleVariableRef CVarGSSeparation(
 	TEXT("1 = AI agents steer out of each other's capsules. 0 = pre-#132 behaviour (nothing does)."),
 	ECVF_Cheat);
 
+// The facing authority (#133), on the same A/B pattern. 0 restores the pre-#133 behaviour EXACTLY:
+// the controller stops touching focus and rotation mode, and the three BT nodes go back to turning
+// the pawn themselves. That is what makes "the goblins look at their enemy now" checkable in one PIE
+// session instead of against a memory of yesterday's fight.
+static int32 GSFaceTarget = 1;
+static FAutoConsoleVariableRef CVarGSFaceTarget(
+	TEXT("GS.Combat.FaceTarget"),
+	GSFaceTarget,
+	TEXT("1 = the AI controller owns combat facing (SetFocus + interpolated control rotation). "
+	     "0 = pre-#133 behaviour (the BT nodes each set actor rotation and fight FaceRotation)."),
+	ECVF_Cheat);
+
+bool AGSAIControllerBase::IsFacingAuthorityEnabled()
+{
+	return GSFaceTarget > 0;
+}
+
 AGSAIControllerBase::AGSAIControllerBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -38,6 +56,14 @@ AGSAIControllerBase::AGSAIControllerBase(const FObjectInitializer& ObjectInitial
 	// - defenders and the horde both - and because putting it on AGSCharacterBase would have made the
 	// player tick for a steer he must never receive.
 	PrimaryActorTick.bCanEverTick = true;
+
+	// Zeroed explicitly: these are bitfields, and bRotationModeCaptured false is what forces the first
+	// TickFacing to READ the pawn's real values before it changes any of them.
+	bCapturedOrientToMovement = 0;
+	bCapturedUseControllerYaw = 0;
+	bCapturedDesiredRotation = 0;
+	bRotationModeCaptured = 0;
+	bCombatRotationApplied = 0;
 
 	// Null whenever a subclass passed DoNotCreateDefaultSubobject for this name - see the header.
 	// Everything below is guarded on that, including the sense config, which is pointless without
@@ -102,13 +128,159 @@ void AGSAIControllerBase::OnUnPossess()
 	SeparationNeighbours.Reset();
 	NextSeparationScanTime = 0.f;
 
+	// Hand the pawn back in the rotation mode it arrived in. A pawn returned to the horde pool still
+	// carrying bUseControllerDesiredRotation would come back out of the pool turning like an engaged
+	// combatant while idle, and nothing downstream would explain why.
+	if (AGSCharacterBase* Self = Cast<AGSCharacterBase>(GetPawn()))
+	{
+		RestoreDefaultRotationMode(Self);
+	}
+	ClearFocus(EAIFocusPriority::Gameplay);
+	FocusedTarget.Reset();
+	bRotationModeCaptured = false;
+
 	Super::OnUnPossess();
 }
 
 void AGSAIControllerBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	TickFacing();
 	TickSeparation();
+}
+
+void AGSAIControllerBase::TickFacing()
+{
+	AGSCharacterBase* Self = Cast<AGSCharacterBase>(GetPawn());
+	if (!IsValid(Self))
+	{
+		return;
+	}
+
+	// Capture BEFORE the first modification, and only once. Done here rather than in OnPossess because
+	// OnPossess runs before a Blueprint-spawned pawn has necessarily finished applying its CDO, and
+	// these three values are exactly the ones this ticket got wrong by assuming instead of reading.
+	if (!bRotationModeCaptured)
+	{
+		if (const UCharacterMovementComponent* MoveComp = Self->GetCharacterMovement())
+		{
+			bCapturedOrientToMovement = MoveComp->bOrientRotationToMovement ? 1 : 0;
+			bCapturedDesiredRotation = MoveComp->bUseControllerDesiredRotation ? 1 : 0;
+			bCapturedUseControllerYaw = Self->bUseControllerRotationYaw ? 1 : 0;
+			bRotationModeCaptured = true;
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	if (!bFaceTargetEnabled || GSFaceTarget <= 0)
+	{
+		// Switched off mid-session: give the pawn back exactly what it had, once, so the A/B compares
+		// against real pre-#133 behaviour rather than against a half-restored hybrid.
+		if (bCombatRotationApplied)
+		{
+			RestoreDefaultRotationMode(Self);
+			ClearFocus(EAIFocusPriority::Gameplay);
+			FocusedTarget.Reset();
+		}
+		return;
+	}
+
+	// Same key, same read as TickSeparation and every node in the combat tree. Taking it off the
+	// blackboard rather than tracking it here is what stops the facing authority ever disagreeing
+	// with the thing the tree believes it is fighting.
+	AActor* Target = nullptr;
+	if (const UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		Target = Cast<AActor>(BB->GetValueAsObject(TEXT("TargetActor")));
+	}
+
+	// A corpse is not something to stare at, and neither is a dead agent's own last enemy. Same
+	// liveness rule the engagement ledger and the separation scan already apply (#106).
+	const AGSCharacterBase* TargetChar = Cast<AGSCharacterBase>(Target);
+	const bool bEngaged = IsValid(Target) && Self->IsAlive()
+		&& (!TargetChar || TargetChar->IsAlive());
+
+	if (!bEngaged)
+	{
+		if (bCombatRotationApplied)
+		{
+			RestoreDefaultRotationMode(Self);
+			ClearFocus(EAIFocusPriority::Gameplay);
+			FocusedTarget.Reset();
+		}
+		return;
+	}
+
+	// EAIFocusPriority::Gameplay, matching UBTTask_RangedAttack rather than out-ranking it.
+	//
+	// Move priority would have been the tidier-looking choice, and it is the wrong one: path following
+	// sets the MOVE focus to its own goal (AAIController::SetMoveFocus), so a combat focus parked
+	// there would be overwritten by every MoveTo - which is the bug being fixed, reintroduced one
+	// layer down. Gameplay is above Move, so this survives pathing.
+	//
+	// The ticket's open question was whether this fights the archer. It does not: BTTask_RangedAttack
+	// focuses the same blackboard TargetActor at the same priority, so both are asking for the same
+	// actor and whichever writes last writes the same value. The archer additionally wants PITCH
+	// tracked for its arc, which SetFocus gives it and this does not take away.
+	if (FocusedTarget.Get() != Target)
+	{
+		SetFocus(Target, EAIFocusPriority::Gameplay);
+		FocusedTarget = Target;
+	}
+
+	ApplyCombatRotationMode(Self);
+}
+
+void AGSAIControllerBase::ApplyCombatRotationMode(AGSCharacterBase* Self)
+{
+	if (bCombatRotationApplied)
+	{
+		return;
+	}
+
+	UCharacterMovementComponent* MoveComp = Self ? Self->GetCharacterMovement() : nullptr;
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	// bUseControllerRotationYaw OFF and bUseControllerDesiredRotation ON is the whole visual change.
+	//
+	// Both make the pawn follow the control rotation; the difference is that the first ASSIGNS it in
+	// APawn::FaceRotation (an instant snap, no rate, nothing to tune) while the second INTERPOLATES
+	// toward it in UCharacterMovementComponent::PhysicsRotation at RotationRate. Since RotationRate is
+	// already written from AGSCharacterBase::SetTurnRateRadPerSec, the per-archetype turn dial that
+	// #109 and #124 both tried to enforce from inside a BT node starts being enforced by the one
+	// system that actually owns yaw.
+	//
+	// bOrientRotationToMovement is forced off as well. It is already false on both defender CDOs, but
+	// it is TRUE on the player and on anything that inherits the C++ default, and it would otherwise
+	// fight bUseControllerDesiredRotation for the same yaw - two authorities again.
+	MoveComp->bOrientRotationToMovement = false;
+	MoveComp->bUseControllerDesiredRotation = true;
+	Self->bUseControllerRotationYaw = false;
+
+	bCombatRotationApplied = true;
+}
+
+void AGSAIControllerBase::RestoreDefaultRotationMode(AGSCharacterBase* Self)
+{
+	if (!bCombatRotationApplied || !bRotationModeCaptured)
+	{
+		return;
+	}
+
+	if (UCharacterMovementComponent* MoveComp = Self ? Self->GetCharacterMovement() : nullptr)
+	{
+		MoveComp->bOrientRotationToMovement = bCapturedOrientToMovement != 0;
+		MoveComp->bUseControllerDesiredRotation = bCapturedDesiredRotation != 0;
+		Self->bUseControllerRotationYaw = bCapturedUseControllerYaw != 0;
+	}
+
+	bCombatRotationApplied = false;
 }
 
 void AGSAIControllerBase::TickSeparation()

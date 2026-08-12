@@ -157,9 +157,12 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 134 | review | claude-eyes | Eyes sit outside the head on Erika and the Knight: per-character bind pose is discarded by Animation translation retargeting | Content/Characters/Humans/SK_Human_Skeleton.uasset<br>GoblinSiege 5.8/AGENT_STATE.md | none |
+| 135 | review | claude-hordetick | Summoned goblins never face or separate: AGSHordeAIController disables the tick both #132 and #133 rely on | GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeAIController.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeAIController.h | required |
 
-**BUILD GATE: OPEN - and 54 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -297,6 +300,7 @@ _Queue is empty. The build gate is OPEN._
 | 130 | done | claude-crowd2 | RETROACTIVE - guards get their swing commitment back after 85 percent made them crowd |
 | 131 | done | claude-space | Personal space: a capsule-derived minimum-distance floor in the orbit, plus the spatial instrumentation nobody had |
 | 132 | done | claude-space2 | Four attackers at once, and the spacing floor still lets them press in |
+| 133 | done | claude-facing | Combat agents never face their target: one facing authority, plus the directional locomotion to make it read |
 
 <!-- BOARD:END -->
 

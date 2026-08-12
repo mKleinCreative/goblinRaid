@@ -16,9 +16,34 @@ AGSHordeAIController::AGSHordeAIController(const FObjectInitializer& ObjectIniti
 	// built to avoid.
 	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("AIPerceptionComponent")))
 {
-	// No Tick. The old vertical slice ticked to re-issue MoveToLocation at the player; that whole
-	// path is gone, replaced by the BT plus a shared refresh timer.
-	PrimaryActorTick.bCanEverTick = false;
+	// TICKS AGAIN AS OF #135, and the line it replaces was silently disabling two shipped features.
+	//
+	// This used to read `PrimaryActorTick.bCanEverTick = false;` with the note: "No Tick. The old
+	// vertical slice ticked to re-issue MoveToLocation at the player; that whole path is gone,
+	// replaced by the BT plus a shared refresh timer." That reasoning was correct when written and
+	// became wrong the moment the BASE class started doing per-frame work:
+	//
+	//   #132 put its separation steer on AGSAIControllerBase::Tick and its Evaluate claimed "it covers
+	//        the horde too (AGSHordeAIController derives from this)". It never did. Every summoned
+	//        goblin walked through its neighbours for the whole life of that ticket.
+	//   #133 put the combat facing authority on the same Tick. Same silent no-op, which is exactly
+	//        what Michael reported: "the goblins still walk sideways towards an enemy instead of
+	//        facing the proper direction."
+	//
+	// Neither ticket failed to compile, logged anything, or misbehaved in a duel - AGSEnemyCharacter
+	// defenders run AGSAIControllerBase directly and tick fine, so both features looked correct
+	// everywhere except on the one class that turned them off in its constructor.
+	//
+	// The original objection is still respected rather than overruled. It was about a per-frame
+	// SEARCH - re-issuing MoveToLocation, or ten goblins asking the subsystem the same question every
+	// frame (see the header, and GDD §3.4). Neither thing on this tick is that: TickFacing is a
+	// blackboard read plus two bools behind an early-out, and TickSeparation's world query is a
+	// broadphase overlap throttled to 4Hz with the per-frame half looping over at most four cached
+	// pointers. An idle goblin standing in a field costs a switch check.
+	//
+	// If a big raid ever does regress on frame time, `GS.Combat.Separation 0` and
+	// `GS.Combat.FaceTarget 0` isolate the two halves independently without touching this line.
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void AGSHordeAIController::OnPossess(APawn* InPawn)

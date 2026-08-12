@@ -167,6 +167,33 @@ next agent rediscovers it.
 
 ## DECISIONS
 
+- **2026-08-11 (#133): COMBAT FACING HAS EXACTLY ONE AUTHORITY — `AGSAIControllerBase::TickFacing`**
+  (`SetFocus` at `EAIFocusPriority::Gameplay` + `bUseControllerDesiredRotation`), behind
+  `GS.Combat.FaceTarget`. `UBTTask_MenaceOrbit`, `UBTTask_MeleeAttack` and `UBTTask_Block` keep their
+  `SetActorRotation` code **only as the switch-off path** — deleting it would turn
+  `GS.Combat.FaceTarget 0` into #089's deadlock rather than a comparison.
+  - **CORRECTION to a comment repeated across the codebase:** `BTTask_Block.h:121` claims these pawns
+    run `bOrientRotationToMovement` with `bUseControllerRotationYaw` false. **Both are inverted** —
+    `BP_CastleGuard01` and `BP_ErikaArcher` ship `bOrientRotationToMovement=FALSE` /
+    `bUseControllerRotationYaw=TRUE`. That is why the three nodes' rate-limited turns were being
+    overwritten every frame by `APawn::FaceRotation`, and it is probably what #109 and #124 were
+    really chasing. Do not trust that comment where it is repeated.
+  - Priority is `Gameplay`, **not** `Move`: path following parks its own focus at `Move`
+    (`AAIController::SetMoveFocus`), so a combat focus there is overwritten by every MoveTo.
+    `UBTTask_RangedAttack` focuses the same blackboard actor at the same priority, so they agree.
+- **2026-08-11 (#133): the goblin runs a Direction x Speed 2D blendspace; the HUMAN DOES NOT, YET.**
+  `BS_GS_Locomotion_Gob` is wired into `ThirdPerson_AnimBP_Gob` and confirmed good by Michael.
+  `BS_GS_Locomotion_Hu`, `A_HU_Std_RunL`/`RunR` and `HU_Direction` all exist and are correct, but
+  `ABP_Human` is still on its original Idle/Walk/Run state machine — the blendspace player sits in
+  the graph with its Pose output unconnected. **Wiring the human is two connections** (state machine
+  off `Slot 'DefaultSlot'.Source`, blendspace player on), left undone deliberately after two broken
+  passes so it gets its own confirmation.
+  - `ThirdPerson_IdleRun_2D_Gob` is a **`BlendSpace1D`** despite the `_2D_` in its name.
+  - The goblin's `Direction` variable existed for months and **nothing ever set it**.
+- **2026-08-11 (#133, open): `BP_CastleGuard01` has MaxWalkSpeed 1210 against a ~420 uu/s run
+  animation.** A 2.9x mismatch that no blendspace can absorb — a charging guard must foot-slide or
+  play at ~3x rate. Pre-existing and equally true of the single `A_HU_Std_RunF` before #133. It is a
+  speed-vs-animation balance decision for Michael, not a bug.
 - **2026-08-09 (#101): THE HUMANS HAVE NO COMBAT ANIMATIONS, AND UE WILL HAPPILY PLAY A GOBLIN
   MONTAGE ON THEM ANYWAY.** All 36 montages in the project live on `GOB_Scout_v2_Skeleton` under
   `/Game/Characters/ScoutV2/Montages/`; the six human defenders run `SK_Human_Skeleton` with
@@ -438,6 +465,48 @@ below as priority; it is grouped by kind. The first item is the only one anyone 
 
 ## FAILED
 
+- 2026-08-11 **A SUBCLASS CONSTRUCTOR SILENTLY DISABLED TWO SHIPPED FEATURES FOR A WHOLE CLASS OF
+  AGENT** (#135). `AGSHordeAIController` set `PrimaryActorTick.bCanEverTick = false`;
+  `AGSAIControllerBase` sets it true. The subclass runs second, so **#132's separation steer and
+  #133's facing authority never executed on a single horn-summoned goblin** — while both tickets
+  claimed the horde was covered, and #132's Evaluate said so in as many words. Nothing failed loudly:
+  no log, no warning, no compile error, just an absent feature.
+  - **`GS.Combat.Duel` CANNOT SEE THIS CLASS OF BUG**, and it is what every crowd ticket from #105
+    onward has tested with. It re-badges human defender BPs onto `DA_Race_Goblin`, so its "goblins"
+    possess `AGSAIControllerBase` directly and tick normally. **Anything added to
+    `AGSAIControllerBase::Tick` must be exercised on a HORN-SUMMONED goblin** (`GS.Horde.SpawnTest`),
+    not in a duel.
+  - The header's *"the blackboard refresh is a timer, not Tick"* paragraph was read as a blanket ban
+    and implemented as one. It has been rewritten: the real rule is **no per-agent SEARCH on the
+    frame**, which a 4Hz broadphase overlap behind early-outs does not violate.
+- 2026-08-11 **`SK_Human_Skeleton` HAS EVERY BONE ON `Animation` TRANSLATION RETARGETING, AND IT HAS
+  NOW CAUSED TWO SEPARATE VISIBLE BUGS** (#133, #134). That mode takes each bone's translation from
+  the animation and discards the target mesh's own bind pose — which is wrong for this project,
+  because all six human defenders wear `_baked` meshes re-bound from their own per-character
+  skeletons onto that one shared skeleton.
+  - **#133:** importing a Mixamo FBX exported from a differently-proportioned character applied its
+    translations verbatim — measured at exactly **0.600x on every bone**, which telescopes the whole
+    skeleton inward and reads as *"the spine is collapsing inside the body"*. **`import_uniform_scale`
+    does NOT fix it** (it moves only the Hips). Import human animation through `MixamoSource` +
+    `RTG_MixamoToHuman` instead — that measures 1.000x on every limb bone.
+  - **#134:** Erika's and the Knight's eyes were posed from the shared rig's eye bones (0.185 of head
+    height) rather than their own (0.365), so the eyes sat outside the head. The guards were immune
+    only because they have **no eye bones at all**. Fixed by setting `Head`/`LeftEye`/`RightEye`/
+    `HeadTop_End` to `Skeleton` retargeting. **The rest of the skeleton is still `Animation`, so the
+    trap is disarmed only for the head** — the canonical fix (all non-`Hips` bones to `Skeleton`,
+    `Hips` to `AnimationScaled`) is deliberately still outstanding.
+- 2026-08-11 **A BLENDSPACE BUILT FROM PYTHON IS COSMETICALLY PERFECT AND FUNCTIONALLY DEAD UNLESS
+  YOU PASS `notify_mode=ALWAYS`** (#133). `UBlendSpace` generates its grid/triangulation inside
+  `PostEditChangeProperty`; `set_editor_property` was not firing it, so the samples were written and
+  **the blend surface never existed**. Every agent falls through to the reference pose.
+  - This is invisible to every check this project's tooling can perform: the samples read back
+    perfectly, skeletons match, and the AnimBP compiles `BS_UP_TO_DATE`. Use
+    `set_editor_property(name, value, unreal.PropertyAccessChangeNotifyMode.ALWAYS)`.
+  - Two further blendspace traps from the same ticket: a direction axis needs an explicit `+180`
+    column (`wrap_input` does **not** close the convex hull, and an agent moving backward-right falls
+    outside every sample → T-pose), and per-sample `rate_scale` must not be combined with
+    `axis_to_scale_animation` — the working `ThirdPerson_IdleRun_2D_Gob` uses axis scaling alone with
+    every rate at 1.000.
 - 2026-08-10 **THREE FIXES IN A ROW SHIPPED WITHOUT ANYONE WATCHING THEM RUN, AND ALL THREE WERE
   WRONG** (#113, #116, #118). The pattern, not the individual bugs, is the entry worth reading:
   - **#113** set `force_root_lock=True` on 9 human clips to stop attacks popping upward, and closed

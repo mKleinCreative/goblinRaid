@@ -3,6 +3,7 @@
 #include "AIController.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "AI/GSAIControllerBase.h"
 #include "AI/GSAIDebug.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -204,7 +205,11 @@ void UBTTask_Block::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemor
 		return;
 	}
 
-	if (bFaceTargetWhileBlocking)
+	// Skipped entirely when the controller owns yaw (#133): AGSAIControllerBase::TickFacing is already
+	// holding this pawn on its target every frame, including while it stands still to block, which is
+	// the case the header below says nothing else covers. Retained behind the switch so
+	// GS.Combat.FaceTarget 0 reproduces pre-#133 blocking exactly.
+	if (bFaceTargetWhileBlocking && !AGSAIControllerBase::IsFacingAuthorityEnabled())
 	{
 		// Turn at the character's own rate rather than snapping. A snap would guarantee the frontal
 		// arc but also make a blocker track a circling attacker perfectly, which removes flanking

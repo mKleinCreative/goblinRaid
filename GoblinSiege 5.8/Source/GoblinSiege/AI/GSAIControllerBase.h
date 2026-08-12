@@ -40,6 +40,87 @@ public:
 	virtual void OnUnPossess() override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** True when GS.Combat.FaceTarget is on, i.e. when this controller owns yaw for engaged agents.
+	 *
+	 *  The three BT nodes that used to turn the pawn themselves (UBTTask_MenaceOrbit,
+	 *  UBTTask_MeleeAttack, UBTTask_Block) consult this and stand down when it is true, so exactly one
+	 *  thing decides facing - the #108 lesson about two position authorities, applied to rotation.
+	 *
+	 *  They KEEP their old turn code behind the false branch rather than deleting it, deliberately.
+	 *  #131 and #132 both shipped their change behind a switch so the crowd could be compared with and
+	 *  against it inside one PIE session, and AGENT_STATE records three consecutive fixes that were
+	 *  wrong because nobody could do that. Deleting the old path would make GS.Combat.FaceTarget 0 a
+	 *  DEADLOCK rather than a comparison: UBTTask_MeleeAttack refuses to swing until it is facing its
+	 *  target, and #089 records what happens when a node that can refuse stops making progress toward
+	 *  being able to accept - the agent stands at 130uu with zero velocity and never swings, forever. */
+	static bool IsFacingAuthorityEnabled();
+
+protected:
+	// ---- facing authority (#133) -------------------------------------------------------------------
+	//
+	// Michael, 2026-08-11: "Goblins are looking off to the side and not paying visual attention to
+	// enemies right in front of them."
+	//
+	// ---- what was actually wrong, which is NOT what the ticket first wrote down ---------------------
+	// The ticket (quoting BTTask_Block.h:121) said these pawns run bOrientRotationToMovement with
+	// bUseControllerRotationYaw false, so a defender walking somewhere faces its path. Read off the
+	// CDOs, both of those are the wrong way round: BP_CastleGuard01 and BP_ErikaArcher ship
+	// bOrientRotationToMovement=FALSE and bUseControllerRotationYaw=TRUE.
+	//
+	// That inverts the mechanism. bUseControllerRotationYaw makes APawn::FaceRotation assign the
+	// pawn's yaw from the CONTROL rotation every single frame, so the deliberate SetActorRotation in
+	// MenaceOrbit/MeleeAttack/Block was being overwritten in the same frame it ran - and since nothing
+	// in this project ever called SetFocus outside UBTTask_RangedAttack, the control rotation pointed
+	// wherever path following last left it. A defender therefore looked along its last path while
+	// fighting something in front of it, which is exactly the complaint.
+	//
+	// It is also very likely the real cause behind #109 ("MenaceOrbit sets facing instantly, up to 167
+	// degrees in one frame") and #124 ("the melee facing snap turns 120 degrees in one frame"). Both
+	// were fixed by rate-limiting the deliberate turn, which cannot help when the thing undoing that
+	// turn is FaceRotation slamming the yaw to an un-interpolated control rotation. This is offered as
+	// the likely explanation, not a proven one - it is falsifiable by watching a fight with the switch
+	// on and off, which is what the switch is for.
+	//
+	// ---- the fix -----------------------------------------------------------------------------------
+	// Give the control rotation something correct to point at (SetFocus on the blackboard target) and
+	// stop it being applied as an instant snap (bUseControllerDesiredRotation, which INTERPOLATES at
+	// CharacterMovementComponent::RotationRate instead of assigning). RotationRate is already fed from
+	// AGSCharacterBase::SetTurnRateRadPerSec, so a goblin still turns at a goblin's rate and the
+	// per-archetype dial keeps working - nothing new invents a turn speed.
+	//
+	// ---- why the controller, and why not a BT service ----------------------------------------------
+	// Same argument as the separation steer above: it is the one place that ticks for every AI
+	// combatant whatever branch the tree is in, it covers the horde, and it needs no BT asset edited.
+	// Facing is also genuinely controller business - SetFocus and the control rotation live here.
+
+	/** Master switch. Mirrors GS.Combat.Separation and GS.Combat.PersonalSpace so all three of this
+	 *  crowd's dials A/B the same way inside one PIE session. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Facing")
+	bool bFaceTargetEnabled = true;
+
+private:
+	/** Points the control rotation at the blackboard target and lets the movement component
+	 *  interpolate the body round to it; releases both when there is no target. */
+	void TickFacing();
+
+	/** Applied while engaged, restored on disengage and on unpossess. */
+	void ApplyCombatRotationMode(class AGSCharacterBase* Self);
+	void RestoreDefaultRotationMode(class AGSCharacterBase* Self);
+
+	/** Captured from the pawn on possession rather than assumed, because these values come from the
+	 *  Blueprint CDO and differ from the C++ constructor defaults - the exact mistake the ticket's own
+	 *  diagnosis made. Restoring a guessed value would leave a disengaged defender in a rotation mode
+	 *  it never shipped with. */
+	uint8 bCapturedOrientToMovement : 1;
+	uint8 bCapturedUseControllerYaw : 1;
+	uint8 bCapturedDesiredRotation : 1;
+	uint8 bRotationModeCaptured : 1;
+	uint8 bCombatRotationApplied : 1;
+
+	/** The actor this controller currently holds a focus on, so the focus is only re-set when it
+	 *  actually changes rather than every frame. */
+	TWeakObjectPtr<AActor> FocusedTarget;
+
 protected:
 	// ---- separation steering (#132) --------------------------------------------------------------
 	//

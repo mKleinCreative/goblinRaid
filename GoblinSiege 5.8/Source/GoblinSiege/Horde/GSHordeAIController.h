@@ -9,6 +9,19 @@
 // The blackboard refresh is a timer, not Tick. Ten goblins ticking to ask the same subsystem the
 // same question is the cost this design exists to avoid; a shared cadence answers it well enough
 // for a follower, and BT_HordeGoblin re-evaluates on key change rather than on frame.
+//
+// CAREFUL WITH THAT PARAGRAPH - it is about the blackboard refresh, and it is NOT a blanket ban on
+// ticking (#135). Read literally, it was: this class set bCanEverTick = false in its constructor,
+// and when AGSAIControllerBase gained per-frame work the horde silently opted out of it. #132's
+// separation steer and #133's facing authority were both shipped believing they covered the horde,
+// and neither had ever executed on a summoned goblin. Nothing failed loudly - defenders possess
+// AGSAIControllerBase directly and behaved correctly the whole time.
+//
+// The controller ticks now. The rule that survives is the real one: NO PER-AGENT SEARCH on the
+// frame. A broadphase overlap at 4Hz behind early-outs is fine; a world iteration, a subsystem
+// query, or a re-issued MoveTo per goblin per frame is not. If you add work to
+// AGSAIControllerBase::Tick, that is the bar it has to clear - and it now genuinely runs on every
+// summoned goblin, so measure it against ten of them, not one defender.
 #pragma once
 
 #include "CoreMinimal.h"

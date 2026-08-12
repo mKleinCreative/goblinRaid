@@ -59,6 +59,23 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float MaxFacingSnapDegrees = 120.f;
 
+	/** How near to square-on counts as "facing", when the CONTROLLER owns the turn (#133).
+	 *
+	 *  Only consulted while GS.Combat.FaceTarget is on. In that mode this node no longer turns the
+	 *  pawn at all - AGSAIControllerBase::TickFacing does, every frame, whatever branch the tree is in
+	 *  - so all this node still has to decide is whether the body has come round far enough to swing
+	 *  at something rather than past it.
+	 *
+	 *  It needs a TOLERANCE rather than the exact-equality test the old turn-and-check used, and that
+	 *  is not a detail. bUseControllerDesiredRotation interpolates asymptotically toward the control
+	 *  rotation, so the remaining error approaches zero without reaching it, and against a target that
+	 *  is itself moving it never even settles. Demanding exactness would refuse every swing forever -
+	 *  #089's deadlock ("stood next to its target at 130uu with zero velocity and never swung") with a
+	 *  new cause. 25 degrees is inside the swing's own forward trace, so a hit that passes this gate
+	 *  still connects, and it is tight enough that flanking keeps costing the attacker real time. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "1.0", ClampMax = "90.0"))
+	float FacingToleranceDegrees = 25.f;
+
 	// ---- guard break (2026-08-08) ---------------------------------------------------------
 	// Folded into this node rather than given its own BTTask_GuardBreak: it answers the same
 	// question ("what do I do at melee range"), and a separate node would duplicate the range test,

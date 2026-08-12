@@ -1,6 +1,7 @@
 #include "AI/Tasks/BTTask_MeleeAttack.h"
 
 #include "AIController.h"
+#include "AI/GSAIControllerBase.h"
 #include "AI/GSAIDebug.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Combat/GSEngagementComponent.h"
@@ -114,7 +115,31 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 			*GetNameSafe(Target)));
 	}
 
-	if (bFaceTargetBeforeSwing)
+	// THE CONTROLLER TURNS, THIS NODE ONLY JUDGES (#133). When GS.Combat.FaceTarget is on,
+	// AGSAIControllerBase::TickFacing is holding this pawn on its target every frame - including
+	// during the cooldown window, which is the hole the ticket found: the cooldown gate above returns
+	// Failed long before the facing block below, so a defender spent every inter-swing beat with its
+	// facing owned by nothing at all. Turning here as well would be the second authority #108 warns
+	// about, so this branch checks and does not touch the pawn.
+	if (bFaceTargetBeforeSwing && AGSAIControllerBase::IsFacingAuthorityEnabled())
+	{
+		const FRotator Look = UKismetMathLibrary::FindLookAtRotation(
+			Self->GetActorLocation(), Target->GetActorLocation());
+		const float OffBy = FMath::Abs(
+			FMath::FindDeltaAngleDegrees(Self->GetActorRotation().Yaw, Look.Yaw));
+
+		if (OffBy > FacingToleranceDegrees)
+		{
+			if (GSAIDebug::IsLogging())
+			{
+				GSAIDebug::Log(Self, FString::Printf(
+					TEXT("not square on %s yet (%.0f deg off, tol %.0f) - controller is turning"),
+					*GetNameSafe(Target), OffBy, FacingToleranceDegrees));
+			}
+			return EBTNodeResult::Failed;
+		}
+	}
+	else if (bFaceTargetBeforeSwing)
 	{
 		const FRotator Look = UKismetMathLibrary::FindLookAtRotation(
 			Self->GetActorLocation(), Target->GetActorLocation());
