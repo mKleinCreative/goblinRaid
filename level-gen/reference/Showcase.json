@@ -1,0 +1,2962 @@
+{
+ "map": "/Game/DreamscapeSeries/DreamscapeFarmlands/Maps/Showcase",
+ "module_cm": 500.75,
+ "buildings": [
+  {
+   "id": "cluster_14",
+   "piece_count": 141,
+   "origin": [
+    2230.2,
+    -4984.0,
+    10.0
+   ],
+   "pieces": [
+    {
+     "mesh": "SM_House_Wall_5x4_Door_D_03",
+     "rel": [
+      896.1,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Corner_01",
+     "rel": [
+      992.8,
+      4731.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Corner_02",
+     "rel": [
+      1136.8,
+      5266.1,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Corner_Beam",
+     "rel": [
+      1238.3,
+      5013.6,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Corner_02_Front",
+     "rel": [
+      1299.2,
+      5265.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_2_5x4_02",
+     "rel": [
+      1355.1,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Corner_02_SIde",
+     "rel": [
+      1436.8,
+      5236.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_D_02",
+     "rel": [
+      1452.5,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_2_5x4_01",
+     "rel": [
+      1684.8,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_D_01",
+     "rel": [
+      2026.4,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_2_5x4_03",
+     "rel": [
+      2033.1,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_C_03",
+     "rel": [
+      2604.9,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_A_01",
+     "rel": [
+      2604.9,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_C_02",
+     "rel": [
+      3161.4,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_A_02",
+     "rel": [
+      3161.4,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_C_01",
+     "rel": [
+      3735.3,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_A_03",
+     "rel": [
+      3735.3,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Corner_Outer_Standard",
+     "rel": [
+      3958.5,
+      962.5,
+      0.0
+     ],
+     "yaw": -0.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_B_03",
+     "rel": [
+      4342.2,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_A_01",
+     "rel": [
+      4342.2,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Tiling_Base",
+     "rel": [
+      4581.0,
+      967.9,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_02_Corner_Outer",
+     "rel": [
+      4616.6,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Tiling_Half_TopExtended",
+     "rel": [
+      4904.3,
+      636.1,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_B_02",
+     "rel": [
+      4950.9,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_A_02",
+     "rel": [
+      4950.9,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_02_End",
+     "rel": [
+      5192.2,
+      929.3,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_End_TopExtended",
+     "rel": [
+      5200.9,
+      2029.0,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Middle_Tiling_Window_01",
+     "rel": [
+      5367.4,
+      2530.1,
+      0.0
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Tiling_Half_Top",
+     "rel": [
+      5508.3,
+      1283.3,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_B_01",
+     "rel": [
+      5569.9,
+      4115.2,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_A_03",
+     "rel": [
+      5569.9,
+      4717.5,
+      0.0
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Middle_Tiling_Window_02",
+     "rel": [
+      5639.7,
+      2530.1,
+      0.0
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Tiling_Half_Base",
+     "rel": [
+      5649.9,
+      1428.8,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_02_Tiling",
+     "rel": [
+      5697.7,
+      256.8,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Tiling_Top",
+     "rel": [
+      6072.9,
+      1386.8,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Fireplace_Base",
+     "rel": [
+      6291.0,
+      4415.3,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_02_Tiling_Half",
+     "rel": [
+      6351.0,
+      269.0,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_RoofSpike",
+     "rel": [
+      6475.3,
+      4966.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Tiling_TopExtended",
+     "rel": [
+      6592.5,
+      1383.3,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Balcony_01",
+     "rel": [
+      6594.2,
+      4736.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_B_02",
+     "rel": [
+      6624.6,
+      3741.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_01",
+     "rel": [
+      6635.4,
+      3495.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_A_02",
+     "rel": [
+      6654.2,
+      3931.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_A_01",
+     "rel": [
+      6664.4,
+      4158.3,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_02",
+     "rel": [
+      6701.9,
+      3077.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Handrails_Top_01",
+     "rel": [
+      6788.4,
+      2876.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Handrails",
+     "rel": [
+      6823.3,
+      3248.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Handrails_Top_03",
+     "rel": [
+      6871.5,
+      2650.1,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Handrails_Top_05",
+     "rel": [
+      6888.5,
+      2429.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_B_01",
+     "rel": [
+      6981.9,
+      3855.1,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Bar_Main",
+     "rel": [
+      6987.5,
+      4134.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Handrails_Top_02",
+     "rel": [
+      7024.7,
+      2811.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Handrails_Top_04",
+     "rel": [
+      7167.4,
+      2760.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Bar_Corner",
+     "rel": [
+      7275.9,
+      3840.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Bar_End",
+     "rel": [
+      7383.0,
+      4116.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_C_Platform",
+     "rel": [
+      7411.3,
+      2766.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_Platform_01",
+     "rel": [
+      7825.5,
+      2792.7,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Interior_Platform_02",
+     "rel": [
+      7835.7,
+      2499.6,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Pillar_Exterior_02_Straight",
+     "rel": [
+      7836.8,
+      5084.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Pillar_Exterior_01_Straight",
+     "rel": [
+      7848.0,
+      4793.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Pillar_Exterior_02_Basic",
+     "rel": [
+      7967.5,
+      4767.3,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Support_Pillar_01",
+     "rel": [
+      7983.3,
+      5125.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Pillar_Exterior_02_Corner",
+     "rel": [
+      8160.7,
+      4810.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_Overang_Beam",
+     "rel": [
+      8334.3,
+      2720.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Pillar_Exterior_02_Cross",
+     "rel": [
+      8387.7,
+      4807.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Support_Arch_02",
+     "rel": [
+      8706.8,
+      4786.1,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Exterior_Bricks_01",
+     "rel": [
+      8864.5,
+      5068.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Exterior_Wood_01",
+     "rel": [
+      8916.7,
+      4723.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_01",
+     "rel": [
+      9009.6,
+      4018.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Exterior_Bricks_02",
+     "rel": [
+      9089.6,
+      5079.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Exterior_Wood_01_Half",
+     "rel": [
+      9152.0,
+      4741.7,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Stairs_Exterior_Bricks_03",
+     "rel": [
+      9331.2,
+      5094.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Terrace_Floor_Corner",
+     "rel": [
+      9620.5,
+      4600.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Terrace_Floor_Front",
+     "rel": [
+      9624.3,
+      4029.1,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Terrace_Floor_Middle",
+     "rel": [
+      9637.3,
+      3452.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Terrace_Floor_Side",
+     "rel": [
+      9643.9,
+      2844.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Balcony_02",
+     "rel": [
+      7416.4,
+      4717.8,
+      27.4
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_02_WallSide_01",
+     "rel": [
+      2028.8,
+      2789.7,
+      28.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_02_WallTop_01",
+     "rel": [
+      3058.9,
+      2789.7,
+      28.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_Hatch_04",
+     "rel": [
+      8399.5,
+      3347.4,
+      39.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_LargeHatch",
+     "rel": [
+      7814.7,
+      3291.1,
+      42.1
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_Hatch_01",
+     "rel": [
+      8357.0,
+      4018.1,
+      47.3
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_Hatch_02",
+     "rel": [
+      7745.8,
+      4008.4,
+      47.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_Interior_Extension",
+     "rel": [
+      0.0,
+      3944.8,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_Interior_Stairs_01",
+     "rel": [
+      198.6,
+      3944.8,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_Interior_A_01",
+     "rel": [
+      376.2,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_Interior_2_5x4_02",
+     "rel": [
+      743.3,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_E_01",
+     "rel": [
+      913.7,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_Interior_2_5x4_01",
+     "rel": [
+      1163.4,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Door_E_02",
+     "rel": [
+      1470.2,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Interior_Window_B_01",
+     "rel": [
+      1818.5,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_A_01",
+     "rel": [
+      2044.1,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Interior_Door_E_01",
+     "rel": [
+      2485.6,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_A_02",
+     "rel": [
+      2622.6,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Interior_Door_D_01",
+     "rel": [
+      3140.6,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_A_03",
+     "rel": [
+      3179.0,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Interior_Door_C_01",
+     "rel": [
+      3748.8,
+      3272.4,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_B_01",
+     "rel": [
+      3752.9,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_B_02",
+     "rel": [
+      4359.8,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Interior_Door_B_01",
+     "rel": [
+      4403.8,
+      3271.8,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_B_03",
+     "rel": [
+      4968.6,
+      3440.9,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_C_03",
+     "rel": [
+      5099.2,
+      2751.6,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_C_01",
+     "rel": [
+      5587.6,
+      3440.8,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Wall_5x4_Window_C_02",
+     "rel": [
+      5754.2,
+      2751.6,
+      48.7
+     ],
+     "yaw": 180.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallBottom_Extended_01",
+     "rel": [
+      706.7,
+      2076.0,
+      51.6
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallBottom_Extended_02",
+     "rel": [
+      1013.7,
+      2076.0,
+      51.6
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_Beam",
+     "rel": [
+      8306.7,
+      2853.8,
+      54.2
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_Hatch_03",
+     "rel": [
+      9009.2,
+      3438.6,
+      54.3
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Floor_5x4_Overang",
+     "rel": [
+      9027.9,
+      3273.5,
+      60.3
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Platform_Exterior_03",
+     "rel": [
+      8606.0,
+      5091.5,
+      62.2
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Platform_Exterior_01",
+     "rel": [
+      8119.7,
+      5067.9,
+      64.2
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallTop_Extended_02",
+     "rel": [
+      353.8,
+      2465.8,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallTop_Standard_01",
+     "rel": [
+      353.8,
+      2617.8,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallTop_Extended_01",
+     "rel": [
+      715.3,
+      2465.8,
+      66.1
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallTop_Standard_02",
+     "rel": [
+      716.0,
+      2617.8,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallMiddle_A_06",
+     "rel": [
+      1036.2,
+      2500.2,
+      66.1
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallBottom_Standard_01",
+     "rel": [
+      1308.1,
+      2076.0,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallMiddle_A_05",
+     "rel": [
+      1342.7,
+      2500.2,
+      66.1
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallBottom_Standard_02",
+     "rel": [
+      1608.9,
+      2076.0,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallMiddle_A_01",
+     "rel": [
+      1666.8,
+      2076.0,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallMiddle_A_03",
+     "rel": [
+      1666.8,
+      2475.0,
+      66.1
+     ],
+     "yaw": 90.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallMiddle_A_02",
+     "rel": [
+      1957.4,
+      2101.2,
+      66.1
+     ],
+     "yaw": -0.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_WallMiddle_A_04",
+     "rel": [
+      1957.4,
+      2500.2,
+      66.1
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Platform_Exterior_02",
+     "rel": [
+      8352.4,
+      5091.0,
+      84.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Pillar_Exterior_02_StoneBase",
+     "rel": [
+      8536.5,
+      4788.9,
+      90.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Door_A",
+     "rel": [
+      6360.0,
+      5015.2,
+      96.5
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Door_D",
+     "rel": [
+      6364.2,
+      4780.8,
+      99.6
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Door_C",
+     "rel": [
+      6352.0,
+      4894.9,
+      115.9
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Balcony_01_Support_Extension",
+     "rel": [
+      7225.2,
+      4705.6,
+      124.4
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Door_E",
+     "rel": [
+      6359.4,
+      4650.7,
+      133.5
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_End_Base",
+     "rel": [
+      4773.0,
+      1495.8,
+      173.5
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Balcony_01_Support",
+     "rel": [
+      7026.8,
+      4782.3,
+      176.9
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Fireplace_Tiling",
+     "rel": [
+      6291.8,
+      4414.6,
+      219.5
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_End_Top",
+     "rel": [
+      5673.3,
+      1649.0,
+      239.3
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Roof_01_Middle_Tiling_WindowFrame",
+     "rel": [
+      6086.8,
+      1917.1,
+      254.4
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Fireplace_Top",
+     "rel": [
+      6290.3,
+      4413.3,
+      319.2
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Foundation_5x4",
+     "rel": [
+      2743.3,
+      2486.7,
+      319.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Foundation_5x4_Corner",
+     "rel": [
+      3421.0,
+      2490.7,
+      319.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Foundation_5x4_Corner_Extended",
+     "rel": [
+      4057.1,
+      2507.8,
+      319.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Foundation_5x4_Extemded",
+     "rel": [
+      4850.1,
+      2531.1,
+      319.8
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_House_Foundation_2x4",
+     "rel": [
+      2427.8,
+      2550.7,
+      383.6
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cluster_18",
+   "piece_count": 25,
+   "origin": [
+    -5573.7,
+    -2924.1,
+    10.0
+   ],
+   "pieces": [
+    {
+     "mesh": "SM_WellRoof",
+     "rel": [
+      0.0,
+      1134.1,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Well",
+     "rel": [
+      173.5,
+      1317.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_VillageWall_TIling",
+     "rel": [
+      269.7,
+      1146.7,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02_Left",
+     "rel": [
+      313.9,
+      1311.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_VillageWall_End",
+     "rel": [
+      416.7,
+      1133.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02_Right",
+     "rel": [
+      514.1,
+      1325.3,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_TableCloth_02",
+     "rel": [
+      514.5,
+      1110.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StallCover_03",
+     "rel": [
+      570.8,
+      829.6,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      696.1,
+      1305.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_TableCloth_01",
+     "rel": [
+      816.3,
+      1120.8,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StallCover_02",
+     "rel": [
+      820.1,
+      826.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StallCover_01",
+     "rel": [
+      846.6,
+      1152.7,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01_Left",
+     "rel": [
+      868.7,
+      1301.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StairSlabs_Left",
+     "rel": [
+      1041.5,
+      516.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01_Right",
+     "rel": [
+      1053.9,
+      1321.4,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_MarketStallStructure",
+     "rel": [
+      1154.9,
+      1149.9,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Barn",
+     "rel": [
+      1184.3,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.625,
+      1.625,
+      1.625
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      1206.6,
+      1292.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StairSlabs_Mid",
+     "rel": [
+      1291.0,
+      521.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StairSlabs_Right",
+     "rel": [
+      1574.5,
+      518.2,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Chicken_Coop",
+     "rel": [
+      1584.3,
+      1017.4,
+      0.0
+     ],
+     "yaw": -90.0,
+     "pitch": 0.0,
+     "roll": 0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_MarketTable",
+     "rel": [
+      1589.5,
+      1286.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_Chicken_Platform",
+     "rel": [
+      1594.9,
+      1188.5,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_MarketTable_Addon",
+     "rel": [
+      1584.7,
+      1294.8,
+      71.1
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_WaterWheel",
+     "rel": [
+      138.4,
+      676.6,
+      285.2
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cluster_3",
+   "piece_count": 9,
+   "origin": [
+    12800.0,
+    -23300.0,
+    9.7
+   ],
+   "pieces": [
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      300.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      600.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      900.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      1200.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      1500.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      1800.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      2100.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      2400.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cluster_2",
+   "piece_count": 7,
+   "origin": [
+    13100.0,
+    -22350.0,
+    9.7
+   ],
+   "pieces": [
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      300.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      600.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      900.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      1200.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_01",
+     "rel": [
+      1500.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    },
+    {
+     "mesh": "SM_StoneWall_02",
+     "rel": [
+      1800.0,
+      0.0,
+      0.0
+     ],
+     "yaw": 0.0,
+     "pitch": 0.0,
+     "roll": -0.0,
+     "scale": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   ]
+  }
+ ]
+}

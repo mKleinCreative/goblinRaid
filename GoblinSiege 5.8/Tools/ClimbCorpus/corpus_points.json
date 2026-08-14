@@ -1,0 +1,112 @@
+[
+ {
+  "name": "SM_MERGED_House_Small_01",
+  "kind": "house_facade",
+  "wx": 20438.808694095937,
+  "wy": 66921.94921875,
+  "base": -1387.7911987304688,
+  "nx": 0.8660251747109612,
+  "ny": -0.5000003967666915,
+  "hit": "SM_MERGED_House_Small_01"
+ },
+ {
+  "name": "SM_MERGED_House_Small_02",
+  "kind": "house_facade",
+  "wx": 11345.805367747193,
+  "wy": 53473.669921875,
+  "base": -1706.025390625,
+  "nx": -0.939702700151872,
+  "ny": 0.34199244922553623,
+  "hit": "SM_MERGED_House_Small_02"
+ },
+ {
+  "name": "SM_MERGED_House_Small_3",
+  "kind": "house_facade",
+  "wx": 19891.20431889536,
+  "wy": 114896.658203125,
+  "base": 5308.07861328125,
+  "nx": 0.9396842576768788,
+  "ny": -0.3420431199048643,
+  "hit": "SM_MERGED_House_Small_3"
+ },
+ {
+  "name": "SM_MERGED_House_Small_4",
+  "kind": "house_facade",
+  "wx": 6867.901978455611,
+  "wy": 87606.58183659436,
+  "base": 1394.6005859375,
+  "nx": 0.6427918108765797,
+  "ny": -0.766040917882333,
+  "hit": "SM_MERGED_House_Small_4"
+ },
+ {
+  "name": "SM_MERGED_House_Small_03",
+  "kind": "house_facade",
+  "wx": 8925.391858353105,
+  "wy": 74876.68734679955,
+  "base": 1276.9495849609375,
+  "nx": 0.4406922158317519,
+  "ny": -0.8976582706716965,
+  "hit": "SM_MERGED_House_Small_03"
+ },
+ {
+  "name": "SM_MERGED_House_Small_2",
+  "kind": "house_facade",
+  "wx": 10786.260762899263,
+  "wy": 64739.57408530166,
+  "base": -1125.8309936523438,
+  "nx": 0.9659294694797954,
+  "ny": 0.25880544814682893,
+  "hit": "SM_MERGED_House_Small_2"
+ },
+ {
+  "name": "SM_MERGED_House_Small_5",
+  "kind": "house_facade",
+  "wx": -31521.73685084271,
+  "wy": 74172.44106986273,
+  "base": -473.97625732421875,
+  "nx": -0.7660313159690386,
+  "ny": 0.6428032536902275,
+  "hit": "SM_MERGED_House_Small_5"
+ },
+ {
+  "name": "SM_MERGED_House_Medium_01",
+  "kind": "house_facade",
+  "wx": 8041.181602096637,
+  "wy": 70432.44140625,
+  "base": 158.64996337890625,
+  "nx": 0.5000097889541953,
+  "ny": -0.8660197520553333,
+  "hit": "SM_MERGED_House_Medium_01"
+ },
+ {
+  "name": "SM_MERGED_House_Small_04",
+  "kind": "house_facade",
+  "wx": -897.0649953264019,
+  "wy": 59538.181640625,
+  "base": -1730.0,
+  "nx": -0.8660156270039597,
+  "ny": -0.5000169334981953,
+  "hit": "SM_MERGED_House_Small_04"
+ },
+ {
+  "name": "SM_MERGED_House_Small_6",
+  "kind": "house_facade",
+  "wx": -6621.433331413914,
+  "wy": 46093.484378727924,
+  "base": -1276.2412719726562,
+  "nx": 0.9848070553975353,
+  "ny": 0.17365213398987048,
+  "hit": "SM_MERGED_House_Small_6"
+ },
+ {
+  "name": "SM_TreeLog_1",
+  "kind": "tree",
+  "wx": -720.6408049892489,
+  "wy": 57405.37515744836,
+  "base": -1518.028543842095,
+  "nx": -0.8660389806435738,
+  "ny": -0.49997648345281154,
+  "hit": "SM_MERGED_House_Medium_05"
+ }
+]

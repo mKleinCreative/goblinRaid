@@ -1,0 +1,111 @@
+[
+  {
+    "trigger": "FirstSight.Granary",
+    "overlord_bark": "Their whole winter, goblin. Stacked in one shed, in the middle of their village, guarded by men who believe that is clever.",
+    "hud_line": "Granary: burn it — one of the three fires that flares the stones open for extraction. [Q] Torch toss.",
+    "control": "Press Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.1#1",
+      "GDD§2.3#1",
+      "GDD§1#1"
+    ],
+    "_name": "Prompts_01_FirstSightGranary"
+  },
+  {
+    "trigger": "FirstSight.WheatField",
+    "overlord_bark": "Ripe. Proud. Combustible. Put one spark in the rows and let it do the rest of my work for me.",
+    "hud_line": "Wheat field: torch the crop — fire spreads row to row and is the hardest blaze in the hamlet to douse. [Q] Torch toss.",
+    "control": "Press Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.1#1",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_02_FirstSightWheatField"
+  },
+  {
+    "trigger": "FirstSight.Windmill",
+    "overlord_bark": "The turning thing. It grinds their bread and their good opinion of themselves. Set fire to its frame.",
+    "hud_line": "Windmill: any torch on the frame starts Stage 1 — Ablaze, the first half of the raid's biggest burn. [Q] Torch toss.",
+    "control": "Press Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_03_FirstSightWindmill"
+  },
+  {
+    "trigger": "FirstTime.WindmillAblaze",
+    "overlord_bark": "Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window.",
+    "hud_line": "Windmill: Ablaze — needs a window shot; an aimed torch inside catches the grain dust and detonates the mill. [Q] Aim, then throw.",
+    "control": "Aim, then Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_04_FirstTimeWindmillAblaze"
+  },
+  {
+    "trigger": "FirstSight.ForestPatrol",
+    "overlord_bark": "Torchlight in the trees. Their own fire betrays them long before their eyes find you. Bend your knees, goblin.",
+    "hud_line": "Patrol ahead: crouch to break their sightlines — a look must hold about 1.5 seconds to confirm you, and unconfirmed keeps the hamlet QUIET. [Crouch]",
+    "control": "Crouch",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.4#2",
+      "GDD§2.1#1",
+      "GDD§2.6#1"
+    ],
+    "_name": "Prompts_05_FirstSightForestPatrol"
+  },
+  {
+    "trigger": "FirstTime.PatrolOverdue",
+    "overlord_bark": "You left the road empty, goblin. Even fools notice when a fool stops arriving.",
+    "hud_line": "Soft signal filed: a second one while the hamlet is SUSPICIOUS escalates straight to RAID — stay unseen and it decays back to QUIET. [Crouch]",
+    "control": "Crouch",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.6#2",
+      "GDD§2.1#1",
+      "GDD§2.4#2"
+    ],
+    "_name": "Prompts_06_FirstTimePatrolOverdue"
+  },
+  {
+    "trigger": "FirstSight.CivilianUnaware",
+    "overlord_bark": "He has not seen you. In this county that passes for a personality.",
+    "hud_line": "Unaware human: hold from behind for a silent takedown — no shout, no bell, no witness. [Hold E]",
+    "control": "Hold E",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.4#2",
+      "GDD§2.6#2"
+    ],
+    "_name": "Prompts_07_FirstSightCivilianUnaware"
+  },
+  {
+    "trigger": "FirstSight.CivilianBindOption",
+    "overlord_bark": "Do not waste her on a corpse, goblin. A corpse is five points and a shrug. I want them walking.",
+    "hud_line": "Unarmed civilian: hold longer to bind instead — captives rope-chain home and bank permanently at the stones. [Hold E, longer channel]",
+    "control": "Hold E (longer)",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.6#2",
+      "GDD§2.7#3"
+    ],
+    "_name": "Prompts_08_FirstSightCivilianBindOption"
+  },
+  {
+    "trigger": "FirstSight.LivestockPen",
+    "overlord_bark": "Their wealth, goblin. Their wealth has trotters. Take it over your shoulder and let it squeal.",
+    "hud_line": "Pig pen: shoulder a live pig — 40 loot points, banked the instant it reaches the runic site. [Hold E]",
+    "control": "Hold E",
+    "sources": [
+      "GDD§2.7#0",
+      "GDD§2.8#2",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_09_FirstSightLivestockPen"
+  }
+]

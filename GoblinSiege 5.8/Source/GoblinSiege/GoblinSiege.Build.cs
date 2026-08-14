@@ -26,6 +26,25 @@ public class GoblinSiege : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 
+			// Ascent Combat Framework - the AI half (#142, ACF migration Phase 0).
+			//
+			// Michael's ruling 2026-08-12: the project adopts ACF rather than hand-building
+			// parallel systems. The horde's order board in #141 turned out to be a re-implementation
+			// of UACFCommandsManagerComponent + UACFGroupAIComponent::SendCommandToCompanions, and
+			// the patrol director still on AGENT_STATE's NEXT list is UACFAIPatrolComponent.
+			//
+			// Only AIFramework is named. Its own PublicDependencyModuleNames carry the rest
+			// transitively - AscentCombatFramework (AACFCharacter), AscentCoreInterfaces,
+			// AscentTargetingSystem, AscentGASRuntime, ActionsSystem, InventorySystem, AscentTeams,
+			// SmartObjectsModule - so listing them here would be noise that hides which one we
+			// actually reach for.
+			//
+			// PUBLIC rather than private: the migration puts ACF types in our HEADERS
+			// (AGSAIControllerBase : AACFAIController, and later AGSCharacterBase : AACFCharacter),
+			// so every dependent needs the include paths. That is the opposite of the Landscape /
+			// AnimGraphRuntime reasoning below, and deliberately so.
+			"AIFramework",
+
 			// Destruction & FX
 			"GeometryCollectionEngine",
 			"FieldSystemEngine",
@@ -61,7 +80,20 @@ public class GoblinSiege : ModuleRules
 			// live in Engine, so the subsystem's UMeshComponent sweep binds all ~275,000 wheat
 			// instances without ever naming a foliage type. One less module dependency for the same
 			// result.
-			"Landscape"
+			"Landscape",
+
+			// AnimGraphRuntime: GS.Anim.Snapshot reports each pawn's movement Direction, and it must
+			// report the number the ANIM GRAPH sees, not a lookalike. UKismetAnimationLibrary::
+			// CalculateDirection is the exact node both AnimBPs call to drive their blendspace
+			// Direction axis, so calling it here makes the diagnostic agree with the thing being
+			// diagnosed by construction. Re-deriving the maths locally would compile without this
+			// dependency and would be a second implementation of the one value the instrument exists
+			// to report - i.e. an instrument that can drift away from the truth it is checking, which
+			// AGENT_STATE records as worse than no instrument at all ("a lying instrument is worse
+			// than dead code", the climb accumulator that read 0.000 for 1285 ticks).
+			//
+			// PRIVATE for the same reason as Landscape above: named in one .cpp, in no header.
+			"AnimGraphRuntime"
 		});
 
 		// Uncomment if/when Blueprint-exposed async nodes or editor-only utility code is added.

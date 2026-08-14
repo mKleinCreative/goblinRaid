@@ -110,6 +110,32 @@ call_tool(tool_name="GetSkills", toolset_name="ToolsetRegistry.AgentSkillToolset
 hit a non-obvious workflow. Then: read the pack → `discover_python_class` the classes it names → write
 the Python. Don't reload a pack you already loaded this session.
 
+### 3a. ACF's own skills — a SECOND, unrelated skill system
+
+Ascent Combat Framework ships **40 author-written Claude skill packs** of its own, and they have
+nothing to do with the VibeUE/`AgentSkillToolset` mechanism above. They are plain `SKILL.md` files at
+`Plugins/Marketplace/AscentCombatFramework/Resources/Skills/`, and they are **Claude Code project
+skills** — invoke them by name (`acf-core`, `ai-framework`, `collisions-manager`, `anim-blueprints`,
+`character-controller`, `teams`, …), not through `call_tool`.
+
+Claude only discovers skills under `.claude/skills/`, so on a stock install these are invisible.
+**`Tools/Register-ACFSkills.ps1` copies them in** (#150, 2026-08-13). The copies are gitignored
+(`.gitignore:68`) because they are marketplace content and regenerable; the script is versioned.
+**Re-run it after any ACF update**, and note `.claude/skills/.acf-manifest.json` records which plugin
+version the copies came from.
+
+**Read the relevant ACF skill BEFORE reading ACF headers.** Each pack is
+*Understand the assets → Setup → Workflow → Wire to Blueprints → Verify*, and every one ends with a
+**common-failures table** ("AI not attacking player → teams not registered as hostile in
+`UACFTeamManagerComponent`"). This project spent a whole session answering ACF questions by reading
+headers while the author's answers sat unread on disk — that is the mistake this section exists to
+stop repeating.
+
+Two gaps in this install, both worth knowing before you trust a skill's paths: **`/Game/FullSample/`
+is not present** (the sample items, pawns and FX every skill references live there — free from the
+ACF Discord for verified Fab customers), and the **`Docs/*_Wiki.md` files the `ai-framework` skill
+cites do not exist** here; that content is at <https://slimwiki.com/dark-tower-int/acfu/welcome>.
+
 ---
 
 ## 4. Python basics
@@ -208,7 +234,9 @@ When asked to rebuild / relaunch / test, use the project script — not manual `
   or replace a whole object to change one field. Discover the supported setter; if none exists, report
   the gap. (StateTree reparenting: `move_state`, never remove+add.)
 - **Loop prevention.** Track *outcomes*. Never repeat the same call with the same args >2× when output
-  is unchanged; after 2 failed attempts at a goal, stop and report — don't try a 3rd variation.
+  is unchanged. On a *failing check*, the limit is **three passes, then stop and report** — the
+  circuit breaker in `AgentQueue/QUEUE.md` rule 3, which is the authority. (This line used to say
+  "2 failed attempts", contradicting it; the two documents disagreed for months.)
 - **Never** use modal dialogs, `input()`, blocking ops, long `time.sleep()`, or infinite loops.
 - **Full asset paths** (`/Game/Blueprints/BP_Name`). **Colors are 0.0–1.0** (`{"R":1.0,"G":0.5,"B":0.0,"A":1.0}`).
 - **`unreal.EditorLevelLibrary` is deprecated** — use `EditorActorSubsystem` (`get_all_level_actors()`
@@ -245,16 +273,17 @@ cd "D:\goblinRaid\GoblinSiege 5.8"
 & ".\AgentQueue\gsqueue.ps1" buildgate                                     # exit 0 = safe to compile
 ```
 
-Four rules, in full in `AgentQueue/QUEUE.md`:
+**`AgentQueue/QUEUE.md` is the single source for the protocol — read it there, not here.** This
+summary existed in three copies claiming four, five and six rules respectively; they had already
+drifted apart. The headlines only:
 
 1. **Claim the files you intend to write, before you write them.**
-2. **The lower ticket number has right of way.** If an open ticket ahead of you claims your file,
-   you wait for it to close. Work your unblocked files, or go `blocked` and report.
-3. **Report Generate → Evaluate → Refine** in your ticket before handing back. Evaluate is
-   adversarial self-review with evidence; `done` refuses a ticket still holding placeholders.
-4. **Nobody compiles until the queue is empty.** Run `buildgate` before any `Build.bat`,
-   `BuildAndLaunchGame.ps1`, Live Coding, or in-editor Compile. Exit 1 means stop, however ready
-   your own work is. Only the orchestrator triggers the build.
+2. **The lower ticket number has right of way.**
+3. **Report Generate → Evaluate → Refine** before handing back.
+4. **Somebody must have watched it run.** `done` refuses without
+   `observed -Id <n> -What "..." -Scenario "..."`; `-Unobserved "<reason>"` ships it anyway and
+   marks the board. See QUEUE.md rule 3a for why this is a gate and not a suggestion.
+5. **Nobody compiles until the queue is empty.** Run `buildgate` first; exit 1 means stop.
 
 This exists because two agents edited `GSPlayerCharacter.cpp` inside one build window on
 2026-08-04 and the first build described a source tree that no longer existed (`AGENT_STATE.md`,
@@ -382,6 +411,22 @@ builds that should take under a minute. Machine has 32 GB RAM; close browsers du
   reparented `Character` -> `AGSEnemyCharacter` with capsule half-height/radius, mesh relative
   transform, skeletal mesh, anim class and max walk speed all byte-identical afterwards. Re-fetch the
   CDO after `reparent_blueprint` + `compile_blueprint` though - the old pointer is stale.
+- **On FBX-imported material instances, assigning a texture parameter does NOTHING on its own.** The
+  Interchange parent `FBXLegacyPhongSurfaceMaterial` blends each map against a flat colour through a
+  scalar - `DiffuseColorMapWeight`, `NormalMapWeight`, `SpecularColorMapWeight` - which **defaults to
+  0**. An instance with `DiffuseColorMap` correctly set and the weight unset renders as flat white and
+  reads exactly like a missing texture. **Set the matching `*MapWeight` to 1.0.** (Cost most of #099;
+  the texture, the UVs and the mesh were all fine the whole time.)
+- **`unreal.Rotator(a, b, c)` is `(roll, pitch, yaw)`.** `Rotator(0, 180, 0)` is pitch 180, not yaw
+  180 - it stands a placed character on its head. For a yaw, write `Rotator(0, 0, yaw)`. (Confirmed:
+  `unreal.Rotator(1,2,3)` reports `pitch=2 yaw=3 roll=1`.)
+- **"0.0uu from the socket" does NOT prove a weapon is held right way round.** That measures the
+  socket to the component's ORIGIN, and says nothing about which end of the mesh the origin sits at -
+  `GS_Sword`'s pivot is at the hilt but `GS_Sword_Guard`'s is at the **tip**, so the guard gripped
+  the point and still measured 0.0uu (#100). Transform the mesh's two local endpoints
+  (`z=0` and `z=length`) into world space and measure BOTH. A tip-pivot needs a translation of
+  `-(MeshLength * Scale)` along `Rotation.RotateVector(0,0,1)`; rotation alone can never fix it,
+  because the pivot is what sits on the socket.
 
 ## BuildAndLaunchGame.ps1 on this machine
 

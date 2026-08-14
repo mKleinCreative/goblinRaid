@@ -79,6 +79,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Building")
 	int32 GetPieceCount() const { return Pieces.Num(); }
 
+	/** The pieces this building actually adopted. Not a UFUNCTION - TWeakObjectPtr does not cross
+	 *  into Blueprint - but public because a diagnostic that RE-DERIVES the piece set is not a
+	 *  diagnostic of this building. GS.Raid.BuildingStatus used to rebuild it as "anything flammable
+	 *  within a flat 2500 uu of the pivot", which is both the pivot-vs-geometry bug commit 270d107
+	 *  fixed in AdoptPieces and a radius unrelated to this building's AdoptRadius. */
+	const TArray<TWeakObjectPtr<AActor>>& GetPieces() const { return Pieces; }
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Building")
 	int32 GetBurntPieceCount() const { return BurntPieceCount; }
 
@@ -110,12 +117,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Building")
 	bool IsRoofPiece(const AActor* Piece) const;
 
-	/** Walls refuse fire; only windows and roof let it in. */
+	/**
+	 * Walls refuse fire; only the roof and windows let it in.
+	 *
+	 * Always false for a KITBASHED building - it owns a roof actor, so entry is decided by which
+	 * piece was hit, and returning true here would let a torch light a house off its facade.
+	 *
+	 * For a MERGED building it is the roof TEST, because there is no roof actor to hit: true only
+	 * when the point is inside the mesh's footprint and in the top RoofZoneFraction of its bounds.
+	 */
 	virtual bool ContainsWorldLocation(const FVector& WorldLocation) const override;
 
-	/** Deliberately does nothing. A torch that splashes a wall must not light the house - that is
-	 *  the whole ignition rule, and the base class's default is already "an objective owns no
-	 *  ground", so this override exists purely to say the silence is intentional. */
+	/** Lights a MERGED building hit on its roof region. Does nothing for a kitbashed one, whose
+	 *  ContainsWorldLocation is always false - a torch that splashes a wall must not light the
+	 *  house, and that rule stays in one place. */
 	virtual void IgniteAtLocation(const FVector& WorldLocation) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -171,6 +186,28 @@ protected:
 	 *  from above without breaking anything. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
 	TArray<FString> RoofNameFilters;
+
+	/**
+	 * Pieces that are INSIDE the building - interior walls, floors, stairs, ceiling beams.
+	 *
+	 * Michael, 2026-08-06: "I think you're getting caught up and confused on interiors." He was
+	 * right, and it was the whole problem. 28% of the kit is interior, a tavern with many rooms and
+	 * a balcony read as 422 pieces, and the floors sat at different heights - which is what split
+	 * every multi-storey house into one objective per storey.
+	 *
+	 * These are still ADOPTED and still burn, so fire spreads through a building properly. They are
+	 * simply not COUNTED toward completion: a player judges a house by its outside, and burning a
+	 * cellar floor they cannot see should not be what stands between them and the objective.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
+	TArray<FString> InteriorNameFilters;
+
+	/** True if this piece is interior - adopted and flammable, but not scored. */
+	bool IsInteriorPiece(const AActor* Piece) const;
+
+	/** Adopted pieces that are NOT interior: the denominator RecomputeCompletion actually divides by.
+	 *  Exists so the BeginPlay diagnostic and the live score cannot describe different numbers. */
+	int32 CountShellPieces() const;
 
 	/** Substrings a piece's mesh must match to be adopted at all. Empty adopts anything with a
 	 *  static mesh inside the radius, which drags in barrels and market tables. */
@@ -228,10 +265,40 @@ protected:
 	UPROPERTY()
 	TArray<TWeakObjectPtr<UGSFlammableComponent>> PieceFlammables;
 
+	/**
+	 * How much of a MERGED building's height counts as roof.
+	 *
+	 * Only consulted when the building owns no roof actor. A third is the eaves line on this kit's
+	 * houses; lower would let a torch into an upstairs wall, higher would demand a near-vertical drop
+	 * onto the ridge and make the throw feel broken.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning",
+		meta = (ClampMin = "0.05", ClampMax = "0.9"))
+	float RoofZoneFraction = 0.34f;
+
+	/**
+	 * Substrings marking a piece that IS a whole building - walls, roof and windows in one mesh.
+	 *
+	 * Such a piece owns no roof ACTOR, so its roof is the top RoofZoneFraction of its own bounds
+	 * instead. Asked per PIECE, never per building: 14 of this map's merged houses also adopt a stray
+	 * roof tile from a neighbouring shed, and treating the two as exclusive left those houses with no
+	 * way in at all.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
+	TArray<FString> MonolithicNameFilters;
+
+	/** True if this piece is a whole building baked into one mesh - see MonolithicNameFilters. */
+	bool IsMonolithicPiece(const AActor* Piece) const;
+
 	/** Set at adoption, so completion has a stable denominator even as pieces are destroyed. */
 	int32 InitialPieceCount = 0;
 
 	int32 BurntPieceCount = 0;
+
+	/** Warn-once latch for "no shell left to score". A member, not a file-scope static, because this
+	 *  is per-building state on a level-placed actor - unlike the projectile latches in #030/#034,
+	 *  which were members on actors spawned fresh every shot and so could never latch at all. */
+	bool bWarnedNoShell = false;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Alight)
 	bool bAlight = false;

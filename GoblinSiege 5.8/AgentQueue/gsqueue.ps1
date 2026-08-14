@@ -13,13 +13,14 @@
         & ".\AgentQueue\gsqueue.ps1" claim -Agent aim-arc -Title "Arc materials" -Files "Content/UI/WBP_GSPlayerHUD.uasset" -Build
         & ".\AgentQueue\gsqueue.ps1" check -Id 007
         & ".\AgentQueue\gsqueue.ps1" set -Id 007 -Status active
+        & ".\AgentQueue\gsqueue.ps1" observed -Id 007 -What "..." -Scenario "..."
         & ".\AgentQueue\gsqueue.ps1" done -Id 007
         & ".\AgentQueue\gsqueue.ps1" buildgate
 #>
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('list', 'claim', 'check', 'set', 'done', 'buildgate', 'render', 'help')]
+    [ValidateSet('list', 'claim', 'check', 'set', 'observed', 'done', 'buildgate', 'render', 'help')]
     [string]$Command = 'list',
 
     [string]$Id,
@@ -31,7 +32,18 @@ param(
     [switch]$Build,
     [string]$Note,
     [string]$WaitingOn,
-    [double]$StaleHours
+    [double]$StaleHours,
+    [switch]$Reaffirm,
+
+    # ---- the observation gate (#136) ----------------------------------------------------------
+    # What you SAW when the thing ran, and what you ran it in. Two fields rather than one because
+    # "evidence came from the wrong scenario" is this project's most repeated failure and was
+    # invisible in every ticket that committed it: #132 and #133 both tested on GS.Combat.Duel,
+    # which spawns defenders, and neither ever ran on a horn-summoned goblin; #133's blendspace was
+    # signed off from the player pawn, which exercises one of its five direction columns.
+    [string]$What,
+    [string]$Scenario,
+    [string]$Unobserved
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +57,12 @@ $QueueDir  = $PSScriptRoot
 $TicketDir = Join-Path $QueueDir 'tickets'
 $BoardFile = Join-Path $QueueDir 'QUEUE.md'
 $RepoRoot  = (Get-Item -LiteralPath $QueueDir).Parent.Parent.FullName
+# D:\goblinRaid\GoblinSiege 5.8 - the Unreal project, one level below the git root.
+# Both roots are needed because tickets record BOTH conventions and always have: 102 claims are
+# project-relative (Source/..., Content/...) and 24 are repo-relative (tools/..., CLAUDE.md,
+# "GoblinSiege 5.8/..."). Resolving against one root alone silently fails on the other
+# see Resolve-ClaimedPath.
+$ProjRoot  = (Get-Item -LiteralPath $QueueDir).Parent.FullName
 
 # Open = still holds its file claims AND still blocks the build gate.
 # Closed = releases its claims and lets the build through.
@@ -81,6 +99,9 @@ function Read-Ticket {
     $claimed   = ''
     $buildNeed = 'none'
     $waiting   = ''
+    $evaluated = ''
+    $observed  = ''
+    $scenario  = ''
     $fileList  = @()
 
     $inFm    = $false
@@ -109,6 +130,9 @@ function Read-Ticket {
                 'claimed'    { $claimed   = $v }
                 'build'      { $buildNeed = $v.ToLower() }
                 'waiting_on' { $waiting   = $v }
+                'evaluated'  { $evaluated = $v }
+                'observed'   { $observed  = $v }
+                'scenario'   { $scenario  = $v }
             }
         }
     }
@@ -136,6 +160,9 @@ function Read-Ticket {
         Claimed   = $claimed
         Build     = $buildNeed
         WaitingOn = $waiting
+        Evaluated = $evaluated
+        Observed  = $observed
+        Scenario  = $scenario
         Files     = $fileList
         AgeHours  = $ageHours
         IsOpen    = ($OpenStatuses -contains $status)
@@ -170,8 +197,81 @@ function Set-TicketField {
         }
         if ($i -gt 0 -and $lines[$i] -match '^---\s*$') { break }
     }
-    if (-not $hit) { throw "Ticket $Path has no '$Key' field." }
+    if (-not $hit) {
+        # Tickets written before a field existed simply lack it. Insert rather than throw,
+        # so a new field can be added without rewriting every ticket on disk.
+        $out = @()
+        $done = $false
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if (-not $done -and $i -gt 0 -and $lines[$i] -match '^---\s*$') {
+                $out += "$Key`: $Value"
+                $done = $true
+            }
+            $out += $lines[$i]
+        }
+        if (-not $done) { throw "Ticket $Path has no frontmatter to add '$Key' to." }
+        $lines = $out
+    }
     Set-Content -LiteralPath $Path -Value $lines -Encoding UTF8
+}
+
+# When did the agent last stand behind its Generate/Evaluate/Refine? Stamped on the move to
+# `review`. `done` compares each claimed file's mtime against it - see Invoke-Done.
+function Get-EvaluatedAt {
+    param($Ticket)
+    if (-not $Ticket.Evaluated) { return $null }
+    $dt = [datetime]::MinValue
+    if (-not [datetime]::TryParse($Ticket.Evaluated, [ref]$dt)) { return $null }
+    $at = $dt.ToUniversalTime()
+
+    # Legacy minute-precision stamps (yyyy-MM-ddTHH:mmZ, written before seconds were stored) mean
+    # "some time in that minute". Comparing an mtime against the START of the minute flags every
+    # file saved in the same minute as the stamp - which is the NORMAL case, because you save and
+    # then immediately run `set -Status review`. Treat such a stamp as the END of its minute: exact
+    # for the guarantee it can actually make, rather than a tolerance guessed at both ends.
+    if ($Ticket.Evaluated -match '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z$') { $at = $at.AddSeconds(59) }
+    return $at
+}
+
+# Where a claimed path actually lives. Tickets record two conventions (see $ProjRoot), so try the
+# repo root first and the project root second. Repo-first matters: CLAUDE.md exists at BOTH roots,
+# and ticket #010 claims "CLAUDE.md" and "GoblinSiege 5.8/CLAUDE.md" as separate files - repo-first
+# is the order that resolves each to the one its author meant.
+# Returns $null when the path resolves nowhere, which the caller must REPORT rather than skip.
+function Resolve-ClaimedPath {
+    param([string]$Rel)
+    if ([string]::IsNullOrWhiteSpace($Rel)) { return $null }
+    $rel = $Rel -replace '/', '\'
+    foreach ($root in @($RepoRoot, $ProjRoot)) {
+        $full = Join-Path $root $rel
+        if (Test-Path -LiteralPath $full) { return $full }
+    }
+    return $null
+}
+
+# Claimed files written AFTER the Evaluate was stamped. Each one is a reason to re-read it.
+function Get-FilesTouchedSinceEvaluate {
+    param($Ticket)
+    $at = Get-EvaluatedAt -Ticket $Ticket
+    if (-not $at) { return @() }
+    $late = @()
+    foreach ($rel in $Ticket.Files) {
+        $full = Resolve-ClaimedPath -Rel $rel
+        if (-not $full) {
+            # Unresolvable is NOT the same as unchanged. The previous code resolved against the
+            # repo root only, so every "Source/..." claim missed, Test-Path failed, and the check
+            # `continue`d - it passed silently on the majority of claimed files. A guard that
+            # fails open is the exact shape of bug this check was written to catch, so an
+            # unresolvable path is now surfaced instead of swallowed.
+            $late += [pscustomobject]@{ Path = $rel; Modified = $null; Unresolved = $true }
+            continue
+        }
+        $m = (Get-Item -LiteralPath $full).LastWriteTimeUtc
+        if ($m -gt $at) {
+            $late += [pscustomobject]@{ Path = $rel; Modified = $m; Unresolved = $false }
+        }
+    }
+    return @($late)
 }
 
 # ---------------------------------------------------------------- conflicts --
@@ -318,7 +418,14 @@ function Format-Board {
         [void]$sb.AppendLine('| # | status | agent | title |')
         [void]$sb.AppendLine('|---|--------|-------|-------|')
         foreach ($t in $closed) {
-            [void]$sb.AppendLine("| $($t.Id) | $($t.Status) | $($t.Agent) | $($t.Title) |")
+            # A ticket closed without anyone watching it run stays marked, permanently. The point
+            # is not to shame the agent that did it - sometimes the editor is broken and shipping
+            # blind is the right call - it is that the next agent reading this board can see at a
+            # glance which finished work has never actually been seen to work. Before #136 that
+            # was invisible, and #120 is the proof of what invisible costs.
+            $mark = ''
+            if ($t.Observed -like 'UNOBSERVED*') { $mark = ' **UNOBSERVED**' }
+            [void]$sb.AppendLine("| $($t.Id) | $($t.Status)$mark | $($t.Agent) | $($t.Title) |")
         }
         [void]$sb.AppendLine('')
     }
@@ -400,6 +507,9 @@ status: queued
 claimed: $stamp
 build: $buildNeed
 waiting_on:
+evaluated:
+observed:
+scenario:
 files: $fileBlock
 ---
 
@@ -491,6 +601,22 @@ function Invoke-Set {
     $t = Get-TicketById $Id
     if (-not $t) { throw "No ticket #$Id." }
 
+    # `set -Status done` used to write straight to the ticket, skipping every check Invoke-Done
+    # makes: the G/E/R placeholder scan, the "never passed through review" gate, and the late-file
+    # comparison. It was not hypothetical - ticket 028 is on disk as `status: done` with an empty
+    # `evaluated:` and three <!-- REPLACE placeholders still in it, closed without review by
+    # exactly this route. `done` reaches Invoke-Set through $script:DoneChecked, so the checked
+    # path still works and only the bypass is refused.
+    # `abandoned` is deliberately still allowed here: abandoning means you reverted the work, and
+    # demanding a finished Evaluate for it would push agents toward closing as `done` instead.
+    if ($Status -eq 'done' -and -not $script:DoneChecked) {
+        Write-Output "REFUSED - use 'done -Id $($t.Id)', not 'set -Status done'."
+        Write-Output 'set writes the status straight to the ticket and skips every close check:'
+        Write-Output '  the Generate/Evaluate/Refine placeholder scan, the review gate, and the'
+        Write-Output '  late-file comparison. Ticket 028 closed unreviewed through this exact hole.'
+        exit 1
+    }
+
     # -WaitingOn takes a ticket number or plain prose. Setting it alone (no -Status)
     # is legal, so nobody has to hand-edit frontmatter to explain a stall.
     if ($PassedArgs.ContainsKey('WaitingOn')) {
@@ -516,6 +642,16 @@ function Invoke-Set {
     }
 
     Set-TicketField -Path $t.Path -Key 'status' -Value $Status
+    # Moving to `review` is the moment the agent says "this G/E/R is what I stand behind".
+    # Stamp it, so `done` can tell whether the work carried on afterwards.
+    if ($Status -eq 'review') {
+        # Seconds included. Stamping to the minute and then comparing against a file mtime flagged
+        # any file saved earlier in the SAME minute as the stamp - the normal case, since you save
+        # and then immediately mark review - so a clean close demanded -Reaffirm for no reason.
+        # Get-EvaluatedAt still reads the old minute-only stamps on existing tickets.
+        Set-TicketField -Path $t.Path -Key 'evaluated' `
+            -Value ((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))
+    }
     if ($Note) { Add-Content -LiteralPath $t.Path -Value "`n> $((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mmZ')) $Note" -Encoding UTF8 }
     Update-Board
     Write-Output "#$($t.Id) -> $Status"
@@ -534,6 +670,62 @@ function Invoke-Set {
             $freed | Select-Object -Unique | ForEach-Object { Write-Output $_ }
         }
     }
+}
+
+# Phrases that describe the ARTIFACT rather than its BEHAVIOUR. Every one of these has been
+# offered in this repo as proof that something worked, while the thing did nothing at all.
+#
+# Scanned ONLY against the one-line `observed:` field, never against the Generate/Evaluate/Refine
+# prose. That is deliberate and follows the precedent set by the placeholder scan above: an italics
+# heuristic was rejected there because real writeups are full of underscores, and a phrase scan over
+# prose has the same defect in a worse form - a good Evaluate DISCUSSES these phrases in order to
+# disclaim them, so scanning prose would punish exactly the honest writeups it is meant to reward.
+$NonEvidence = @(
+    'compil', 'read back', 'reads back', 'read-back', 'should work', 'by inspection',
+    'builds clean', 'build succeeded', 'no errors', 'no warnings', 'samples match',
+    'looks correct', 'looks right', 'verified the asset', 'up to date', 'up-to-date'
+)
+
+function Write-EvidenceLadder {
+    # Printed at the moment of refusal rather than kept in a document. The ranking below exists
+    # today only as scattered prose across ~800 lines of AGENT_STATE.md, which nothing forces an
+    # agent to re-read while it is writing an Evaluate - so it has never once been in front of
+    # anyone at the moment the decision was actually made.
+    Write-Output '  strongest  a human watched it happen'
+    Write-Output '             a runtime log line, under the right cvar, in the right scenario'
+    Write-Output '             a screenshot you opened and looked at'
+    Write-Output '  weakest    a static re-read, a compile result, a tool return value  <- NOT evidence'
+}
+
+function Invoke-Observed {
+    if (-not $Id) { throw 'observed needs -Id.' }
+    if (-not $What) { throw 'observed needs -What "<what you SAW when it ran>".' }
+    if (-not $Scenario) {
+        throw 'observed needs -Scenario "<what you ran it in>", e.g. "PIE L_CombatArena, 6 horn-summoned goblins vs a militia patrol".'
+    }
+    $t = Get-TicketById $Id
+    if (-not $t) { throw "No ticket #$Id." }
+
+    $lower = $What.ToLower()
+    foreach ($phrase in $NonEvidence) {
+        if ($lower -like "*$phrase*") {
+            Write-Output "REFUSED - '$What' describes the artifact, not what it DID."
+            Write-Output "The phrase '$phrase' is on the non-evidence list because it has been offered"
+            Write-Output 'here before as proof that something worked, while the thing did nothing.'
+            Write-Output ''
+            Write-EvidenceLadder
+            Write-Output ''
+            Write-Output 'Say what you SAW: "goblins turned to face the militiaman and held it through the cooldown".'
+            exit 1
+        }
+    }
+
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    Set-TicketField -Path $t.Path -Key 'observed' -Value "$stamp | $What"
+    Set-TicketField -Path $t.Path -Key 'scenario' -Value $Scenario
+    Update-Board
+    Write-Output "#$($t.Id) observed: $What"
+    Write-Output "#$($t.Id) scenario: $Scenario"
 }
 
 function Invoke-Done {
@@ -563,6 +755,87 @@ function Invoke-Done {
         exit 1
     }
 
+    # --- has the work moved on since the Evaluate was written? ----------------------------
+    # Ticket #009 closed `done` describing a world eight commits out of date: it still said the
+    # two lose paths were unexercised and BP_GS_RunicSite did not exist, hours after its own
+    # author had committed "both lose paths verified at last". Nothing caught it, because the
+    # G/E/R gate only asks whether the sections are WRITTEN, never whether they are still TRUE.
+    if (-not $t.Evaluated) {
+        Write-Output "REFUSED - #$($t.Id) never passed through review, so there is no point at which"
+        Write-Output 'anyone stood behind its Generate/Evaluate/Refine. Run:'
+        Write-Output "  set -Id $($t.Id) -Status review"
+        Write-Output 'and hand it to the orchestrator, which is what QUEUE.md rule 3 asks for.'
+        exit 1
+    }
+
+    # --- has anyone actually WATCHED it? (#136) -------------------------------------------
+    # Every gate above this line inspects the ticket's TEXT and TIMESTAMPS. None of them can tell
+    # a working change from a dead one, and the project has the receipt: ticket #120 exists solely
+    # to record "three fixes in a row shipped without anyone watching them run, and all three were
+    # wrong" - and #120 was ITSELF closed unwatched, its own Evaluate reading "No PIE. Nobody has
+    # watched a fight." Every gate passed it. The pattern then recurred twice within 24 hours
+    # (#133's blendspace, #135's horde tick), because the response to it had been prose, and prose
+    # about verification already appears in five normative places and a dozen case-law entries.
+    #
+    # This is the first gate in this file that asks whether the work RAN.
+    if (-not $t.Observed) {
+        if ($Unobserved) {
+            $stamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            Set-TicketField -Path $t.Path -Key 'observed' -Value "UNOBSERVED $stamp - $Unobserved"
+            Set-TicketField -Path $t.Path -Key 'scenario' -Value 'none - never run'
+            Write-Output "WARNING - #$($t.Id) is closing UNOBSERVED: $Unobserved"
+            Write-Output 'It will carry an UNOBSERVED marker on the board for as long as the board exists.'
+            Write-Output "This owes AGENT_STATE.md a line saying what is unproven, in the words you would"
+            Write-Output 'want to read if it turns out to be wrong.'
+            Write-Output ''
+        }
+        else {
+            Write-Output "REFUSED - #$($t.Id) has never been observed running."
+            Write-Output 'A compile, a read-back and a green editor status all pass on something that does nothing.'
+            Write-Output ''
+            Write-EvidenceLadder
+            Write-Output ''
+            Write-Output "  observed -Id $($t.Id) -What ""<what you saw>"" -Scenario ""<what you ran it in>"""
+            Write-Output "  done -Id $($t.Id) -Unobserved ""<reason>""    (ships it unwatched, and says so on the board)"
+            exit 1
+        }
+    }
+
+    $checked    = @(Get-FilesTouchedSinceEvaluate -Ticket $t)
+    $unresolved = @($checked | Where-Object { $_.Unresolved })
+    $late       = @($checked | Where-Object { -not $_.Unresolved })
+
+    # Reported always, and never silently. A path that resolves nowhere was NOT checked, and
+    # before Resolve-ClaimedPath that was the majority of every ticket's claims. It does not
+    # refuse on its own - a deleted file or a "no-files-claimed-yet" placeholder is not a reason
+    # to block a close - but "I could not look" must never again read the same as "unchanged".
+    if ($unresolved.Count -gt 0) {
+        Write-Output "NOTE - #$($t.Id) has $($unresolved.Count) claimed path(s) that resolve to no file"
+        Write-Output "under either $RepoRoot or $ProjRoot, so they could not be checked:"
+        foreach ($f in $unresolved) { Write-Output "  $($f.Path)" }
+        Write-Output ''
+    }
+
+    if ($late.Count -gt 0 -and -not $Reaffirm) {
+        Write-Output "REFUSED - #$($t.Id) kept working after you wrote its Evaluate ($($t.Evaluated))."
+        Write-Output 'These claimed files were written AFTER that point:'
+        foreach ($f in $late) {
+            Write-Output ("  {0}   (modified {1}Z)" -f $f.Path, $f.Modified.ToString('yyyy-MM-ddTHH:mm:ss'))
+        }
+        Write-Output ''
+        Write-Output 'An Evaluate that is honest about a tree that no longer exists is worse than'
+        Write-Output 'no Evaluate: the orchestrator folds its "not yet done" list into AGENT_STATE.md'
+        Write-Output 'and the next agent rediscovers work that is already finished.'
+        Write-Output ''
+        Write-Output 'RE-READ Evaluate against what is now true. Then either:'
+        Write-Output "  set -Id $($t.Id) -Status review     (you changed it - re-stamps, then run done)"
+        Write-Output "  done -Id $($t.Id) -Reaffirm         (you read it and it still stands)"
+        exit 1
+    }
+
+    # Tells Invoke-Set that this `done` arrived through the checks above rather than straight off
+    # the command line. See the guard at the top of Invoke-Set.
+    $script:DoneChecked = $true
     $script:Status = 'done'
     Invoke-Set
 }
@@ -602,7 +875,16 @@ gsqueue.ps1 - Goblin Siege agent work queue
   check -Id <n> | -Files a,b                    who is ahead of me on these files?
   set -Id <n> -Status <s> [-Note "..."]         queued|active|review|done|blocked|abandoned
   set -Id <n> -WaitingOn "<#n or prose>"        say what is stalling you (shows on the board)
-  done -Id <n>                                  close (refuses unless G/E/R are written)
+  observed -Id <n> -What "..." -Scenario "..."  record what you SAW when it ran, and what you
+                                                ran it in. Refuses phrasing that describes the
+                                                artifact ("compiles", "reads back") rather than
+                                                its behaviour.
+  done -Id <n> [-Reaffirm] [-Unobserved "..."]  close; refuses unless G/E/R are written, the
+                                                ticket passed through review, no claimed file
+                                                changed after the Evaluate was stamped, and
+                                                somebody observed the work running.
+                                                -Reaffirm   = "I re-read it and it still stands"
+                                                -Unobserved = ship it unwatched; the board says so
   buildgate                                     exit 0 only if nothing is open
   render                                        rewrite the board in QUEUE.md
 
@@ -620,6 +902,7 @@ switch ($Command) {
     'claim'     { Invoke-Claim }
     'check'     { Invoke-Check }
     'set'       { Invoke-Set }
+    'observed'  { Invoke-Observed }
     'done'      { Invoke-Done }
     'buildgate' { Invoke-BuildGate }
     'render'    { Update-Board; Write-Output 'Board rewritten.' }

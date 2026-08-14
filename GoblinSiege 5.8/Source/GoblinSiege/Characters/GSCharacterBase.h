@@ -12,13 +12,25 @@
 
 class UAbilitySystemComponent;
 class UGSAttributeSetBase;
+class UGSEngagementComponent;
 class UGameplayEffect;
+class UGameplayAbility;
 class UAnimMontage;
 struct FOnAttributeChangeData;
 
 /** New, Max, Delta. Delta is negative for damage. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnHealthChanged, float, NewHealth, float, MaxHealth, float, Delta);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnDied);
+
+/** Fired on EVERY damaging hit, with the attacker. Distinct from OnHealthChanged, which also fires
+ *  for heals and cannot name who did it. Exists for the horde's Frenzy rule (GDD §2.5, "anything
+ *  that attacks you ... gets swarmed automatically") - UGSHordeSubsystem is the intended listener. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnDamaged, AActor*, Attacker, float, Damage);
+
+/** Fired on the ATTACKER when it lands a damaging hit. The other half of the Frenzy rule ("anything
+ *  you attack"). Broadcast by the abilities that deal damage, not by the attribute path - the victim
+ *  is what the swing already knows and the attacker is what it already is. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnDealtDamage, AActor*, Victim);
 
 UCLASS(Abstract)
 class GOBLINSIEGE_API AGSCharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -59,6 +71,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Debug")
 	void DebugKill();
+
+	/**
+	 * Kill this character now, with no instigator and no damage type.
+	 *
+	 * The shared body of DebugKill and of drowning. Zeroes Health directly rather than applying a
+	 * damage effect: there is nothing for armour, blocking or the frontal-arc rule to act on, and
+	 * routing a drowning through damage would let a raised shield survive it.
+	 */
+	void KillOutright();
 
 	/** Per-archetype/per-weapon turn-rate identity (Brute turns like a barge, Slasher/Scout turns
 	 *  sharp - design doc "Turn rate"). Pushes the value into CharacterMovementComponent::RotationRate
@@ -131,6 +152,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
 	FGSOnDied OnDied;
 
+	/** Broadcast on every damaging hit, with whoever landed it (may be null). Unlike
+	 *  OnHealthChanged this does not fire for heals and does name the attacker, which is what the
+	 *  horde's Frenzy rule needs. Damage is reported positive. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnDamaged OnDamaged;
+
+	/** Broadcast on the attacker when one of its abilities damages someone. */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
+	FGSOnDealtDamage OnDealtDamage;
+
+	/** Called by the damage-dealing abilities on the INSTIGATOR after a hit lands. Keeps the
+	 *  "anything you attack" half of Frenzy out of the attribute path, which never sees the swing. */
+	void NotifyDealtDamage(AActor* Victim);
+
 	/** Play a flinch. Direction is the world-space vector from this character to whatever hit them;
 	 *  pass zero if unknown and the front reaction is used. Safe to call every frame - it self-gates
 	 *  on the cooldown and on State.HitReact. */
@@ -140,7 +175,134 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
 	bool IsBlocking() const;
 
+	/**
+	 * Refuses a montage authored for a different skeleton, and returns 0 instead of playing it.
+	 *
+	 * UE does NOT reject this by itself. Every montage in the project lives on GOB_Scout_v2_Skeleton
+	 * (the goblin rig) - there are no human ones - and the six human defenders run SK_Human_Skeleton.
+	 * Playing AM_GS_Atk_Light on a guard returns a cheerful 1.150s and drives the slot, but the tracks
+	 * map to nothing, so the slot evaluates to the REFERENCE POSE: every attack, block and guard break
+	 * snapped a guard into a T-pose for the length of the montage, taking his sword arm out sideways
+	 * with it (measured: hand 104uu from the body centre in idle, 149uu while the montage plays).
+	 *
+	 * This is a stopgap, not the fix. It trades a T-posing guard for an unanimated one; the real
+	 * answer is human combat animations, retargeted or authored. Delete this the day they exist.
+	 */
+	virtual float PlayAnimMontage(UAnimMontage* AnimMontage, float InPlayRate = 1.f,
+		FName StartSectionName = NAME_None) override;
+
+	/**
+	 * Called on the ATTACKER when one of its hits was turned aside by a guard.
+	 *
+	 * Three things happen, and they are one mechanic: the swing in flight is cancelled so it cannot
+	 * follow through or chain, State.Recoil is applied for RecoilSeconds so the attacker can neither
+	 * swing again nor raise its own guard, and a flinch sells it. That window is the defender's
+	 * reward for reading the attack - without it, blocking is only "take 20% damage instead of 100%"
+	 * and a fight between two competent guards is a stalemate neither side can break.
+	 *
+	 * Deliberately does NOT block dodging: a player who realises mid-recoil that they are about to
+	 * be punished should still have one way out.
+	 *
+	 * Symmetric on purpose. This fires for the player's blocked swings exactly as it does for an
+	 * AI's, and it is the reason an allied goblin - which carries no guard break - still has an
+	 * answer to a defender who turtles.
+	 */
+	void NotifyAttackWasBlocked(AActor* Blocker, float RecoilSeconds);
+
+	/** True while this character is open from a blocked swing. Read by UBTTask_MeleeAttack to
+	 *  bypass its own attack cooldown - an opening nobody exploits is not an opening. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool IsRecoiling() const;
+
+	/** Who is allowed to swing at THIS character, and where they may stand while doing it. On the
+	 *  base so player, defender and horde goblin are all rationed by the same rules - a crowd
+	 *  control system the player is exempt from would be immediately visible. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	UGSEngagementComponent* GetEngagement() const { return EngagementComponent; }
+
+	// ---- combat verbs (hoisted from AGSEnemyCharacter 2026-08-07, ticket #069) ------------
+	// Moved DOWN to the base rather than reparenting AGSHordeGoblin to AGSEnemyCharacter. The
+	// reparent was one line, but it silently flips five class-identity checks that all read
+	// "is this a defender": GSFireVolume.cpp:394 would stop applying FriendlyFireScalar to the
+	// horde, GSTargetingComponent.cpp:50 would snap the player's soft-lock onto his own goblins,
+	// and GSBuffAuraComponent.cpp:48 would let defender auras buff them. None fail loudly.
+	// Michael's ruling, 2026-08-07.
+	//
+	// Deliberately the SAME abilities the player runs, not an AI-only reimplementation - if a
+	// defender's swing were its own code path it would drift from the player's within a week.
+	// Which verbs a character HAS stays data, not code: allied goblins get light and heavy,
+	// humans additionally get the guard break. Leave a class unset and it cannot do that thing.
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	bool TryLightAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	bool TryHeavyAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	bool TryGuardBreak();
+
+	/** Raises the guard and leaves it up until StopBlocking. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	bool StartBlocking();
+
+	/** Drops the guard. Cancels by tag, never by class, so a swing in flight survives. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	void StopBlocking();
+
+	/** True when this character has a guard break available - the one verb allied goblins lack. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool CanGuardBreak() const { return GuardBreakAbilityClass != nullptr; }
+
+	/** Looses an arrow. The SAME ability the player's bow runs (UGSGA_BowShot), not an AI-only
+	 *  reimplementation - it was written AI-ready on purpose: it fires on a release TIMER rather
+	 *  than on an input release, and its muzzle falls back to the pawn's control rotation when
+	 *  there is no aim component. An archer's shot and the player's therefore share a rate limit,
+	 *  a projectile and a damage path. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	bool TryRangedAttack();
+
+	/** True when this character has a bow at all. The archer's equivalent of CanGuardBreak: which
+	 *  verbs a character HAS stays data, so a militiaman simply leaves this unset. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	bool CanRangedAttack() const { return RangedAttackAbilityClass != nullptr; }
+
 protected:
+	/**
+	 * Grants whichever of the four combat ability classes are set. Server only.
+	 *
+	 * NOT called from this class's BeginPlay on purpose. AGSPlayerCharacter carries its own
+	 * ability-class UPROPERTYs and grants them itself, so an automatic grant here would hand the
+	 * player a second spec of every ability. Subclasses that want the AI verbs call this.
+	 */
+	void GrantCombatAbilities();
+
+	/** UGSGA_SwordLight Blueprint child - the multi-stage combo. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Abilities")
+	TSubclassOf<UGameplayAbility> LightAttackAbilityClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Abilities")
+	TSubclassOf<UGameplayAbility> HeavyAttackAbilityClass;
+
+	/** Left unset on allied goblins on purpose - the guard break is a human answer to turtling,
+	 *  and giving it to everyone would make blocking worthless for both sides. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Abilities")
+	TSubclassOf<UGameplayAbility> GuardBreakAbilityClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Abilities")
+	TSubclassOf<UGameplayAbility> BlockAbilityClass;
+
+	/** Set to UGSGA_BowShot on archers, left unset on everyone else. The player carries his own bow
+	 *  slot on AGSPlayerCharacter (BowShotAbilityClass) because his is driven by input and a weapon
+	 *  slot rather than by a behaviour tree; this is the AI-side grant of the same ability. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Combat|Abilities")
+	TSubclassOf<UGameplayAbility> RangedAttackAbilityClass;
+
+	/** Grants a class if set, so a grant list reads as a list rather than four null checks. */
+	void GrantIfSet(TSubclassOf<UGameplayAbility> AbilityClass);
+
+	bool TryActivate(TSubclassOf<UGameplayAbility> AbilityClass);
+
 
 	/** Called once when Health first reaches 0. Notifies GSGameMode::HandleGoblinDeath. */
 	virtual void HandleDeath();
@@ -150,6 +312,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Abilities")
 	TObjectPtr<UGSAttributeSetBase> AttributeSetBase;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Combat")
+	TObjectPtr<UGSEngagementComponent> EngagementComponent;
 
 	/** Turn rate in rad/s - per-archetype tuning knob called out repeatedly in the design doc
 	 *  (Brute 5, Slasher 12, Shaman 10, Militia/Knight slower still). Drives

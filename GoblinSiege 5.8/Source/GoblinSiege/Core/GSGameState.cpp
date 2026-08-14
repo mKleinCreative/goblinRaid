@@ -245,8 +245,26 @@ void AGSGameState::StartRaidClock()
 	SetRaidClockPhaseInternal(EGSRaidClockPhase::Running);
 }
 
+void AGSGameState::StopRaidClock()
+{
+	if (!HasAuthority() || bRaidClockHalted)
+	{
+		return;
+	}
+	bRaidClockHalted = true;
+
+	UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] Raid clock halted at %.0fs (phase %d)."),
+		RaidSecondsRemaining, static_cast<int32>(RaidClockPhase));
+}
+
 void AGSGameState::TickRaidClock(float DeltaSeconds)
 {
+	// The raid is over; time stops. See StopRaidClock for what this was before #049.
+	if (bRaidClockHalted)
+	{
+		return;
+	}
+
 	switch (RaidClockPhase)
 	{
 	case EGSRaidClockPhase::Running:
@@ -333,4 +351,5 @@ void AGSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(AGSGameState, RaidClockPhase);
 	DOREPLIFETIME(AGSGameState, RaidSecondsRemaining);
 	DOREPLIFETIME(AGSGameState, CollapseSecondsRemaining);
+	DOREPLIFETIME(AGSGameState, bRaidClockHalted);
 }

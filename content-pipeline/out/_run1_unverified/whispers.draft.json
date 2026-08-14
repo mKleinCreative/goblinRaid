@@ -1,0 +1,170 @@
+[
+  {
+    "trigger": "Clock.TenMinutes",
+    "category": "ClockNudge",
+    "line": "Ten minutes, goblin. How goes the arson? …Don't answer. I can smell it from here.",
+    "note": "§2.2 clock pressure: the Overlord's whispers check in at the 10-minute mark; tier-1 register is mockery, not mourning.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§2.10#3"
+    ],
+    "_name": "Whispers_01_ClockTenMinutes"
+  },
+  {
+    "trigger": "Clock.FiveMinutes",
+    "category": "ClockNudge",
+    "line": "Five minutes. My stones are back through the trees, goblin — the way the smoke is blowing. Start walking while you gloat.",
+    "note": "§2.2: at 5 minutes the whisper names a direction; §2.1 the runic site is the forest-clearing ring of standing stones, and the raid is quiet in, loud out.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§2.1#1"
+    ],
+    "_name": "Whispers_02_ClockFiveMinutes"
+  },
+  {
+    "trigger": "Clock.TwoMinutes",
+    "category": "ClockNudge",
+    "line": "Two minutes. There. The circle. Into it. Drop the chicken if you must — …don't drop the chicken.",
+    "note": "§2.2: inside the final 2 the Overlord points you at the extraction outright; portal dies at 0:00 plus a 90-second collapse. Chicken is a §2.9 loot-kind steal.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§2.9#0"
+    ],
+    "_name": "Whispers_03_ClockTwoMinutes"
+  },
+  {
+    "trigger": "Objective.Granary.FirstTorch",
+    "category": "ObjectiveBark",
+    "line": "Their whole winter, goblin, stacked in one shed — with every spear in the hamlet standing round it. Light it and let them argue about badgers.",
+    "note": "Sibling of the windmill Stage-1 bark for the §2.8 granary: a compact blaze in the village core where the guards are thickest, plus the §2.10 denial joke. First-time dismissible prompt per §2.8.",
+    "sources": [
+      "GDD§2.8#1",
+      "GDD§2.8#2",
+      "GDD§2.8#3",
+      "GDD§2.10#1"
+    ],
+    "_name": "Whispers_04_ObjectiveGranaryFirstTorch"
+  },
+  {
+    "trigger": "Objective.Field.FirstTorch",
+    "category": "ObjectiveBark",
+    "line": "One row takes the next, goblin. Set the edge alight and walk away — the wheat does my work while they queue at the well with buckets.",
+    "note": "Sibling of the windmill Stage-1 bark for the §2.8 wheat field: fire spreads row to row, the most visible arson and the hardest to douse; §2.6 bucket brigade forms at the well.",
+    "sources": [
+      "GDD§2.8#1",
+      "GDD§2.8#2",
+      "GDD§2.6#3",
+      "GDD§2.8#3"
+    ],
+    "_name": "Whispers_05_ObjectiveFieldFirstTorch"
+  },
+  {
+    "trigger": "Milestone.FirstLootBanked",
+    "category": "MilestoneWhisper",
+    "line": "The first sack crosses into my stones. It is mine now. No bell in Groatsworth can un-steal it.",
+    "note": "§2.7/§2.6/§1: physical loot banks permanently the instant it reaches the stones, wipe-proof.",
+    "sources": [
+      "GDD§1#2",
+      "GDD§2.6#3",
+      "GDD§3.1#5"
+    ],
+    "_name": "Whispers_06_MilestoneFirstLootBanked"
+  },
+  {
+    "trigger": "Milestone.FirstPigBanked",
+    "category": "MilestoneWhisper",
+    "line": "A pig. Through the ancient portal of His Eternal Darkness. …Set it down gently. It is banked, and it is beautiful.",
+    "note": "§2.9 stolen pig is loot-kind (40) and banks on delivery; §2.10 apocalyptic gravitas applied to stealing pigs.",
+    "sources": [
+      "GDD§2.9#0",
+      "GDD§2.10#0",
+      "GDD§2.7#3"
+    ],
+    "_name": "Whispers_07_MilestoneFirstPigBanked"
+  },
+  {
+    "trigger": "Milestone.FirstPrisonerBanked",
+    "category": "MilestoneWhisper",
+    "line": "One of them, roped and walking into the dark. He'll know the word 'goblin' by morning. This is the tribute I wanted.",
+    "note": "§2.6/§2.7: bound civilians are loot that walks itself, banking at the stones; marching prisoners home is the tribute His Eternal Darkness actually wants, not a body count.",
+    "sources": [
+      "GDD§2.6#3",
+      "GDD§2.7#3",
+      "GDD§2.9#0"
+    ],
+    "_name": "Whispers_08_MilestoneFirstPrisonerBanked"
+  },
+  {
+    "trigger": "Milestone.NoneLeftBehind",
+    "category": "MilestoneWhisper",
+    "line": "Every soul in the hamlet, marched home alive. Let the empty routines explain themselves. Who do they blame now — the badger?",
+    "note": "§2.9 'None Left Behind' +40; §2.10 the denial straining — one missing villager is a badger, a whole hamlet's worth is the punchline landing.",
+    "sources": [
+      "GDD§2.9#0",
+      "GDD§2.10#1"
+    ],
+    "_name": "Whispers_09_MilestoneNoneLeftBehind"
+  },
+  {
+    "trigger": "Milestone.PortalOpen",
+    "category": "MilestoneWhisper",
+    "line": "Granary, field, mill — all three ash. The stones are open, goblin. Come home; nothing else in this county will keep you.",
+    "note": "§2.1/§1: burning the last of the three objectives flares the stones open as the extraction portal; §2.8 this hamlet carries one of each.",
+    "sources": [
+      "GDD§2.1#1",
+      "GDD§1#2",
+      "GDD§2.8#3"
+    ],
+    "_name": "Whispers_10_MilestonePortalOpen"
+  },
+  {
+    "trigger": "End.Extraction.CaptureHeavy",
+    "category": "EndVerdict",
+    "line": "You brought me a rope of them, blinking and alive. Not coins — proof they remember us. …Adequate.",
+    "note": "§2.10 asks explicitly for a distinct verdict flavor when the raid comes home with a rope chain of prisoners: 'Bring me proof they remember us. …adequate.'",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.10#2",
+      "GDD§2.7#3"
+    ],
+    "_name": "Whispers_11_EndExtractionCaptureHeavy"
+  },
+  {
+    "trigger": "End.Extraction.RichOnly",
+    "category": "EndVerdict",
+    "line": "Gold, gold, and a pig. Very shiny, goblin. I have seen rats haul more, and rats bring me witnesses. …Adequate.",
+    "note": "§2.10's 'merely rich' counterpart to the capture verdict, keeping the §2.1 rats crack; tier 1 mocks more than it mourns.",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.1#1",
+      "GDD§2.10#3",
+      "GDD§2.9#0"
+    ],
+    "_name": "Whispers_12_EndExtractionRichOnly"
+  },
+  {
+    "trigger": "End.Wipe.LivesSpent",
+    "category": "EndVerdict",
+    "line": "Five deaths, goblin. Your deeds keep a quarter of themselves; the rest burned where you fell. What reached my stones is still mine. Mostly mine.",
+    "note": "§2.2/§1 loss condition: all 5 lives spent, only 25% of unbanked deeds kept, while loot already at the stones or the Warren is safe.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§1#2",
+      "GDD§2.6#3"
+    ],
+    "_name": "Whispers_13_EndWipeLivesSpent"
+  },
+  {
+    "trigger": "End.LeftBehind",
+    "category": "EndVerdict",
+    "line": "The stones have gone cold and you are still out there, holding a chicken. Keep it. Groatsworth is your home now. …I'll tell them it was a badger.",
+    "note": "§2.2/§1 loss condition: outside the circle when the portal dies after the 90-second collapse, whispers going cold; §2.10 badger denial joke.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§1#2",
+      "GDD§2.10#1",
+      "GDD§2.9#0"
+    ],
+    "_name": "Whispers_14_EndLeftBehind"
+  }
+]

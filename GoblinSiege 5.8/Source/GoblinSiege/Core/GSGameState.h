@@ -94,6 +94,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Clock")
 	void StartRaidClock();
 
+	/**
+	 * Freeze the clock. Called by UGSRaidDirector::EndRaid, because ending a raid did not stop time.
+	 *
+	 * Observed 2026-08-06 (#049): after `RAID ENDED: OutOfLives` the clock kept counting - 1769s then
+	 * 1762s across two status reads - so a lost raid carried on ticking toward a collapse phase it had
+	 * no business entering. `LeftBehind` only looked correct because there the clock expiring is what
+	 * ended the raid.
+	 *
+	 * Halts rather than forcing a phase: the phase stays TRUE (a raid lost with 29 minutes left really
+	 * was Running when it ended), and the HUD shows the time it stopped at. Setting Expired here would
+	 * make every loss claim the portal collapsed, which is a different ending.
+	 */
+	void StopRaidClock();
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Clock")
 	EGSRaidClockPhase GetRaidClockPhase() const { return RaidClockPhase; }
 
@@ -181,6 +195,11 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_RaidClockPhase)
 	EGSRaidClockPhase RaidClockPhase = EGSRaidClockPhase::NotStarted;
+
+	/** Set by StopRaidClock; TickRaidClock early-outs on it. Replicated so a client's HUD stops too -
+	 *  without it the clock would freeze on the server and keep counting on every client. */
+	UPROPERTY(Replicated)
+	bool bRaidClockHalted = false;
 
 	UPROPERTY(Replicated)
 	float RaidSecondsRemaining = 0.f;

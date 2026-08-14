@@ -38,6 +38,17 @@ protected:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 
+	/** Adds the rate-of-fire gate on top of the usual tag and cost checks. */
+	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayTagContainer* SourceTags = nullptr,
+		const FGameplayTagContainer* TargetTags = nullptr,
+		FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
+
+	/** Seconds that must elapse between shots: the equipped weapon's RangedAttackCooldownSeconds,
+	 *  falling back to FallbackFireIntervalSeconds when there is no weapon to ask. */
+	float GetFireIntervalSeconds(const FGameplayAbilityActorInfo* ActorInfo) const;
+
 	/** Spawns the arrow at the aim component's muzzle. Split out of ActivateAbility so the release
 	 *  delay has something to call, exactly as UGSGA_TorchToss::ThrowTorch is. */
 	void FireArrow();
@@ -68,7 +79,39 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Bow", meta = (ClampMin = "0.0"))
 	float ReleaseDelaySeconds = 0.08f;
 
-	/** Cooldown/cost are editor-authored GameplayEffect assets assigned on the CDO
-	 *  (CooldownGameplayEffectClass / CostGameplayEffectClass) - data, not code. Arrow supply, when
-	 *  it exists, belongs there and not in this class. */
+	/**
+	 * Minimum seconds between shots when the avatar has no equipped weapon, or that weapon's
+	 * RangedAttackCooldownSeconds is <= 0.
+	 *
+	 * The number that normally applies is UGSWeaponDataAsset::RangedAttackCooldownSeconds, so the
+	 * bow's rate of fire is retuned in DA_Weapon_Scout without a rebuild. That field has carried a
+	 * 1.5s default and the comment "ranged trades damage-per-second for range/safety" since the data
+	 * asset was written, and had NO reader anywhere in the project - which is exactly why the bow
+	 * fired as fast as the attack button could be clicked. This is the reader.
+	 *
+	 * Deliberately NOT a cooldown GameplayEffect. A GE would be the GAS-idiomatic answer and is the
+	 * right move the day the HUD needs to draw a cooldown sweep, because a tag on the ASC is the only
+	 * form UI can observe. It would also cost a new UGameplayEffect class and a new Cooldown.* tag in
+	 * the shared GSGameplayTags, for a rule nothing currently watches. A timestamp is the pattern
+	 * already used by AGSCharacterBase::HitReactCooldownSeconds and UBTTask_MeleeAttack, so this is
+	 * consistent rather than novel. Revisit when something needs to READ the remaining time.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Bow", meta = (ClampMin = "0.0"))
+	float FallbackFireIntervalSeconds = 1.5f;
+
+	/**
+	 * World time of the last activation allowed through, or negative if this avatar has not shot yet.
+	 *
+	 * A plain member works because the ability is InstancedPerActor - one instance per archer, living
+	 * across activations. It would silently do nothing under InstancedPerExecution, so that policy and
+	 * this gate cannot both be true; the constructor's choice is load-bearing here.
+	 *
+	 * The "has not fired" case is tested explicitly rather than by seeding a large negative value,
+	 * because world time starts at 0 and any sentinel close enough to be readable would swallow the
+	 * first shot of the raid.
+	 */
+	float LastFireTimeSeconds = -1.f;
+
+	/** Cost is still an editor-authored GameplayEffect assigned on the CDO
+	 *  (CostGameplayEffectClass) - data, not code. Arrow supply, when it exists, belongs there. */
 };

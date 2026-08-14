@@ -157,11 +157,21 @@ protected:
 
 	// ---- prediction ---------------------------------------------------------------------
 
-	/** How far ahead to simulate. A torch at 1400uu/s under full gravity is done well inside 3s;
-	 *  an arrow at 6000uu/s under 0.2 gravity is still travelling, and that is fine - the arc simply
-	 *  ends off in the distance, which is an honest picture of a shot that hits nothing. */
+	/**
+	 * How far ahead to simulate.
+	 *
+	 * 2026-08-06: 3 -> 5, forced by the torch going from 1400uu/s to 2400. Time of flight at 45
+	 * degrees is 2*v*sin(45)/g, which at 2400 is about 3.5s - PAST the old 3s window. The
+	 * prediction would have ended in mid-air, PredictProjectilePath would have reported no hit, and
+	 * UpdateArcVisual hides the landing decal when there is no hit. Raising the speed alone would
+	 * have deleted the reticle on exactly the long throws that most need one.
+	 *
+	 * An arrow at 6000uu/s under 0.2 gravity is still travelling at 5s, and that is fine - the arc
+	 * ends off in the distance with no marker, which is an honest picture of a shot that lands
+	 * nowhere near.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Prediction", meta = (ClampMin = "0.2"))
-	float MaxSimSeconds = 3.f;
+	float MaxSimSeconds = 5.f;
 
 	/** Simulation steps per second. Higher is smoother and costs a trace each. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Prediction", meta = (ClampMin = "5.0"))
@@ -195,14 +205,44 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual")
 	FName ArcColourParameterName = TEXT("Colour");
 
-	/** Ceiling on the segment pool. Path points beyond this are dropped, which shortens the drawn
-	 *  arc rather than dropping frames. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "4"))
-	int32 MaxArcSegments = 40;
+	/**
+	 * HARD CEILING on the segment pool - not the pool size. The pool is sized from the prediction
+	 * itself (MaxSimSeconds * SimFrequency) in EnsureArcVisual; this only stops a silly combination
+	 * of those two from allocating hundreds of primitives.
+	 *
+	 * 2026-08-06: it used to BE the pool size, fixed at 40, and that was a real bug the moment the
+	 * torch got faster. 5s at 15Hz is ~75 segments, so the ribbon was truncated at 40 and stopped
+	 * roughly three-quarters of the way along - visibly failing to reach the landing decal it exists
+	 * to lead the eye to. Deriving the size removes the third number that has to be kept in step
+	 * with the other two, which is what let this drift in the first place.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "8"))
+	int32 MaxArcSegments = 160;
 
+	/**
+	 * Ribbon thickness in WORLD UNITS, not a mesh multiplier.
+	 *
+	 * 2026-08-06: it used to be passed straight to SetStartScale, which multiplies the mesh's own
+	 * cross-section - so 4 against a 100uu cube drew a 400uu box and the whole arc read as a giant
+	 * square with the landing marker lost inside it. UpdateArcVisual now divides by the assigned
+	 * mesh's measured bounds, so this is honest units for any mesh.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual", meta = (ClampMin = "0.1"))
-	float ArcSegmentWidth = 4.f;
+	float ArcSegmentWidth = 8.f;
 
+	/**
+	 * X is the decal's HALF-DEPTH of projection about the component origin - Y and Z are the ring's
+	 * half-extents. The decal sits exactly on the impact point, so X projects that far both in
+	 * front of and behind the surface.
+	 *
+	 * Held at 40 (80uu of projection in total). It was briefly raised to 250 on the theory that a
+	 * shallow depth was why no reticle appeared; that theory was WRONG - the real cause was that
+	 * ArcMaterial and LandingDecalMaterial were assigned to each other's slots, so a decal-domain
+	 * material was on the meshes and a surface material was on the decal (#026). 250 has a genuine
+	 * cost the shallow value does not: projecting a quarter of a metre through the surface smears
+	 * the ring up any wall the impact point is near, and paints the player's own mesh on a close
+	 * throw. Reverted, and recorded so the theory is not retried.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Aim|Visual")
 	FVector LandingDecalSize = FVector(40.f, 55.f, 55.f);
 

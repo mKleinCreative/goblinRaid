@@ -1,0 +1,116 @@
+[
+  {
+    "trigger": "FirstSight.Granary",
+    "overlord_bark": "Their whole winter, goblin, stacked in one shed and guarded like a crown. Unstack it.",
+    "hud_line": "Granary — burn it for objective 1 of 3. Torch toss: Q.",
+    "control": "Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.8#3",
+      "GDD§2.1#1",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_01_FirstSightGranary"
+  },
+  {
+    "trigger": "FirstSight.WheatField",
+    "overlord_bark": "Look at all that ripe, well-fed smugness. One spark, and it walks the rows on its own.",
+    "hud_line": "Wheat field — fire spreads row to row. Objective 2 of 3. Torch toss: Q.",
+    "control": "Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.8#3",
+      "GDD§2.1#1",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_02_FirstSightWheatField"
+  },
+  {
+    "trigger": "FirstSight.Windmill",
+    "overlord_bark": "The county's proudest silhouette, turning away up there. Put a torch to her frame.",
+    "hud_line": "Windmill — torch the frame to set it Ablaze. Torch toss: Q.",
+    "control": "Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.8#3",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_03_FirstSightWindmill"
+  },
+  {
+    "trigger": "Windmill.Stage1Ablaze",
+    "overlord_bark": "Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window.",
+    "hud_line": "Windmill: Ablaze — needs a window shot. Aimed torch: Q.",
+    "control": "Q",
+    "sources": [
+      "GDD§2.8#2",
+      "GDD§2.8#4",
+      "GDD§2.3#1"
+    ],
+    "_name": "Prompts_04_WindmillStage1Ablaze"
+  },
+  {
+    "trigger": "FirstSight.Patrol",
+    "overlord_bark": "Torches in the trees. Fold yourself into the hedge — a hamlet that suspects nothing keeps napping.",
+    "hud_line": "Patrol ahead — break their sightline to stay unconfirmed. Crouch.",
+    "control": "Crouch",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.4#2",
+      "GDD§2.6#1",
+      "GDD§2.8#4"
+    ],
+    "_name": "Prompts_05_FirstSightPatrol"
+  },
+  {
+    "trigger": "FirstSight.UnawareGuard",
+    "overlord_bark": "Behind him. Closer. He is thinking about his supper. Let that be the last thing he does.",
+    "hud_line": "Unaware human — take him down in silence. Hold E behind him.",
+    "control": "Hold E",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.4#2",
+      "GDD§2.3#1",
+      "GDD§2.8#4"
+    ],
+    "_name": "Prompts_06_FirstSightUnawareGuard"
+  },
+  {
+    "trigger": "FirstSight.CivilianUnarmed",
+    "overlord_bark": "Don't spill her, goblin. Rope her. A corpse is a tantrum; a prisoner is tribute.",
+    "hud_line": "Unarmed civilian — bind for a captive instead of a corpse. Hold E.",
+    "control": "Hold E",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.6#2",
+      "GDD§2.7#3",
+      "GDD§2.8#4"
+    ],
+    "_name": "Prompts_07_FirstSightCivilianUnarmed"
+  },
+  {
+    "trigger": "FirstSight.WarHorn",
+    "overlord_bark": "Enough creeping. Blow, and hear my children come out of the trees for you.",
+    "hud_line": "War-horn — 3–4 goblins sprint in from the treeline. Blow: G.",
+    "control": "G",
+    "sources": [
+      "GDD§2.5#0",
+      "GDD§2.3#1",
+      "GDD§2.8#4"
+    ],
+    "_name": "Prompts_08_FirstSightWarHorn"
+  },
+  {
+    "trigger": "FirstSight.LivestockPen",
+    "overlord_bark": "Their wealth has trotters, goblin. Send a lad — the pig walks itself home to me.",
+    "hud_line": "Pig in the pen — a goblin couriers it home for 40 loot. Point.",
+    "control": "Point",
+    "sources": [
+      "GDD§2.5#0",
+      "GDD§2.7#0",
+      "GDD§2.8#2",
+      "GDD§2.8#4"
+    ],
+    "_name": "Prompts_09_FirstSightLivestockPen"
+  }
+]

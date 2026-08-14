@@ -55,6 +55,27 @@ void UGSCarryComponent::HandleOwnerDied()
 	PutDown();
 }
 
+void UGSCarryComponent::DestroyCarried()
+{
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority() || !IsCarrying())
+	{
+		return;
+	}
+
+	// PutDown FIRST, then destroy what it hands back. Going straight to Destroy() would leave the
+	// carrier's own state - the attach, the move-speed effect, the replicated CarriedActor - pointing
+	// at a dead actor and relying on the null checks downstream to paper over it. PutDown is the one
+	// path that unwinds all of that, and it returns the actor precisely so a caller can decide its
+	// fate.
+	AActor* Dropped = PutDown();
+	if (IsValid(Dropped))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] %s lost '%s' - destroyed rather than dropped."),
+			*GetNameSafe(GetOwner()), *Dropped->GetName());
+		Dropped->Destroy();
+	}
+}
+
 bool UGSCarryComponent::StartCarry(AActor* Object)
 {
 	if (!IsValid(Object) || IsCarrying() || !IsValid(GetOwner()))

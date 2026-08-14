@@ -1,0 +1,167 @@
+[
+  {
+    "trigger": "Clock.TenMinutes",
+    "category": "ClockNudge",
+    "line": "Ten minutes, goblin. I am checking on you. Something should be on fire by now.",
+    "note": "§2.2 clock pressure: the Overlord's whispers check in at the 10-minute mark; arson is the objective that can't be hidden.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§1#2",
+      "GDD§2.10#0"
+    ],
+    "_name": "Whispers_01_ClockTenMinutes"
+  },
+  {
+    "trigger": "Clock.FiveMinutes",
+    "category": "ClockNudge",
+    "line": "Five minutes. What still stands lies {dir} — follow the smoke and stop admiring the pigs.",
+    "note": "§2.2: at 5 the whisper names a direction; wayfinding is environmental (§2.8). Register from §2.10 — mockery over mourning.",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§2.8#3",
+      "GDD§2.10#3"
+    ],
+    "_name": "Whispers_02_ClockFiveMinutes"
+  },
+  {
+    "trigger": "Clock.TwoMinutes",
+    "category": "ClockNudge",
+    "line": "Two minutes. The stones are {dir}. Run, thief — I close the portal, not the door.",
+    "note": "§2.2: inside the final 2 the Overlord points you there outright; the runic site is the one safe tile and the extraction point (§2.1).",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§2.1#1"
+    ],
+    "_name": "Whispers_03_ClockTwoMinutes"
+  },
+  {
+    "trigger": "Objective.Granary.Stage1.FirstTime",
+    "category": "ObjectiveBark",
+    "line": "Their whole winter, stacked in one shed — light it and go. The guards are thickest here; that is the tax.",
+    "note": "Sibling of the windmill Stage-1 bark: first-time prompt naming the objective, the payoff and the cost. Granary sits in the village core where guards are thickest (§2.8), a compact blaze (§2.1).",
+    "sources": [
+      "GDD§2.8#1",
+      "GDD§2.8#3",
+      "GDD§2.1#1"
+    ],
+    "_name": "Whispers_04_ObjectiveGranaryStage1FirstT"
+  },
+  {
+    "trigger": "Objective.Field.Stage1.FirstTime",
+    "category": "ObjectiveBark",
+    "line": "One torch in the wheat, goblin. The fire walks the rows itself — let their buckets try to keep up.",
+    "note": "Sibling first-time prompt: field fire spreads row to row, the most visible arson and hardest to douse (§2.8); the town answers with bucket lines at the well (§2.6).",
+    "sources": [
+      "GDD§2.8#1",
+      "GDD§2.8#3",
+      "GDD§2.6#3"
+    ],
+    "_name": "Whispers_05_ObjectiveFieldStage1FirstTim"
+  },
+  {
+    "trigger": "Loot.FirstSackBanked",
+    "category": "MilestoneWhisper",
+    "line": "The first sack crosses the stones. It is mine now. No bell un-takes it.",
+    "note": "Loot banks permanently the instant it physically reaches the runic site — wipe-proof (§1, §2.2).",
+    "sources": [
+      "GDD§1#1",
+      "GDD§2.2#0",
+      "GDD§3.1#5"
+    ],
+    "_name": "Whispers_06_LootFirstSackBanked"
+  },
+  {
+    "trigger": "Loot.PigBanked",
+    "category": "MilestoneWhisper",
+    "line": "Behold — a pig. Stolen from a hamlet too small for them to have named it. Tremble, Groatsworth.",
+    "note": "Apocalyptic gravitas applied to petty theft; stolen livestock is loot-kind and banks at the stones (§2.9, §2.10, §1).",
+    "sources": [
+      "GDD§2.10#0",
+      "GDD§2.9#0",
+      "GDD§1#0"
+    ],
+    "_name": "Whispers_07_LootPigBanked"
+  },
+  {
+    "trigger": "Loot.StrongboxBanked",
+    "category": "MilestoneWhisper",
+    "line": "Their strongbox, emptied through its own smashed lid. They will blame the badger for that too.",
+    "note": "Strongbox is a market-core destructible smashed open for its coins (§2.7, §3.2), and the town's first reaction is denial (§2.10).",
+    "sources": [
+      "GDD§2.7#3",
+      "GDD§3.2#1",
+      "GDD§2.10#1"
+    ],
+    "_name": "Whispers_08_LootStrongboxBanked"
+  },
+  {
+    "trigger": "Prisoner.FirstChainBanked",
+    "category": "MilestoneWhisper",
+    "line": "A living witness, roped and delivered. Let him describe the badger to his king.",
+    "note": "Prisoners bank as loot the instant the chain reaches the stones; the tribute the Overlord wants is captives, not a body count (§2.6, §2.7, §2.10).",
+    "sources": [
+      "GDD§2.7#3",
+      "GDD§2.6#3",
+      "GDD§2.10#1"
+    ],
+    "_name": "Whispers_09_PrisonerFirstChainBanked"
+  },
+  {
+    "trigger": "Prisoner.ChainBanked.Five",
+    "category": "MilestoneWhisper",
+    "line": "Five of them in my circle now. Their little routines are going quiet. Bring me more proof they remember us.",
+    "note": "§2.10: the denial visibly strains as the evidence piles up — one missing villager is a badger, a hamlet's worth is the punchline.",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.7#3"
+    ],
+    "_name": "Whispers_10_PrisonerChainBankedFive"
+  },
+  {
+    "trigger": "Prisoner.NoneLeftBehind",
+    "category": "MilestoneWhisper",
+    "line": "Not one soul left in that hamlet. Alive, every one. Let the county explain THAT with a badger.",
+    "note": "\"None Left Behind\" +40 — every civilian marched home alive (§2.9); the joke's punchline finally landing on the people telling it (§2.10).",
+    "sources": [
+      "GDD§2.9#0",
+      "GDD§2.10#1"
+    ],
+    "_name": "Whispers_11_PrisonerNoneLeftBehind"
+  },
+  {
+    "trigger": "Verdict.Win.CaptureHeavy",
+    "category": "EndVerdict",
+    "line": "You brought me a rope chain, not a corpse pile. Proof they remember us. …adequate.",
+    "note": "§2.10 explicitly asks for a distinct verdict flavor when the raid comes home with prisoners — \"Bring me proof they remember us. …adequate.\"",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.6#3",
+      "GDD§2.7#3"
+    ],
+    "_name": "Whispers_12_VerdictWinCaptureHeavy"
+  },
+  {
+    "trigger": "Verdict.Win.RichNoCaptives",
+    "category": "EndVerdict",
+    "line": "Gold, a pig, three fires — and no one alive to say who took them. Adequate. I have seen rats do better. …adequate.",
+    "note": "The \"merely rich\" verdict §2.10 contrasts against the capture-heavy one; the rats crack is the established register (§2.1).",
+    "sources": [
+      "GDD§2.10#1",
+      "GDD§2.1#1",
+      "GDD§2.9#0"
+    ],
+    "_name": "Whispers_13_VerdictWinRichNoCaptives"
+  },
+  {
+    "trigger": "Verdict.Loss.Wipe",
+    "category": "EndVerdict",
+    "line": "Five lives spent for a quarter of your deeds. What reached the stones is mine. You, apparently, are not.",
+    "note": "Loss by spending all 5 lives keeps only 25% of unbanked deeds; loot already at the stones or the Warren is safe regardless (§2.2, §1, §2.6).",
+    "sources": [
+      "GDD§2.2#0",
+      "GDD§1#2",
+      "GDD§2.6#3"
+    ],
+    "_name": "Whispers_14_VerdictLossWipe"
+  }
+]

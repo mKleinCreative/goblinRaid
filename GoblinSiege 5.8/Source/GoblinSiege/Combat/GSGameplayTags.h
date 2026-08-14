@@ -69,6 +69,47 @@ namespace GSTags
 	 *  held; attack abilities and the torch toss block on it. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Carrying);
 
+	/** Blowing the war-horn (GDD §2.5). Owned by UGSGA_Horn's ActivationOwnedTags and used by that
+	 *  same ability as a block, so a second blast cannot start while the first is still sounding. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Horn);
+
+	/** A swing is in flight - windup, damage window or recovery. Owned by UGSGA_SwordLight's
+	 *  ActivationOwnedTags, so GAS maintains it for exactly the ability's lifetime.
+	 *
+	 *  Too coarse to react to on its own: it stays true through recovery and across a whole combo
+	 *  chain, so an AI gating its guard on this would hold the shield up long after the danger had
+	 *  passed. Use the Windup child for that. This one answers "is he busy swinging at all", which is
+	 *  what a would-be blocker needs in order NOT to raise a guard mid-swing. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking);
+
+	/** THE TELEGRAPH. Present for exactly FGSSwingStage::WindupSeconds - from the frame the swing is
+	 *  committed to the frame the damage window opens.
+	 *
+	 *  This is the ONLY channel by which an AI may learn that a hit is coming. Nothing may read the
+	 *  opponent's ability internals, montage position or BT state instead: the player sees the windup
+	 *  pose on the same frame this tag appears, so a defender reacting to it is reacting to something
+	 *  the player also saw, and the fight stays honest when the player joins the exchange.
+	 *
+	 *  A LOOSE tag rather than ActivationOwnedTags because it spans a sub-range of the ability, and a
+	 *  loose tag is the only thing that can be added and removed part-way through one. Deliberately
+	 *  not an anim notify: GSGA_SwordLight.h records that these timings are tuned constantly and that
+	 *  structural montage edits crash the editor with its window open, and a notify pass would cost a
+	 *  montage edit per weapon per skeleton. The per-stage WindupSeconds already IS this window. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking_Windup);
+
+	/** Your swing was turned aside by a guard, and you are open.
+	 *
+	 *  Applied to the ATTACKER when UGSDamageExecCalculation resolves a hit as blocked. Blocks both
+	 *  the attack abilities and the block ability, so a recoiling fighter can neither swing again nor
+	 *  hide behind their own guard - which is the whole point. Dodging is deliberately still allowed,
+	 *  so a player who reads their own mistake can still get out of it.
+	 *
+	 *  This is what makes blocking worth doing rather than merely cheaper than being hit: it turns a
+	 *  successful guard into an opening, and it does it symmetrically. It is also the anti-turtle
+	 *  answer for allied goblins, who carry no guard break by design - they cannot kick a shield
+	 *  down, but they can punish the swing that bounces off one. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Recoil);
+
 	// ------------------------------------------------------------------ interaction verbs
 	// The slice's channelled verbs plus the carry pick-up/put-down channel. These are DATA: an
 	// interactable advertises one through UGSInteractableComponent::VerbTag, no C++ branches on

@@ -4,7 +4,11 @@
 #include "Destruction/GSTorchProjectile.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Animation/AnimMontage.h"
 #include "GameFramework/Character.h"
+
+// One warning per session for a broken montage reference, not one per goblin. See the use site.
+static bool GThrowMontageResolveFailed = false;
 
 UGSGA_TorchToss::UGSGA_TorchToss()
 {
@@ -15,6 +19,11 @@ UGSGA_TorchToss::UGSGA_TorchToss()
 	// committed its cost and spawned nothing, which made fire (the only closed damage loop in the
 	// project) unreachable in play.
 	TorchProjectileClass = AGSTorchProjectile::StaticClass();
+
+	// The authored throw animation, which until now was referenced by nothing in C++. Soft, so
+	// recording it here costs no package load at module time.
+	ThrowMontage = TSoftObjectPtr<UAnimMontage>(
+		FSoftObjectPath(TEXT("/Game/Characters/ScoutV2/Montages/AM_GS_ThrowTorch.AM_GS_ThrowTorch")));
 
 	// A full-handed goblin has to drop what it is holding before it can throw (ruling 2026-08-04).
 	ActivationBlockedTags.AddTag(GSTags::State_Carrying);
@@ -43,6 +52,45 @@ void UGSGA_TorchToss::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 			// are not AGSPlayerCharacters. A pawn with no weapon component simply throws without a
 			// visible wind-up prop, which is a degradation and not an error.
 			WeaponComp->SetTorchReadied(true);
+		}
+	}
+
+	// The throw animation. AM_GS_ThrowTorch has existed since the montage pass and was referenced by
+	// NOTHING in C++ - the throw was a timer and a spawn, with the goblin standing perfectly still.
+	//
+	// PlayAnimMontage on the character, matching UGSGA_SwordLight's stage montages rather than an
+	// AbilityTask: the wind-up timer below already owns this ability's lifetime, and adding a second
+	// task that also wants to own it is how an ability ends twice.
+	//
+	// The spawn is still driven by TorchWindupSeconds, NOT by a notify in the montage. Moving it onto
+	// an AnimNotify is the right end state - it is what keeps the release synced if the animation is
+	// ever retimed - but the notify has to be authored in the editor, and a C++ contract for an event
+	// no asset sends would be worse than this honest coupling. Set TorchWindupSeconds to the montage's
+	// release moment.
+	if (!ResolvedThrowMontage && !GThrowMontageResolveFailed)
+	{
+		if (UAnimMontage* Loaded = ThrowMontage.IsNull() ? nullptr : ThrowMontage.LoadSynchronous())
+		{
+			ResolvedThrowMontage = Loaded;
+		}
+		else
+		{
+			// File-scope latch, not a member: this ability is InstancedPerActor, so a member would
+			// warn once per goblin rather than once per session. Same reasoning as the projectile
+			// latches fixed in #030 and #034, arrived at from the opposite direction.
+			GThrowMontageResolveFailed = true;
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] Torch toss has no usable throw montage (%s) - the throw will have "
+					 "no animation. It still spawns, still flies, and still burns."),
+				ThrowMontage.IsNull() ? TEXT("reference is unset") : *ThrowMontage.ToString());
+		}
+	}
+
+	if (ResolvedThrowMontage)
+	{
+		if (ACharacter* AvatarChar = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+		{
+			AvatarChar->PlayAnimMontage(ResolvedThrowMontage, ThrowMontagePlayRate);
 		}
 	}
 

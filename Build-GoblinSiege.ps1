@@ -80,11 +80,25 @@ else {
 }
 
 # --- editor must be closed --------------------------------------------------
+# Ask the OS process table, NOT Get-Process. `Get-Process UnrealEditor` hands back a cached .NET
+# System.Diagnostics.Process object that can OUTLIVE the process it describes: after the editor
+# exits you still get an object, with HasExited=True and MainWindowTitle='', so a plain `if ($p)`
+# reports "running" for an editor that has been gone for minutes. That false positive aborted a
+# build as "STILL RUNNING" on 2026-08-05 when the log already ended `LogExit: Exiting`.
+#
+# Adding `-not $_.HasExited` is not the fix - the fix is to stop asking .NET for a cached object.
+# `tasklist` queries the live table, so an exited process is simply absent.
+#
+# Both failure directions are expensive and neither names the editor in its error:
+#   false "running" -> build skipped, and you debug stale binaries
+#   false "closed"  -> UBT refuses with "Unable to build while Live Coding is active"
+# (Knowledge preserved from tools/gs_editor.py, which had no callers and was removed in #115.)
 Write-Step 'Checking for a running editor'
-$editor = Get-Process UnrealEditor -ErrorAction SilentlyContinue
-if ($editor) {
+$editorRows = @(tasklist /FI 'IMAGENAME eq UnrealEditor.exe' /NH 2>$null |
+                Select-String -Pattern 'UnrealEditor\.exe')
+if ($editorRows.Count -gt 0) {
     if (-not $Force) {
-        Write-Host "UnrealEditor is running (PID $($editor.Id -join ', '))." -ForegroundColor Yellow
+        Write-Host "UnrealEditor is running ($($editorRows.Count) process(es))." -ForegroundColor Yellow
         Write-Host "A full build cannot replace the module DLLs while the editor holds them."
         Write-Host "Close the editor and re-run, or pass -Force to try anyway."
         exit 2

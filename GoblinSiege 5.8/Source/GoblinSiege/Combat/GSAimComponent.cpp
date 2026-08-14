@@ -324,8 +324,15 @@ bool UGSAimComponent::EnsureArcVisual()
 	ResolvedArcMesh = Mesh;
 	ArcMID = UMaterialInstanceDynamic::Create(SegmentMaterial, this);
 
-	ArcSegments.Reserve(MaxArcSegments);
-	for (int32 Index = 0; Index < MaxArcSegments; ++Index)
+	// Size the pool from the prediction that will feed it, rather than from a constant that has to
+	// be remembered. PredictProjectilePath emits about (MaxSimSeconds * SimFrequency) + 1 points, so
+	// one fewer segments; +2 is slack for rounding and the impact point. MaxArcSegments is only the
+	// ceiling. See MaxArcSegments' comment for the bug this replaced.
+	const int32 PoolSize = FMath::Clamp(
+		FMath::CeilToInt(MaxSimSeconds * SimFrequency) + 2, 8, MaxArcSegments);
+
+	ArcSegments.Reserve(PoolSize);
+	for (int32 Index = 0; Index < PoolSize; ++Index)
 	{
 		USplineMeshComponent* Segment = NewObject<USplineMeshComponent>(Owner,
 			USplineMeshComponent::StaticClass(), NAME_None, RF_Transient);
@@ -381,11 +388,14 @@ bool UGSAimComponent::EnsureArcVisual()
 	}
 	else
 	{
-		// Not fatal and not latched with the mesh failure: the ribbon alone is still a usable
-		// indicator, and the decal is the more likely of the two to be left unassigned early on.
-		UE_LOG(LogTemp, Log,
-			TEXT("[GoblinSiege] %s has no LandingDecalMaterial - the aim arc will draw without a "
-				 "landing marker."),
+		// WARNING, not Log (2026-08-06). This was Log, which meant "no reticule" produced no
+		// visible explanation anywhere - the one message that would have answered the question
+		// immediately was filed below the level anyone reads. Not fatal (the ribbon alone is still
+		// usable), but the most likely thing to be left unassigned, so it should say so loudly.
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] %s has NO LandingDecalMaterial - there will be no landing reticle. "
+				 "Assign /Game/VFX/Aim/M_GS_AimLanding to the aim component's Landing Decal "
+				 "Material on the character Blueprint."),
 			*GetNameSafe(Owner));
 	}
 
@@ -411,9 +421,34 @@ void UGSAimComponent::UpdateArcVisual(const TArray<FVector>& Path, bool bHit,
 		LandingMID->SetVectorParameterValue(ArcColourParameterName, Colour);
 	}
 
-	// One segment per pair of path points, capped by the pool. Running out of pool shortens the
-	// drawn arc rather than costing frames, and MaxArcSegments is the knob for that trade.
+	// One segment per pair of path points, capped by the pool. The pool is now sized from
+	// MaxSimSeconds * SimFrequency (see EnsureArcVisual), so in normal use this Min never bites -
+	// it is a guard, not a budget. It bit badly before that change: a fixed pool of 40 truncated a
+	// ~75-segment path and the ribbon stopped short of its own landing decal.
 	const int32 SegmentCount = FMath::Min(Path.Num() - 1, ArcSegments.Num());
+
+	// THE BIG SQUARE BUG (fixed 2026-08-06). USplineMeshComponent::SetStartScale takes a MULTIPLIER
+	// on the mesh's own cross-section, not a width. ArcSegmentWidth is 4, and /Engine/BasicShapes/Cube
+	// is 100uu across, so every segment was drawn 400uu wide - a giant box straddling the arc, with
+	// the landing decal buried somewhere inside it. That is the "big square and no reticule".
+	//
+	// Converting through the mesh's actual bounds makes ArcSegmentWidth mean what it says - world
+	// units - for ANY mesh someone assigns. Asking a designer to know that 4 means 400 on one mesh
+	// and 4 on another is how this bug comes straight back the first time the cube is swapped for a
+	// purpose-built strip.
+	float ArcScale = 1.f;
+	if (ResolvedArcMesh)
+	{
+		// Cross-section is the two axes that are NOT the forward axis. Forward is X (see
+		// EnsureArcVisual), so Y and Z; take the larger so a non-square mesh never exceeds the
+		// requested width.
+		const FVector Extent = ResolvedArcMesh->GetBounds().BoxExtent;
+		const float MeshWidth = 2.f * FMath::Max(Extent.Y, Extent.Z);
+		if (MeshWidth > KINDA_SMALL_NUMBER)
+		{
+			ArcScale = ArcSegmentWidth / MeshWidth;
+		}
+	}
 
 	for (int32 Index = 0; Index < ArcSegments.Num(); ++Index)
 	{
@@ -439,8 +474,8 @@ void UGSAimComponent::UpdateArcVisual(const TArray<FVector>& Path, bool bHit,
 		const FVector Tangent = LocalEnd - LocalStart;
 
 		Segment->SetStartAndEnd(LocalStart, Tangent, LocalEnd, Tangent, /*bUpdateMesh*/ true);
-		Segment->SetStartScale(FVector2D(ArcSegmentWidth, ArcSegmentWidth), false);
-		Segment->SetEndScale(FVector2D(ArcSegmentWidth, ArcSegmentWidth), true);
+		Segment->SetStartScale(FVector2D(ArcScale, ArcScale), false);
+		Segment->SetEndScale(FVector2D(ArcScale, ArcScale), true);
 		Segment->SetVisibility(true);
 	}
 

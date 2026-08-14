@@ -92,6 +92,92 @@ protected:
 	TObjectPtr<UTextBlock> AlarmText;
 
 	/**
+	 * Stamina, driven from UGSStaminaComponent::OnStaminaChanged - the same delegate shape HealthBar
+	 * already uses.
+	 *
+	 * BlueprintReadOnly is LOAD-BEARING on these two, unlike every other binding in this class.
+	 *
+	 * WBP_GSPlayerHUD's own EventGraph read `StaminaBar` and `StaminaText` on Tick - it polled the
+	 * character's SprintStamina and wrote them itself, back when the C++ stamina component was not
+	 * fed yet. #076 retired that poll, but the hazard it exposed is permanent: a `BindWidgetOptional`
+	 * property with no Blueprint visibility is invisible to any graph that reads it, and the compiler
+	 * does not warn - it ERRORS:
+	 *   "GSPlayerHUDWidget.StaminaBar is not blueprint visible ... Get StaminaBar"
+	 * which fails the WHOLE widget Blueprint, so the Tick poll never runs and the bar freezes at
+	 * whatever C++ last wrote. That is exactly how this shipped in #054 and what Michael saw.
+	 *
+	 * The other bindings here (HealthBar, ClockText, EndPanel...) get away without it only because no
+	 * Blueprint graph reads them. Add BlueprintReadOnly to any binding a designer might touch.
+	 */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<class UProgressBar> StaminaBar;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<UTextBlock> StaminaText;
+
+	UFUNCTION()
+	void HandleStaminaChanged(float NewStamina, float MaxStamina);
+
+	// ---- the reticle (#148, coloured by #149) --------------------------------------------------
+	//
+	// Michael: "We need a basic crosshair for this game so people can tell where they're aiming",
+	// then "make the reticle turn gold on a valid target".
+	//
+	// The Image itself and its rune material are authored in WBP_GSPlayerHUD; C++ only tints it. The
+	// tint is the whole feature: an always-on reticle answers "where am I pointing", and the colour
+	// change answers "will an order actually take" - which was the original complaint.
+	//
+	// BlueprintReadOnly for the reason the stamina block above sets out at length: any binding a
+	// designer's graph might read must be Blueprint-visible or the WHOLE widget fails to compile.
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<class UImage> Reticle;
+
+	/** On a valid order target. Matches the weapon wheel's committed-highlight gold, so "gold means
+	 *  this will happen" is one language across the whole UI. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Reticle")
+	FLinearColor ReticleTargetColour = FLinearColor(1.f, 0.82f, 0.25f, 1.f);
+
+	/** Resting. Dimmer and cooler, so the gold reads as a genuine change rather than a brightness
+	 *  wobble - the reticle is on screen permanently and must not nag. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Reticle")
+	FLinearColor ReticleIdleColour = FLinearColor(0.85f, 0.87f, 0.95f, 0.5f);
+
+	UFUNCTION()
+	void HandleCrosshairTargetChanged(bool bHasTarget, AActor* Target);
+
+	/** Paints the reticle for the current state. Safe to call before the component is found. */
+	void RefreshReticle(bool bHasTarget);
+
+	/**
+	 * The end-of-raid panel: a container that is hidden for the whole raid and shown once, when it
+	 * ends. Add a panel named `EndPanel` to WBP_GSPlayerHUD with `EndTitleText` and `EndDetailText`
+	 * inside it.
+	 *
+	 * This is C++-driven, unlike the four BlueprintImplementableEvents below, and that is a change of
+	 * position worth stating. Those four are enrichment hooks over text this class already writes -
+	 * an unimplemented OnLivesChanged costs you a nicer lives display, not the lives display. OnRaidEnded
+	 * had no such fallback: it was the ONLY output of the raid loop with nothing behind it, so a
+	 * finished raid produced one log line and no screen at all (#049). A game needs to be able to tell
+	 * you that you lost without a designer having implemented an event first.
+	 *
+	 * The Blueprint event still fires afterwards, so a real end screen can replace this entirely.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UWidget> EndPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> EndTitleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> EndDetailText;
+
+	/** The score line. Optional like the rest - if it is absent the score is appended to
+	 *  EndDetailText instead, because a missing widget should cost layout, not information. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> EndScoreText;
+
+	/**
 	 * A burn type with MORE carriers than this collapses to a single counted row.
 	 *
 	 * 2 by default, which keeps the tutorial's two wheat fields named individually ("The Wheat
@@ -184,6 +270,11 @@ private:
 
 	UPROPERTY()
 	TWeakObjectPtr<UGSRaidDirector> BoundDirector;
+
+	/** The order component whose crosshair scan tints the reticle (#149). Weak for the same reason
+	 *  every other binding here is: the raid director can destroy and respawn the pawn under us. */
+	UPROPERTY()
+	TWeakObjectPtr<class UGSHordeCommandComponent> BoundCommandComponent;
 
 	/** Carriers this widget has hooked, so teardown unhooks exactly those and a re-bind does not
 	 *  double-subscribe. */

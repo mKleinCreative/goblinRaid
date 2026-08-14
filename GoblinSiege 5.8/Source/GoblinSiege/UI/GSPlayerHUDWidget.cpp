@@ -3,8 +3,13 @@
 #include "Core/GSGameState.h"
 #include "Core/GSPlayerState.h"
 #include "Raid/GSRaidDirector.h"
+#include "Raid/GSScoreSubsystem.h"
+#include "Characters/GSStaminaComponent.h"
+#include "Horde/GSHordeCommandComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
+#include "GameFramework/Pawn.h"
 #include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSHUD, Log, All);
@@ -34,10 +39,45 @@ void UGSPlayerHUDWidget::NativeConstruct()
 	WarnIfUnbound(LivesText, TEXT("LivesText"));
 	WarnIfUnbound(AlarmText, TEXT("AlarmText"));
 
+	// EndPanel deliberately NOT passed to WarnIfUnbound. The other six are missing-art warnings at
+	// startup; this one only matters at the moment a raid ends, and HandleRaidEnded warns there
+	// instead - where the message is actionable rather than one more line in a load log.
+	//
+	// Hidden here rather than trusting the asset's saved visibility: a designer toggling it visible
+	// while editing the panel would otherwise ship a permanent "OUT OF LIVES" over the whole raid.
+	if (EndPanel)
+	{
+		EndPanel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	// GetOwningPlayerPawn can legitimately be null on the first construct if the widget is created
 	// before possession; BindToCharacter is public so whoever creates the widget can retry.
 	BindToCharacter(Cast<AGSCharacterBase>(GetOwningPlayerPawn()));
 	BindToRaid();
+
+	// ---- reticle (#148/#149) -----------------------------------------------------------------
+	// Deliberately NOT passed to WarnIfUnbound: a project that has not authored a reticle yet is a
+	// valid state, and the six warnings above are for elements that are always supposed to exist.
+	//
+	// FindComponentByClass on the pawn rather than a cast to AGSPlayerCharacter, matching every other
+	// consumer of that component: knowing what is under the crosshair is a property of being able to
+	// give orders, not of being the player class.
+	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
+	{
+		BoundCommandComponent = OwnerPawn->FindComponentByClass<UGSHordeCommandComponent>();
+	}
+
+	if (UGSHordeCommandComponent* Cmd = BoundCommandComponent.Get())
+	{
+		Cmd->OnCrosshairTargetChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleCrosshairTargetChanged);
+		RefreshReticle(Cmd->HasCrosshairTarget());
+	}
+	else
+	{
+		// No component is survivable - the reticle just never lights up. Paint the idle state so it
+		// is at least visible and consistent rather than whatever the asset shipped with.
+		RefreshReticle(false);
+	}
 }
 
 void UGSPlayerHUDWidget::NativeDestruct()
@@ -47,8 +87,34 @@ void UGSPlayerHUDWidget::NativeDestruct()
 		BoundCharacter->OnHealthChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHealthChanged);
 	}
 
+	// Explicit unbind, for the reason UGSWeaponWheelWidget gives: the pawn outliving this widget is
+	// the normal case on a level transition, and a stale dynamic delegate on a destroyed widget is a
+	// crash rather than a leak.
+	if (UGSHordeCommandComponent* Cmd = BoundCommandComponent.Get())
+	{
+		Cmd->OnCrosshairTargetChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleCrosshairTargetChanged);
+	}
+	BoundCommandComponent.Reset();
+
 	UnbindRaid();
 	Super::NativeDestruct();
+}
+
+void UGSPlayerHUDWidget::HandleCrosshairTargetChanged(bool bHasTarget, AActor* Target)
+{
+	RefreshReticle(bHasTarget);
+}
+
+void UGSPlayerHUDWidget::RefreshReticle(bool bHasTarget)
+{
+	if (!Reticle)
+	{
+		return;
+	}
+
+	// Tint only - the rune itself, its size and its material are authored in WBP_GSPlayerHUD. Colour
+	// is the one thing that has to react to gameplay, so it is the one thing C++ owns.
+	Reticle->SetColorAndOpacity(bHasTarget ? ReticleTargetColour : ReticleIdleColour);
 }
 
 void UGSPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -82,6 +148,14 @@ void UGSPlayerHUDWidget::BindToCharacter(AGSCharacterBase* Character)
 	if (BoundCharacter.IsValid())
 	{
 		BoundCharacter->OnHealthChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHealthChanged);
+
+		// Unbind stamina from the OLD character too. Missing this leaks a binding per respawn, and
+		// the raid respawns you up to five times - so the bar would end up driven by a dead pawn's
+		// component as well as the live one.
+		if (UGSStaminaComponent* OldStam = BoundCharacter->FindComponentByClass<UGSStaminaComponent>())
+		{
+			OldStam->OnStaminaChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleStaminaChanged);
+		}
 	}
 
 	BoundCharacter = Character;
@@ -97,6 +171,28 @@ void UGSPlayerHUDWidget::BindToCharacter(AGSCharacterBase* Character)
 	// the .uasset until the first point of damage, which is exactly the bug this class exists to
 	// fix - it just moves the lie from "always" to "until you get hit".
 	Refresh(Character->GetHealth(), Character->GetMaxHealth());
+
+	// Stamina, same shape. FindComponentByClass rather than a cast to AGSPlayerCharacter: this
+	// widget binds to AGSCharacterBase, and the component being player-only is a fact about who has
+	// one, not about who is allowed to display one.
+	if (UGSStaminaComponent* Stam = Character->FindComponentByClass<UGSStaminaComponent>())
+	{
+		Stam->OnStaminaChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleStaminaChanged);
+		HandleStaminaChanged(Stam->GetStamina(), Stam->GetMaxStamina());
+	}
+}
+
+void UGSPlayerHUDWidget::HandleStaminaChanged(float NewStamina, float MaxStamina)
+{
+	if (StaminaBar)
+	{
+		StaminaBar->SetPercent(MaxStamina > 0.f ? NewStamina / MaxStamina : 0.f);
+	}
+	if (StaminaText)
+	{
+		StaminaText->SetText(FText::FromString(FString::Printf(TEXT("STA %d / %d"),
+			FMath::RoundToInt(NewStamina), FMath::RoundToInt(MaxStamina))));
+	}
 }
 
 void UGSPlayerHUDWidget::HandleHealthChanged(float NewHealth, float MaxHealth, float Delta)
@@ -442,5 +538,73 @@ void UGSPlayerHUDWidget::HandleLivesChanged(int32 LivesRemaining)
 
 void UGSPlayerHUDWidget::HandleRaidEnded(EGSRaidResult Result)
 {
+	// Draw something before delegating. Until #049 this function was only the Blueprint call below,
+	// and WBP_GSPlayerHUD does not implement it - so every raid that ended, won or lost, ended in
+	// silence.
+	FString Title;
+	FString Detail;
+	switch (Result)
+	{
+	case EGSRaidResult::Extracted:
+		Title  = TEXT("EXTRACTED");
+		Detail = TEXT("You made it through the portal.");
+		break;
+	case EGSRaidResult::LeftBehind:
+		Title  = TEXT("LEFT BEHIND");
+		Detail = TEXT("The portal collapsed without you.");
+		break;
+	case EGSRaidResult::OutOfLives:
+		Title  = TEXT("OUT OF LIVES");
+		Detail = TEXT("The warband is spent.");
+		break;
+	default:
+		// NotEnded reaching here would mean EndRaid was called with it, which it refuses to do.
+		Title  = TEXT("RAID OVER");
+		Detail = FString();
+		break;
+	}
+
+	// Objective count on the detail line, so a loss still reports what was achieved. Read live rather
+	// than cached, because this fires once and staleness is not a risk.
+	FString Score;
+	if (const UWorld* World = GetWorld())
+	{
+		if (const UGSRaidDirector* Director = World->GetSubsystem<UGSRaidDirector>())
+		{
+			Detail += FString::Printf(TEXT("   %d of %d objective types burned."),
+				Director->GetCompletedTypeCount(), Director->GetRequiredTypeCount());
+		}
+
+		// The score gets its own line, and asks the subsystem to word itself - the tally owns how it
+		// reads, not the widget.
+		if (const UGSScoreSubsystem* ScoreSys = World->GetSubsystem<UGSScoreSubsystem>())
+		{
+			Score = ScoreSys->BuildSummaryLine();
+		}
+	}
+
+	if (EndScoreText)
+	{
+		EndScoreText->SetText(FText::FromString(Score));
+	}
+	else if (!Score.IsEmpty())
+	{
+		// No dedicated line in the asset: fold it into the detail rather than dropping the score
+		// silently. A missing widget should cost layout, never information.
+		Detail += TEXT("\n") + Score;
+	}
+
+	if (EndTitleText)  { EndTitleText->SetText(FText::FromString(Title)); }
+	if (EndDetailText) { EndDetailText->SetText(FText::FromString(Detail)); }
+	if (EndPanel)      { EndPanel->SetVisibility(ESlateVisibility::HitTestInvisible); }
+
+	if (!EndPanel)
+	{
+		// The one case worth a warning: the raid ended and there is nowhere to say so.
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Raid ended (%s) but the HUD has no `EndPanel` widget, so nothing is "
+				 "shown. Add a panel named EndPanel to WBP_GSPlayerHUD."), *Title);
+	}
+
 	OnRaidEnded(Result);
 }

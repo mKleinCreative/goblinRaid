@@ -32,6 +32,12 @@ UGSGA_Block::UGSGA_Block()
 	// the break into an actual opening.
 	ActivationBlockedTags.AddTag(GSTags::State_GuardBroken);
 
+	// Same idea from the other end (2026-08-08). The guard break punishes turtling; State.Recoil
+	// punishes swinging into a guard. Both are openings, and an opening you can immediately hide
+	// behind your own shield is not one - so a fighter whose swing was just turned aside cannot
+	// answer the counter by blocking it.
+	ActivationBlockedTags.AddTag(GSTags::State_Recoil);
+
 	// Hands full, or hands busy: you cannot raise a guard around a sack, and a channel you started
 	// is not interrupted by reaching for the block key (GDD §8, ruling 2026-08-04).
 	ActivationBlockedTags.AddTag(GSTags::State_Carrying);

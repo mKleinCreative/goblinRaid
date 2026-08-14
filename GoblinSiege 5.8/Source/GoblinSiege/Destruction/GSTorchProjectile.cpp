@@ -8,6 +8,19 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+
+// Warn-once latches, FILE-SCOPE STATIC rather than members (2026-08-06, code review).
+//
+// A torch projectile is spawned FRESH FOR EVERY THROW, so a per-instance latch latches nothing -
+// each new torch starts with it false, retries the failed synchronous package load, and warns
+// again. The documented "warn once, then fly on" was therefore a per-throw package lookup plus a
+// log line, in exactly the situation where the asset is missing and the player is spamming the
+// throw. Process-wide is the right scope: "this soft path does not resolve" is a fact about the
+// build, not about one projectile.
+static bool GSTorchMeshResolveFailed = false;
+static bool GSTorchFlameResolveFailed = false;
 
 AGSTorchProjectile::AGSTorchProjectile()
 {
@@ -21,8 +34,17 @@ AGSTorchProjectile::AGSTorchProjectile()
 	RootComponent = CollisionSphere;
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	ProjectileMovement->InitialSpeed = 1400.f;
-	ProjectileMovement->MaxSpeed = 1400.f;
+	// 2026-08-06: 1400 -> 2400, because the throw did not read as a throw. RANGE GOES AS THE SQUARE
+	// OF SPEED (v^2/g at 45 degrees), so this is not a 70% improvement - it is 20m to 59m, nearly
+	// triple. 1400 put the torch on the ground about two house-lengths away, which looks like a
+	// drop rather than a throw.
+	//
+	// Gravity stays at 1.0 deliberately. The lob is the read: it is what makes the arc worth
+	// previewing, what lets a defender see it coming, and what makes lighting a distant roof a
+	// skill rather than a straight line. Flattening the trajectory to get range would buy distance
+	// by deleting the interesting part.
+	ProjectileMovement->InitialSpeed = 2400.f;
+	ProjectileMovement->MaxSpeed = 2400.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->ProjectileGravityScale = 1.f; // torches arc - readable, dodgeable
 
@@ -33,6 +55,17 @@ AGSTorchProjectile::AGSTorchProjectile()
 	TorchMeshComponent->SetupAttachment(RootComponent);
 	TorchMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	TorchMeshComponent->SetGenerateOverlapEvents(false);
+
+	// The flame that makes the throw trackable. Auto-activate is OFF: it is switched on in BeginPlay
+	// once the system actually resolves, so a missing asset leaves a dormant component rather than
+	// an activated one with nothing in it.
+	FlameFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FlameFX"));
+	FlameFX->SetupAttachment(RootComponent);
+	FlameFX->bAutoActivate = false;
+
+	// C++ default, matching FireVolumeClass above and AGSFireVolume's own FireSystem/SmokeSystem.
+	FlameSystem = TSoftObjectPtr<UNiagaraSystem>(
+		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_TorchFlame.NS_GS_TorchFlame")));
 
 	// C++ DEFAULT, 2026-08-01. See the header for the full argument; the short version is the
 	// precedent set three lines into AGSFireVolume's own constructor
@@ -64,10 +97,30 @@ void AGSTorchProjectile::BeginPlay()
 		CollisionSphere->IgnoreActorWhenMoving(Thrower, true);
 	}
 
+	// Light it. Same resolve-here-not-in-the-constructor rule as the mesh below, and the same
+	// warn-once-then-carry-on degradation: an unlit torch is harder to follow but still lands,
+	// still ignites and still spawns its fire volume.
+	if (!FlameSystem.IsNull() && !GSTorchFlameResolveFailed && FlameFX)
+	{
+		if (UNiagaraSystem* Flame = FlameSystem.LoadSynchronous())
+		{
+			FlameFX->SetAsset(Flame);
+			FlameFX->Activate(true);
+		}
+		else
+		{
+			GSTorchFlameResolveFailed = true;
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] %s could not load its flame system (%s) - the throw will be "
+					 "hard to follow in the air. It still lands, ignites and spawns its fire."),
+				*GetName(), *FlameSystem.ToString());
+		}
+	}
+
 	// Resolved here rather than in the constructor: the constructor runs on the CDO during module
 	// load, which is the one place a synchronous package load is genuinely unwelcome. Warn once,
 	// then fly on invisibly - the torch's job is fire, not looks.
-	if (!TorchMesh.IsNull() && !bTorchMeshResolveFailed && TorchMeshComponent)
+	if (!TorchMesh.IsNull() && !GSTorchMeshResolveFailed && TorchMeshComponent)
 	{
 		if (UStaticMesh* Mesh = TorchMesh.LoadSynchronous())
 		{
@@ -75,7 +128,7 @@ void AGSTorchProjectile::BeginPlay()
 		}
 		else
 		{
-			bTorchMeshResolveFailed = true;
+			GSTorchMeshResolveFailed = true;
 			UE_LOG(LogTemp, Warning,
 				TEXT("[GoblinSiege] %s could not load its torch mesh (%s) - the throw will be "
 					 "invisible in flight. It still sticks, still ignites, and still spawns its "

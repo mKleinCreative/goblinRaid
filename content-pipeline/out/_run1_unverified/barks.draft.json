@@ -1,0 +1,233 @@
+[
+  {
+    "speaker": "Watchman",
+    "alarm_state": "QUIET",
+    "trigger": "WatchmanDozeStart_PerceptionConeDroops",
+    "line": "Nothing ever comes over that treeline... nothing... ever...",
+    "note": "The doze is a timer on his perception cone; the bark sells the drooping cone as boredom, and sets up the joke that the one thing that never comes is coming.",
+    "sources": [
+      "GDD§2.10#0",
+      "GDD§2.6#1",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_01_WatchmanDozeStartPerceptionC"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "QUIET",
+    "trigger": "PenChores_FlockAmbient",
+    "line": "Settle down, you feathered idiots, it's shearing day.",
+    "note": "QUIET is pen chores and pottering; plants the canon 'it's shearing day' rhythm so the later goblin denial lands as a callback.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.10#0",
+      "GDD§2.7#1"
+    ],
+    "_name": "Barks_02_PenChoresFlockAmbient"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "QUIET",
+    "trigger": "CoinTossHeard_ScrambleBegins",
+    "line": "Is that a penny? That's my penny, I've been looking for that penny.",
+    "note": "The coin toss works on guards because greed is an exploitable AI stat — he doesn't wonder who threw it, he claims it.",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_03_CoinTossHeardScrambleBegins"
+  },
+  {
+    "speaker": "PatrolArcher",
+    "alarm_state": "QUIET",
+    "trigger": "PatrolWaypointCheckIn",
+    "line": "Waypoint's clear, horn's dry, back before the hour — mark us in.",
+    "note": "Establishes the 5–7 minute check-in cadence in the player's ear so the missing check-in later reads as a real signal, not a mystery.",
+    "sources": [
+      "GDD§2.1#1",
+      "GDD§3.4#0",
+      "GDD§2.6#1"
+    ],
+    "_name": "Barks_04_PatrolWaypointCheckIn"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "QUIET",
+    "trigger": "SightingUnconfirmed_DecayedToQuiet",
+    "line": "Little green fella by the haycart... no. No. Badger. Big badger. Long day.",
+    "note": "An uncorroborated soft signal decays back to QUIET; the propaganda does the reasoning for him and he talks himself back down mid-bark.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.10#0",
+      "GDD§2.4#0"
+    ],
+    "_name": "Barks_05_SightingUnconfirmedDecayedTo"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "FlockStartled_NearestGuardInvestigates",
+    "line": "Hens are off — right, who's been in the pen, and did they leave the gate again?",
+    "note": "The squawking flock is a noise event that pulls the nearest guard; he investigates a theft-by-neighbour, not an invasion.",
+    "sources": [
+      "GDD§2.7#1",
+      "GDD§2.6#1",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_06_FlockStartledNearestGuardInv"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "CorpseSighted_InvestigateBody",
+    "line": "He's dead, and he's not saying who did it, so I'm putting this down as an accident with a very sharp accident.",
+    "note": "Canon says a guard finding a corpse goes only to Suspicious — the denial has to visibly do work here rather than sound the bell.",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.6#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_07_CorpseSightedInvestigateBody"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "CorpseSighted_CivilianReaction",
+    "line": "That's not a goblin's work, the king killed all of them — there's a statue of him doing it right there.",
+    "note": "Second evidence beat on the same corpse: the villager cites the propaganda statue in the village center as if it were forensics.",
+    "sources": [
+      "GDD§2.10#0",
+      "GDD§2.10#1",
+      "GDD§2.6#2"
+    ],
+    "_name": "Barks_08_CorpseSightedCivilianReactio"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "PatrolOverdue_NoWaypointCheckIn",
+    "line": "Wood patrol's late again — she'll have stopped to shake a toll out of some carter, she always does.",
+    "note": "The overdue-patrol soft signal has no HUD timer, so the tell is this mutter; greed is the explanation he reaches for first.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§3.4#0",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_09_PatrolOverdueNoWaypointCheck"
+  },
+  {
+    "speaker": "Watchman",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "WatchmanDozeInterrupted_ActuallyWatches",
+    "line": "I was not asleep, I was watching the inside of my eyelids — for goblins — which are extinct.",
+    "note": "SUSPICIOUS makes the watchman actually watch; the excuse strains under its own logic in one breath.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.10#0",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_10_WatchmanDozeInterruptedActua"
+  },
+  {
+    "speaker": "Militia",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "CoinScramble_BreaksOffInvestigation",
+    "line": "Hold the search — someone's dropped silver, and finders is finders.",
+    "note": "Shows greed beating duty at exactly the moment duty mattered; the coin toss pulling a man off an active investigation is the thesis in one line.",
+    "sources": [
+      "GDD§2.4#1",
+      "GDD§2.10#0",
+      "GDD§2.6#1"
+    ],
+    "_name": "Barks_11_CoinScrambleBreaksOffInvesti"
+  },
+  {
+    "speaker": "PatrolArcher",
+    "alarm_state": "SUSPICIOUS",
+    "trigger": "PatrolLosingFight_HornWindUp",
+    "line": "We're losing — horn, horn, I'm winding the—",
+    "note": "The horn is a committed, interruptible wind-up sounded only when the patrol is losing; cutting the line off mid-word is the player's window.",
+    "sources": [
+      "GDD§2.1#1",
+      "GDD§2.6#1"
+    ],
+    "_name": "Barks_12_PatrolLosingFightHornWindUp"
+  },
+  {
+    "speaker": "Watchman",
+    "alarm_state": "RAID",
+    "trigger": "BellRung_AlarmConfirmed",
+    "line": "Bell! Bell! It's a— it's a badger with a knife and a hat!",
+    "note": "Escalation to RAID with the denial audibly cracking: he rings it, but still can't say the word 'goblin'.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.10#0",
+      "GDD§2.10#1"
+    ],
+    "_name": "Barks_13_BellRungAlarmConfirmed"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "RAID",
+    "trigger": "BucketLineForming_AtWell",
+    "line": "Pass it, pass it — and whose bucket is this, I want it back after!",
+    "note": "Bucket lines form at the well in RAID; even mid-fire the villager is doing property accounting.",
+    "sources": [
+      "GDD§2.6#2",
+      "GDD§3.1#5",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_14_BucketLineFormingAtWell"
+  },
+  {
+    "speaker": "Militia",
+    "alarm_state": "RAID",
+    "trigger": "BucketBrigadeDisabled_WellFouled",
+    "line": "Don't throw that on the granary — smell it! Something's been *in* the well!",
+    "note": "Pays off the fouled-well counterplay: the brigade is permanently disabled and the player hears why.",
+    "sources": [
+      "GDD§2.6#2",
+      "GDD§2.6#3",
+      "GDD§3.1#5"
+    ],
+    "_name": "Barks_15_BucketBrigadeDisabledWellFou"
+  },
+  {
+    "speaker": "Archer",
+    "alarm_state": "RAID",
+    "trigger": "BarracksSpawn_FirstSighting",
+    "line": "Extinct, they said! That one's got a chicken under each arm!",
+    "note": "Fresh barracks spawn confronting the evidence — the chickens-under-both-arms carry is canon and the funniest possible thing to be in denial about.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.7#1",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_16_BarracksSpawnFirstSighting"
+  },
+  {
+    "speaker": "Guard",
+    "alarm_state": "RAZED",
+    "trigger": "RazedLastPush_DenialCollapses",
+    "line": "Fine! Goblins! Somebody go and tell the statue!",
+    "note": "The denial finally breaks at RAZED — the punchline landing on the people telling the joke, aimed at the propaganda statue.",
+    "sources": [
+      "GDD§2.6#1",
+      "GDD§2.10#1",
+      "GDD§2.10#3"
+    ],
+    "_name": "Barks_17_RazedLastPushDenialCollapses"
+  },
+  {
+    "speaker": "Civilian",
+    "alarm_state": "RAZED",
+    "trigger": "ChaosPeak_CivilianLootsOwnStall",
+    "line": "Nobody's minding this stall, and nobody's minding me, so this is mine now.",
+    "note": "The stretch behaviour where civilians loot their own market stalls and bolt, competing with the player for the hamlet's gold.",
+    "sources": [
+      "GDD§2.6#2",
+      "GDD§2.10#0"
+    ],
+    "_name": "Barks_18_ChaosPeakCivilianLootsOwnSta"
+  }
+]

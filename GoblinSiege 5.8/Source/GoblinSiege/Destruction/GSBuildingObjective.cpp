@@ -30,6 +30,20 @@ AGSBuildingObjective::AGSBuildingObjective()
 
 	RoofNameFilters.Add(TEXT("Roof"));
 
+	// A piece that IS a whole building - walls, roof and windows baked into one mesh. This map's
+	// ordinary houses are all of these (SM_MERGED_House_*), and they own no roof piece to aim at, so
+	// their roof is a REGION of their own bounds instead. Name-based like every other filter here,
+	// because the kit carries no metadata to ask.
+	MonolithicNameFilters.Add(TEXT("MERGED"));
+
+	// See InteriorNameFilters in the header. "Beam" is in here because the roof beams are structural
+	// interior geometry - they are named Roof_Beam and would otherwise be counted as roof.
+	InteriorNameFilters.Add(TEXT("Interior"));
+	InteriorNameFilters.Add(TEXT("Floor"));
+	InteriorNameFilters.Add(TEXT("Stair"));
+	InteriorNameFilters.Add(TEXT("Ceiling"));
+	InteriorNameFilters.Add(TEXT("Beam"));
+
 	// Soft paths: these are real assets today (Content/VFX), but soft-loading keeps a level holding
 	// eleven buildings from pulling in Niagara nobody has lit yet.
 	FireSystem = TSoftObjectPtr<UNiagaraSystem>(
@@ -76,10 +90,30 @@ void AGSBuildingObjective::BeginPlay()
 	}
 	else
 	{
+		// Report against the SHELL, because that is what RecomputeCompletion divides by. This line
+		// used to say CeilToInt(InitialPieceCount * Threshold), which on a kit that is ~28% interior
+		// over-reported the requirement by about 40% on every building - the one line a designer
+		// reads to sanity-check a house was describing a denominator nothing uses.
+		const int32 ShellCount = CountShellPieces();
 		UE_LOG(LogGSBuilding, Log,
-			TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) within %.0f uu; needs %d burnt (%.0f%%)."),
-			*GetName(), InitialPieceCount, AdoptRadius,
-			FMath::CeilToInt(InitialPieceCount * CompletionThreshold01), CompletionThreshold01 * 100.f);
+			TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) within %.0f uu, %d of them shell; ")
+			TEXT("needs %d shell piece(s) burnt (%.0f%%)."),
+			*GetName(), InitialPieceCount, AdoptRadius, ShellCount,
+			FMath::CeilToInt(ShellCount * CompletionThreshold01), CompletionThreshold01 * 100.f);
+
+		if (ShellCount == 0)
+		{
+			// Reachable today: InteriorNameFilters contains "Beam", so a detached roof-beam cluster
+			// adopts pieces, counts more than zero, and scores nothing. Without this the building
+			// just freezes at its last completion value forever with no line in the log - the same
+			// silent-dead-objective class as the InitialPieceCount == 0 case above, which has an
+			// Error precisely because it has burned this project before.
+			UE_LOG(LogGSBuilding, Error,
+				TEXT("[GoblinSiege] Building '%s' adopted %d piece(s) but NONE of them are shell - ")
+				TEXT("every one matched InteriorNameFilters. Its completion can never move. Check ")
+				TEXT("InteriorNameFilters (note it contains \"Beam\") against this structure's meshes."),
+				*GetName(), InitialPieceCount);
+		}
 	}
 }
 
@@ -94,7 +128,6 @@ void AGSBuildingObjective::AdoptPieces()
 	}
 
 	const FVector Origin = GetActorLocation();
-	const float RadiusSq = AdoptRadius * AdoptRadius;
 
 	for (TActorIterator<AActor> It(World); It; ++It)
 	{
@@ -104,7 +137,34 @@ void AGSBuildingObjective::AdoptPieces()
 			continue;
 		}
 
-		if (FVector::DistSquared(Other->GetActorLocation(), Origin) > RadiusSq)
+		// Measure to the piece's GEOMETRY, not its pivot.
+		//
+		// This kit offsets its meshes from their actor origin by a median of 287 uu and up to 671
+		// (measured over 1,000 house pieces on L_Tutorial_Island). Testing GetActorLocation() was
+		// therefore asking "is this pivot near me", which is a different question from "is this wall
+		// part of my house" - and the answer diverged badly: 76 of 113 windows ended up owned by no
+		// building, so breaking them did nothing at all.
+		//
+		// Subtracting the piece's own bounding radius means a large wall counts as adopted if ANY of
+		// it is inside the footprint, which is what "part of this building" actually means.
+		//
+		// That is the intent; the arithmetic used to overshoot it. `Dist(centre, centre) -
+		// PieceExtent.Size()` subtracts the box DIAGONAL - sqrt(x^2+y^2+z^2) - which is the radius of
+		// the sphere the box is inscribed in, not the box's reach toward this building. On a roof
+		// piece with extent (700, 700, 200) that is 1005 rather than 700, so the piece was treated as
+		// starting ~300 uu closer than it does, in EVERY direction at once. The class header names an
+		// over-large adopt radius as a route to an unwinnable objective, and it also inflates the
+		// completion denominator with pieces from next door.
+		//
+		// This is the exact distance from the building centre to the nearest point of the piece's
+		// box, which is zero when the centre is inside it.
+		FVector PieceOrigin, PieceExtent;
+		Other->GetActorBounds(false, PieceOrigin, PieceExtent);
+		const FVector Beyond = (Origin - PieceOrigin).GetAbs() - PieceExtent;
+		const float EdgeDistance = FVector(FMath::Max(Beyond.X, 0.f),
+										   FMath::Max(Beyond.Y, 0.f),
+										   FMath::Max(Beyond.Z, 0.f)).Size();
+		if (EdgeDistance > AdoptRadius)
 		{
 			continue;
 		}
@@ -136,6 +196,44 @@ void AGSBuildingObjective::AdoptPieces()
 	}
 
 	InitialPieceCount = Pieces.Num();
+
+	// Which KIND of building is this? It decides how a torch gets in, and it is answered by the
+	// pieces themselves rather than by a flag someone has to remember to set.
+	//
+	// Kitbashed -> it owns roof actors, so the roof is a thing you can hit.
+	// Merged     -> it does not, so its roof is the top of its own bounds. See ContainsWorldLocation.
+	// How can a torch get into this building? Answered from the pieces themselves rather than a flag
+	// someone has to remember to set - and reported, because a building with NEITHER kind of entry is
+	// an objective the player cannot complete and nothing else would say so.
+	int32 RoofPieceCount = 0;
+	int32 MonolithicCount = 0;
+	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
+	{
+		const AActor* Piece = Weak.Get();
+		if (IsRoofPiece(Piece))
+		{
+			++RoofPieceCount;
+		}
+		if (IsMonolithicPiece(Piece))
+		{
+			++MonolithicCount;
+		}
+	}
+
+	if (RoofPieceCount == 0 && MonolithicCount == 0)
+	{
+		UE_LOG(LogGSBuilding, Warning,
+			TEXT("[GoblinSiege] Building '%s' has NO WAY IN - %d piece(s), no roof piece and no "
+				 "monolithic mesh. A torch cannot light it. Check MonolithicNameFilters and "
+				 "RoofNameFilters against the kit meshes here."),
+			*GetName(), Pieces.Num());
+	}
+	else
+	{
+		UE_LOG(LogGSBuilding, Log,
+			TEXT("[GoblinSiege] Building '%s': %d piece(s), %d roof piece(s), %d monolithic mesh(es)."),
+			*GetName(), Pieces.Num(), RoofPieceCount, MonolithicCount);
+	}
 }
 
 void AGSBuildingObjective::EnsurePiecesFlammable()
@@ -224,20 +322,75 @@ bool AGSBuildingObjective::IsEntryPiece(const AActor* Piece) const
 
 bool AGSBuildingObjective::IsRoofPiece(const AActor* Piece) const
 {
-	return MeshNameMatches(Piece, RoofNameFilters);
+	// A roof BEAM is interior structure, not roof you can throw a torch onto.
+	return MeshNameMatches(Piece, RoofNameFilters) && !IsInteriorPiece(Piece);
 }
 
-bool AGSBuildingObjective::ContainsWorldLocation(const FVector& /*WorldLocation*/) const
+bool AGSBuildingObjective::IsInteriorPiece(const AActor* Piece) const
 {
-	// Never. A building owns no ground, so the torch's FindObjectiveAtLocation sweep cannot light a
-	// house by splashing its outside wall. Getting in is the window's job and the roof's job, and
-	// routing it through those keeps the rule in one place instead of two.
+	return MeshNameMatches(Piece, InteriorNameFilters);
+}
+
+bool AGSBuildingObjective::IsMonolithicPiece(const AActor* Piece) const
+{
+	return MeshNameMatches(Piece, MonolithicNameFilters);
+}
+
+bool AGSBuildingObjective::ContainsWorldLocation(const FVector& WorldLocation) const
+{
+	// A MERGED piece has no roof ACTOR to throw a torch at (2026-08-06). This map's ordinary houses
+	// are single SM_MERGED_House_* meshes - walls, roof and windows baked into one actor - so
+	// IsRoofPiece can never be true for them and there is no window actor to break either. Refusing
+	// here would leave nine buildings in ten unlightable, which is the exact bug this feature exists
+	// to fix.
+	//
+	// For those the roof is not an actor, it is a REGION: the top of the mesh's own bounds. That keeps
+	// the ignition rule intact rather than weakening it - a torch into the wall still fails, because
+	// the wall is the lower two thirds.
+	//
+	// Asked PER PIECE, not per building. Gating this on "the building owns no roof piece at all" was
+	// wrong and PIE proved it: 14 of the 61 merged houses adopt a stray roof tile from a neighbouring
+	// shed, which flipped them to kitbashed and left them with no way in - a torch on their own roof
+	// did nothing. A building can hold both kinds, and each piece answers for itself.
+	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
+	{
+		const AActor* Piece = Weak.Get();
+		if (!Piece || IsInteriorPiece(Piece) || !IsMonolithicPiece(Piece))
+		{
+			continue;
+		}
+
+		FVector Origin, Extent;
+		Piece->GetActorBounds(false, Origin, Extent);
+		if (Extent.IsNearlyZero())
+		{
+			continue;
+		}
+
+		const bool bInFootprint =
+			FMath::Abs(WorldLocation.X - Origin.X) <= Extent.X &&
+			FMath::Abs(WorldLocation.Y - Origin.Y) <= Extent.Y;
+		const float RoofFloorZ =
+			Origin.Z + Extent.Z * (1.f - 2.f * FMath::Clamp(RoofZoneFraction, 0.05f, 0.9f));
+
+		if (bInFootprint && WorldLocation.Z >= RoofFloorZ && WorldLocation.Z <= Origin.Z + Extent.Z)
+		{
+			return true;
+		}
+	}
+
 	return false;
 }
 
-void AGSBuildingObjective::IgniteAtLocation(const FVector& /*WorldLocation*/)
+void AGSBuildingObjective::IgniteAtLocation(const FVector& WorldLocation)
 {
-	// Intentionally empty - see the header. Exterior fire is refused.
+	// Only ever reached for a merged building whose roof region contains this point - see above. A
+	// kitbashed building returns false from ContainsWorldLocation and never gets here, so exterior
+	// fire on a wall is still refused.
+	if (ContainsWorldLocation(WorldLocation))
+	{
+		IgniteInterior(EGSBuildingIgnitionSource::Roof);
+	}
 }
 
 void AGSBuildingObjective::IgniteInterior(EGSBuildingIgnitionSource Source)
@@ -389,18 +542,56 @@ void AGSBuildingObjective::RecomputeCompletion()
 		return;
 	}
 
-	int32 Burnt = 0;
+	// Score the SHELL, not the interior. A player judges a burning house from outside, and the
+	// interior is 28% of the kit - so counting it meant a third of the work was invisible, and a
+	// house could sit at "not done" while visibly gutted. Interiors still burn; they just do not
+	// gate the objective.
+	int32 Burnt = 0, Shell = 0;
 	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
 	{
 		const UGSFlammableComponent* Flam = Weak.Get();
-		if (Flam && Flam->HasBurnedDown())
+		if (!Flam || IsInteriorPiece(Flam->GetOwner()))
+		{
+			continue;
+		}
+		++Shell;
+		if (Flam->HasBurnedDown())
 		{
 			++Burnt;
 		}
 	}
 
 	BurntPieceCount = Burnt;
-	SetCompletion01(static_cast<float>(Burnt) / static_cast<float>(InitialPieceCount));
+	if (Shell > 0)
+	{
+		SetCompletion01(static_cast<float>(Burnt) / static_cast<float>(Shell));
+	}
+	else if (!bWarnedNoShell)
+	{
+		// Not silent. Skipping SetCompletion01 freezes completion at whatever it last held, forever,
+		// with nothing in the log to say why - a dead objective that reads exactly like one nobody
+		// has lit yet. BeginPlay reports this too; this catches the case where the shell disappears
+		// later (every shell piece destroyed and unregistered), which BeginPlay cannot see.
+		bWarnedNoShell = true;
+		UE_LOG(LogGSBuilding, Error,
+			TEXT("[GoblinSiege] Building '%s' has no shell pieces left to score (%d adopted, all ")
+			TEXT("interior or gone). Completion is frozen at %.2f and cannot advance."),
+			*GetName(), InitialPieceCount, GetCompletion01());
+	}
+}
+
+int32 AGSBuildingObjective::CountShellPieces() const
+{
+	int32 Shell = 0;
+	for (const TWeakObjectPtr<UGSFlammableComponent>& Weak : PieceFlammables)
+	{
+		const UGSFlammableComponent* Flam = Weak.Get();
+		if (Flam && !IsInteriorPiece(Flam->GetOwner()))
+		{
+			++Shell;
+		}
+	}
+	return Shell;
 }
 
 // ====================================================================== lookup

@@ -1,0 +1,14 @@
+credentials: loaded from D:\goblinRaid\GoblinSiege 5.8\.env
+knowledge base: 95 chunks from 5 documents (15574 indexed terms)
+
+=== prompts: Tutorial hamlet — first-time prompt rows ===
+  retrieved 18 chunks from 8 queries
+  generated 9 rows
+  critic: Seven of nine rows are clean: the torch-toss control (Q), the windmill Stage-1 bark and HUD line (verbatim canon), the crouch/broken-look patrol prompt, the bind-over-kill civilian prompt, the +40 pig loot value, and the point-a-goblin courier row all match canon and hold the comic-satire register. Two problems: the windmill first-sight bark drifts into generic epic menace ("learn to fear it") instead of the Overlord's pompous underwhelm, and the unaware-guard HUD line overclaims by teaching "no signal" when a discovered corpse is an explicit soft signal and no body cleanup exists in this slice. Both corrections keep the trigger, payoff, and single control intact.
+  round 1: 2 finding(s) -> revising
+  critic: No grounded findings. All nine rows check out against retrieved canon. Controls are correct for this slice: torch toss on Q (GDD§2.3#1), takedown/bind/carry on hold-E channels (GDD§2.3#1, GDD§2.4#1), crouch as the stealth stance (GDD§2.4#2), and the horde's single context command as "Point" (GDD§2.5#0). Numbers and states match: pig = 40 loot points (GDD§2.7#0), three burn objectives one of each in the fixed tutorial layout (GDD§2.8#3, GDD§1#1), and the windmill's two-stage set piece with the Stage-1 "Ablaze — needs a window shot" HUD line and its verbatim canon bark plus the aimed through-window throw (GDD§2.8#2). Row 5's "a broken look is no alarm" is exactly the confirm rule (GDD§2.4#1, GDD§2.6#1); row 6's "the body still talks" matches corpse-suspicion as shipped in this slice (GDD§2.4#1); row 7's bind-over-kill framing matches the rope-chain tribute His Eternal Darkness actually wants (GDD§2.6#2, GDD§2.7#3); row 9's courier-the-pig teaching matches the Point command (GDD§2.5#0, GDD§2.7#0). Structure also matches the prompt system's spec — one bark plus one HUD line naming objective, payoff, and the single control (GDD§2.8#4). No post-slice or stale-brief content appears (no other classes, no palisade/breach verbs, no Warren before the horn, no generator assumptions). Register holds: dismissive-proprietary Overlord ("that shed", "only useful to me on fire", "its wealth has trotters") rather than grimdark menace, and every bark is deliverable in one breath, including the long-but-canonical Stage-1 line.
+  round 2: clean
+  wrote prompts.csv, prompts.trace.json, prompts.trace.md
+
+done in 232s — 4 calls, 71,678 in / 15,844 out tokens
+EXIT=0

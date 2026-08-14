@@ -1,0 +1,268 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Goblin Siege &mdash; Assignment #04, Dynamic Content Pipeline</title>
+<style>
+*{box-sizing:border-box}
+body{font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1a1a1a;background:#fff;
+     max-width:52em;margin:0 auto;padding:2.5em 1.5em}
+h1{font-size:2em;margin:0 0 .1em;letter-spacing:-.02em}
+h2{font-size:1.35em;margin:2.2em 0 .6em;padding-bottom:.25em;border-bottom:2px solid #1a1a1a}
+h3{font-size:1.08em;margin:1.6em 0 .5em;color:#000}
+.sub{color:#555;margin:0 0 2em;font-size:1.05em}
+code{font:13px/1.4 ui-monospace,Consolas,monospace;background:#f2f2f2;padding:.1em .35em;border-radius:3px}
+pre{font:13px/1.5 ui-monospace,Consolas,monospace;background:#f7f7f7;border:1px solid #e0e0e0;
+    padding:.7em .9em;border-radius:4px;overflow-x:auto;white-space:pre-wrap}
+pre.q{background:#eef4ff;border-color:#c5d8f5}
+pre.sh{background:#1e1e1e;color:#e8e8e8;border:none}
+table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:13px}
+th,td{border:1px solid #d8d8d8;padding:.45em .6em;text-align:left;vertical-align:top}
+th{background:#f2f2f2;font-weight:600}
+.rubric td.pts{text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.data{font-size:12px}
+.scroll{overflow-x:auto;border:1px solid #e5e5e5;border-radius:4px}
+.scroll table{margin:0;border:none}
+blockquote{margin:.5em 0;padding:.6em .9em;border-left:4px solid #ccc;background:#fafafa}
+blockquote.gap{border-left-color:#8a6d1f;background:#fdf8e8}
+blockquote.chunk{border-left-color:#7a7a7a;background:#f6f6f6;font-size:13px}
+blockquote.outp{border-left-color:#1f6d3a;background:#eefbf2}
+blockquote.bad{border-left-color:#b3261e;background:#fdeeed}
+blockquote.good{border-left-color:#1f6d3a;background:#eefbf2}
+.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#666;
+     margin:.9em 0 .2em;font-weight:600}
+.note{background:#f4f4f4;border-left:4px solid #999;padding:.7em .9em;font-size:13.5px}
+.why{font-size:13px;color:#333}
+.file{font-size:12px;color:#666;margin-top:.3em}
+.finding{border:1px solid #e0e0e0;border-radius:5px;padding:.7em .9em;margin:.9em 0;
+         page-break-inside:avoid}
+.verdict{font-size:11px;font-weight:700;padding:.15em .5em;border-radius:3px;color:#fff}
+.verdict.LORE_BREAK{background:#b3261e}
+.verdict.TONE_DRIFT{background:#9a5b00}
+.verdict.REGISTER_DRIFT{background:#4a4a8a}
+.chain td.stage{white-space:nowrap;font-weight:600;width:9em}
+.metric td,.metric th{text-align:center}
+.metric td:first-child,.metric th:first-child{text-align:left}
+.metric tr.win{background:#eefbf2}
+ul.hits{font-size:13px;margin:.2em 0}
+ul.hits li{margin:.15em 0}
+ul.lim li{margin:.5em 0}
+ul.rounds{font-size:13.5px}
+.dim{color:#888;font-size:12px;font-style:italic}
+section{page-break-inside:auto}
+@media print{
+  body{padding:0;max-width:none;font-size:11pt}
+  h2{page-break-after:avoid}
+  h3{page-break-after:avoid}
+  blockquote,table,.finding{page-break-inside:avoid}
+  pre{white-space:pre-wrap}
+}
+</style></head><body>
+<h1>Dynamic Content Pipeline</h1>
+<p class="sub"><b>Goblin Siege</b> &middot; Assignment #04 &middot; Michael Klein<br>
+A retrieval-augmented pipeline that writes game text out of the project's own design documents,
+then checks every line back against them with a critic agent before anything ships.</p>
+<section><h2>Where each criterion is evidenced</h2>
+<table class="rubric"><thead><tr><th>Criterion</th><th>Pts</th><th>Evidence</th></tr></thead>
+<tbody><tr><td><b>Game-Anchored Source</b></td><td class='pts'>2.0</td><td>&sect;1 &mdash; the knowledge base is this project's own GDD and four race briefs. Every generated row cites the chunk ids it was written from.</td></tr><tr><td><b>Content Fit</b></td><td class='pts'>2.5</td><td>&sect;2 &mdash; three content types, each filling a gap the GDD names about itself, quoted in place.</td></tr><tr><td><b>RAG Implementation</b></td><td class='pts'>2.0</td><td>&sect;3 &mdash; query, retrieved chunk and generated output shown side by side.</td></tr><tr><td><b>Consistency Checking</b></td><td class='pts'>2.0</td><td>&sect;4 &mdash; the critic's findings with the draft text, the canon rule, the chunk that proves it, and the corrected line.</td></tr><tr><td><b>Voice Judgment</b></td><td class='pts'>1.5</td><td>&sect;5 &mdash; self-assessment, plus a measured prompt change and its before/after.</td></tr></tbody></table></section>
+<section><h2>1. Knowledge base &mdash; the actual GDD</h2>
+<p>No placeholder lore. The corpus is this project's real design documents, split into
+<b>95 heading-aware chunks</b> that keep their heading path, so a citation reads
+<code>GDD&sect;2.10#2 &mdash; 2. Game Mechanics &gt; 2.10 Tone</code>:</p>
+<ul><li><b>Goblin Siege GDD (final draft)</b> &mdash; 70 chunks</li><li><b>Race brief — Goblins</b> &mdash; 7 chunks <span class='dim'>(indexed; not retrieved this run)</span></li><li><b>Race brief — Humans</b> &mdash; 6 chunks <span class='dim'>(indexed; not retrieved this run)</span></li><li><b>Race brief — Elves</b> &mdash; 6 chunks <span class='dim'>(indexed; not retrieved this run)</span></li><li><b>Race brief — Dwarves</b> &mdash; 6 chunks <span class='dim'>(indexed; not retrieved this run)</span></li></ul>
+<p class="note"><b>Retrieval concentrated on the GDD, and that is the correct outcome.</b> All five
+documents are indexed, but the GDD is authoritative and the race briefs are older reference
+material &mdash; BM25 selected GDD sections for these three jobs because that is where the
+mechanics, scoring and tone are actually specified.</p>
+<p class="note"><b>The corpus contradicts itself, deliberately.</b> The race briefs predate the
+2026-07-23/24 scope decisions: <code>race-design-goblins.md</code> calls the player class the
+<b>Slasher</b>, the GDD calls it the <b>Scout</b> and says it is the only class this slice. The
+system prompt states the GDD supersedes, and a deterministic lint fails any row containing
+<code>Slasher</code>, <code>Brute</code>, <code>Shaman</code>, <code>Pennybrook</code>,
+<code>Silverford</code>, <code>palisade</code>, <code>battering ram</code> or
+<code>catapult</code>.</p></section>
+<section><h2>2. What was generated, and the gap each fills</h2><p>All three are gaps the <b>GDD names about itself</b> &mdash; outstanding work the design document already tracks, not content invented to have something to generate.</p><h3>NPC bark sheet — livestock &amp; stealth extension pass &mdash; 18 rows</h3>
+<blockquote class="gap"><b>The gap.</b> GDD 3.2 (The Writer): the approved bark sheet is &#x27;now due a livestock-and-stealth extension pass&#x27;. The livestock system (2.7) and the lean-five stealth layer (2.4) both landed after the sheet was approved, so the states they introduce — a startled flock, a coin scramble, a discovered corpse, an overdue patrol — have no lines.</blockquote>
+<div class="scroll"><table class="data"><thead><tr><th>speaker</th><th>alarm_state</th><th>trigger</th><th>line</th></tr></thead><tbody><tr><td>Watchman</td><td>Quiet</td><td>WatchmanDozeStart</td><td>The king slew the last of &#x27;em, so what exactly am I watching for… mmnh.</td></tr><tr><td>Watchman</td><td>Quiet</td><td>WatchmanDozeEnd</td><td>Awake! Watching! Been watching this whole time — what time is it?</td></tr><tr><td>Guard</td><td>Quiet</td><td>CoinTossScramble</td><td>Ooh — dropped coin, no owner, that&#x27;s salvage, that&#x27;s mine by law.</td></tr><tr><td>Civilian</td><td>Quiet</td><td>CoinTossScramble</td><td>Coins in the mud at the king&#x27;s feet — the statue&#x27;s paying out!</td></tr><tr><td>Guard</td><td>Suspicious</td><td>FlockStartled_Investigate</td><td>Squawk all you like, hens — it&#x27;s a fox, it&#x27;s always a fox, it has never once not been a fox.</td></tr><tr><td>Civilian</td><td>Suspicious</td><td>FlockStartled_NearbyRoutine</td><td>A goblin? In my pen? Don&#x27;t be daft, it&#x27;s shearing day.</td></tr><tr><td>Guard</td><td>Suspicious</td><td>CorpseDiscovered</td><td>Somebody&#x27;s knifed the pen-hand. …Right. That&#x27;s a fox with a knife. Investigating.</td></tr><tr><td>Guard</td><td>Raid</td><td>CorpseDiscovered_Second</td><td>Second body. Badger with ambition, that&#x27;s — no. No. BELL! RING THE BELL!</td></tr><tr><td>Guard</td><td>Suspicious</td><td>SightingConfirmed</td><td>Green. Waist-high. Grinning. …I am not writing that in the book.</td></tr><tr><td>Guard</td><td>Suspicious</td><td>SoftSignalDecay_ReturnToQuiet</td><td>No goblin, no tracks, no nothing — trick of the light, back to your chores.</td></tr><tr><td>Civilian</td><td>Quiet</td><td>RoutineResume_AfterDecay</td><td>Must&#x27;ve been a badger. A badger wearing a belt. Badgers do that.</td></tr><tr><td>Guard</td><td>Suspicious</td><td>PatrolOverdue_NoCheckIn</td><td>That patrol&#x27;s well past its waypoint — three grown soldiers lost on a road with signposts on it.</td></tr><tr><td>PatrolArcher</td><td>Suspicious</td><td>HornWindUp_PatrolLosing</td><td>We&#x27;re losing — horn, horn, I&#x27;m sounding the — EXTINCT, ARE THEY?!</td></tr><tr><td>Civilian</td><td>Raid</td><td>WellFouled_Discovered</td><td>There&#x27;s something in the well, and I think it&#x27;s looking back at me!</td></tr><tr><td>Militia</td><td>Raid</td><td>BucketBrigadeFormUp</td><td>Bucket line, move! Well to the granary — pass it up, don&#x27;t spill it!</td></tr><tr><td>Civilian</td><td>Raid</td><td>BucketBrigadeDisabled_WellFouled</td><td>The granary&#x27;s alight and the well&#x27;s gone foul — we&#x27;re fighting fire with soup!</td></tr><tr><td>Militia</td><td>Razed</td><td>LastPush_HamletBurning</td><td>Windmill&#x27;s ash, field&#x27;s ash, fine — FINE — goblins! I said it! Are we happy?!</td></tr><tr><td>Civilian</td><td>Razed</td><td>RoutinesGoneQuiet</td><td>Nobody at the pens, nobody in the field — nobody left to tell me it was a badger.</td></tr></tbody></table></div>
+<p class="file">Source of truth: <code>out/barks.csv</code></p><h3>His Eternal Darkness — whisper and verdict lines &mdash; 14 rows</h3>
+<blockquote class="gap"><b>The gap.</b> GDD 3.2 (The Writer): &#x27;new capture/purge-triggered Overlord verdict lines (2.10)&#x27; are outstanding. 2.10 asks for a raid that comes home with a rope chain of prisoners to earn a different flavour of verdict than one that comes home merely rich, and the clock nudges at 10/5/2 minutes have no lines either.</blockquote>
+<div class="scroll"><table class="data"><thead><tr><th>trigger</th><th>category</th><th>line</th></tr></thead><tbody><tr><td>Clock.TenMinutes</td><td>ClockNudge</td><td>Ten minutes, goblin. I am checking on you. Something should be on fire by now.</td></tr><tr><td>Clock.FiveMinutes</td><td>ClockNudge</td><td>Five minutes. What still stands lies {dir} — follow the smoke and stop admiring the pigs.</td></tr><tr><td>Clock.TwoMinutes</td><td>ClockNudge</td><td>Two minutes. The stones are {dir}. Run, thief — I close the portal, not the door.</td></tr><tr><td>Objective.Granary.Stage1.FirstTime</td><td>ObjectiveBark</td><td>Their whole winter, stacked in one shed — light it and go. The guards are thickest here; that is the tax.</td></tr><tr><td>Objective.Field.Stage1.FirstTime</td><td>ObjectiveBark</td><td>One torch in the wheat, goblin. The fire walks the rows itself — let their buckets try to keep up.</td></tr><tr><td>Loot.FirstSackBanked</td><td>MilestoneWhisper</td><td>The first sack crosses the stones. It is mine now. No bell un-takes it.</td></tr><tr><td>Loot.PigBanked</td><td>MilestoneWhisper</td><td>Behold — a pig. Stolen from a hamlet too small for them to have named it. Tremble, Groatsworth.</td></tr><tr><td>Loot.StrongboxBanked</td><td>MilestoneWhisper</td><td>Their strongbox, emptied through its own smashed lid. They will blame the badger for that too.</td></tr><tr><td>Prisoner.FirstChainBanked</td><td>MilestoneWhisper</td><td>A living witness, roped and delivered. Let him describe the badger to his king.</td></tr><tr><td>Prisoner.ChainBanked.Five</td><td>MilestoneWhisper</td><td>Five of them in my circle now. Their little routines are going quiet. Bring me more proof they remember us.</td></tr><tr><td>Prisoner.NoneLeftBehind</td><td>MilestoneWhisper</td><td>Not one soul left in that hamlet. Alive, every one. Let the county explain THAT with a badger.</td></tr><tr><td>Verdict.Win.CaptureHeavy</td><td>EndVerdict</td><td>You brought me a rope chain, not a corpse pile. Proof they remember us. …adequate.</td></tr><tr><td>Verdict.Win.RichNoCaptives</td><td>EndVerdict</td><td>Gold, a pig, three fires — and not one of them roped to say we were ever here. I have seen rats do better. …adequate.</td></tr><tr><td>Verdict.Loss.Wipe</td><td>EndVerdict</td><td>Five lives spent for a quarter of your deeds. What reached the stones is mine. You, apparently, are not.</td></tr></tbody></table></div>
+<p class="file">Source of truth: <code>out/whispers.csv</code></p><h3>Tutorial hamlet — first-time prompt rows &mdash; 9 rows</h3>
+<blockquote class="gap"><b>The gap.</b> GDD 2.8 specifies a skippable teaching layer — every objective and mechanic carries &#x27;a bark from His Eternal Darkness plus a one-line HUD note naming the objective, the payoff, and the one control that does it&#x27; — and 3.1 lists it as a Settlement Generator Agent deliverable for week 4. Only one instance (the windmill Stage-1 bark) is actually written.</blockquote>
+<div class="scroll"><table class="data"><thead><tr><th>trigger</th><th>overlord_bark</th><th>hud_line</th><th>control</th></tr></thead><tbody><tr><td>FirstSight.Granary</td><td>Their whole winter sleeps in that shed, goblin. Wake it.</td><td>Granary — burn it: one of three targets done. Torch: Q</td><td>Q</td></tr><tr><td>FirstSight.WheatField</td><td>The wheat is fat and smug. Fire runs in rows — let it run.</td><td>Wheat field — burn the crop: fire spreads row to row. Torch: Q</td><td>Q</td></tr><tr><td>FirstSight.Windmill</td><td>Her sails first, goblin. A landmark is only useful to me on fire.</td><td>Windmill — light the frame: Stage 1, Ablaze. Torch: Q</td><td>Q</td></tr><tr><td>WindmillStage1.Ablaze</td><td>Her skin&#x27;s alight, goblin, but it&#x27;s the dust in her belly that&#x27;ll bring her down — put fire through a window.</td><td>Windmill: Ablaze — needs a window shot. Aimed torch throw: Q</td><td>Q</td></tr><tr><td>FirstSight.ForestPatrol</td><td>Torchlight in the trees. A patrol is a thing you choose to meet, goblin.</td><td>Patrol ahead — crouch in cover: a broken look is no alarm. Crouch</td><td>Crouch</td></tr><tr><td>FirstSight.UnawareGuard</td><td>Behind him. Quietly. The county will miss him eventually.</td><td>Unaware guard — take him down: silent, but the body still talks. Hold E behind him</td><td>Hold E</td></tr><tr><td>FirstSight.Civilian</td><td>Don&#x27;t waste her, goblin. Rope is worth more to me than blood — I want them walking.</td><td>Civilian — bind her instead: starts a prisoner chain. Hold E</td><td>Hold E</td></tr><tr><td>FirstSight.LivestockPen</td><td>Their wealth has trotters. Take it by the middle and don&#x27;t listen to it.</td><td>Pig in the pen — sling it over your shoulder: +40 loot. Hold E</td><td>Hold E</td></tr><tr><td>FirstCourier.CargoAndHorde</td><td>Let a lesser goblin do the walking. Your hands are wanted for arson.</td><td>Point a goblin at the pig: it couriers the loot home. Point</td><td>Point</td></tr></tbody></table></div>
+<p class="file">Source of truth: <code>out/prompts.csv</code></p></section>
+<section><h2>3. Retrieval &rarr; output, side by side</h2>
+<p>Retrieval is Okapi BM25 with a heading-match boost, 7&ndash;8 queries per job, union of the
+per-query top-4. Anthropic ships no embeddings endpoint, and at 95 chunks the vocabulary is
+highly specific &mdash; &ldquo;Warren&rdquo;, &ldquo;soft signal&rdquo;, &ldquo;First Spark
+Unseen&rdquo; &mdash; so exact-term matching beats semantic similarity and stays deterministic.
+Full traces for every query are in <code>out/&lt;job&gt;.trace.md</code>.</p>
+<h3>barks</h3>
+<p class="lbl">Query</p><pre class="q">guard perception confirm suspicious corpse discovered investigate</pre>
+<p class="lbl">Retrieved (top 4)</p><ul class="hits"><li><code>GDD§2.4#1</code> &mdash; BM25 12.419 &mdash; 2. Game Mechanics &gt; 2.4 Stealth — the quiet half of the raid</li><li><code>GDD§2.4#0</code> &mdash; BM25 10.663 &mdash; 2. Game Mechanics &gt; 2.4 Stealth — the quiet half of the raid</li><li><code>GDD§2.10#0</code> &mdash; BM25 8.714 &mdash; 2. Game Mechanics &gt; 2.10 Tone — the comedy is systemic</li><li><code>GDD§2.6#1</code> &mdash; BM25 8.284 &mdash; 2. Game Mechanics &gt; 2.6 The town that fights back — what the player sees</li></ul>
+<p class="lbl">Retrieved chunk <code>GDD§2.10#0</code> &mdash; 2. Game Mechanics &gt; 2.10 Tone — the comedy is systemic</p>
+<blockquote class="chunk">Humans are greedy first and brave second, and greed is an exploitable AI stat: the coin toss works on guards *because* they&#x27;re guards in this economy. The watchman&#x27;s doze is a timer on his perception cone. Text **barks** carry the cheapest comedy per byte (&quot;A goblin? Here? Don&#x27;t be daft, it&#x27;s shearing day.&quot;). Violence is cartoony-with-a-hint-of-gore — party-favor gibs, clean cartoon bones, an exploding cushion of feathers for the chickens — with a single intensity scalar as the ratings knob, T target. His Eternal Darkness frames everything: apocalyptic whispered gravitas applied to stealing pi&hellip;</blockquote>
+<p class="lbl">Generated output grounded in it &mdash; <code>Barks_01_WatchmanDozeStart</code></p>
+<blockquote class="outp">The king slew the last of &#x27;em, so what exactly am I watching for… mmnh.</blockquote><h3>whispers</h3>
+<p class="lbl">Query</p><pre class="q">His Eternal Darkness whispers verdict adequate rats layered subtitles register</pre>
+<p class="lbl">Retrieved (top 4)</p><ul class="hits"><li><code>GDD§1#0</code> &mdash; BM25 21.226 &mdash; 1. Executive Summary</li><li><code>GDD§2.10#1</code> &mdash; BM25 17.01 &mdash; 2. Game Mechanics &gt; 2.10 Tone — the comedy is systemic</li><li><code>GDD§2.10#2</code> &mdash; BM25 16.407 &mdash; 2. Game Mechanics &gt; 2.10 Tone — the comedy is systemic</li><li><code>GDD§1#1</code> &mdash; BM25 16.254 &mdash; 1. Executive Summary</li></ul>
+<p class="lbl">Retrieved chunk <code>GDD§2.2#0</code> &mdash; 2. Game Mechanics &gt; 2.2 Win, lose, and the three pressures</p>
+<blockquote class="chunk">- **Win:** all three assigned objectives burned *and* you exit through the portal. Deeds (kills, arson, mischief bonuses) multiply ×1.5 on a successful exit, plus +20 per unused life. - **Lose:** all 5 lives spent, or still outside the circle when the portal dies (0:00 plus a 90-second collapse window — screen-wide warning, guttering stone-glow, the whispers going cold). Either way you keep only 25% of unbanked deeds. Loot that already physically reached the stones — or the Warren (§2.6), once one&#x27;s planted — is safe regardless. - Three stacking pressures: **lives** (respawn is at the runic si&hellip;</blockquote>
+<p class="lbl">Generated output grounded in it &mdash; <code>Whispers_01_ClockTenMinutes</code></p>
+<blockquote class="outp">Ten minutes, goblin. I am checking on you. Something should be on fire by now.</blockquote><h3>prompts</h3>
+<p class="lbl">Query</p><pre class="q">tutorial hamlet prompts first time dismissible HUD note one control payoff</pre>
+<p class="lbl">Retrieved (top 4)</p><ul class="hits"><li><code>GDD§2.8#4</code> &mdash; BM25 21.44 &mdash; 2. Game Mechanics &gt; 2.8 The tutorial hamlet — and the ladder it&#x27;s the first rung of</li><li><code>GDD§2.8#3</code> &mdash; BM25 21.271 &mdash; 2. Game Mechanics &gt; 2.8 The tutorial hamlet — and the ladder it&#x27;s the first rung of</li><li><code>GDD§2.8#1</code> &mdash; BM25 9.151 &mdash; 2. Game Mechanics &gt; 2.8 The tutorial hamlet — and the ladder it&#x27;s the first rung of</li><li><code>GDD§2.8#2</code> &mdash; BM25 8.898 &mdash; 2. Game Mechanics &gt; 2.8 The tutorial hamlet — and the ladder it&#x27;s the first rung of</li></ul>
+<p class="lbl">Retrieved chunk <code>GDD§2.8#2</code> &mdash; 2. Game Mechanics &gt; 2.8 The tutorial hamlet — and the ladder it&#x27;s the first rung of</p>
+<blockquote class="chunk">- **The core village** — the hamlet&#x27;s social heart: houses, the well, the watchtower, the barracks, and the **market stalls with lootable gold** (the map&#x27;s loot concentration, and where the strongbox spawns). Its burn objective is the **village granary**, sitting where the guards are thickest. - **Farmsteads** — the working edge: a farmhouse, **livestock pens** (the chickens, sheep, and pigs of §2.7), and ripe **wheat fields whose burn objective is the crop itself** — field fire spreads row to row, the most visible arson in the game and the hardest to douse. - **The windmill** — the landmark: &hellip;</blockquote>
+<p class="lbl">Generated output grounded in it &mdash; <code>Prompts_01_FirstSightGranary</code></p>
+<blockquote class="outp">Granary — burn it: one of three targets done. Torch: Q</blockquote></section>
+<section><h2>4. What the critic caught</h2>
+<p>The critic is a separate agent prompted as the Design Steward (GDD &sect;3.2, agent 7). It reads
+the same retrieved canon and <b>must cite the chunk id proving every finding</b> &mdash;
+<i>&ldquo;a finding you cannot ground in a quoted chunk is not a finding, and you must not raise
+it.&rdquo;</i> A deterministic lint runs first for banned tier-1 terms and uncitable rows.</p>
+<p class="lbl">Round outcomes this run</p><ul class="rounds"><li><b>barks</b>: 2 finding(s) &rarr; 1 finding(s) &rarr; clean <i>(verify-only)</i></li><li><b>whispers</b>: 1 finding(s) &rarr; 1 finding(s) &rarr; clean <i>(verify-only)</i></li><li><b>prompts</b>: 2 finding(s) &rarr; clean</li></ul>
+
+<h3>The clearest case: a wrong number, fixed wrong, caught again</h3>
+<p>Row <code>Barks_04_PatrolWaypointCheckIn &mdash; the first run</code>. The reviser's first correction was <b>also wrong</b>. Only
+because the loop re-checks after revising did the second error surface &mdash; and in the
+original build it would not have, because the loop ended on a <i>revision</i>, so the rows that
+shipped were the one version nothing had verified. That was a real bug, exposed by running the
+pipeline rather than by reading it; the loop now always terminates on a verification pass and
+reports <code>UNRESOLVED</code> rather than shipping unverified rows. The run that exposed it is
+included in the bundle under <code>out/_run1_unverified/</code> precisely so this is checkable
+&mdash; and the current run's rows, generated under the fixed loop, are the ones in
+<code>out/*.csv</code>.</p>
+<table class="chain"><thead><tr><th>Stage</th><th>Line</th><th>Verdict / evidence</th></tr></thead>
+<tbody><tr><td class='stage'>Draft</td><td>Waypoint&#x27;s clear, horn&#x27;s dry, back before the hour — mark us in.</td><td class='why'>Forest patrols sweep and are expected back at the hamlet on a 5–7-minute cadence, with a couple of minutes&#x27; grace before the missing-check-in soft signal fires — not an hourly rotation. &#x27;Back before the hour&#x27; sets the wrong cadence in the player&#x27;s ear, which breaks the row&#x27;s own stated purpose of making the later overdue-patrol signal legible.<br><code>GDD§2.1#1</code></td></tr><tr><td class='stage'>After revision 1</td><td>Waypoint&#x27;s clear, horn&#x27;s dry, back inside the half hour— call it five minutes. Mark us in.</td><td class='why'>Forest patrols sweep and are expected back at the hamlet on a 5–7-minute cadence; a patrol that misses that window files the overdue soft signal. &#x27;Half hour&#x27; is the raid clock, not the patrol cadence, and stating it in the bark teaches the player the wrong interval the overdue signal is measured against.<br><code>GDD§2.1#1</code></td></tr><tr><td class='stage'>Final (verified clean)</td><td>Waypoint&#x27;s clear, horn&#x27;s dry, back in five— six if the mud&#x27;s bad. Mark us in.</td><td class='why'>&mdash;</td></tr></tbody></table>
+
+<h3>And a contradiction in the source document itself</h3>
+<p>On <code>Prompts_05_FirstSightForestPatrol</code> the critic <b>reversed its own verdict between rounds</b>, citing a
+different section each time. That is a distinct signature: when a draft is wrong the critic cites
+one rule twice, but when the <i>document</i> is inconsistent it argues both sides in good faith.</p>
+<table class="chain"><thead><tr><th>Round</th><th>Cited</th><th>Rule it read there</th></tr></thead>
+<tbody><tr><td class="stage">Round 1</td>
+<td><code>GDD§2.6#1</code></td>
+<td class="why">An unconfirmed sighting is not free: &quot;a goblin half-confirmed&quot; is explicitly one of the soft signals that moves the hamlet QUIET → SUSPICIOUS. The prompt teaches the player a guarantee the town does not give them; only the confirm timing (~1.5s) is canon.</td></tr><tr><td class="stage">Round 2</td>
+<td><code>GDD§2.4#1</code></td>
+<td class="why">The detection model is one readable rule: a sighting must hold ~1.5s to confirm, and breaking the look before the confirm lands means you were never seen at all. A partial, unconfirmed look costs nothing; only a confirm (or another listed soft signal) moves the town to SUSPICIOUS. The prompt teaches the opposite and undercuts the core stealth promise.</td></tr></tbody></table>
+<p class="note"><b>Resolved, and the fix is in the repo.</b> Those two sentences could not both be
+literally true. Escalated to the human as a design question rather than patched over &mdash; and
+ruled: <i>&ldquo;half-confirmed means confirmed but uncorroborated&rdquo;</i>. &sect;2.6's wording
+was the defect; &sect;2.4 had been right all along. The GDD now says a look broken before the
+confirm is <i>no</i> signal, and a confirm becomes <i>exactly one</i> uncorroborated soft signal
+needing a second to escalate (commit <code>369ab26</code>). The prompts in
+<code>out/prompts.csv</code> were then regenerated against the corrected document; the
+pre-ruling run is preserved under <code>out/_pre_ruling/</code>.</p>
+<p>This is the pipeline doing something a spell-check cannot: it did not find a bad line, it found
+a <b>bad specification</b>, by trying to teach the rule to a player and discovering the rule did
+not resolve.</p>
+<h3>Every other finding, in full</h3><div class="finding"><p><span class="verdict LORE_BREAK">LORE_BREAK</span>
+<code>Barks_08_CorpseDiscoveredSecond</code> &middot; barks &middot; round 1 &middot; evidence
+<code>GDD§2.6#1</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">&quot;alarm_state&quot;: &quot;Suspicious&quot; … &quot;Face-down, back opened, and not one goblin in the county for a hundred years — so it&#x27;s a badger with ambition.&quot;</blockquote>
+<p class="lbl">Canon rule</p><p class="why">A second soft signal of any kind (a corpse discovered counts) arriving while the hamlet is already SUSPICIOUS does not refresh the clock — it escalates straight to RAID. A second corpse therefore cannot sit in a sustained Suspicious state with the denial holding. (Secondary: militia are not posted in the hamlet during Quiet/Suspicious — the barracks only starts producing militia once RAID begins, so a Militia speaker in Suspicious does not exist in this slice.)</p>
+<p class="lbl">Correction</p><blockquote class="good">Speaker: Guard; alarm_state: Raid; line: &quot;Second body. Badger with ambition, that&#x27;s — no. No. BELL! RING THE BELL!&quot; (Note should read: second soft signal while Suspicious escalates straight to RAID; the denial breaks mid-sentence, which is where the joke lands.)</blockquote></div><div class="finding"><p><span class="verdict LORE_BREAK">LORE_BREAK</span>
+<code>Barks_12_PatrolOverdueNoCheckIn</code> &middot; barks &middot; round 1 &middot; evidence
+<code>GDD§2.1#1</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">three grown men lost on a road with signposts on it</blockquote>
+<p class="lbl">Canon rule</p><p class="why">A forest patrol is three guards — two militia and an archer — and the archer who carries the patrol&#x27;s signal horn is canonically female (&quot;a committed, interruptible wind-up she sounds the moment the patrol is losing&quot;). &quot;Three grown men&quot; miscounts the patrol&#x27;s makeup.</p>
+<p class="lbl">Correction</p><blockquote class="good">That patrol&#x27;s well past its waypoint — three grown soldiers lost on a road with signposts on it.</blockquote></div><div class="finding"><p><span class="verdict LORE_BREAK">LORE_BREAK</span>
+<code>Barks_15_BucketBrigadeFormUp</code> &middot; barks &middot; round 2 &middot; evidence
+<code>GDD§2.6#3</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">Bucket line, move! Pass it — don&#x27;t sniff it, just throw it!</blockquote>
+<p class="lbl">Canon rule</p><p class="why">Fouling the well *permanently disables* the bucket brigade (+30 counterplay). There is no state where the brigade forms up and passes fouled water — either the well is clean and the brigade works, or it&#x27;s fouled and the brigade is gone for the raid. The row&#x27;s own note (&quot;the fouled water lands as a gag inside the firefighting behaviour&quot;) describes a behaviour the slice does not have, and it collides with row 16, which correctly plays the brigade as dead once the well is fouled.</p>
+<p class="lbl">Correction</p><blockquote class="good">Bucket line, move! Well to the granary — pass it up, don&#x27;t spill it!</blockquote></div><div class="finding"><p><span class="verdict TONE_DRIFT">TONE_DRIFT</span>
+<code>Whispers_13_VerdictWinRichNoCaptives</code> &middot; whispers &middot; round 1 &middot; evidence
+<code>GDD§2.10#1</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">and no one alive to say who took them</blockquote>
+<p class="lbl">Canon rule</p><p class="why">Tier 1&#x27;s Overlord mocks rather than menaces, and the running joke depends on surviving villagers doing the denying (&quot;must&#x27;ve been a badger&quot;); a body count is explicitly *not* the tribute His Eternal Darkness wants — the contrast for a &quot;merely rich&quot; raid is the absence of prisoners/proof, not a silent massacre.</p>
+<p class="lbl">Correction</p><blockquote class="good">Gold, a pig, three fires — and not one of them roped to admit we were ever here. Adequate. I have seen rats do better. …adequate.</blockquote></div><div class="finding"><p><span class="verdict REGISTER_DRIFT">REGISTER_DRIFT</span>
+<code>Whispers_13_VerdictWinRichNoCaptives</code> &middot; whispers &middot; round 2 &middot; evidence
+<code>GDD§2.1#1</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">Gold, a pig, three fires — and not one of them roped to admit we were ever here. Adequate. I have seen rats do better. …adequate.</blockquote>
+<p class="lbl">Canon rule</p><p class="why">The canonical verdict stinger is a single compact whisper — &quot;Adequate. I have seen rats do better. …adequate.&quot; Wrapping it in an extra lead-in clause and then saying &quot;Adequate&quot; twice inside the same line makes it too long and stuttering to deliver as one spoken bark; the stinger&#x27;s shape depends on &quot;adequate&quot; landing once at the front-load and once as the trailing sigh, not three times.</p>
+<p class="lbl">Correction</p><blockquote class="good">Gold, a pig, three fires — and not one of them roped to say we were ever here. I have seen rats do better. …adequate.</blockquote></div><div class="finding"><p><span class="verdict TONE_DRIFT">TONE_DRIFT</span>
+<code>Prompts_03_FirstSightWindmill</code> &middot; prompts &middot; round 1 &middot; evidence
+<code>GDD§2.1#1</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">Her sails first, goblin. Let the county see the smoke and learn to fear it.</blockquote>
+<p class="lbl">Canon rule</p><p class="why">His Eternal Darkness is a pompous, whispering, chronically underwhelmed patron in a comic-satire register (&quot;Adequate. I have seen rats do better. …adequate.&quot;), not a source of epic menace; barks should be smug or disappointed rather than fear-mongering.</p>
+<p class="lbl">Correction</p><blockquote class="good">Her sails first, goblin. A landmark is only useful to me on fire.</blockquote></div><div class="finding"><p><span class="verdict LORE_BREAK">LORE_BREAK</span>
+<code>Prompts_06_FirstSightUnawareGuard</code> &middot; prompts &middot; round 1 &middot; evidence
+<code>GDD§2.6#1</code></p>
+<p class="lbl">Offending text</p><blockquote class="bad">Unaware guard — take him down: silent, no signal. Hold E behind him</blockquote>
+<p class="lbl">Canon rule</p><p class="why">A takedown is silent, but corpses talk: a discovered body is itself a soft signal that moves the hamlet to SUSPICIOUS, and there is no body-dragging in this slice. The HUD may not promise &quot;no signal.&quot;</p>
+<p class="lbl">Correction</p><blockquote class="good">Unaware guard — take him down: silent, but the body still talks. Hold E behind him</blockquote></div></section>
+<section><h2>5. Does it sound like the game?</h2>
+<p>Mostly yes, and the failures were specific rather than general.</p>
+<p><b>What landed.</b> The propaganda-as-denial joke (&sect;2.10) came through without being asked
+for &mdash; the watchman dozes on:</p>
+<blockquote class="outp">The king slew the last of &#x27;em, so what exactly am I watching for… mmnh.</blockquote>
+<p>And the verdict pair &sect;2.10 specifically asked for came out distinct:</p>
+<blockquote class="outp"><b>Capture-heavy:</b> You brought me a rope chain, not a corpse pile. Proof they remember us. …adequate.<br><br>
+<b>Merely rich:</b> Gold, a pig, three fires — and not one of them roped to say we were ever here. I have seen rats do better. …adequate.</blockquote>
+
+<h3>The concrete tweak that improved game-fit</h3>
+<p>The critic filed <code>REGISTER_DRIFT</code> on the tutorial prompts three separate times
+&mdash; not for canon errors but for stuffing three chained mechanical clauses into a line
+&sect;2.8 says is one HUD note. <b>The brief was under-specified:</b> it repeated the GDD's phrase
+&ldquo;one-line HUD note&rdquo; without saying what one line <i>means</i>. I added hard
+constraints &mdash; one objective, one payoff, one control; under ~90 characters; a second stage
+is a <i>separate</i> prompt; modelled on the GDD's own written instance
+(<code>&ldquo;Windmill: Ablaze &mdash; needs a window shot&rdquo;</code>) &mdash; and made the
+Overlord bark carry the flavour so the HUD line need not. Re-running against identical
+retrieval:</p>
+<table class="metric"><thead><tr><th></th><th>max chars</th><th>mean</th><th>over 90</th></tr></thead>
+<tbody>
+<tr><td>Before tweak</td><td>169</td><td>138</td><td>9 / 9</td></tr>
+<tr class="win"><td><b>After tweak</b></td><td><b>82</b></td><td><b>62</b></td><td><b>0 / 9</b></td></tr>
+</tbody></table>
+<p>Unresolved findings on that job dropped from 2 to 1. Both versions are preserved:
+<code>out/_run1_unverified/prompts.beforeTweak.csv</code> vs <code>out/prompts.csv</code>.</p>
+
+<h3>A retrieval tweak too</h3>
+<p>Register queries had to name the <i>register</i>, not the topic. Querying
+<code>&ldquo;His Eternal Darkness verdict&rdquo;</code> returns &sect;1 Executive Summary above
+&sect;2.10 Tone, because &sect;1 mentions him more often. Adding the register words themselves
+&mdash; <code>adequate rats layered subtitles register</code> &mdash; pulls &sect;2.10 to the top,
+which is the section that actually defines the voice. <b>Topic words find where a thing is
+discussed; style words find where it is specified.</b></p></section>
+<section><h2>6. Honest limitations</h2>
+<ul class="lim">
+<li><b>This content has no reader.</b> There is no <code>UGSBarkSubsystem</code>, and no
+<code>FTableRowBase</code> struct anywhere in <code>Source/</code> &mdash; the project has no
+DataTable infrastructure yet. These CSVs are data-table <i>shaped</i> (row <code>Name</code>
+first, flat columns, and an <code>alarm_state</code> column whose values match the
+<code>EGSAlarmPhase</code> enumerators in <code>Alarm/GSAlarmTypes.h</code> exactly) but nothing
+can import them until someone defines the row structs. Authoring bark sheets ahead of the runtime
+is the order GDD &sect;3.2 and the &sect;4.5 schedule intend &mdash; barks are week 7 &mdash; but
+&ldquo;designed order&rdquo; is not &ldquo;wired&rdquo;.</li>
+<li><b>One finding is still open.</b> <code>Prompts_06</code> retains a tone line the critic
+flagged and two revisions failed to fix, with a correction supplied in the trace. Left flagged
+deliberately: GDD &sect;3.3 gives the human <i>&ldquo;exclusive authority over aesthetics and
+tone&rdquo;</i>, so an unresolved aesthetic call is exactly what an agent should escalate rather
+than settle.</li>
+<li><b>A GDD contradiction was found and closed</b> &mdash; see &sect;4. Worth noting as a
+limitation of the <i>method</i>, not the run: the pipeline surfaced it only because a tutorial
+prompt had to state the rule plainly to a player. Content types that never need to teach a
+mechanic would not have exposed it, so this class of defect is found opportunistically rather
+than systematically.</li>
+<li><b>No point value was ever wrong</b>, but that is narrower than it sounds: no finding
+concerned an incorrect number from the &sect;2.9 score table. &sect;2.9 <i>was</i> cited once, on
+<code>Whispers_09</code>, for <i>who qualifies</i> for &ldquo;None Left Behind&rdquo; (civilians,
+not guards) rather than for its +40 value.</li>
+<li>Lexical retrieval will degrade if the corpus grows well past a few hundred chunks, or if
+queries stop sharing vocabulary with the docs. At that point, add embeddings.</li>
+</ul></section>
+<section><h2>Appendix &mdash; running it</h2>
+<pre class="sh">python gsrag.py --list             # the jobs, and the gap each one fills
+python gsrag.py --retrieval-only   # chunking + retrieval, no API calls, no cost
+python gsrag.py barks whispers prompts</pre>
+<p>Credentials: <code>ANTHROPIC_API_KEY</code> in a gitignored <code>.env</code>, or an
+<code>ant auth login</code> profile. Model: Claude Opus 5, adaptive thinking, effort
+<code>high</code>, structured outputs. The final production run was 24 calls, 420,248 input /
+104,810 output tokens (about $4.72). Retrieval is what keeps that low &mdash; each call sees
+~11k tokens of retrieved context rather than the 76&nbsp;KB GDD.</p>
+<p class="note">Files in this bundle: <code>README.md</code> (write-up),
+<code>gsrag.py</code> (pipeline), <code>make_submission.py</code> (this report's builder),
+<code>out/*.csv</code> (the three generated outputs), <code>out/*.trace.md</code> (readable
+retrieval traces), <code>out/*.trace.json</code> (full audit: every query, chunk, round and
+finding), <code>out/*.draft.json</code> (pre-critic drafts).</p></section>
+</body></html>

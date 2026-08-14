@@ -1,0 +1,13 @@
+
+=== generate ===
+  generating: Crouch-and-confirm detection model (§2.4)
+    transient RemoteProtocolError; retry in 2s
+    Stealth/GSStealthTypes.h  (157 lines)
+    Stealth/GSStealthSubsystem.h  (124 lines)
+    Stealth/GSStealthSubsystem.cpp  (192 lines)
+    Stealth/GSSightPerceptionComponent.h  (105 lines)
+    Stealth/GSSightPerceptionComponent.cpp  (403 lines)
+  wrote out\REPORT.md
+
+done in 553s — 1 calls, 7,144 in / 37,147 out tokens
+EXIT=0

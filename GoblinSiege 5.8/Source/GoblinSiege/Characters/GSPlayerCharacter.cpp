@@ -3,21 +3,30 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameplayEffectExtension.h"
 #include "Interaction/GSCarryComponent.h"
+#include "Characters/GSStaminaComponent.h"
 #include "Interaction/GSInteractionComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSArrowProjectile.h"
 #include "Weapons/Abilities/GSGA_Interact.h"
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Weapons/Abilities/GSGA_Block.h"
+#include "Weapons/Abilities/GSGA_Horn.h"
 #include "Weapons/Abilities/GSGA_BowShot.h"
 #include "Weapons/Abilities/GSGA_TorchToss.h"
 #include "Destruction/GSTorchProjectile.h"
 #include "Combat/GSAimComponent.h"
+#include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
+#include "UI/GSWeaponWheelWidget.h"
+#include "UI/GSHordeOrderWheelWidget.h"
+#include "Horde/GSHordeCommandComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -29,10 +38,24 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	InteractionComponent = CreateDefaultSubobject<UGSInteractionComponent>(TEXT("InteractionComponent"));
 	CarryComponent = CreateDefaultSubobject<UGSCarryComponent>(TEXT("CarryComponent"));
 	AimComponent = CreateDefaultSubobject<UGSAimComponent>(TEXT("AimComponent"));
+	HordeCommandComponent = CreateDefaultSubobject<UGSHordeCommandComponent>(TEXT("HordeCommandComponent"));
 
 	// The player is a goblin, so allied goblins and the horde cannot cut him down by standing too
 	// close. Set here rather than on the Blueprint for the same reason the ability classes are.
 	RaceTag = GSTags::Race_Goblin;
+
+	// THE ONE EXEMPTION FROM THE #132 CROWD LIMITS. Every NPC victim now grants 4 attack tokens to
+	// 6 assigned attackers, because two swingers on a militiaman had a warband standing in a circle
+	// waiting its turn. Pointed at the player those same numbers are the failure GSCharacterBase's
+	// constructor comment names outright - "FOUR defenders deleting the player in a second" - so he
+	// keeps the pre-#132 pair.
+	//
+	// The base class has already run CreateDefaultSubobject by the time this constructor body
+	// executes, so the component exists to be configured. Michael's ruling of 2026-08-11.
+	if (EngagementComponent)
+	{
+		EngagementComponent->ConfigureLimits(/*TokenBudget=*/ 2, /*MaxEngaged=*/ 3);
+	}
 
 	// Respawn must not be refusable. The default handling aborts the spawn on any overlap, and the
 	// thing most likely to be overlapping a PlayerStart is the pack of defenders that just killed
@@ -45,6 +68,7 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	SwordLightAbilityClass = UGSGA_SwordLight::StaticClass();
 	BlockAbilityClass = UGSGA_Block::StaticClass();
 	InteractAbilityClass = UGSGA_Interact::StaticClass();
+	HornAbilityClass = UGSGA_Horn::StaticClass();
 	// SwordHeavyAbilityClass is deliberately NOT defaulted: it and the light share a class, so a
 	// C++ default would silently give the heavy the light's stage array and the two would feel
 	// identical for no visible reason. Better to have the heavy do nothing until it is pointed at
@@ -92,7 +116,40 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 		MoveComp->bOrientRotationToMovement = true;
 		MoveComp->RotationRate = FRotator(0.f, FMath::RadiansToDegrees(TurnRateRadPerSec), 0.f);
 		MoveComp->NavAgentProps.bCanCrouch = true;
+
+		// Publish the player to the avoidance manager. Until 2026-08-09 he was invisible to it
+		// (bUseRVOAvoidance false, AvoidanceWeight 0), so NPCs did not steer around him at all - they
+		// discovered him by walking into his capsule, which is a large part of why a melee reads as a
+		// scrum. AvoidanceWeight 1.0 is deliberately the maximum: in UCharacterMovementComponent an
+		// agent at full weight is published as an obstacle that others yield to while never yielding
+		// itself, so the crowd parts around the player and the player's own movement is untouched.
+		// That last part is why this is safe to do to a human-controlled pawn.
+		MoveComp->bUseRVOAvoidance = true;
+		MoveComp->AvoidanceWeight = 1.0f;
+		MoveComp->AvoidanceConsiderationRadius = 600.f;
+
+		// --- swimming -------------------------------------------------------------------------
+		// bCanSwim is the half that is easy to miss: without it the movement component REFUSES the
+		// switch to MOVE_Swimming and the pawn falls through a water volume as though it were empty
+		// air - which looks identical to the volume not being there. Both this and
+		// AGSWaterVolume::bWaterVolume are required.
+		MoveComp->NavAgentProps.bCanSwim = true;
+
+		// Deliberately slower than walking (BaseWalkSpeed 600). The GDD asks that horizontal
+		// traversal beat swimming, so water is a decision rather than a shortcut.
+		MoveComp->MaxSwimSpeed = 300.f;
+
+		// Buoyancy 1.0 floats you at the surface, which is what "standard surface swimming" means.
+		// Below 1 you sink while swimming, which needs a dive input to be legible and there is not
+		// one.
+		MoveComp->Buoyancy = 1.f;
+
+		// Upward push when swimming out at an edge. The engine default is 0, which means a goblin
+		// at the shoreline swims into the bank forever instead of climbing out.
+		MoveComp->OutofWaterZ = 420.f;
 	}
+
+	StaminaComponent = CreateDefaultSubobject<UGSStaminaComponent>(TEXT("StaminaComponent"));
 }
 
 void AGSPlayerCharacter::BeginPlay()
@@ -114,6 +171,48 @@ void AGSPlayerCharacter::BeginPlay()
 	if (FollowCamera)
 	{
 		HipFOV = FollowCamera->FieldOfView;
+	}
+
+	ApplyViewPitchLimits();
+
+	if (StaminaComponent)
+	{
+		StaminaComponent->OnExhausted.AddDynamic(this, &AGSPlayerCharacter::HandleStaminaExhausted);
+	}
+
+	// The wheel's on-screen half. Locally controlled only - a dedicated server or a remote pawn has
+	// no viewport, and CreateWidget against one is a warning at best.
+	//
+	// Created ONCE and left in the viewport collapsed, rather than spawned per gesture: Q is pressed
+	// often, and a construct/destruct cycle each time would rebind the component's delegates on every
+	// press. The widget hides itself; see UGSWeaponWheelWidget::HandleWheelOpenChanged.
+	if (WeaponWheelWidgetClass && IsLocallyControlled())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			WeaponWheelWidget = CreateWidget<UGSWeaponWheelWidget>(PC, WeaponWheelWidgetClass);
+			if (WeaponWheelWidget)
+			{
+				// Above the HUD: the wheel is momentary, and half a wheel behind the objective list
+				// is worse than no wheel.
+				WeaponWheelWidget->AddToViewport(10);
+			}
+		}
+	}
+
+	// The order wheel's on-screen half (#141). ZOrder 11 - above the weapon wheel's 10 and the HUD's
+	// 0. They are mutually exclusive by construction (see Input_OrderWheelOpen), so the ordering only
+	// matters for the frame in which one is closing as the other opens.
+	if (HordeOrderWheelWidgetClass && IsLocallyControlled())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			HordeOrderWheelWidget = CreateWidget<UGSHordeOrderWheelWidget>(PC, HordeOrderWheelWidgetClass);
+			if (HordeOrderWheelWidget)
+			{
+				HordeOrderWheelWidget->AddToViewport(11);
+			}
+		}
 	}
 
 	if (WeaponComponent)
@@ -168,6 +267,10 @@ void AGSPlayerCharacter::BeginPlay()
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(InteractAbilityClass, 1, INDEX_NONE, this));
 		}
+		if (HornAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(HornAbilityClass, 1, INDEX_NONE, this));
+		}
 		if (BowShotAbilityClass)
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(BowShotAbilityClass, 1, INDEX_NONE, this));
@@ -196,6 +299,18 @@ void AGSPlayerCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	UpdateAimCamera(DeltaSeconds);
+
+	// The guard can drop without the player releasing the button - a guard break, the recoil from a
+	// blocked swing, death - and every one of those ends the block through the ability system rather
+	// than through input. UpdateRotationMode is only called from the five input paths, so without
+	// this the body would stay locked to the camera after a guard the player never lowered. Edge
+	// -triggered rather than called every frame: the work is trivial but it also writes ASC tags.
+	const bool bBlockingNow = IsBlocking();
+	if (bBlockingNow != bWasBlockingLastFrame)
+	{
+		bWasBlockingLastFrame = bBlockingNow;
+		UpdateRotationMode();
+	}
 
 	// A 1.5s hold threshold with no visible fill is guesswork for the player - "I held it and got
 	// a light attack" is the complaint that follows. Broadcast every frame while charging so a HUD
@@ -237,25 +352,61 @@ void AGSPlayerCharacter::UpdateAimCamera(float DeltaSeconds)
 
 	const float Target = WantsAimCamera() ? 1.f : 0.f;
 
-	// Arrived: write nothing. This is why the blend is an explicit alpha rather than an FInterpTo -
-	// an asymptotic interp never equals its target, so this early-out could never fire and the boom
-	// would be rewritten every frame of the entire raid for no visible change.
-	if (FMath::IsNearlyEqual(CameraAimAlpha, Target))
+	const bool bSettled = FMath::IsNearlyEqual(CameraAimAlpha, Target);
+
+	// Settled AND fully hip: write nothing. This is why the blend is an explicit alpha rather than an
+	// FInterpTo - an asymptotic interp never equals its target, so this early-out could never fire and
+	// the boom would be rewritten every frame of the entire raid for no visible change.
+	//
+	// Settled-while-AIMING no longer returns, though: the pitch correction below has to track the
+	// camera every frame, and it is only ever needed while aiming. So the "don't touch the boom all
+	// raid" guarantee is kept exactly where it mattered and dropped exactly where it was wrong.
+	if (bSettled && CameraAimAlpha <= 0.f)
 	{
 		return;
 	}
 
-	const float Step = (AimBlendSeconds > 0.f) ? (DeltaSeconds / AimBlendSeconds) : 1.f;
-	CameraAimAlpha = (Target > CameraAimAlpha)
-		? FMath::Min(CameraAimAlpha + Step, Target)
-		: FMath::Max(CameraAimAlpha - Step, Target);
+	if (!bSettled)
+	{
+		const float Step = (AimBlendSeconds > 0.f) ? (DeltaSeconds / AimBlendSeconds) : 1.f;
+		CameraAimAlpha = (Target > CameraAimAlpha)
+			? FMath::Min(CameraAimAlpha + Step, Target)
+			: FMath::Max(CameraAimAlpha - Step, Target);
+	}
 
 	// Eased on READ, not stored eased: storing the eased value would feed it back into the next
 	// frame's easing and the blend would decelerate twice.
 	const float Eased = FMath::InterpEaseInOut(0.f, 1.f, CameraAimAlpha, 2.f);
 
-	CameraBoom->TargetArmLength = FMath::Lerp(HipArmLength, AimArmLength, Eased);
-	CameraBoom->SocketOffset = FMath::Lerp(HipSocketOffset, AimSocketOffset, Eased);
+	// --- pitch correction ------------------------------------------------------------------------
+	// Lobbing a torch means aiming UP, and a spring arm swings its far end DOWN by ArmLength*sin(pitch)
+	// when you do. On the 250uu aim arm at 45 degrees that is ~177uu below the boom pivot, which is
+	// below the ground - so bDoCollisionTest yanks the camera in against the goblin's back and the
+	// shot becomes unaimable. Michael reported it as "aiming to arch it correctly brings the camera
+	// into the ground", 2026-08-06, and it is the reason the torch is awkward to throw.
+	//
+	// Fixed by lifting the pivot UP - and LENGTHENING the arm - as pitch rises, rather than by
+	// clamping how far up you may look. A clamp would cap the arc itself, and the arc is the weapon.
+	//
+	// The first version pulled the arm IN instead, which is the cheaper way to buy ground clearance
+	// since the drop scales with arm length. It was the wrong trade: it put the goblin's back in the
+	// frame at exactly the moment you are trying to read an arc past him. Clearance is the lift's job
+	// now, and the arm grows so the model shrinks. Scaled by Eased as well as by pitch, so none of
+	// this leaks into the hip camera.
+	float PitchAlpha = 0.f;
+	if (AimHighPitchDegrees > 0.f)
+	{
+		const float PitchDeg = FRotator::NormalizeAxis(GetControlRotation().Pitch);
+		PitchAlpha = FMath::Clamp(PitchDeg / AimHighPitchDegrees, 0.f, 1.f);
+	}
+	const float Correction = PitchAlpha * Eased;
+
+	FVector Socket = FMath::Lerp(HipSocketOffset, AimSocketOffset, Eased);
+	Socket.Z += FMath::Lerp(0.f, AimHighPitchLift, Correction);
+
+	CameraBoom->TargetArmLength =
+		FMath::Lerp(HipArmLength, AimArmLength, Eased) * FMath::Lerp(1.f, AimHighPitchArmScale, Correction);
+	CameraBoom->SocketOffset = Socket;
 	FollowCamera->SetFieldOfView(FMath::Lerp(HipFOV, AimFOV, Eased));
 }
 
@@ -314,10 +465,60 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(SwapWeaponModeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_SwapWeaponMode);
+		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_WheelOpen);
+		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_WheelClose);
+		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_WheelClose);
 		EIC->BindAction(AimAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_AimStart);
 		EIC->BindAction(AimAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_AimStop);
 		EIC->BindAction(AimAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_AimStop);
 		EIC->BindAction(CrouchAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ToggleCrouch);
+
+		// The war-horn (#069). Guarded, like the block above it and unlike the unguarded run from
+		// ThrowTorchAction down - an unset TObjectPtr<UInputAction> here would crash on BindAction
+		// rather than politely doing nothing, and this project has shipped an unset input action
+		// twice already (InteractAction from the day it was written, JumpAction in #060).
+		if (HornAction)
+		{
+			EIC->BindAction(HornAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Horn);
+		}
+
+		// The order wheel (#141). Guarded and with an else-branch, for the reason spelled out on
+		// JumpAction below: BindAction does not assert on a null action in 5.8, it registers a
+		// binding that never fires, and this project has now shipped that bug three times.
+		if (HordeOrderAction)
+		{
+			EIC->BindAction(HordeOrderAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_OrderWheelOpen);
+			EIC->BindAction(HordeOrderAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_OrderWheelClose);
+			EIC->BindAction(HordeOrderAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_OrderWheelClose);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GS.Input] HordeOrderAction is unset on %s - the horde order "
+				"wheel is unreachable. Assign IA_HordeOrder on the character Blueprint (#141)."),
+				*GetNameSafe(this));
+		}
+
+		// Jump straight to ACharacter's own handlers. Started/Completed rather than a single pin
+		// because StopJumping is what ends the variable-height hold - bind only Started and every
+		// jump is a full-height jump regardless of how briefly the key was tapped.
+		//
+		// Guarded for the reason the horn comment above gives, which named THIS property as one of
+		// the two that had already shipped unset - and then bound it unguarded three lines later.
+		// BindAction does not assert on a null action in 5.8; it registers a binding that never
+		// resolves, so an unset JumpAction is a dead space bar with no log, no error and nothing to
+		// search for. The warning turns the third occurrence of that bug into a one-line diagnosis.
+		if (JumpAction)
+		{
+			EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+			EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+			EIC->BindAction(JumpAction, ETriggerEvent::Canceled, this, &ACharacter::StopJumping);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GS.Input] JumpAction is unset on %s - the jump key will "
+				"do nothing. Assign IA_Jump on the character Blueprint (see #060, #116)."),
+				*GetNameSafe(this));
+		}
 
 		// Light/heavy attack and the "E" ability are bound by the currently-granted ability set's
 		// own AbilityTask_WaitInputPress/Release (standard GAS pattern), not hardcoded here, so
@@ -352,13 +553,159 @@ void AGSPlayerCharacter::Input_Move(const FInputActionValue& Value)
 	// aim-facing (UpdateRotationMode) can override it without touching this function.
 }
 
+void AGSPlayerCharacter::HandleStaminaExhausted()
+{
+	// Only water is lethal. Running the pool dry on land costs you your sprint (the exhaustion latch
+	// pins you to a walk) and on a wall it costs you your grip - neither kills. The GDD is explicit
+	// that the failure state differs by medium, and this is the fork.
+	const UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (MoveComp && MoveComp->IsSwimming())
+	{
+		Drown();
+	}
+
+	// The climb's "lose grip and fall" is NOT handled here. It lives in the Blueprint's
+	// ClimbStaminaExits graph, which already owns the montage and the movement-mode change; adding a
+	// second exit path in C++ would mean two things deciding when a climb ends.
+}
+
+void AGSPlayerCharacter::Drown()
+{
+	if (!HasAuthority() || !IsAlive())
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %s drowned."), *GetName());
+
+	// Destroy the cargo BEFORE dying. AGSCharacterBase::HandleDeath fires
+	// UGSCarryComponent::HandleOwnerDied, which calls PutDown() and leaves the sack floating at the
+	// point of death - visible loot in deep water that the player may not be able to reach. Clearing
+	// it first means the normal drop path finds nothing to drop.
+	if (CarryComponent && CarryComponent->IsCarrying())
+	{
+		CarryComponent->DestroyCarried();
+	}
+
+	// Reuse the one death path rather than inventing a second. This zeroes Health, which flows
+	// through HandleDeath -> AGSGameMode::HandleGoblinDeath -> LoseLife() -> respawn, or
+	// EndRaid(OutOfLives) if that was the last one.
+	KillOutright();
+}
+
+void AGSPlayerCharacter::ApplyViewPitchLimits()
+{
+	// Why a clamp exists at all, having been argued against in #042.
+	//
+	// #042 rejected clamping because "the arc IS the weapon" and capping the look angle caps the
+	// throw. That is still true up to about 45 degrees, which is the maximum-RANGE launch angle -
+	// past it you are lobbing shorter, not further. What the clamp actually costs is the near-vertical
+	// throw nobody aims for; what it buys is the guarantee the pitch correction cannot make on its
+	// own, because AimHighPitchLift stops growing at AimHighPitchDegrees while sin(pitch) keeps
+	// climbing. Beyond ~60 degrees the camera falls back toward the wheat (158uu on
+	// L_Tutorial_Island, ~275,000 instances) and the throw becomes unaimable again.
+	//
+	// So: correction handles the useful range, the clamp handles the tail. Michael asked for exactly
+	// this after testing - "we need a maximum distance it'll pitch down".
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		// Not locally controlled yet, or an AI-possessed pawn. Re-applied from PossessedBy.
+		return;
+	}
+
+	// Engine default is +/-89.9. Positive pitch is looking UP, which is what swings the boom DOWN.
+	PC->PlayerCameraManager->ViewPitchMax = ViewPitchMaxDegrees;
+	PC->PlayerCameraManager->ViewPitchMin = ViewPitchMinDegrees;
+}
+
+void AGSPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// BeginPlay can run before a controller exists (spawn order is not contractually fixed, and the
+	// raid director respawns the pawn), so the limits are applied from both ends. Setting them twice
+	// is free; setting them never is a camera that dives into the wheat on every respawn.
+	ApplyViewPitchLimits();
+}
+
 void AGSPlayerCharacter::Input_Look(const FInputActionValue& Value)
 {
 	const FVector2D LookInput = Value.Get<FVector2D>();
+
+	// While the wheel is open the mouse is CHOOSING, not looking. Routing the existing look axis
+	// rather than adding a second 2D action is what lets the wheel ship with one new digital input:
+	// the delta is already here, already frame-scaled by Enhanced Input, and already the thing the
+	// player's hand is doing. Swallowing the camera movement is the point - a wheel you have to
+	// aim at while the world spins under you is unusable.
+	if (WeaponComponent && WeaponComponent->IsWheelOpen())
+	{
+		WeaponComponent->AddWheelInput(LookInput);
+		return;
+	}
+
+	// The order wheel drags off the same axis, for the same reason (#141). Two consumers is the
+	// ceiling this arrangement handles cleanly: they are kept mutually exclusive in the two open
+	// handlers below, so exactly one of these branches can ever be live. A THIRD wheel would want a
+	// real input-mode concept rather than a third early-return - note that before adding one.
+	if (HordeCommandComponent && HordeCommandComponent->IsWheelOpen())
+	{
+		HordeCommandComponent->AddWheelInput(LookInput);
+		return;
+	}
+
 	if (Controller)
 	{
 		AddControllerYawInput(LookInput.X);
 		AddControllerPitchInput(LookInput.Y);
+	}
+}
+
+void AGSPlayerCharacter::Input_WheelOpen(const FInputActionValue& Value)
+{
+	// Not while the order wheel is up. Both drag off Input_Look, so allowing both would hand the
+	// player a weapon swap he never asked for every time he issued an order.
+	if (HordeCommandComponent && HordeCommandComponent->IsWheelOpen())
+	{
+		return;
+	}
+
+	if (WeaponComponent)
+	{
+		WeaponComponent->OpenWeaponWheel();
+	}
+}
+
+void AGSPlayerCharacter::Input_WheelClose(const FInputActionValue& Value)
+{
+	if (WeaponComponent)
+	{
+		WeaponComponent->CloseWeaponWheel(true);
+	}
+}
+
+void AGSPlayerCharacter::Input_OrderWheelOpen(const FInputActionValue& Value)
+{
+	// The mirror of the guard in Input_WheelOpen.
+	if (WeaponComponent && WeaponComponent->IsWheelOpen())
+	{
+		return;
+	}
+
+	if (HordeCommandComponent)
+	{
+		// Returns false when the camera trace found nowhere to send anybody, and in that case no
+		// wheel opens at all - see OpenOrderWheel. Nothing to do about it here; a wheel that refuses
+		// to appear while you are staring at the sky is the designed behaviour, not an error.
+		HordeCommandComponent->OpenOrderWheel();
+	}
+}
+
+void AGSPlayerCharacter::Input_OrderWheelClose(const FInputActionValue& Value)
+{
+	if (HordeCommandComponent)
+	{
+		HordeCommandComponent->CloseOrderWheel(true);
 	}
 }
 
@@ -421,6 +768,28 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 	// aim, release to loose. That is what "sword <-> bow, live-swap" has to mean for a player - one
 	// key whose meaning follows the weapon, not a key they have to remember only applies half the
 	// time.
+	// The torch is a HELD weapon now (Michael, 2026-08-06), so ATTACK throws it exactly as ATTACK
+	// looses the bow - one key whose meaning follows what is in your hand. Checked before the bow
+	// because the two are mutually exclusive slots and this ordering keeps the bow branch below
+	// byte-identical to what it was.
+	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Torch
+		&& TorchTossAbilityClass)
+	{
+		// Same heavy-charge suppression the bow needs, and for the same reason: the heavy is a melee
+		// verb and its timer would otherwise fire a sword swing out of a raised torch at 1.5s.
+		bAttackHeld = false;
+		bHeavyFiredThisHold = false;
+		AttackPressedTime = -1.f;
+		GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
+		OnHeavyChargeChanged.Broadcast(0.f);
+
+		// Delegates to the existing torch press so there is ONE torch aim path, not a second copy
+		// that drifts. It handles the bTorchAimEnabled fallback and reads the projectile class off
+		// the ability CDO.
+		Input_ThrowTorchStart(Value);
+		return;
+	}
+
 	if (IsRangedAttackMode())
 	{
 		// No heavy charge in ranged mode. The heavy is a melee verb, and leaving its timer running
@@ -459,6 +828,15 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 
 void AGSPlayerCharacter::Input_AttackReleased(const FInputActionValue& Value)
 {
+	// Torch, gated on being mid-aim for the same reason the bow is below: a player who opens the
+	// wheel and swaps mid-throw should still resolve the throw they started. Delegates to the one
+	// torch release path rather than duplicating the push-aim / end-aim / activate sequence.
+	if (AimComponent && AimComponent->GetAimMode() == EGSAimMode::Torch)
+	{
+		Input_ThrowTorchRelease(Value);
+		return;
+	}
+
 	// Bow first, and gated on actually being mid-aim rather than on the current weapon mode: a player
 	// who swaps to melee while the bow is drawn should still resolve the shot they started, not have
 	// the release silently become a sword swing.
@@ -533,27 +911,40 @@ void AGSPlayerCharacter::Input_GuardBreak(const FInputActionValue& Value)
 	AbilitySystemComponent->TryActivateAbilityByClass(GuardBreakAbilityClass);
 }
 
-void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)
-{
-	if (AbilitySystemComponent && BlockAbilityClass)
-	{
-		AbilitySystemComponent->TryActivateAbilityByClass(BlockAbilityClass);
-	}
-}
-
-void AGSPlayerCharacter::Input_BlockStop(const FInputActionValue& Value)
+void AGSPlayerCharacter::Input_Horn(const FInputActionValue& Value)
 {
 	if (!AbilitySystemComponent)
 	{
 		return;
 	}
+	if (!HornAbilityClass)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] Horn pressed but HornAbilityClass is unset on %s. It is C++-defaulted "
+				 "to UGSGA_Horn, so an empty value here means a Blueprint cleared it."),
+			*GetName());
+		return;
+	}
 
-	// Cancel by TAG, not by passing nullptr - nullptr means "cancel everything", which would abort
-	// a swing already in flight every time the guard came down. UGSGA_Block carries State.Blocking
-	// as an ability tag precisely so this filter can find it and nothing else.
-	FGameplayTagContainer BlockTags;
-	BlockTags.AddTag(GSTags::State_Blocking);
-	AbilitySystemComponent->CancelAbilities(&BlockTags);
+	// A refused activation is the normal case, not an error: UGSGA_Horn blocks on its own State.Horn
+	// tag so a held button cannot summon a wave per frame, and it blocks on State.Carrying because a
+	// goblin with a pig over its shoulder has no free hand for a horn.
+	AbilitySystemComponent->TryActivateAbilityByClass(HornAbilityClass);
+}
+
+void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)
+{
+	// One implementation for everybody. #069 hoisted the guard onto AGSCharacterBase so the player,
+	// the defenders (via GrantCombatAbilities) and BTTask_Block all raise it the same way; these
+	// handlers stay only because they are what the input bindings point at.
+	StartBlocking();
+}
+
+void AGSPlayerCharacter::Input_BlockStop(const FInputActionValue& Value)
+{
+	// AGSCharacterBase::StopBlocking cancels by TAG, never CancelAbilities(nullptr) - nullptr means
+	// "cancel everything", which would abort a swing already in flight every time the guard dropped.
+	StopBlocking();
 }
 
 void AGSPlayerCharacter::Input_ThrowTorchStart(const FInputActionValue& Value)
@@ -635,14 +1026,42 @@ void AGSPlayerCharacter::Input_SwapWeaponMode(const FInputActionValue& Value)
 	}
 }
 
+// RIGHT MOUSE FOLLOWS THE WEAPON, the same rule Input_Attack already applies to the left button:
+// one key whose meaning is whatever the equipped slot makes it, rather than a key the player has to
+// remember only applies half the time. Sword -> raise the guard. Bow or torch -> aim.
+//
+// Michael's call, 2026-08-10: with the sword out this is PURELY a block - no aim camera, no
+// strafe-facing - and G was retired as the block key, so blocking is deliberately impossible while
+// holding bow or torch. Input_Block* below stays bound to IA_Block so the ability keeps a rebindable
+// path even though IMC_Default no longer maps a key to it.
+bool AGSPlayerCharacter::IsSwordEquipped() const
+{
+	// No weapon component at all means the sword is the sensible assumption - it is CurrentSlot's
+	// own default, and a character that cannot answer the question should not silently lose its
+	// guard.
+	return !WeaponComponent || WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Sword;
+}
+
 void AGSPlayerCharacter::Input_AimStart(const FInputActionValue& Value)
 {
+	if (IsSwordEquipped())
+	{
+		StartBlocking();
+		return;
+	}
+
 	bIsAiming = true;
 	UpdateRotationMode();
 }
 
 void AGSPlayerCharacter::Input_AimStop(const FInputActionValue& Value)
 {
+	// Release BOTH, unconditionally, and do not branch on the current slot. Swapping weapons with
+	// the button still held would otherwise strand whichever state was entered under the old slot:
+	// press with the sword, wheel to the bow, release -> the guard never comes down. Clearing both
+	// costs nothing when only one was ever set.
+	StopBlocking();
+
 	bIsAiming = false;
 	UpdateRotationMode();
 }
@@ -722,10 +1141,25 @@ void AGSPlayerCharacter::UpdateRotationMode()
 	// the goblin faced his movement direction - you aimed one way and the character pointed another.
 	const bool bShouldFaceAim = WantsAimFacing();
 
-	bUseControllerRotationYaw = bShouldFaceAim;
+	// BLOCKING STEERS TOO, but it is not aiming. Michael, 2026-08-10: "I'd still like for you to be
+	// able to change the direction of the block and camera when you press rmb, just don't zoom in
+	// like we're aiming."
+	//
+	// This is exactly the split WantsAimFacing / WantsAimCamera already exists to express, so the
+	// block joins the FACING term only and never the camera one - RMB with a sword turns the body
+	// to the camera and leaves the arm length alone. It is not cosmetic: GSDamageExecCalculation
+	// tests the block arc against GetActorForwardVector, so steering the body IS steering which
+	// attacks the guard catches.
+	//
+	// The State.Aiming tag below deliberately stays on bShouldFaceAim rather than this. Nothing in
+	// C++ reads that tag, which means a Blueprint might - a reticle is the obvious candidate - and
+	// raising a guard should not put an aiming reticle on screen.
+	const bool bShouldFaceLock = bShouldFaceAim || IsBlocking();
+
+	bUseControllerRotationYaw = bShouldFaceLock;
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
-		MoveComp->bOrientRotationToMovement = !bShouldFaceAim;
+		MoveComp->bOrientRotationToMovement = !bShouldFaceLock;
 	}
 
 	if (AbilitySystemComponent)

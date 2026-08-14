@@ -27,6 +27,11 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Core/GSGameMode.h"
+#include "Destruction/GSBuildingObjective.h"
+#include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSBurnFXComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 namespace GSRaidDebug
 {
@@ -37,6 +42,31 @@ namespace GSRaidDebug
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Yellow, Message);
 		}
+	}
+
+	/**
+	 * The world the GAME is running in, whatever world the console handed us.
+	 *
+	 * FAutoConsoleCommandWithWorld passes the world the command was typed in, and the editor's
+	 * Output Log console is not the PIE world - so every one of these commands silently did nothing
+	 * when run from there: no pawn to teleport, no GameState to read, and (worst) no log line saying
+	 * why. Four attempts at GS.Raid.GotoActor produced zero output for exactly this reason.
+	 *
+	 * Resolving PIE/Game explicitly means it does not matter which console you use.
+	 */
+	static UWorld* GameWorld(UWorld* Fallback)
+	{
+		if (GEngine)
+		{
+			for (const FWorldContext& Ctx : GEngine->GetWorldContexts())
+			{
+				if ((Ctx.WorldType == EWorldType::PIE || Ctx.WorldType == EWorldType::Game) && Ctx.World())
+				{
+					return Ctx.World();
+				}
+			}
+		}
+		return Fallback;
 	}
 
 	static AGSPlayerState* GetPlayerState(UWorld* World)
@@ -51,8 +81,9 @@ namespace GSRaidDebug
 static FAutoConsoleCommandWithWorld GSRaidStatusCmd(
 	TEXT("GS.Raid.Status"),
 	TEXT("Print the raid clock, alarm, lives and per-type objective progress."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -86,8 +117,9 @@ static FAutoConsoleCommandWithWorld GSRaidExpireClockCmd(
 	TEXT("GS.Raid.ExpireClock"),
 	TEXT("Fast-forward the raid clock to the edge of its current phase. Run repeatedly to walk "
 		 "Running -> FinalWarning -> Collapsing -> Expired (which ends the raid as LeftBehind)."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -109,8 +141,9 @@ static FAutoConsoleCommandWithWorld GSRaidKillCmd(
 	TEXT("GS.Raid.Kill"),
 	TEXT("Kill the player outright by zeroing the Health attribute. Spends a life; five of these "
 		 "ends the raid as OutOfLives."),
-	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* World)
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -135,8 +168,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSetLivesCmd(
 	TEXT("Set the player's remaining lives. 'GS.Raid.SetLives 1' then GS.Raid.Kill reaches "
 		 "OutOfLives in one death instead of five."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -206,8 +240,41 @@ namespace GSRaidDebug
 		}
 
 		const FVector Where = GroundSnap(World, Wanted);
-		Pawn->TeleportTo(Where, Pawn->GetActorRotation());
-		Log(FString::Printf(TEXT("teleported to (%.0f, %.0f, %.0f)"), Where.X, Where.Y, Where.Z));
+		const FRotator Facing = Pawn->GetActorRotation();
+
+		// CHECK THE RETURN VALUE. TeleportTo refuses when the destination capsule is blocked, and the
+		// first version of this ignored that and logged success regardless - so the command cheerfully
+		// reported "teleported to (-18154, 73815, 2642)" while the pawn had not moved a centimetre.
+		// A debug tool that lies about what it did is worse than one that does nothing, because you
+		// spend the next hour debugging the wrong thing.
+		bool bMoved = Pawn->TeleportTo(Where, Facing);
+
+		// Blocked at ground level is normal near a wall or under eaves. Try progressively higher
+		// before giving up - falling a short way is fine, being stuck is not.
+		if (!bMoved)
+		{
+			for (const float Up : { 200.f, 500.f, 1000.f })
+			{
+				if (Pawn->TeleportTo(Where + FVector(0.f, 0.f, Up), Facing))
+				{
+					bMoved = true;
+					Log(FString::Printf(TEXT("ground was blocked; dropped in from %.0f uu up"), Up));
+					break;
+				}
+			}
+		}
+
+		// Last resort: move it regardless. Clipping into a wall is recoverable and visible; silently
+		// not moving is neither.
+		if (!bMoved)
+		{
+			Pawn->SetActorLocation(Where, false, nullptr, ETeleportType::TeleportPhysics);
+			Log(TEXT("every teleport attempt was blocked - forced the move; you may be inside geometry"));
+		}
+
+		const FVector Actual = Pawn->GetActorLocation();
+		Log(FString::Printf(TEXT("%s -> now at (%.0f, %.0f, %.0f)"),
+			bMoved ? TEXT("teleported") : TEXT("FORCED"), Actual.X, Actual.Y, Actual.Z));
 	}
 }
 
@@ -217,8 +284,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoCmd(
 	TEXT("GS.Raid.Goto"),
 	TEXT("Teleport the player to X Y Z, snapped to the ground there. e.g. GS.Raid.Goto -3471 49012 -514"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World)
 		{
 			return;
@@ -239,8 +307,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoActorCmd(
 	TEXT("Teleport to the first actor whose label contains this text, standing just outside it. "
 		 "e.g. GS.Raid.GotoActor GS_Building_01"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (!World || Args.Num() < 1)
 		{
 			GSRaidDebug::Log(TEXT("usage: GS.Raid.GotoActor <part of the actor name>"));
@@ -251,14 +320,17 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoActorCmd(
 		for (TActorIterator<AActor> It(World); It; ++It)
 		{
 			AActor* A = *It;
-			if (!A || !A->GetName().Contains(Needle))
+			// GetActorNameOrLabel: the editor label in editor builds, the object name otherwise.
+			// Matching GetName() alone was why 'GS_Building_00' never matched anything - at
+			// runtime that actor is called GSBuildingObjective_81.
+			if (!A || !A->GetActorNameOrLabel().Contains(Needle))
 			{
 				continue;
 			}
 
 			// Stand back a little, so teleporting to a wall does not embed you in it.
 			const FVector Target = A->GetActorLocation() + FVector(300.f, 300.f, 0.f);
-			GSRaidDebug::Log(FString::Printf(TEXT("GotoActor matched '%s'"), *A->GetName()));
+			GSRaidDebug::Log(FString::Printf(TEXT("GotoActor matched '%s'"), *A->GetActorNameOrLabel()));
 			GSRaidDebug::TeleportPlayer(World, Target);
 			return;
 		}
@@ -272,8 +344,9 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSpawnAtCmd(
 	TEXT("Make every spawn AND respawn land at X Y Z instead of the runic site. "
 		 "'GS.Raid.SpawnAt off' restores normal spawning. Survives PIE restarts."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
-		[](const TArray<FString>& Args, UWorld* World)
+		[](const TArray<FString>& Args, UWorld* InWorld)
 	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
 		if (Args.Num() >= 1 && (Args[0].Equals(TEXT("off"), ESearchCase::IgnoreCase)
 			|| Args[0].Equals(TEXT("clear"), ESearchCase::IgnoreCase)))
 		{
@@ -305,4 +378,219 @@ static FAutoConsoleCommandWithWorldAndArgs GSRaidSpawnAtCmd(
 		GSRaidDebug::Log(FString::Printf(
 			TEXT("SpawnAt set to (%.0f, %.0f, %.0f) - every spawn lands here until 'GS.Raid.SpawnAt off'"),
 			V.X, V.Y, V.Z));
+	}));
+
+// ============================================================================== building commands
+
+namespace GSRaidDebug
+{
+	/** The building nearest the player, or the Nth largest if the player has no pawn. */
+	static AGSBuildingObjective* PickBuilding(UWorld* World, int32 Index)
+	{
+		TArray<AGSBuildingObjective*> All;
+		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+		{
+			if (*It)
+			{
+				All.Add(*It);
+			}
+		}
+		if (All.Num() == 0)
+		{
+			Log(TEXT("no AGSBuildingObjective in this level"));
+			return nullptr;
+		}
+
+		// Biggest first: a 54-piece house is a far better place to judge fire than a 13-piece shed.
+		All.Sort([](const AGSBuildingObjective& A, const AGSBuildingObjective& B)
+		{
+			return A.GetPieceCount() > B.GetPieceCount();
+		});
+		return All[FMath::Clamp(Index, 0, All.Num() - 1)];
+	}
+}
+
+// ---------------------------------------------------------------------------- GS.Raid.GotoBuilding
+
+static FAutoConsoleCommandWithWorldAndArgs GSRaidGotoBuildingCmd(
+	TEXT("GS.Raid.GotoBuilding"),
+	TEXT("Teleport to a burnable building, standing back far enough to see the whole thing. "
+		 "Optional index, 0 = biggest. Buildings are sorted largest first."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* InWorld)
+	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
+		if (!World)
+		{
+			return;
+		}
+
+		const int32 Index = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+		AGSBuildingObjective* B = GSRaidDebug::PickBuilding(World, Index);
+		if (!B)
+		{
+			return;
+		}
+
+		const FVector L = B->GetActorLocation();
+		GSRaidDebug::Log(FString::Printf(TEXT("%s: %d pieces, alight=%s, %.0f%% burnt"),
+			*B->GetActorNameOrLabel(), B->GetPieceCount(),
+			B->IsAlight() ? TEXT("yes") : TEXT("no"), B->GetCompletion01() * 100.f));
+
+		// Stand off far enough that the whole house is in frame, not inside its front room.
+		GSRaidDebug::TeleportPlayer(World, L + FVector(1100.f, 1100.f, 0.f));
+	}));
+
+// -------------------------------------------------------------------------------- GS.Raid.BurnHere
+
+static FAutoConsoleCommandWithWorld GSRaidBurnHereCmd(
+	TEXT("GS.Raid.BurnHere"),
+	TEXT("Set the nearest building alight, as though a torch had gone through its window."),
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
+	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
+		if (!World)
+		{
+			return;
+		}
+
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		if (!Pawn)
+		{
+			GSRaidDebug::Log(TEXT("no player pawn"));
+			return;
+		}
+
+		AGSBuildingObjective* Nearest = nullptr;
+		float BestSq = TNumericLimits<float>::Max();
+		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+		{
+			AGSBuildingObjective* B = *It;
+			if (!B)
+			{
+				continue;
+			}
+			const float D = FVector::DistSquared(B->GetActorLocation(), Pawn->GetActorLocation());
+			if (D < BestSq)
+			{
+				BestSq = D;
+				Nearest = B;
+			}
+		}
+
+		if (!Nearest)
+		{
+			GSRaidDebug::Log(TEXT("no building nearby"));
+			return;
+		}
+
+		Nearest->IgniteInterior(EGSBuildingIgnitionSource::Window);
+		GSRaidDebug::Log(FString::Printf(TEXT("lit %s (%.0f m away, %d pieces)"),
+			*Nearest->GetActorNameOrLabel(), FMath::Sqrt(BestSq) / 100.f, Nearest->GetPieceCount()));
+	}));
+
+// -------------------------------------------------------------------------- GS.Raid.BuildingStatus
+
+static FAutoConsoleCommandWithWorld GSRaidBuildingStatusCmd(
+	TEXT("GS.Raid.BuildingStatus"),
+	TEXT("Report the nearest building's pieces: how many are burning, how many burnt, and the actual "
+		 "GS_BurnAmount on their materials - which is what decides whether char is VISIBLE."),
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
+	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
+		if (!World)
+		{
+			return;
+		}
+
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		if (!Pawn)
+		{
+			// Without a pawn every distance below is 0, so "nearest" silently became "whichever the
+			// actor iterator happened to return first" while the help text promised the nearest.
+			// GS.Raid.BurnHere directly above bails out loudly in exactly this situation.
+			GSRaidDebug::Log(TEXT("no player pawn - cannot tell which building is nearest. Use GS.Raid.GotoBuilding <n> first."));
+			return;
+		}
+
+		AGSBuildingObjective* Nearest = nullptr;
+		float BestSq = TNumericLimits<float>::Max();
+		for (TActorIterator<AGSBuildingObjective> It(World); It; ++It)
+		{
+			if (AGSBuildingObjective* B = *It)
+			{
+				const float D = FVector::DistSquared(B->GetActorLocation(), Pawn->GetActorLocation());
+				if (D < BestSq) { BestSq = D; Nearest = B; }
+			}
+		}
+		if (!Nearest)
+		{
+			GSRaidDebug::Log(TEXT("no building found"));
+			return;
+		}
+
+		// Walk the pieces around it and report the three things that can independently be wrong:
+		// no flammable (cannot burn), no FX component (burns invisibly), or a material with no
+		// GS_BurnAmount (FX runs and paints nothing).
+		int32 Pieces = 0, WithFlam = 0, WithFX = 0, Burning = 0, Burnt = 0, WithParam = 0;
+		float MaxBurn = 0.f;
+
+		// Ask the building which pieces are ITS pieces, rather than re-deriving them here. The old
+		// sweep took "any actor with a flammable within 2500 uu of GetActorLocation()", which is
+		// wrong three ways at once: it measures pivot-to-pivot (the bug 270d107 fixed in AdoptPieces,
+		// where this kit offsets meshes up to 671 uu from their pivot), 2500 is unrelated to this
+		// building's AdoptRadius, and it counts the neighbours. On a tavern spanning more than
+		// 2500 uu it under-counted; between two close houses it reported the wrong house's pieces.
+		// A diagnostic whose whole job is "prove char is being applied to THIS building" must not
+		// describe a different set of actors from the one the building scores.
+		for (const TWeakObjectPtr<AActor>& Weak : Nearest->GetPieces())
+		{
+			AActor* A = Weak.Get();
+			if (!A)
+			{
+				continue;
+			}
+			UGSFlammableComponent* F = A->FindComponentByClass<UGSFlammableComponent>();
+			++Pieces;
+			if (!F)
+			{
+				// Counted, not skipped: an adopted piece with no flammable is one of the three
+				// failures this command exists to surface, and the old radius sweep could not see it
+				// at all because a missing flammable was its filter for "not a piece".
+				continue;
+			}
+			++WithFlam;
+			if (A->FindComponentByClass<UGSBurnFXComponent>()) { ++WithFX; }
+			if (F->IsBurning()) { ++Burning; }
+			if (F->HasBurnedDown()) { ++Burnt; }
+
+			if (UStaticMeshComponent* M = A->FindComponentByClass<UStaticMeshComponent>())
+			{
+				for (int32 i = 0; i < M->GetNumMaterials(); ++i)
+				{
+					if (UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(M->GetMaterial(i)))
+					{
+						float V = 0.f;
+						if (MID->GetScalarParameterValue(FName("GS_BurnAmount"), V))
+						{
+							++WithParam;
+							MaxBurn = FMath::Max(MaxBurn, V);
+						}
+					}
+				}
+			}
+		}
+
+		GSRaidDebug::Log(FString::Printf(TEXT("%s alight=%s %.0f%% complete"),
+			*Nearest->GetActorNameOrLabel(), Nearest->IsAlight() ? TEXT("yes") : TEXT("no"),
+			Nearest->GetCompletion01() * 100.f));
+		GSRaidDebug::Log(FString::Printf(
+			TEXT("pieces=%d  flammable=%d  burnFX=%d  burning=%d  burnt=%d"),
+			Pieces, WithFlam, WithFX, Burning, Burnt));
+		GSRaidDebug::Log(FString::Printf(
+			TEXT("MIDs exposing GS_BurnAmount=%d   highest value seen=%.2f  %s"),
+			WithParam, MaxBurn,
+			WithParam == 0 ? TEXT("<- no MIDs: char CANNOT show")
+				: (MaxBurn <= 0.01f ? TEXT("<- param exists but is still 0: FX not driving it")
+					: TEXT("<- char is being applied"))));
 	}));

@@ -5,6 +5,22 @@ Human-editable; the agent reads it at run start and rewrites NEXT + appends BUIL
 end. Deep context lives in the Claude project docs; this is the distillation. Seeded 2026-08-04
 from the status-and-rebaseline doc, the decision queue, and a live scan.*
 
+> ## `HANDOFF.md` — the nine findings are FIXED. Read it for the gotchas, not for a work list.
+>
+> **Corrected 2026-08-07 (#073).** This banner said for a full day that `HANDOFF.md` held "nine
+> outstanding code-review findings that nobody has fixed". All nine were closed by **#036** (four,
+> one of which #033 had already deleted as a side effect) and **#037** (the five C++ ones) — and
+> neither ticket updated this banner or the heading in `HANDOFF.md`, so the first thing every agent
+> read at run start was an invitation to redo finished work. Re-verified before this edit, not taken
+> on trust.
+>
+> `HANDOFF.md` is still worth reading for **Part 2** (ranged/torch state), **Part 3** (the settled
+> radial weapon-wheel design) and **Part 4** (gotchas that cost real time). Part 1 is now history.
+>
+> **The lesson, which is the reason this paragraph is long:** a finding lives in three places — the
+> ticket, `HANDOFF.md`, and this file. Closing the ticket closes one of them. If you fix something
+> off a list, close the list, or the next agent pays for it. This cost roughly a session.
+
 **Coordination lives in `AgentQueue/QUEUE.md`, not here.** Before editing any file, claim it:
 `& ".\AgentQueue\gsqueue.ps1" claim -Agent <slug> -Title "<t>" -Files "a,b"`. Lower ticket number
 has right of way on a shared file; nobody compiles until `gsqueue.ps1 buildgate` exits 0. Tickets
@@ -92,8 +108,233 @@ next agent rediscovers it.
   - Also added the two toggles that were silently missing from the `GS.PlayerView` table
     (`GS.Combat.LogHitReact`, `GS.Interact.Debug`) alongside the new `GS.Aim.Debug`.
 
+- 2026-08-08 **NPC-vs-NPC MELEE WORKS AND IS PIE-VERIFIED** (#083, #085, #086). Two AI of opposing
+  races acquire each other, read each other's wind-ups, raise a guard in response, and kill each
+  other. A 4v4 on `L_CombatArena`: 44 telegraphs seen, 17 block rolls (8 accepted vs an intended
+  0.55), 7 hits resolving `BLOCKED - armor 6.0 = 0.0`, **6 of 10 dead**. The proof pair is a
+  `block ACCEPTED (telegraph, p=0.55)` line immediately followed by a `[GS.Damage] ... BLOCKED
+  ... = 0.0` on that same defender, with the player nowhere in it.
+  - **Almost none of this was new combat code.** Damage, the 140° block arc, guard-break and death
+    were already faction-symmetric; what was missing was three decisions no AI could make. Who is my
+    enemy: `BTService_AcquireTarget` was one hardcoded `GetPlayerPawn(0)` and is now nearest-live-
+    hostile by `IsHostileTo`. Is he winding up: `State.Attacking.Windup`, a loose tag spanning
+    exactly `FGSSwingStage::WindupSeconds`. Should I guard: `UBTTask_Block`, the only new UCLASS.
+  - **`GS.Combat.Duel [n] [classA] [classB] [raceBAsset] [raceBRow]`** is how you stand a fight up.
+    It exploits `InitializeFromArchetype` being public: side B is an ordinary human defender BP
+    re-badged onto `DA_Race_Goblin` AFTER spawn, so **no goblin pawn or behaviour tree needs to
+    exist** to exercise the melee. New: `DA_Race_Goblin` (rows `HordeGoblin` 40HP, `Brawler` 75/6
+    arena-only), `BB_Human` += `TargetIsAttacking`, `BT_Militia` root Selector is now
+    `[Block, MeleeAttack, MoveTo, Wait]` with a `TargetIsAttacking` LowerPriority-abort decorator on
+    the Block edge. Debug: `GS.Combat.LogAI 1` beside `GS.Combat.LogDamage 1`.
+  - **The block must be able to INTERRUPT.** Without the LowerPriority abort the Selector re-reaches
+    Block once per ~2.3s cycle and a 0.22s wind-up never lands inside it — the guard goes up on a
+    timer instead of on a read, which looks identical to "the AI does not block".
+  - **Still unproven: the guard break has never once fired** (0 in 28 damage events). And both PIE
+    runs needed the combatants teleported together — spawned 600uu apart they acquire correctly and
+    then do not close, so `MoveTo` against the arena navmesh is suspect. Combat is tested; approach
+    is not. Nothing ran on `L_Tutorial_Island`.
+  - Also cleared #069's owed step 2: all seven adversary BPs kept all four ability slots across the
+    hoist to `AGSCharacterBase`. Read off every CDO. #048's precedent was not needed.
+  - **CORRECTION (#087): the "approach is not tested / MoveTo is suspect" line above is WRONG.**
+    Combatants spawned 600uu apart close and pair off on their own. The earlier failure was the Block
+    decorator observing an *invalid* blackboard key (before #086) and aborting the lower-priority
+    `MoveTo` branch. The arena navmesh is 7000x7000 over a 6000x6000 floor and was never implicated.
+
+- 2026-08-09 **A BLOCKED SWING IS TURNED ASIDE** (#087, Michael's ruling). New `State.Recoil`:
+  `UGSDamageExecCalculation` calls `AGSCharacterBase::NotifyAttackWasBlocked` on the attacker, which
+  cancels the swing in flight (by tag, deferred one frame - it runs inside that swing's own sweep
+  loop) and blocks BOTH the attack and the block abilities for `GS.Combat.RecoilSeconds` (0.6).
+  `UBTTask_MeleeAttack` bypasses its own cooldown against a recoiling target, and `UBTTask_Block`
+  drops the guard to go and punish. Dodging stays legal so a player can escape their own mistake.
+  **PIE: 30 damage events, 4 blocked, 26 landed, no deadlock**, one pair 75→56→37→18→dead. This is
+  the anti-turtle answer, and it is what allied goblins have instead of a guard break.
+
+- 2026-08-09 **THE HORN SUMMONS, AND THE HORDE FIGHTS** (#088). Everything #069 could not build with
+  the gate shut, all editor-side, no C++: `BP_HordeGoblin` (duplicate of `BP_GS_TargetDummy`
+  reparented to `AGSHordeGoblin` - it already had the Scout rig, anim BP and all four abilities;
+  `GuardBreakAbilityClass` cleared on purpose), `BB_HordeGoblin`, `BT_HordeGoblin`,
+  `BP_GSHordeAIController` (exists solely to hold `CompanionBehaviorTree`), the
+  `[/Script/GoblinSiege.GSHordeSubsystem]` section with `HordeGoblinClassPath`, three
+  `Marker.HordeArrival` in `L_CombatArena`, and `IA_Horn` on **MiddleMouseButton** with `HornAction`
+  assigned. `Horn: 4 answered. Reserve 16, active 4/10`, then summoned goblins read knights'
+  wind-ups, blocked them, and punished the recoil. Pool accounting matches decision 40 exactly:
+  `Horde goblin died. Reserve 10 (unchanged)`.
+  - **`UGSGA_Horn` has still never been fired by a human pressing MMB** - only via
+    `GS.Horde.SpawnTest`. The input path is the most likely thing still broken.
+  - **`L_Tutorial_Island` has no arrival markers**, so the horn summons nothing there.
+  - Goblins die to two knight hits (40 HP vs 25). Archetype numbers behaving, but a warband melts
+    against knights - wants more goblins or fewer knights before it reads as a battle.
+
 ## DECISIONS
 
+- **2026-08-11 (#136): A TICKET CANNOT CLOSE UNLESS SOMEBODY WATCHED THE WORK RUN.** `gsqueue.ps1`
+  gained `observed:` and `scenario:` fields, an `observed -Id <n> -What "..." -Scenario "..."` verb,
+  and a refusal in `done`. It is the first gate in that script that asks whether the work RAN — every
+  other one inspects the ticket's text and timestamps.
+  - **`-What` is phrase-scanned** and rejects `compil`, `read back`, `should work`, `no errors`,
+    `looks correct` and friends: those describe the artifact, not its behaviour. The scan runs on
+    that one line only, **never on the Evaluate prose** — a good Evaluate quotes those phrases in
+    order to disown them.
+  - **`-Scenario` is the one that matters most.** "In the editor" is not a scenario. Wrong-scenario
+    evidence is this project's most repeated failure: #132/#133 tested with `GS.Combat.Duel` (which
+    spawns *defenders*) and never ran on the horde; #133's blendspace was signed off from the player
+    pawn, which exercises one of its five direction columns.
+  - **`done -Id <n> -Unobserved "<reason>"` is the honest escape** — a broken editor must never
+    deadlock the queue — and marks the board `**UNOBSERVED**` permanently.
+  - Why mechanical and not another rule: "verify with evidence" already existed in **5 normative
+    places and ~12 case-law restatements**, and #120 — the ticket that exists to record *"three fixes
+    shipped without anyone watching them run"* — was **itself closed unwatched**, passing every gate.
+    Prose is not a gate.
+- **2026-08-11 (#137): `GS.Anim.Snapshot [radius]` IS THE ANIMATION INSTRUMENT.** Before it, this
+  module had 18 cvars and 26 commands and **not one reported anything about animation** (no
+  `UAnimInstance` subclass; no line had ever printed a speed).
+  - One row per live pawn: `pawn | controller | speed | direction | rotation mode | REFPOSE |
+    playing | blackboard target`. `Direction` uses `UKismetAnimationLibrary::CalculateDirection`,
+    the same call the AnimBPs use, so it cannot drift from what the graph sees.
+  - **The `REFPOSE` column answers "did this pose evaluate to nothing".** T-pose, "no locomotion at
+    all" and A-pose were all one condition and nothing could state it. **Validated against a
+    known-BAD case**: 0/18 in reference pose on the working blendspace, **9/15 on the dead one** —
+    exactly the pawns running the goblin AnimBP.
+  - **It prints EVERY pawn on purpose**, so a player-only test cannot hide an AI-only failure.
+    Measured in one table: player `Direction 0.0 / OrientToMove`, horde goblins spanning −138° to
+    +122°.
+  - Gotcha: the header is `"KismetAnimationLibrary.h"` — **directly in `AnimGraphRuntime/Public/`,
+    NOT under `Kismet/`** — and needs the `AnimGraphRuntime` private module dependency.
+- **2026-08-11 (#133): COMBAT FACING HAS EXACTLY ONE AUTHORITY — `AGSAIControllerBase::TickFacing`**
+  (`SetFocus` at `EAIFocusPriority::Gameplay` + `bUseControllerDesiredRotation`), behind
+  `GS.Combat.FaceTarget`. **WATCHED AND SIGNED OFF by Michael, 2026-08-11: *"the combat animation
+  looks good now."*** This is settled work, not a pending fix — do not re-open it on suspicion.
+  It only became true once **#135** re-enabled the horde controller's tick, without which
+  `TickFacing` had never executed on a single horn-summoned goblin. `UBTTask_MenaceOrbit`, `UBTTask_MeleeAttack` and `UBTTask_Block` keep their
+  `SetActorRotation` code **only as the switch-off path** — deleting it would turn
+  `GS.Combat.FaceTarget 0` into #089's deadlock rather than a comparison.
+  - **CORRECTION to a comment repeated across the codebase:** `BTTask_Block.h:121` claims these pawns
+    run `bOrientRotationToMovement` with `bUseControllerRotationYaw` false. **Both are inverted** —
+    `BP_CastleGuard01` and `BP_ErikaArcher` ship `bOrientRotationToMovement=FALSE` /
+    `bUseControllerRotationYaw=TRUE`. That is why the three nodes' rate-limited turns were being
+    overwritten every frame by `APawn::FaceRotation`, and it is probably what #109 and #124 were
+    really chasing. Do not trust that comment where it is repeated.
+  - Priority is `Gameplay`, **not** `Move`: path following parks its own focus at `Move`
+    (`AAIController::SetMoveFocus`), so a combat focus there is overwritten by every MoveTo.
+    `UBTTask_RangedAttack` focuses the same blackboard actor at the same priority, so they agree.
+- **2026-08-11 (#133): DIRECTIONAL LOCOMOTION IS NOT SHIPPED. BOTH RIGS ARE ON THEIR ORIGINAL
+  LOCOMOTION.** `ThirdPerson_AnimBP_Gob` is back on the 1D `ThirdPerson_IdleRun_2D_Gob` (Speed->X)
+  and `ABP_Human` is back on its Idle/Walk/Run state machine. **Do not read the two new blendspaces
+  as working assets.**
+  - `BS_GS_Locomotion_Gob` / `BS_GS_Locomotion_Hu`, `A_HU_Std_RunL`/`RunR`, `HU_Direction` and both
+    `CalculateDirection` graphs all EXIST and are correct by every check the tooling can perform.
+    They are simply not wired in, and the blendspaces are **not known-good** — see the FAILED entry.
+  - `ThirdPerson_IdleRun_2D_Gob` is a **`BlendSpace1D`** despite the `_2D_` in its name.
+  - The goblin's `Direction` variable existed for months and **nothing ever set it**; it is now set,
+    harmlessly, whether or not anything reads it.
+  - **The trap for the next agent:** the player goblin runs `bOrientRotationToMovement=true`, so its
+    `Direction` is pinned at ~0 and it only ever samples the FORWARD column. Every other AI pawn
+    (`BP_HordeGoblin`, the defenders) runs `bUseControllerRotationYaw=true` instead and uses the full
+    ±180 range. **Testing directional locomotion as the player proves nothing** — it exercises one
+    column out of five. That is how a broken blendspace got signed off as "looks good".
+- **2026-08-11 (#133, open): `BP_CastleGuard01` has MaxWalkSpeed 1210 against a ~420 uu/s run
+  animation.** A 2.9x mismatch that no blendspace can absorb — a charging guard must foot-slide or
+  play at ~3x rate. Pre-existing and equally true of the single `A_HU_Std_RunF` before #133. It is a
+  speed-vs-animation balance decision for Michael, not a bug.
+- **2026-08-09 (#101): THE HUMANS HAVE NO COMBAT ANIMATIONS, AND UE WILL HAPPILY PLAY A GOBLIN
+  MONTAGE ON THEM ANYWAY.** All 36 montages in the project live on `GOB_Scout_v2_Skeleton` under
+  `/Game/Characters/ScoutV2/Montages/`; the six human defenders run `SK_Human_Skeleton` with
+  `ABP_Human`, which references three animations total (Idle, WalkF, RunF).
+  `PlayAnimMontage(AM_GS_Atk_Light)` on a guard **returns 1.150 and drives the slot** - the tracks map
+  to nothing, so the slot evaluates to the REFERENCE POSE. Every attack, block and guard break
+  T-posed a guard for the montage's length, and took his sword arm out sideways with it, which is why
+  the sword read as "not in his hand" (measured: hand 104uu from body centre in idle, 149uu during
+  the montage - and 149uu was exactly what a guard measured mid-combat).
+  **`AGSCharacterBase::PlayAnimMontage` now refuses a montage whose skeleton differs from the
+  character's, returning 0.** One gate for every caller, and only when BOTH skeletons are known.
+  **This is a stopgap: it trades a T-posing guard for an unanimated one.** The real fix is human
+  combat animations - retargeted from the goblin set or authored - and that is a content decision.
+
+- **2026-08-09 (#101) CORRECTION to #097: all four human defenders SHARE `SK_Human_Skeleton`.** #097
+  recorded that each guard has its own skeleton and chose bone attachment on that basis. It is wrong.
+  A weapon socket added once to `SK_Human_Skeleton` would serve every human.
+
+- **2026-08-09 (#100): A WEAPON MESH'S PIVOT IS NOT ALWAYS AT ITS GRIP.** `GS_Sword`'s pivot is at
+  the hilt; `GS_Sword_Guard`'s is at the **tip** (settled from vertex data: crossguard XY radius peaks
+  at 10.7-11.8 around z 60-80, tapering to 3.0 at z=0). Rotation cannot fix a tip-pivot - the pivot is
+  what sits on the socket - so `DA_Weapon_Guard` carries a translation of
+  `-(MeshLength * Scale)` along `Rotation.RotateVector(0,0,1)`, derived from the scale so the two
+  cannot drift. **"0.0uu from the socket" proves nothing about orientation**; measure both mesh
+  endpoints.
+
+- **2026-08-09 (#097/#098): EVERY COMBATANT NOW HOLDS ITS WEAPON, and `UGSWeaponComponent` stays off
+  `AGSCharacterBase`.** The player has had one for months; the defenders got one in #097 and the horde
+  in #098, both as their own member rather than hoisted to the shared base - `AGSPlayerCharacter`
+  creates its own in its constructor and hoisting would give it two. **The horde carries the player's
+  own `GS_Sword` on `hand_r_weapon` with the player's tuned offset**, which is exact rather than
+  reasoned: same mesh, same socket, same skeleton. The guards cannot do that - **no human mesh has any
+  weapon socket at all** (checked all eight on all six; each guard has its OWN skeleton, not a shared
+  one), so `DA_Weapon_Guard` attaches `GS_Sword_Guard` to the **`RightHand` bone** and its rotation is
+  still unverified by eye. **Build weapon data assets FRESH, never duplicated:** the soft-object mesh
+  fields cannot be cleared from Python (`None` no-ops, `SoftObjectPath('')` throws), and a duplicate of
+  `DA_Weapon_Scout` hangs a bow and quiver on anything whose rig has those sockets - which the goblins'
+  does.
+
+- **2026-08-09 (#093, Michael): MITIGATION MAY NEVER ZERO A HIT.** `GS.Combat.MinimumDamage` (1.0),
+  applied once at the end of `UGSDamageExecCalculation` so it catches every path - block, plate,
+  armour, race matchup, NPC-vs-NPC scalar - which compound and produced literal 0.00 hits. Gated on
+  `RawDamage > 0` so it lifts real blows only. **This resolved the #091 open question**: a knight is
+  no longer invulnerable to the warband frontally (measured chipping 75 -> 67), while staying
+  enormously resistant. **Two consequences beyond knights: blocks now CHIP (a perfect block was 0.0,
+  now 1.0 - a real change to player feel), and fire shares this exec so every fire tick has a floor,
+  which stops armour quietly making a knight fireproof.**
+- **2026-08-09 (#091, GDD §217): ARMOUR IS DIRECTIONAL, and a bow ignores it.** Plate is no longer a
+  flat number that helps equally from every angle. Straight-on (within `GS.Combat.PlateArc` 150 deg)
+  the damage is scaled by `GS.Combat.PlateFrontalScalar` (0.3) and THEN flat armour is subtracted, so
+  plate compounds; from the flank, back, or a takedown the flat armour is skipped **entirely**; and
+  `Damage.Bow` bypasses it at any angle. Only ever applies to a character with Armor > 0, so it is a
+  knight rule and touches nothing else. Measured: a 25/30/45 frontal combo takes a knight 75 -> 63;
+  the same combo from his flank takes him 75 -> 20.
+  - **It composes with #090's ring slots for free.** Goblins were measured at 174.9 and 92.9 degrees
+    off a knight's front - in the gaps - purely because slots are claimed around the target. Nobody
+    wrote flanking; the crowd system produced it.
+  - **Open question for Michael: a goblin's FRONTAL hit is exactly 0.00** (25 x 0.55 NPC x 0.3 plate
+    - 6 armour). From the gaps it is 13.75. So a knight facing one goblin is invulnerable to it.
+    GDD §76 does name the Shaman's armour-ignoring magic as the answer to knight armour, so this may
+    be correct - but raise `GS.Combat.PlateFrontalScalar` to ~0.6 for chip damage instead of nothing.
+- **2026-08-09 (#092): an arrow to the head does 2.5x.** Resolved in `AGSArrowProjectile`, the only
+  place that still holds the `FHitResult`. Two traps closed that would each have shipped a dead
+  feature: the arrow stops on the CAPSULE so `Hit.BoneName` is always `None` (falls back to
+  `FindClosestBone` on the impact point rather than changing mesh collision), and the two skeletons
+  spell bones differently (case-insensitive SUBSTRING match on `head`/`neck`, not an exact name).
+  **Never observed firing** - it needs a human on the mouse.
+- **2026-08-09 (Michael): KNIGHTS ARE ELITES - at most 3-4 on the entire map at this difficulty.**
+  A knight is a set-piece, not rank-and-file; the garrison a raid meets is militia. Measured on
+  `L_CombatArena`: 10 goblins vs 6 knights is 9-0 to the knights (a boss fight, not a raid), while
+  10 goblins vs 6 militia + 2 knights trades 9 goblins for 5 defenders. Balance the horde against
+  MILITIA and treat every knight in an encounter as a large difficulty increment.
+- **2026-08-09: `FGSArchetypeDefinition::Damage` (8.0) IS READ NOWHERE.** All melee damage comes from
+  `FGSSwingStage::Damage` (25) on the ability, so a militiaman and a knight hit for exactly the same
+  number - confirmed in PIE, both resolving 13.8 against a goblin. Today "elite" means ONLY more HP
+  (75 vs 30) and armor (6 vs 0); they share a behaviour tree, so they also share block chance and
+  both carry the guard break. Anyone tiering fodder-vs-elite needs to know the damage lever is not
+  connected, and that armor is currently the whole of a knight's offence-side identity.
+- **2026-08-09 (#090): permission and position to attack are rationed BY THE VICTIM.**
+  `UGSEngagementComponent` on `AGSCharacterBase` owns a weighted token budget (two jabs or one heavy,
+  never both), an engagement capacity (how many may be assigned at all), and the exclusive ring
+  slots. An attacker reserves from the thing it is attacking - N attackers each rationing themselves
+  still produces N simultaneous swings, so only the victim can hold the number. **The player has the
+  same component**, so the crowd takes turns on him too; a rationing system he was exempt from would
+  be visible immediately. `CanBeAttacked()` gates all of it on the victim not being staggered,
+  guard-broken, recoiling or dead - one check that applies to every attacker at once, and the reason
+  a stumbling defender is not deleted by four simultaneous sweeps.
+- **2026-08-09 (#087, Michael): a block does not merely reduce damage - it TURNS THE SWING ASIDE.**
+  The attacker's attack is cancelled and they are open (no attacking, no re-guarding) for
+  `GS.Combat.RecoilSeconds`. This is the answer to "nobody is ever punished", it replaces the guard
+  break as the AI's anti-turtle tool, and it is symmetric: it applies to the player's blocked swings
+  exactly as it does to an AI's. The opening IS the punish - deliberately no damage multiplier on
+  top, since the target cannot block the counter anyway.
+- **2026-08-08 (#083): `State.Attacking.Windup` is the ONLY sanctioned channel by which an AI may
+  learn a hit is coming.** No BT node, service or decorator may read an opponent's ability internals,
+  montage position, blackboard or timers instead. The tag is raised on the frame the player sees the
+  arm go back and cleared when the damage window opens, so a defender reacting to it is reacting to
+  something the player also saw — that is the whole line between a fair fight and a psychic one, and
+  it is exactly the shortcut that gets added at 1am to make an encounter "read better".
 - Canonical class name is SCOUT (amends decision 36); sword ⇄ bow.
 - Win = burn one of each TYPE (mill/field/market) then extract; siblings demote to Optional (Q-32).
 - Horde: ground-bound but CAN VAULT (41-a); never climbs/mantles; pool debits on spawn only (40); light fire avoidance + giggle barks.
@@ -111,6 +352,17 @@ next agent rediscovers it.
   - **The co-op server path goes in now** (refines "replicate cheap root state only"): server RPC for
     begin/abort, payout + `SetAvailable` behind `HasAuthority`. Cheaper before five systems hook the
     completion delegate than after.
+- 2026-08-06 (Michael, on the ranged pass — **settled, do not re-litigate**):
+  - **An arrow STICKS in an ally; it does not pass through.** #038 stopped arrows damaging allied
+    goblins (`IsHostileTo`, the same rule melee has used since 2026-08-04), and the question was
+    whether they should also stop being blocked by them. They should not: an arrow is stopped by an
+    allied body, deals nothing, and the shot is wasted. Positioning is the player's problem. This was
+    asked with the horde case on the table (firing past your own line) and answered anyway — so a
+    future agent finding "every shot eaten by a friendly" is looking at intended behaviour, not a bug.
+  - **The radial weapon wheel is built C++-first**: `EGSWeaponSlot` and the selection maths in code
+    with `BlueprintReadOnly` state plus open/close/changed events; the UMG widget comes after, built
+    against a working backend. This supersedes fixing the torch throw directly — that work is
+    subsumed (see `HANDOFF.md` Part 3).
 - 2026-08-04 (three further rulings):
   - **No interacting or blocking while staggered.** Block already refused `State.GuardBroken`;
     interact now does too, and `BreakGuard` cancels an in-flight channel by tag so the kick stops a
@@ -120,25 +372,361 @@ next agent rediscovers it.
   - **Extraction is an auto-bank circle for now** (GDD §9), NOT a hold-E verb — resolves the §9 vs
     §12.1 contradiction. `Interact.Extract` stays declared but unused, reserved for if it ever
     becomes channelled.
+- 2026-08-07 (Michael, the horde rulings — **settled, do not re-litigate**). Sixteen decisions taken
+  while #069 was built. The first four are the ones a later agent is most likely to "fix" back:
+  - **The war-horn is on MIDDLE MOUSE (wheel click), not G.** Both GDDs say G; G is `IA_Block` from
+    the #058 remap, which was Michael's own ask. Verified against the live `IMC_Default`: 17 rows,
+    17 distinct keys, no duplicates. **F is also taken** (`IA_Interact`), so "move it to F" is the
+    same collision. GDD §2.3's "G" is an erratum — as is its "torch toss (Q)", since `IA_ThrowTorch`
+    has had no IMC row since the torch became a held weapon on 2026-08-06.
+  - **The horde arrives from a PORTAL / Warren mouth, not the treeline.** GDD §2.5's "sprint in from
+    the treeline (never popping into existence — watching them arrive is the joke)" is superseded.
+    Emerging from a hole satisfies the same no-pop-in mandate and sidesteps `GEN_NavBounds_Village`
+    being 4000x4000 uu. A placeholder portal stands in until the Warren is built — and it is built
+    as the Warren-to-be (one actor that grows the dig/banking/respawn behaviour later), not a
+    throwaway. **Do not "restore" the treeline.**
+  - **Combat verbs live on `AGSCharacterBase`.** Reparenting `AGSHordeGoblin` to `AGSEnemyCharacter`
+    is the tempting one-liner and silently flips five class-identity checks: `GSFireVolume.cpp:394`
+    would stop burning the horde, `GSTargetingComponent.cpp:50` would soft-lock the player onto his
+    own goblins, `GSBuffAuraComponent.cpp:48` would let defender auras buff them. None fail loudly.
+  - **`AGSHordeSpawnMarker` will NEVER be built.** The `Marker.HordeArrival` tag and
+    `AGSRaidMarker::GatherByType` already do the whole job, and `GSRaidMarker.h:20-26` argues
+    against new marker UCLASSes. It was listed as missing work on the NEXT line for two days.
+  - **AI vault is DEFERRED** until the climb rebuild (#067/#070) settles. Decision 41-a still stands
+    — horde goblins vault, never climb or mantle — but nothing in the project can vault from code
+    (it is Blueprint-only, entered through Enhanced Input an AI cannot press) and there are zero
+    `NavLink`/`NavArea` hits repo-wide. `Stranded` degrades to "unreachable → idle → re-horn free →
+    trudge home", which repo GDD §5 already describes.
+  - **Active cap is PER PLAYER (10 each); the raid pool of 20 is SHARED.** `ActiveGoblins` keyed by
+    summoning controller; `ReserveRemaining` is one counter. In co-op two players at full cap empty
+    the reserve — intended, and what keeps the 20-pool comparable to the defenders' 15 (§2.6).
+  - **Fire kills your own horde and that is intended.** ~10s at 40 HP. Do not "fix" it in
+    `AGSFireVolume` — that would make the player fire-immune too. Any fix belongs in horde steering.
+    Note the 40 HP lives in `DA_Race_Goblin`: whoever authors that row sets fire lethality with it.
+  - **Corpses are never destroyed** (`CorpseLifespan` stays 0, horde included) — "we want to see
+    where things died". Accept the cost knowingly: ten dead goblins is ten permanently simulating
+    ragdolls, and the week-3 exit test is *ten goblins at frame rate*. If that test fails on render
+    thread, this is the first dial to revisit — but it is a deliberate choice, not an oversight.
+  - **The horn raises the alarm straight to `Raid`**, not Suspicious. §2.5 calls it "the formal end
+    of the quiet half"; §2.6's Suspicious-tier horn is a *patrol's* horn, a different event sharing
+    a noun. New `EGSAlarmSource::HornBlast`, **appended** to the enum, never inserted.
+  - **`SummonsPerBlast` is a fixed 4**, not a random 3-4 — a player counting his pool should not
+    have to guess.
+  - **A dead horde goblin is shown as a stat, not scored** (no deed, no loot, no penalty).
+  - **`ThreatMemorySeconds` = 8** — how long Frenzy stays committed to a guard who ran away.
+  - **Arrival markers go in `L_CombatArena` first**, then `L_Tutorial_Island` once it works.
+    `L_Tutorial_Island` is 185 MB and every save is a 185 MB LFS object.
+  - **The navmesh gets WIDENED, not switched to invokers** — measure the bake first. Invoker-based
+    generation gives no navmesh where no invoker is standing, which would break the planned
+    `UGSPatrolDirector` (patrol routes across the village, soldiers marching from a distant castle).
+    A fixed-size hand-authored map is the case a static bake is good at. Folded into the Tier 2
+    editor pass.
+  - **Nothing summons until `BP_HordeGoblin` exists and `HordeGoblinClassPath` points at it** in
+    `DefaultGame.ini` under `[/Script/GoblinSiege.GSHordeSubsystem]`. Until then `SummonWave`
+    correctly refuses and logs which knob is empty — that message is the design, not a failure.
+- 2026-08-08 (Michael, the climbing rulings — **settled, do not re-litigate**). The climb went from
+  "stalls at the same lip every time, four sessions running" to working; these are the calls that got
+  it there, and the first three are the ones a later agent is most likely to undo:
+  - **Ledge detection is a SEARCH, not a tuned constant.** `UGSClimbLibrary::FindClimbLedge` sweeps
+    insets **80..340 step 20** and takes the first surface that is walkable AND has open sky above it.
+    Measured on 56 roof lips across 14 houses: a fixed inset tops out at **88%** (best single value is
+    80; the 120 that shipped briefly scored 82%), the search gets **96%**. The art-pack roofs are
+    ribbed at ~40uu, so the answer alternates between deck and rib as the inset moves — **no constant
+    can work, and "just tune it" is the trap this cost a day to escape.**
+  - **The sky check is load-bearing.** A candidate deck with a roof above it is an INTERIOR FLOOR, and
+    since #077 made `Medium_11` `UseComplexAsSimple` there is no wall left to stop a downward probe
+    finding one. 15 of 22 sampled heights find interior floors at `nz 1.00`, which passes any
+    walkable gate. Deleting the sky test puts the player inside the house.
+  - **Goblins have claws: `WalkableFloorAngle` is 65 degrees** (`WalkableFloorZ` 0.4226), and that
+    angle is *simultaneously* the steepest walkable surface and the boundary above which a surface
+    must be climbed. Michael's rule, from `Medium_02`'s 63.3-degree roof: *"that should be the limit
+    on what you can actually climb."* Do NOT add a separate looser gate inside the ledge search — it
+    would mantle the goblin onto a roof the movement component then slides him off.
+  - **Climb animation play rate is DERIVED per frame**, not set: `|ΔactorZ| / DeltaTime / 46.3`,
+    clamped 0.60..9.00, where 46.3 uu/s is the clip's own root-track speed. A fixed rate was wrong
+    three times (7.0, then 6.33, against sessions that climbed at 324/293/201 uu/s).
+    **`GetVelocity()` is the wrong input** — during the climb it reports what `ClimbTick` commanded,
+    not what moved: the log shows `vel=Z=420` held steady while `dZ` was 0.00 against the eave.
+  - **Braced hops stay** (#075, reaffirmed). The target feel is the Moria scene — *"smooth and a
+    little hectic"*. Smooth means no sliding; it does NOT mean a continuous climb cycle.
+  - **Hold-E climbs.** Michael likes it; do not repurpose E as a release verb.
+  - **Stamina FREEZES on the wall** — no drain, no regen (#072/#076). Constant stamina while climbing
+    is correct behaviour, not a stuck tick. I misread it as evidence of a halted `ClimbTick`.
+  - **The guards are gone and should stay gone** (#081): `ClimbBlockedSeconds`, `ClimbLastZ`, the
+    lean-out, and the old single-inset probe. The accumulator's cost was never cycles — it read
+    **0.000 for 1285 ticks while the character was visibly stuck**, and sent three sessions down wrong
+    diagnoses. A lying instrument is worse than dead code.
+  - **`GS.Climb.LogLedge 1` is the instrument** — it prints what the search decided and why
+    (`found`/`inset`/`rise`/`nz`/`steep`/`interior`/`empty`). Every climbing claim gets checked
+    against Michael's play log, never against my own trace simulation. Measuring the WRONG FACE of the
+    right house (north instead of south, 1210uu apart) invalidated a day of "verified" numbers.
+  - **ROOF CONTINUATION IS CLOSED, NOT DEFERRED** (Michael, 2026-08-08: *"the roofs are fine,
+    consider it closed"*). `Small_8` (82.5 deg) and `Small_10` (79.6 deg) stay unclimbable and that is
+    the intended answer — **98% of roof lips resolved across 20 houses is done, not 98% of the way to
+    done.** Do not build a "climb onto a pitch too steep to stand on" feature; the earlier plan listed
+    it as owed work and it is not. If a specific roof ever needs to be climbable, the lever is the
+    walkable angle or that building's collision, not a new traversal mode.
+  - **Still open:** per-goblin cadence jitter for horde climbing, **parked at Michael's request**
+    until the combat/summoning windows finish; Stage 4 plane transition — 42% of climb columns turn
+    >30 deg in one 40uu step, but there is NO evidence it breaks anything, so it waits on observation
+    rather than a fix. **Neither is a known defect.** Climbing is finished work.
 
 ## NEXT
-- [ELIGIBLE] u=10.0 **Interact framework — hold-E channels + carry** (block A) — missing: UGSInteractableComponent, UGSInteractionComponent, UGSGA_Interact, UGSCarryComponent
+
+*Refreshed 2026-08-06. Every `missing:` symbol below was re-checked against the tree that day; an
+item whose symbols all now exist was removed rather than left to rot. Three were: **interact
+framework** (u=10.0 — all four components exist in `Interaction/` and `Weapons/Abilities/`),
+**lives / respawn** (`AGSPlayerState` exists, `EGSRaidResult::OutOfLives` ends the raid, #009), and
+**runic site** (`AGSRunicSite` + `BP_GS_RunicSite` exist, #009/#011). The NEXT list had carried all
+three as outstanding for two days while they were being built.*
+
+**Ranked — u carried from run live-003, 2026-08-04. Not re-scored; treat the order as two days old.**
+
 - [EDITOR] u=6.0 **Death & hit-reaction clips retargeted ('nothing can die on screen')** (block B) — missing: AM_GS_Death
-- [ELIGIBLE] u=5.75 **Someone to fight — human race data, BT_Militia, enemy attack path** (block B) — missing: DA_Race_Human, BT_Militia, DA_Weapon_Greatclub
-- [ELIGIBLE] u=4.0 **Lives / respawn on PlayerState** (block E) — missing: Lives, AGSPlayerState
-- [BLOCKED] u=4.0 **Runic site — spawn/respawn, objective-gated portal, staging, 90s collapse** (block E) — missing: AGSRunicSite, Portal
+- [ELIGIBLE] u=5.75 **Someone to fight — the last piece** (block B) — DA_Race_Human and BT_Militia now EXIST and are PIE-verified; missing: DA_Weapon_Greatclub only
 - [BLOCKED] u=4.0 **Score system — deeds/loot two-kind tally + end screen** (block G) — missing: UGSScoreSubsystem, GSScore
-- [BLOCKED] u=3.2 **Horn & horde (subsystem, pool, BT, point command)** (block D) — missing: UGSHordeSubsystem, AGSHordeSpawnMarker, UGSGA_Horn, BT_HordeGoblin, AGSHordeGoblin
-- [BLOCKED] u=3.0 **The stealth five (noise, crouch-detect, takedown, corpse-suspicion, coin toss)** (block F) — missing: ReportGSNoise, Takedown, CoinToss, DT_NoiseEvents
+- [EDITOR] u=3.2 **Horn & horde** (block D) — **C++ HALF DONE AND PIE-VERIFIED, #069/#071 (2026-08-07).** `UGSHordeSubsystem` (pool, three exits, stimulus bus), `UGSGA_Horn` (middle mouse), `AGSHordeGoblin`, `AGSHordeAIController` (runs a BT, no perception), combat verbs hoisted to `AGSCharacterBase`, `GS.Horde.SpawnTest`/`.Status`. Build clean, `LogGSHorde: Pool reset: 20 in reserve, cap 10 active` in PIE, and three blasts against a missing goblin class correctly debited **nothing**. **`AGSHordeSpawnMarker` is NOT missing work — it will never be built** (see DECISIONS); the tag and `AGSRaidMarker::GatherByType` already do the job. Remaining is ALL EDITOR: `BP_HordeGoblin` (+ `HordeGoblinClassPath` in DefaultGame.ini — nothing summons until this exists), `DA_Race_Goblin`, `BB_HordeGoblin` + `BT_HordeGoblin` (hand-author; `BT_Militia` has no EdGraph and **must not be duplicated** — its AcquireTarget service hardcodes the player as the ATTACK target), `IA_Horn` on middle mouse, the placeholder arrival portal, and widening `GEN_NavBounds_Village`. Then the behaviours (Arriving/Follow/Frenzy) and the point command. AI vault deferred — see DECISIONS.
+- [BLOCKED] u=3.0 **The stealth five (noise, crouch-detect, takedown, corpse-suspicion, coin toss)** (block F) — Takedown EXISTS (interact framework); missing: ReportGSNoise, CoinToss, DT_NoiseEvents
 - [BLOCKED] u=2.5 **Gore/gib system (intensity scalar, feather-poof)** (block G) — missing: UGSGibComponent
 - [ELIGIBLE] u=2.5 **Barks + Overlord whispers (runtime side)** (block H) — missing: UGSBarkSubsystem, DT_Barks
 - [BLOCKED] u=2.33 **Patrol director — 5-7 min cadence + castle reinforcements** (block F) — missing: UGSPatrolDirector
-- [BLOCKED] u=2.25 **Loot couriers — sacks + livestock cargo, point-to-courier** (block G) — missing: UGSCarryComponent
+- [ELIGIBLE] u=2.25 **Loot couriers — sacks + livestock cargo, point-to-courier** (block G) — was BLOCKED on UGSCarryComponent, which now EXISTS; nothing else gates it
 - [BLOCKED] u=1.75 **Civilians + livestock (routines, disbelief, brigade, flee)** (block G) — missing: BT_Civilian, DA_Race_Livestock
 
-*(ranking from run live-003, 2026-08-04)*
+**Unranked — raised after the live-003 ranking run, so they carry no u.** Do not read the order
+below as priority; it is grouped by kind. The first item is the only one anyone has called urgent.
+
+- ~~[ELIGIBLE] **The nine outstanding code-review findings**~~ — **DONE, #036 + #037.** Removed from NEXT 2026-08-07 (#073). See the banner at the top of this file: this line survived a full day after the work landed because closing a ticket does not close the list the ticket was working from.
+- [ELIGIBLE] **Radial weapon wheel** — `HANDOFF.md` Part 3. Michael's design, two decisions already settled and **not to be re-litigated**: Q opens a hold-drag-release wheel (top torch / bottom-left sword / bottom-right bow), and the torch becomes a real held weapon fired by the ATTACK button, retiring `IA_ThrowTorch`. Open: who builds the UMG. Note `bRangedMode` is a **bool**, so three slots is a type change (`EGSWeaponSlot`) touching every `IsInRangedMode()` caller. Subsumes the two torch items below.
+- [ELIGIBLE] **Torch throw has no animation and is barely visible in hand** — `AM_GS_ThrowTorch.uasset` EXISTS and is referenced by **nothing** in C++; `UGSGA_TorchToss` has no `PlayMontage`, the throw is a 0.25s timer. The held torch is un-readied by `EndAbility` the instant the projectile spawns, which is Michael's "it's never in your hand" — not a missing socket or mesh, both verified fine.
+- ~~[ELIGIBLE] **Arrows ignore RaceTag**~~ — **FALSE, and was false when written.** #038 landed this. `GSArrowProjectile.cpp:150` calls `ShooterChar->IsHostileTo(OtherActor)` and gates the damage on it. Verified directly 2026-08-07 (#073). What arrows still do is **STICK** in an allied body, dealing nothing and wasting the shot — that is Michael's settled ruling of 2026-08-06, taken with the horde case explicitly on the table (see DECISIONS). A future agent finding "every shot eaten by a friendly" is looking at intended behaviour.
+- [EDITOR] **Building burn duration** — Michael, 2026-08-06, after the first raid that worked end to end: *"burning buildings. Maybe it can take a little longer."* The knob is `UGSFlammableComponent::BurnDurationSeconds` (currently 12s). Data, no rebuild.
+- [ELIGIBLE] **Melee `AttackCooldownSeconds` is dead** — the twin of the bow bug closed in #034. `UGSWeaponDataAsset::AttackCooldownSeconds` (1.0s default) has **no reader anywhere**. Check first whether melee is already rate-limited by its montage before adding a second gate on top.
+- [ELIGIBLE] **The two lose paths have never been exercised** — `EGSRaidResult::LeftBehind` and `OutOfLives` are wired and neither has run; only `Extracted` is verified (#009). `GS.Raid.ExpireClock`, `GS.Raid.Kill` and `GS.Raid.SetLives` exist to drive them (#018).
+- ~~[EDITOR] **`BP_GS_Arrow` subclass**~~ — **RESOLVED 2026-08-09 (#096).** The arrow WAS seen flying wrong (head down, launched from its own middle). Cause found by measuring the asset: `GS_Arrow` is 59.5uu long, its long axis is **+Z**, and its pivot is at the **tail**, while the actor's +X follows velocity — so with the identity default the shaft rendered at 90° to its own flight path. Corrected in the C++ constructor (`Pitch -90`, `X -59.5`), verified live at 0.0° shaft-vs-travel with the head on the collision sphere. A Blueprint subclass is no longer needed to make arrows look right, only to make them look *different*.
 
 ## FAILED
+
+- 2026-08-11 **A SUBCLASS CONSTRUCTOR SILENTLY DISABLED TWO SHIPPED FEATURES FOR A WHOLE CLASS OF
+  AGENT** (#135). `AGSHordeAIController` set `PrimaryActorTick.bCanEverTick = false`;
+  `AGSAIControllerBase` sets it true. The subclass runs second, so **#132's separation steer and
+  #133's facing authority never executed on a single horn-summoned goblin** — while both tickets
+  claimed the horde was covered, and #132's Evaluate said so in as many words. Nothing failed loudly:
+  no log, no warning, no compile error, just an absent feature.
+  - **`GS.Combat.Duel` CANNOT SEE THIS CLASS OF BUG**, and it is what every crowd ticket from #105
+    onward has tested with. It re-badges human defender BPs onto `DA_Race_Goblin`, so its "goblins"
+    possess `AGSAIControllerBase` directly and tick normally. **Anything added to
+    `AGSAIControllerBase::Tick` must be exercised on a HORN-SUMMONED goblin** (`GS.Horde.SpawnTest`),
+    not in a duel.
+  - The header's *"the blackboard refresh is a timer, not Tick"* paragraph was read as a blanket ban
+    and implemented as one. It has been rewritten: the real rule is **no per-agent SEARCH on the
+    frame**, which a 4Hz broadphase overlap behind early-outs does not violate.
+- 2026-08-11 **`SK_Human_Skeleton` HAS EVERY BONE ON `Animation` TRANSLATION RETARGETING, AND IT HAS
+  NOW CAUSED TWO SEPARATE VISIBLE BUGS** (#133, #134). That mode takes each bone's translation from
+  the animation and discards the target mesh's own bind pose — which is wrong for this project,
+  because all six human defenders wear `_baked` meshes re-bound from their own per-character
+  skeletons onto that one shared skeleton.
+  - **#133:** importing a Mixamo FBX exported from a differently-proportioned character applied its
+    translations verbatim — measured at exactly **0.600x on every bone**, which telescopes the whole
+    skeleton inward and reads as *"the spine is collapsing inside the body"*. **`import_uniform_scale`
+    does NOT fix it** (it moves only the Hips). Import human animation through `MixamoSource` +
+    `RTG_MixamoToHuman` instead — that measures 1.000x on every limb bone.
+  - **#134:** Erika's and the Knight's eyes were posed from the shared rig's eye bones (0.185 of head
+    height) rather than their own (0.365), so the eyes sat outside the head. The guards were immune
+    only because they have **no eye bones at all**. Fixed by setting `Head`/`LeftEye`/`RightEye`/
+    `HeadTop_End` to `Skeleton` retargeting. **The rest of the skeleton is still `Animation`, so the
+    trap is disarmed only for the head** — the canonical fix (all non-`Hips` bones to `Skeleton`,
+    `Hips` to `AnimationScaled`) is deliberately still outstanding.
+- 2026-08-11 **A 2D BLENDSPACE AUTHORED FROM PYTHON IS COSMETICALLY PERFECT AND FUNCTIONALLY DEAD,
+  AND I NEVER GOT ONE WORKING** (#133). Four passes, four different failures, all shipped to Michael
+  as "verified" because **every check this project's tooling can perform passes on a dead asset**:
+  the samples read back exactly, the skeletons match, the sample grid is a complete rectangle, the
+  AnimBP compiles `BS_UP_TO_DATE`, and the thing still evaluates to the reference pose.
+  - **CONFIRMED DEAD BY MEASUREMENT 2026-08-11 (#137), not by inference.** `GS.Anim.Snapshot` on the
+    goblin AnimBP pointed at `BS_GS_Locomotion_Gob` reported **9 of 15 pawns in the reference pose** —
+    every pawn using that graph — against **0 of 18** on the old 1D asset. Four passes of reasoning
+    in #133 could not settle this; one command did.
+  - **The strong suspicion, unproven:** `UBlendSpace` builds its grid/triangulation inside
+    `PostEditChangeProperty`, and writing `sample_data` from Python does not reliably fire it, so the
+    blend surface never exists and only inputs landing EXACTLY on a sample resolve. Passing
+    `set_editor_property(name, value, unreal.PropertyAccessChangeNotifyMode.ALWAYS)` did **not** fix
+    it. There is no Python API that exposes the triangulation, so this cannot be checked — only
+    inferred from behaviour.
+  - **If you need a 2D blendspace, author it BY HAND in the editor.** Do not spend another session
+    proving the array was written. The clips, the skeletons and the sample maths were all correct
+    every time; the asset was not.
+  - Genuine sub-findings worth keeping regardless: a direction axis needs an explicit `+180` column
+    (`wrap_input` does **not** close the convex hull); per-sample `rate_scale` must not be combined
+    with `axis_to_scale_animation` (the working `ThirdPerson_IdleRun_2D_Gob` uses axis scaling alone
+    with every rate at 1.000); and `A_MX_Sprint_Gob` lives in `Anims_Climb`, not `Anims_Loco`.
+- 2026-08-10 **THREE FIXES IN A ROW SHIPPED WITHOUT ANYONE WATCHING THEM RUN, AND ALL THREE WERE
+  WRONG** (#113, #116, #118). The pattern, not the individual bugs, is the entry worth reading:
+  - **#113** set `force_root_lock=True` on 9 human clips to stop attacks popping upward, and closed
+    saying *"the root lock has not been seen in play"*. It did not fix the pop — it replaced it with
+    a collapsed mesh, because locking the root pins it to the ref pose while the hips keep 88uu of
+    authored travel. **Michael diagnosed this at the time — "the root node is getting snapped to the
+    ground" — and was told no.** He was right. Fixed in #119 by repointing the montages at the clean
+    `A_HU_*` import; the `A_MX_*_Gob` copies are the old attempt.
+  - **#116** fixed the recoil punish by argument. The first duel run: 17 blocks landed, 0 punishes.
+    The veto had simply moved from `State.Recoil` to `State.HitReact`, because the flinch that sells
+    a block sets that tag too (#117).
+  - A **skeleton-mismatch theory** for the T-pose survived a full code read and died in one run —
+    zero `REFUSED montage` lines.
+  - **What actually worked, every time: a log line or an eyeball.** `GS.Combat.LogAI 1` +
+    `GS.Combat.Duel 3` settled the punish in one run. Michael previewing ONE montage settled #119
+    before the other ten were touched. Static reads confirm what is *configured*; they never show
+    what the engine *does* with it. Two questions cut the search fastest, both from him: *does
+    distance change it?* and *only during the action, or also at rest?*
+  - **Two probes that lie.** `SkeletonService.get_bone_transform` returns success for any bone name,
+    including `mixamorig1:Hips`. A `.uasset` name-table grep proves a reference exists in the
+    package, not that a property is assigned — read the CDO.
+- 2026-08-09 **NO HUMAN MESH HAS ANY WEAPON SOCKET** (#097). Checked all eight defender meshes for
+  `hand_r_weapon` / `hand_l_weapon` / `back_sword` / `back_bow` / `spine_quiver` — every one missing,
+  while `GOB_Scout_v2` has all five. Each guard also has its OWN skeleton (`SK_CastleGuard01_Skeleton`
+  etc.), not a shared one, so authoring a socket means doing it per character. **Workaround in use:
+  attach to the `RightHand` BONE** — UE attachment accepts a bone name as readily as a socket. Human
+  rigs are Mixamo-style: `Hips` / `Spine` / `RightHand`. Holstering will need real sockets.
+- 2026-08-09 **`UGSWeaponComponent` was on the PLAYER ONLY** — every guard in the game fought
+  bare-handed all along. Added to `AGSEnemyCharacter` in #097 with a `DefaultWeapon` slot.
+  `AGSHordeGoblin` still has none: **the goblins are still empty-handed.**
+- 2026-08-09 **Soft-object mesh fields on a data asset CANNOT be cleared from Python.**
+  `set_editor_property(prop, None)` silently no-ops and `SoftObjectPath('')` throws a conversion
+  error, so a duplicated `UGSWeaponDataAsset` keeps meshes you do not want — which put a floating bow
+  and quiver at every guard's feet. **Build such an asset fresh rather than duplicating it.**
+- 2026-08-09 **THE GOBLIN MESHES ARE A FRACTION OF THEIR CAPSULES** (found in #094, NOT fixed -
+  needs Michael). Measured live, head bone above the capsule's feet: Erika (human) **+256** in a 300
+  capsule, player goblin **+40** in a 240 capsule, horde goblin **+70** in a 240 capsule. A goblin's
+  visible head sits at ankle height of its own collision volume. Arrows aimed at the capsule centre
+  pass well above a goblin's actual head and still register a hit because the capsule is what blocks.
+  This reaches far past archery - collision, cover, doorways, camera and every trace in the game
+  reason about that capsule.
+- 2026-08-09 **"Closest bone" is not "the bone you hit".** #092 detected headshots with
+  `FindClosestBone(ImpactPoint)`; because an arrow stops on the CAPSULE, the impact point sits on a
+  cylinder around the body and the nearest NAMED bone to a chest-height point is the neck/head chain
+  - so **every single arrow was a headshot** (a flat 50 damage) the first time anyone watched one
+  fly. Fixed in #095 by measuring distance to the head bone instead. The lesson is the shape of the
+  bug: a detection heuristic that can only ever answer "yes" is worse than not having one, and #092
+  shipped it with its own Evaluate saying "unproven in play".
+- 2026-08-09 **A BT Selector RESTARTS when a child succeeds - so any child that succeeds instantly
+  starves everything below it.** This has now bitten twice in two days, both times presenting as "the
+  AI just stands there". `BTTask_MoveTo` returns Succeeded *immediately* when the agent is already
+  inside its acceptable radius, so an agent parked on its stand-off slot busy-loops:
+  MeleeAttack fails -> MoveTo succeeds instantly -> tree restarts -> repeat, and nothing below MoveTo
+  ever runs. #089 was this with the facing check (fixed by turning instead of refusing); #090 was
+  this with the menace orbit (fixed by putting it ABOVE the chase). **Rule: anything that must run
+  when an agent is stationary at its destination has to sit above the MoveTo, and any node that can
+  refuse must also make progress toward being able to accept.**
+- 2026-08-08 **A BT node that only WRITES blackboard keys works fine unresolved — so a missing
+  `InitializeFromAsset` is silent until the day something reads `IsSet()`.** `FBlackboardKeySelector::
+  IsSet()` tests `SelectedKeyType`, populated only by `ResolveSelectedKey`, which is called only from
+  a node's own `InitializeFromAsset` override. `UBTService_AcquireTarget` never had one and did not
+  care for its whole life, because `SetValueAsObject(Key.SelectedKeyName, ...)` needs no resolution.
+  The moment #083 guarded the attack telegraph on `IsSet()`, the guard was a permanent false: the key
+  was never written, the Block decorator never passed, and PIE showed "the AI does not block" with no
+  error anywhere. Fixed in #086. **`UBTTask_MeleeAttack` still has no override** — correct today
+  because it uses no `IsSet()`, and a trap for whoever adds one.
+- 2026-08-08 **`EditorAssetSubsystem.save_loaded_asset` defaults to `only_if_is_dirty=True`, and
+  `set_editor_property` on `UBlackboardData.Keys` does not mark the package dirty.** The save
+  returned `True` and wrote nothing; reading the key straight back **succeeded**, because that reads
+  the in-memory object. `BB_Human.uasset` kept its 2026-08-05 mtime for an hour while a C++ bug that
+  did not exist was hunted. **Verify an editor write against the DISK — mtime or the bytes — never
+  against a read-back.** Pass `save_loaded_asset(asset, False)` when the edit may not have dirtied
+  the package.
+
+- 2026-08-06 **A burn objective's Required/Optional state is ERASED before it tells anyone it
+  completed.** `AGSBurnObjectiveBase::HandleCompleted` calls `SetListState(Complete)` *before*
+  broadcasting `OnBurnObjectiveCompleted`, so every listener sees `Complete` and cannot tell what the
+  objective was a moment earlier. Anything that needs the distinction (scoring, barks, progression)
+  must track it itself — asking `UGSRaidDirector` instead makes the answer depend on delegate binding
+  order between two subsystems, which is not contractual. `UGSScoreSubsystem` keeps its own
+  scored-types set for exactly this reason (#053).
+- 2026-08-06 **BOTH lose paths fire correctly and NOTHING HAPPENS WHEN THEY DO.** First execution
+  ever of `EGSRaidResult::OutOfLives` and `LeftBehind` (#049). Both log `RAID ENDED: <result>`
+  exactly as designed — and then the game carries on. `UGSRaidDirector::EndRaid` sets the result,
+  logs, and broadcasts `OnRaidEnded`; the only subscriber is `UGSPlayerHUDWidget::HandleRaidEnded`,
+  which forwards to the **`BlueprintImplementableEvent` `OnRaidEnded`** — and `WBP_GSPlayerHUD` does
+  not implement it. So a finished raid produced one log line and no screen, no pause, no restart.
+  **Correction to my first reading of this:** all five HUD `BlueprintImplementableEvent`s are
+  unimplemented, but only `OnRaidEnded` mattered. The other four (`OnLivesChanged`,
+  `OnObjectiveListChanged`, `OnRaidClockPhaseChanged`, `OnAlarmPhaseChanged`) are *enrichment hooks*
+  over text `UGSPlayerHUDWidget` already writes to bound widgets itself — an unimplemented
+  `OnLivesChanged` costs a nicer lives display, not the lives display. `OnRaidEnded` was the only
+  output of the raid loop with no C++ fallback behind it. Fixed in #050 by giving it one
+  (`EndPanel` / `EndTitleText` / `EndDetailText`, C++-driven, BP event still fires after).
+  **Lesson: "the event is unimplemented" is not the same as "the feature is missing" — check whether
+  C++ already writes the primary path before counting a hook as a hole.**
+- 2026-08-06 **`EndRaid` does not stop the raid clock.** After `OutOfLives` the clock is still
+  `Running` and the timer keeps counting down (observed 1769s → 1762s across two `GS.Raid.Status`
+  calls *after* the raid had ended). `LeftBehind` looks like it stops the clock, but only because
+  the clock expiring is what ended the raid. Ending for any *other* reason leaves it ticking.
+- 2026-08-06 **The raid clock expiring does NOT strand you — it starts a 90s collapse.**
+  `GS.Raid.ExpireClock` moves phase 1 (Running) → phase 3 (Collapsing, 90s), and only a second
+  expiry reaches `LeftBehind`. Worth knowing before "the clock ran out and nothing happened" gets
+  filed as a bug: it is a two-stage transition and both stages must be driven.
+- 2026-08-06 **`EditorAssetSubsystem.load_asset` returns None WHILE PIE IS RUNNING**, and
+  `does_asset_exist` returns False, for assets that demonstrably exist and load fine once PIE stops.
+  Same family as `get_editor_world()` returning null during PIE. Stop PIE before inspecting assets,
+  or you will conclude an asset is missing when it is merely unavailable.
+- 2026-08-06 **A material used on a `USplineMeshComponent` needs `bUsedWithSplineMeshes`, or it
+  silently renders as the ENGINE DEFAULT.** `M_GS_AimArc` shipped without it, so the aim ribbon drew
+  with the default material from the day it was written — and recompiled the shader on every editor
+  launch. The only symptom is one `LogMaterial: Warning ... missing usage flag SplineMeshes` line at
+  load. It is a checkbox on the material; no rebuild. Check the flag on any material assigned to a
+  spline mesh, ribbon, or instanced mesh.
+- 2026-08-06 **A derived table must be recomputed from the values actually SHIPPED.** Ticket #043
+  computed camera-clearance figures at `AimArmLength = 250`, then set it to 320 in the same ticket
+  and shipped the old table. Drop is `ArmLength * sin(pitch)`, so the change that fixed one complaint
+  silently invalidated every row. The Evaluate flagged the wrong risk about the same number. If a
+  ticket changes an input to its own arithmetic, redo the arithmetic before closing.
+- 2026-08-06 **The aim camera's real obstacle on L_Tutorial_Island is the WHEAT, not the ground.**
+  `SM_VillageWheat_01/02` are 158 uu tall at ~91,500 instances each (~275k instances of 117–158 uu
+  cover). Any camera height under ~200 uu is inside the canopy regardless of collision, so aim-camera
+  clearance is a height problem, not a `bDoCollisionTest` problem.
+- 2026-08-06 **Iterating a Python-exposed `Array` of structs yields COPIES.** `for m in arr:
+  m.set_editor_property(...)` changes nothing, and the subsequent `save_loaded_asset` still returns
+  `True` — the first `IMC_Default` remap "succeeded" and the read-back showed the old action. Assign
+  back by index (`rows[i] = m`), then re-read after `collect_garbage()` + `load_asset`. This is the
+  concrete, repeatable cause behind "a successful tool call is not evidence".
+- 2026-08-06 **A guard that resolves paths against ONE root, when the data carries two conventions,
+  fails OPEN — and looks exactly like a guard that passed.** `gsqueue.ps1`'s stale-Evaluate check
+  (#024) joined every claimed path to the git root, but 102 of 126 claims across all tickets are
+  *project*-relative (`Source/…`, `Content/…`, living under `GoblinSiege 5.8/`) and only 24 are
+  repo-relative. `Test-Path` failed, the loop `continue`d, and the check silently examined nothing on
+  the majority of files for a full day. Fixed in #036 by resolving against **both** roots and
+  **reporting** anything that resolves nowhere. The lesson generalises: when a check skips what it
+  cannot resolve, "I could not look" is indistinguishable from "nothing changed".
+- 2026-08-06 **A code-review finding is a claim about a MOMENT — re-check it before acting.** The one
+  HIGH finding in `HANDOFF.md` (a `TypeError` crashing `gs_buildings.py` on any level) was already
+  gone when it was picked up: ticket #033's unrelated rewrite deleted the code, confirmed with
+  `git log -S PIECE_KEYS`. It had sat in the handoff as HIGH regardless. Cost of checking: one
+  command. Cost of not checking: debugging a bug that does not exist.
+- 2026-08-06 **A UPROPERTY with a sensible default and NO READER is invisible from both sides.**
+  `UGSWeaponDataAsset::RangedAttackCooldownSeconds` carried a 1.5s default and a design comment from
+  the day it was written, and nothing ever read it — so the bow fired as fast as the mouse could
+  click while `DA_Weapon_Scout` looked correctly configured, because it was. Found by Michael playing
+  it, not by any tool. Fixed in #034. **`AttackCooldownSeconds` (melee) is still dead.** Grep every
+  tuning field on a data asset for at least one reader.
+- 2026-08-06 **Dreamscape fog cards ship with collision ON.** 12 of them in L_Tutorial_Island
+  (`Plane`, `Plane4`-`Plane14`): `/Engine/BasicShapes/Plane` + `MI_Fog_02`, all `ECR_BLOCK` to
+  Pawn. A Plane mesh is single-sided and fog is translucent, so you see nothing and still cannot
+  walk through - one was a 111m x 8m x 51m slab across the village. Fixed by setting
+  `NO_COLLISION`, NOT by deleting (they are atmosphere art). **Expect the same in any new
+  Dreamscape scene.** `Plane2` is the village water (`MI_VillageWater`) and was deliberately left
+  blocking. Map backup: `D:\goblinRaid\Map_Backup_20260806\`.
+- 2026-08-06 **"Mesh is None" is the WRONG way to hunt invisible collision.** An empty
+  `StaticMeshComponent` has no collision geometry at all - 12 such actors in this level all report
+  `get_actor_bounds(True)` = (0,0,0) and block nothing, and one of them is a live `GSMillObjective`
+  that a "delete everything empty" sweep would have destroyed. Sort by `get_actor_bounds(True)`
+  instead. Note `PrimitiveComponent.bounds` is not readable from Python here;
+  `AActor.get_actor_bounds(bOnlyCollidingComponents)` is.
+- 2026-08-06 **For "something is blocking me", get the player's POSITION first.** Five structured
+  searches over 9,067 actors found nothing; one `sphere_overlap_actors` at the live PIE pawn
+  location found it immediately. Read the position off
+  `GameplayStatics.get_player_pawn(...).get_actor_location()`.
+- 2026-08-06 **`GEN_NavBounds_Village` is only (4000, 4000, 2998)** - an 80m x 80m navmesh box for
+  the entire village, at (-13000, 57000). This is why defenders freeze after chasing the player any
+  distance: they path straight out of it, and off the navmesh `move_to_location` returns FAILED.
+  Not yet fixed; wants its own ticket.
 
 - 2026-08-05 **The work queue is ADVISORY - it protects only against agents that actually run
   it, and the first one to breach it was the agent that built it.** `AgentQueue/` was created,
@@ -170,8 +758,15 @@ next agent rediscovers it.
   those two alone. **The runic-site / portal work on NEXT is precisely what will load them**, so
   they must be re-saved before a portal is placed or that cost reappears as a "new" hitch nobody
   connects to this. Ticket 003 is auditing the full 25.
-  Note `Content/*` is gitignored (`GoblinSiege 5.8/.gitignore:32`), so these assets have **no git
-  history** - the backup folder is the only way back.
+  ~~Note `Content/*` is gitignored, so these assets have no git history.~~ **WRONG - corrected
+  2026-08-07 (#073).** `.gitignore` writes `Content/*` and then re-includes the project folders with
+  `!Content/Characters/`, `!Content/Blueprints/`, `!Content/UI/`, `!Content/Input/` and more. **465
+  files under `Content/` are tracked**, via LFS - including `BP_GSPlayerCharacter.uasset`,
+  `BT_Militia.uasset` and `IMC_Default.uasset` (verified with `git ls-files --error-unmatch`).
+  Only `Content/GoblinSiege` and `Content/DreamscapeSeries` are genuinely untracked. This matters
+  the wrong way round: an agent who believes the old note will skip a `git checkout --` that would
+  have worked, and reach for a backup folder instead. Backing up before a large `.uasset` edit is
+  still cheap and sensible - just do not think git is unavailable.
 - 2026-08-05 **You cannot measure performance by driving PIE from `gs_run.ps1`.** With the editor
   window in the background it throttles to ~3 FPS, and `PerformanceService.frame_timing()` counts
   the idle as game-thread time - it reported a confident "GameThread bound, clear confidence"
@@ -183,7 +778,7 @@ next agent rediscovers it.
   `primary_actor_tick.start_with_tick_enabled` - the latter is true even when `can_ever_tick` is
   false, which made 8,034 non-ticking `StaticMeshActor`s look like 8,034 ticking ones.
   L_Tutorial_Island really has **19** ticking actors out of 9,076.
-- pre-seed (from build log / decision queue — do not rediscover): Live Coding cannot register new UCLASS/UPROPERTY — full editor-closed build required. In-editor Compile gives zero feedback; stranded-UBT bug = `Launching UnrealBuildTool...` with no `HotReload took` → kill orphaned dotnet. `.bat` written from a Linux sandbox needs CRLF. PowerShell over the MCP bridge: no `$`, quote every path, `--%` for native args. VibeUE `list_expressions` inlines nested material functions — connecting to an inlined node writes an illegal cross-package ref that blocks saving. `NS_GS_SmokeColumn` must use `M_Smoke_01`, never `M_Smoke_02` (broken). Content/GoblinSiege + DreamscapeSeries paths are untracked in git — agent-side edits there have no backup.
+- pre-seed (from build log / decision queue — do not rediscover): Live Coding cannot register new UCLASS/UPROPERTY — full editor-closed build required. In-editor Compile gives zero feedback; stranded-UBT bug = `Launching UnrealBuildTool...` with no `HotReload took` → kill orphaned dotnet. `.bat` written from a Linux sandbox needs CRLF. PowerShell over the MCP bridge: no `$`, quote every path, `--%` for native args. VibeUE `list_expressions` inlines nested material functions — connecting to an inlined node writes an illegal cross-package ref that blocks saving. `NS_GS_SmokeColumn` must use `M_Smoke_01`, never `M_Smoke_02` (broken). Content/GoblinSiege + DreamscapeSeries paths are untracked in git — agent-side edits **there** have no backup (the rest of `Content/` IS tracked via LFS — see the corrected note above; 465 files). **Build times: the UnrealBuildAccelerator permission problem is FIXED as of 2026-08-07** — `Build-GoblinSiege.ps1` now reports "UBA cache is writable - parallel compilation available" and a full editor-closed build of the GoblinSiege module ran **4:45 with 6 actions across 12 physical cores** (#069). Anywhere this file or `CLAUDE.md` still says to expect ~6-minute near-serial builds because UBA is crippled on `C:\ProgramData\Epic\UnrealBuildAccelerator`, that is stale.
 - 2026-08-04 [live-002] generation of interact_framework failed: no JSON object in model output
 - 2026-08-04 [live-002] generation of interact_framework failed: Unterminated string starting at: line 20 column 12 (char 44113)
 - 2026-08-04 KNOWN, not yet fixed: `UGSGA_SwordLight` still caches `MaxWalkSpeed` directly

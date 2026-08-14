@@ -1,0 +1,417 @@
+[
+  {
+    "id": "scout_kit_controller",
+    "name": "Scout player kit: third-person controller, weapon swap, dodge, crouch",
+    "gdd_section": "2.3",
+    "player_behavior": "The player controls a single goblin Scout in third person, live-swapping between daggers and bow, committing to weighty attacks, dodge-rolling with a brief invulnerability window, and crouching into a slow stealth stance.",
+    "acceptance_signals": [
+      "A player character class with movement/camera setup and WASD + mouse-look input bindings",
+      "A weapon component or state owning dagger/bow live swap with per-weapon attack behavior",
+      "A dodge-roll ability with a ~0.22s invulnerability window and punishable recovery frames",
+      "A crouch stance that modifies movement speed and feeds the detection system",
+      "Combat hit resolution with hitstop, knockback and telegraphed wind-ups plus ground decals",
+      "Data-driven stat block for HP 110 / fast speed (single class this slice)"
+    ],
+    "keywords": [
+      "Scout",
+      "DodgeRoll",
+      "Crouch",
+      "WeaponSwap",
+      "Daggers",
+      "Bow",
+      "Hitstop",
+      "Telegraph"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 1
+  },
+  {
+    "id": "interact_channel_framework",
+    "name": "Hold-E interact channel framework",
+    "gdd_section": "2.3",
+    "player_behavior": "The player holds E to run interruptible channels — looting, taking down, binding, fouling the well, carrying, planting the Warren — with a progress read that cancels if interrupted.",
+    "acceptance_signals": [
+      "A shared interaction component/interface driving timed, interruptible hold-to-complete channels",
+      "Interactable actors registering channel type, duration and completion effect",
+      "Cancellation on damage, movement or release, with progress feedback to HUD",
+      "Multiple consumers riding the same framework: loot, takedown, bind, foul well, carry, dig Warren"
+    ],
+    "keywords": [
+      "InteractComponent",
+      "HoldE",
+      "InteractChannel",
+      "Interruptible",
+      "Interactable"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 1
+  },
+  {
+    "id": "fire_and_burn_objectives",
+    "name": "Torch toss, fire propagation, and the three burn objectives",
+    "gdd_section": "2.1, 2.8",
+    "player_behavior": "The player throws a torch (Q) that sticks, ignites and spreads; the granary blazes compactly, a wheat field spreads row to row, and the windmill needs an aimed torch through a window for a two-stage detonation.",
+    "acceptance_signals": [
+      "A projectile torch that attaches on impact and seeds an ignition source",
+      "A fire propagation system spreading between flammable actors/crop cells with per-type burn profiles",
+      "Burn-objective actors tracking burn state and completion, reporting to the raid objective tracker",
+      "Windmill objective with distinct Stage 1 Ablaze / Stage 2 Detonation states, window-hit detection, and a state-swapped smashed mesh",
+      "Fire registering as a town-wide noise/alarm signal and applying friendly-fire damage to any actor"
+    ],
+    "keywords": [
+      "TorchToss",
+      "FireSpread",
+      "BurnObjective",
+      "Granary",
+      "WheatField",
+      "Windmill",
+      "Detonation",
+      "Flammable"
+    ],
+    "never_cut": true,
+    "cut_order_rank": 0,
+    "schedule_week": 2
+  },
+  {
+    "id": "objective_tracking_raid_clock",
+    "name": "Raid objective tracking, 30-minute clock and portal collapse",
+    "gdd_section": "2.1, 2.2",
+    "player_behavior": "The HUD names the three objectives and shows an always-on 30-minute clock; Overlord whispers check in at 10 minutes, name a direction at 5, and point outright in the final 2; burning the last objective flares the stones open, then a 90-second collapse window ends the raid.",
+    "acceptance_signals": [
+      "A raid-loop subsystem owning the countdown, timed whisper beats and end-of-raid transitions",
+      "Objective registry tracking the three assigned targets and their burned state, surfaced to HUD",
+      "Portal state machine: closed → open on final objective → collapse window with screen warning and stone-glow decay",
+      "Loss conditions on lives exhausted or player outside the circle at collapse end"
+    ],
+    "keywords": [
+      "RaidLoopSubsystem",
+      "RaidClock",
+      "ObjectiveTracker",
+      "PortalState",
+      "CollapseWindow"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 2
+  },
+  {
+    "id": "alarm_phase_system",
+    "name": "Four-phase alarm escalation with soft signals",
+    "gdd_section": "2.6",
+    "player_behavior": "The hamlet visibly moves QUIET → SUSPICIOUS → RAID → RAZED; one soft signal (a confirmed sighting, a corpse, squawking flock, a distant patrol horn, an overdue patrol, or too many missing civilians) makes guards investigate and decays back to quiet, while a second signal, the bell, combat or fire escalates straight to RAID.",
+    "acceptance_signals": [
+      "A town/alarm subsystem owning the current phase and never de-escalating past RAID",
+      "A soft-signal queue with source tagging, a decay timer back to QUIET, and instant escalation on a second signal",
+      "Signal emitters for sighting confirmation, corpse discovery, startled livestock, patrol horn, overdue patrol check-in, and civilian-absence census",
+      "Phase-driven changes to NPC behavior (investigate, watchman alertness, routines) with no HUD timers",
+      "RAZED phase silencing internal spawners and converging survivors"
+    ],
+    "keywords": [
+      "AlarmPhase",
+      "TownSubsystem",
+      "SoftSignal",
+      "Suspicious",
+      "RaidPhase",
+      "Razed",
+      "DecayTimer"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 2
+  },
+  {
+    "id": "horde_horn",
+    "name": "War-horn summoning and horde goblin pool",
+    "gdd_section": "2.5",
+    "player_behavior": "Pressing G blows the war-horn and 3–4 AI goblins sprint in from the treeline, up to 10 active, drawn from a finite raid pool of 20; dead horde goblins are gone for good and the treeline eventually goes silent.",
+    "acceptance_signals": [
+      "A horde subsystem owning the 20-goblin reserve pool, active cap of 10, and per-blast summon count",
+      "Spawn logic that places goblins at treeline entry points and has them run in rather than appear",
+      "Pool accounting: permanent removal on death, return to reserve on courier delivery or Warren digging cost",
+      "Horn ability emitting a loud noise signal and marking the end of the quiet phase",
+      "Horde AI taking friendly fire like any other actor"
+    ],
+    "keywords": [
+      "WarHorn",
+      "HordeSubsystem",
+      "GoblinPool",
+      "Treeline",
+      "SummonCount",
+      "ActiveCap"
+    ],
+    "never_cut": true,
+    "cut_order_rank": 0,
+    "schedule_week": 3
+  },
+  {
+    "id": "horde_commands",
+    "name": "Horde control: follow, frenzy, and the point context command",
+    "gdd_section": "2.5",
+    "player_behavior": "The horde loosely follows the player and auto-swarms anything that fights the player; aiming and pointing issues one context command — attack an enemy, smash a prop, or shoulder a loot sack, pig, or prisoner chain and courier it home.",
+    "acceptance_signals": [
+      "A horde AI controller with Follow and Frenzy behavior states and threat propagation from player combat",
+      "A single point command that resolves target type under the aim reticle into attack / destroy / courier orders",
+      "Courier behavior state that navigates to the runic site or Warren, banks cargo, and returns the goblin to the summonable pool",
+      "Prisoner-escort variant with a capacity limit of three captives per goblin",
+      "Cargo drop on courier death at the death location"
+    ],
+    "keywords": [
+      "PointCommand",
+      "Follow",
+      "Frenzy",
+      "CourierState",
+      "EscortPrisoners",
+      "HordeAIController"
+    ],
+    "never_cut": true,
+    "cut_order_rank": 0,
+    "schedule_week": 3
+  },
+  {
+    "id": "stealth_detection",
+    "name": "Crouch-and-confirm detection model",
+    "gdd_section": "2.4",
+    "player_behavior": "Guards must hold a sighting for about 1.5 seconds to confirm the player; breaking line of sight before that costs nothing, and a confirm produces exactly one soft signal that moves the town to Suspicious.",
+    "acceptance_signals": [
+      "A perception component accumulating per-observer sight confirmation timers with reset on lost line of sight",
+      "Detection ranges modified by crouch stance and cover geometry",
+      "Watchman vision cone that visibly droops on a doze timer",
+      "Confirmation event emitting a single soft signal into the alarm subsystem",
+      "Tracking of whether any confirm occurred before the first fire, for the First Spark Unseen bonus"
+    ],
+    "keywords": [
+      "PerceptionComponent",
+      "ConfirmTimer",
+      "VisionCone",
+      "SightingConfirmed",
+      "DozeTimer",
+      "FirstSparkUnseen"
+    ],
+    "never_cut": true,
+    "cut_order_rank": 0,
+    "schedule_week": 1
+  },
+  {
+    "id": "noise_system",
+    "name": "Noise events and guard investigation",
+    "gdd_section": "2.4",
+    "player_behavior": "Walking is quiet, running louder, smashing stalls and fences loud, and fire announces itself town-wide; guards move to investigate noises and startled chickens raise their own alarm.",
+    "acceptance_signals": [
+      "A noise-emission API with per-action audible radii consumed by NPC hearing",
+      "Guard investigate behavior driving movement to the last noise location",
+      "Loud actions (smashing, digging the Warren, horn, fire) registering as signals to the alarm system",
+      "Startled-livestock noise events pulling the nearest guard"
+    ],
+    "keywords": [
+      "NoiseEvent",
+      "AudibleRadius",
+      "Investigate",
+      "MakeNoise",
+      "StartledFlock"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 1
+  },
+  {
+    "id": "takedown_and_bind",
+    "name": "Takedown finisher and civilian bind",
+    "gdd_section": "2.4",
+    "player_behavior": "Approaching an unaware human from behind and holding E plays a silent committed finisher; on an unarmed civilian the same approach offers a longer, more interruptible bind that starts a rope chain instead of a body.",
+    "acceptance_signals": [
+      "A takedown interaction requiring rear approach and target unaware state, with a committed interruptible animation",
+      "A separate bind channel available only on unarmed civilians, longer and more interruptible, producing a bound-captive actor",
+      "Rope-chain linking of bound captives behind their captor with self-escort movement penalty and no-attack restriction",
+      "Corpse actors that guards can discover, raising Suspicious on sight",
+      "Score hooks for takedown bonus, civilian captured, and watchman silenced by any silent method"
+    ],
+    "keywords": [
+      "Takedown",
+      "Bind",
+      "RopeChain",
+      "Unaware",
+      "CorpseDiscovery",
+      "Captive"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 5,
+    "schedule_week": 5
+  },
+  {
+    "id": "coin_toss_distraction",
+    "name": "Coin toss and greed AI",
+    "gdd_section": "2.4, 2.10",
+    "player_behavior": "The player throws looted coins to make greedy humans — guards included — break off their post and scramble for the money.",
+    "acceptance_signals": [
+      "A throwable coin actor consuming pouch currency and creating a greed lure",
+      "A greed stat on human AI that gates lure response priority over current task",
+      "AI state that abandons post/behavior to move to and collect the coin, then resumes",
+      "Lure interaction with the watchman-silenced score condition"
+    ],
+    "keywords": [
+      "CoinToss",
+      "GreedStat",
+      "Lure",
+      "DistractionActor"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 3,
+    "schedule_week": 5
+  },
+  {
+    "id": "town_defenders",
+    "name": "Guards, patrols, watchtower bell, barracks and the finite raid-response pool",
+    "gdd_section": "2.1, 2.6",
+    "player_behavior": "Four posted guards, a napping watchtower archer with a bell, forest patrols with a signal horn on a 5–7 minute sweep, a barracks spawning militia then archers then knights, and reinforcement squads marching from the castle — all drawn from one finite pool of 15 that can be emptied.",
+    "acceptance_signals": [
+      "A defender-spawn subsystem owning a shared raid-response pool of 15 with tier/race-configurable size",
+      "Barracks spawner and map-edge reinforcement spawner both drawing from that single pool and falling silent when empty",
+      "Patrol AI on a 5–7 minute cadence with waypoint check-in tracking and an overdue grace timer that files a soft signal",
+      "Archer signal-horn ability with a committed interruptible wind-up triggered when the patrol is losing, escalating the town if completed",
+      "Watchtower bell interaction that escalates to RAID, plus a doze schedule",
+      "Destructible barracks and fouled-well interactions that permanently disable reinforcements and the bucket brigade",
+      "Data-driven enemy types (militia, archer, knight) with telegraphed attacks and score values"
+    ],
+    "keywords": [
+      "RaidResponsePool",
+      "BarracksSpawner",
+      "PatrolRoute",
+      "SignalHorn",
+      "Bell",
+      "Watchman",
+      "FoulWell",
+      "BucketBrigade",
+      "Reinforcements"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 5
+  },
+  {
+    "id": "loot_livestock_banking",
+    "name": "Loot, livestock carrying, and permanent banking at the stones or Warren",
+    "gdd_section": "2.6, 2.7",
+    "player_behavior": "The player smashes strongboxes and stalls, gathers coins into a pouch with a hold-E channel, slings a squirming pig (or two chickens) over the shoulder, and banks loot permanently the instant it reaches the runic site or a planted Warren; dying spills the pouch as a lootable sack.",
+    "acceptance_signals": [
+      "Separate accounting of provisional deeds versus physical loot, with loot banking permanently on delivery",
+      "Destructible container/prop actors gating a hold-E gather channel that fills a player pouch",
+      "A carry component with slow/no-fight restrictions, single large-item carry and dual chicken carry",
+      "Livestock actors with flee/catch behavior, kill-vs-steal score paths, and valid courier-target tagging",
+      "Pouch spill into a lootable sack actor on player death",
+      "Portal and Warren both acting as banking volumes for loot and prisoner chains",
+      "A Warren actor planted via loud hold-E channel, costing one horde goblin, limited to one active, destructible by guards, and serving as respawn point"
+    ],
+    "keywords": [
+      "LootComponent",
+      "Pouch",
+      "BankLoot",
+      "CarryComponent",
+      "Livestock",
+      "Pig",
+      "Strongbox",
+      "Warren",
+      "RespawnPoint"
+    ],
+    "never_cut": true,
+    "cut_order_rank": 2,
+    "schedule_week": 6
+  },
+  {
+    "id": "score_and_end_screen",
+    "name": "Scoring, lives, and the end-of-raid judgement screen",
+    "gdd_section": "2.2, 2.9",
+    "player_behavior": "Kills, arson, loot and mischief bonuses tally up; a successful exit multiplies deeds ×1.5 and adds +20 per unused life, and the end screen shows an itemized deeds/loot split, a letter grade, an Overlord verdict, and the player's personal best.",
+    "acceptance_signals": [
+      "A score subsystem with a data-driven table of scoring entries and point values for objectives, loot, kills and bonuses",
+      "Bonus condition evaluators for First Spark Unseen, None Left Behind, watchman silenced, well fouled, barracks demolished and clean patrol wipe",
+      "Lives counter of 5 with respawn at the runic site or Warren, and unbanked-deed retention of 25% on failure",
+      "End-screen UI presenting itemized deeds/loot, letter grade, Overlord verdict line and persisted personal best",
+      "Verdict selection that varies flavor for prisoner-heavy raids"
+    ],
+    "keywords": [
+      "ScoreSubsystem",
+      "DeedsVsLoot",
+      "LetterGrade",
+      "PersonalBest",
+      "Lives",
+      "ScoreTable",
+      "NoneLeftBehind"
+    ],
+    "never_cut": true,
+    "cut_order_rank": 0,
+    "schedule_week": 6
+  },
+  {
+    "id": "tutorial_prompts_barks",
+    "name": "First-encounter tutorial prompts and Overlord barks",
+    "gdd_section": "2.8, 2.10",
+    "player_behavior": "The first time the player meets each objective or mechanic, His Eternal Darkness delivers a bark plus a dismissible one-line HUD note naming the objective, payoff, and the one control that does it; a single settings toggle skips all of them.",
+    "acceptance_signals": [
+      "A prompt subsystem tracking first-encounter flags per mechanic and firing bark + HUD note once",
+      "A data-driven bark/prompt table keyed to triggers (granary, field, windmill stage 1, patrol, civilian takedown/bind, livestock pen, courier)",
+      "A settings toggle that suppresses all prompts without gating any mechanic",
+      "Ambient bark playback for villagers and Overlord whispers on timed raid beats"
+    ],
+    "keywords": [
+      "TutorialPrompt",
+      "BarkTable",
+      "FirstEncounterFlag",
+      "OverlordBark",
+      "PromptToggle"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 4
+  },
+  {
+    "id": "hamlet_layout_and_wayfinding",
+    "name": "Hand-authored tutorial hamlet, forest ring and runic site",
+    "gdd_section": "2.8",
+    "player_behavior": "The player crosses an authored forest with worn paths, roads, and signposts toward a fixed hamlet built from core-village, farmstead and windmill modules, with cover guaranteed between the treeline and every objective, and returns to the runic site to extract.",
+    "acceptance_signals": [
+      "Authored level composed from reusable module prefab kits (core village, farmstead, windmill) with placed guards, patrols, civilians and livestock",
+      "A runic-site actor serving as spawn, respawn and extraction volume with open/closed visual states",
+      "Cover props (hedgerows, haycarts, fences, pen walls) registered for the stealth layer's sightline breaking",
+      "Wayfinding affordances: converging roads, signposts, landmark silhouettes visible from the forest, audible pens",
+      "Exactly one granary, one field and one windmill objective placed in a fixed layout"
+    ],
+    "keywords": [
+      "TutorialHamlet",
+      "ModulePrefab",
+      "RunicSite",
+      "CoverProp",
+      "Wayfinding",
+      "Signpost",
+      "Treeline"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 0,
+    "schedule_week": 4
+  },
+  {
+    "id": "civilian_routines",
+    "name": "Civilians: routines, panic, bucket lines and self-looting",
+    "gdd_section": "2.6",
+    "player_behavior": "6–10 civilians run daily routines, double-take in disbelief at a goblin, panic, join bucket lines to fight fires, and — as a stretch behavior — loot their own market stalls and bolt for home, competing with the player for the hamlet's gold.",
+    "acceptance_signals": [
+      "Civilian AI with routine schedules, 10 HP, no attack, and panic/flee states",
+      "Bucket-brigade behavior that reduces fire progress unless the well is fouled",
+      "A census of civilians dead, bound or missing feeding the alarm subsystem's absence soft signal",
+      "Optional self-looting behavior triggered at peak chaos that removes stall gold from the map",
+      "Disbelief/double-take reaction behavior tied to barks"
+    ],
+    "keywords": [
+      "CivilianAI",
+      "Routine",
+      "Panic",
+      "BucketLine",
+      "SelfLooting",
+      "CivilianCensus"
+    ],
+    "never_cut": false,
+    "cut_order_rank": 1,
+    "schedule_week": 6
+  }
+]

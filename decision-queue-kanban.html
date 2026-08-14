@@ -212,10 +212,10 @@ textarea { width: 100%; min-height: 320px; font: 12px/1.5 ui-monospace, Consolas
 const SEED = {
   "meta": {
     "title": "Goblin Siege - decision queue",
-    "source": "AGENT_STATE.md ## NEXT, cross-referenced against ## BUILT + AgentQueue tickets",
-    "ranking": "run live-003, 2026-08-04",
-    "drawn": "2026-08-05",
-    "utilityNote": "u = the ranking score carried in AGENT_STATE.md; the meter is u against the highest u on the board."
+    "source": "AGENT_STATE.md ## NEXT (refreshed 2026-08-06), cross-referenced against ## BUILT + AgentQueue tickets #001-#035",
+    "ranking": "run live-003, 2026-08-04 - ranked items only",
+    "drawn": "2026-08-06",
+    "utilityNote": "u = the ranking score carried in AGENT_STATE.md; the meter is u against the highest u on the board. Cards badged 'unranked' were raised after that run and have no score - they sort FIRST, because unscored is not the same as scored zero."
   },
   "lanes": [
     { "id": "blocked",  "name": "Blocked",      "icon": "✗", "hint": "dependencies unmet" },
@@ -226,37 +226,71 @@ const SEED = {
   ],
   "cards": [
     {
-      "id": "interact", "lane": "done", "utility": 10.0, "block": "A",
-      "title": "Interact framework - hold-E channels + carry",
-      "missing": ["UGSInteractableComponent", "UGSInteractionComponent", "UGSGA_Interact", "UGSCarryComponent"],
-      "status": "warning", "statusLabel": "NEXT is stale",
-      "note": "NEXT still lists this ELIGIBLE at the top, but BUILT says PROMOTED + BUILDS CLEAN. Untested - nothing has run."
+      "id": "review-findings", "lane": "eligible", "utility": 0, "block": "-", "unranked": true,
+      "title": "Code-review findings: 5 of 9 left, all C++",
+      "missing": ["GSBuildingObjective", "GSRaidDebugCommands"],
+      "status": "serious", "statusLabel": "4 of 9 resolved",
+      "note": "HANDOFF.md Part 1. The HIGH one (gs_buildings.py TypeError) was already gone before anyone acted on it - #033's rewrite deleted PIECE_KEYS, confirmed with git log -S. The three gsqueue.ps1 holes are fixed and tested in #036. What remains is C++ and needs a build: adopt radius counts the box DIAGONAL twice, BuildingStatus re-derives pieces pivot-to-pivot, a building whose pieces are all interior-named freezes its completion silently, the BeginPlay diagnostic over-reports the requirement by ~40%, and 'nearest building' picks an arbitrary one when there is no pawn."
     },
+    {
+      "id": "weapon-wheel", "lane": "eligible", "utility": 0, "block": "-", "unranked": true,
+      "title": "Radial weapon wheel: working, but invisible",
+      "missing": ["WBP_WeaponWheel"],
+      "status": "warning", "statusLabel": "no widget",
+      "note": "#039/#040/#041 - built, compiled, and PIE-VERIFIED: Sword -> Torch -> Bow -> Sword, with the torch readying and stowing correctly and GetActiveWeaponMesh following. Sector maths tested exhaustively off the CDO; the screen +Y negation is correct. Q is mapped and IA_ThrowTorch is retired. What is left is ONLY the UMG: there is no on-screen feedback, so you drag blind until you release. Build it against SlotForDirection (BlueprintPure) so it draws the sectors the input already uses."
+    },
+    {
+      "id": "torch-anim", "lane": "eligible", "utility": 0, "block": "-", "unranked": true,
+      "title": "Torch release timing is an estimate - throw one and tune it",
+      "missing": [],
+      "status": "warning", "statusLabel": "untested guess",
+      "note": "Fixed: the torch stays in hand (#039), AM_GS_ThrowTorch now plays (#040), ATTACK throws what you hold (#040). Open: the spawn fires on a TIMER, not a notify. Montage is 2.2s authored / 1.47s at play rate 1.5; the old 0.25s released ~17% in, and I set 0.55s (~37%) as an ESTIMATE because the montage's notifies array is not readable from Python. Throw one and adjust TorchWindupSeconds on GA_GS_TorchToss - it is a Blueprint value now, no rebuild."
+    },
+    {
+      "id": "arrow-passthrough", "lane": "eligible", "utility": 0, "block": "-", "unranked": true,
+      "title": "Should an arrow pass THROUGH an ally, or stick in them?",
+      "missing": [], "status": null, "statusLabel": "design call",
+      "note": "#038 stopped arrows damaging allies, but they still stop dead and stick. Once the horde lands (AGSHordeGoblin is Race_Goblin) firing past your own line means every shot is blocked by a friendly. Passing through is a COLLISION change - IgnoreActorWhenMoving at a point where the ally is not yet known - so it wants a decision, not a guess. Melee has no equivalent problem because a swing is a sweep, not a projectile."
+    },
+    {
+      "id": "melee-cooldown", "lane": "editor", "utility": 0, "block": "-", "unranked": true,
+      "title": "Delete AttackCooldownSeconds, or keep it as documented dead weight?",
+      "missing": [], "status": null, "statusLabel": "your call",
+      "note": "Investigated in #038 and NOT wired up. Melee is already paced: UGSGA_SwordLight is InstancedPerActor with a combo stage machine, so GAS refuses re-activation mid-swing and the feel comes from stage timings. A cooldown here would fight the combo. The field now says so in its own comment; removing it from the data asset is a designer call."
+    },
+    {
+      "id": "lose-paths", "lane": "eligible", "utility": 0, "block": "-", "unranked": true,
+      "title": "A raid can END, but ending it does nothing",
+      "missing": ["WBP_GSPlayerHUD event impls"],
+      "status": "critical", "statusLabel": "5 dead HUD events",
+      "note": "#049 drove both lose paths for the first time - OutOfLives and LeftBehind BOTH fire correctly. But EndRaid broadcasts to UGSPlayerHUDWidget, which forwards to BlueprintImplementableEvents that WBP_GSPlayerHUD does not implement: OnRaidEnded, OnLivesChanged, OnObjectiveListChanged, OnRaidClockPhaseChanged, OnAlarmPhaseChanged are ALL implemented=False. A finished raid produces one log line and no screen, no pause, no restart. EndRaid also does not stop the clock - after OutOfLives it kept counting 1769s -> 1762s."
+    },
+    {
+      "id": "burn-duration", "lane": "editor", "utility": 0, "block": "-", "unranked": true,
+      "title": "Buildings burn too fast - Michael, after the first working raid",
+      "missing": [], "status": null, "statusLabel": "",
+      "note": "2026-08-06: 'burning buildings. Maybe it can take a little longer.' The knob is UGSFlammableComponent::BurnDurationSeconds, currently 12s. Data - no rebuild."
+    },
+    {
+      "id": "bp-arrow", "lane": "editor", "utility": 0, "block": "-", "unranked": true,
+      "title": "BP_GS_Arrow subclass, to make ArrowMeshOffset editable",
+      "missing": ["BP_GS_Arrow"], "status": null, "statusLabel": "",
+      "note": "ArrowMeshOffset is EditDefaultsOnly on the C++ class that is also the class spawned, so there is no CDO to edit and it is a rebuild-to-change knob. Only worth doing if the arrow is seen flying sideways or tail-first (#034)."
+    },
+
     {
       "id": "death-clips", "lane": "editor", "utility": 6.0, "block": "B",
       "title": "Death & hit-reaction clips retargeted",
       "missing": ["AM_GS_Death"],
       "status": null, "statusLabel": "",
-      "note": "'Nothing can die on screen' until this lands."
+      "note": "'Nothing can die on screen' until this lands. Re-checked 2026-08-06: still genuinely absent."
     },
     {
-      "id": "someone-to-fight", "lane": "done", "utility": 5.75, "block": "B",
-      "title": "Someone to fight - human race data, BT_Militia, enemy attack path",
-      "missing": ["DA_Race_Human", "BT_Militia", "DA_Weapon_Greatclub"],
-      "status": "warning", "statusLabel": "NEXT is stale",
-      "note": "BUILT: defender handoff GOAL 2 done and PIE-verified. DA_Weapon_Greatclub is the only piece still genuinely missing."
-    },
-    {
-      "id": "lives-respawn", "lane": "eligible", "utility": 4.0, "block": "E",
-      "title": "Lives / respawn on PlayerState",
-      "missing": ["Lives", "AGSPlayerState"], "status": null, "statusLabel": "", "note": ""
-    },
-    {
-      "id": "runic-site", "lane": "blocked", "utility": 4.0, "block": "E",
-      "title": "Runic site - spawn/respawn, objective-gated portal, staging, 90s collapse",
-      "missing": ["AGSRunicSite", "Portal"],
-      "status": "critical", "statusLabel": "portal cost",
-      "note": "Loads N_Portal4 (18.27s) and N_Portal4Boss (18.26s), which were never re-saved. Re-save before placing a portal or ~37s of recompile reappears as a 'new' hitch."
+      "id": "someone-to-fight", "lane": "eligible", "utility": 5.75, "block": "B",
+      "title": "Someone to fight - the last piece",
+      "missing": ["DA_Weapon_Greatclub"],
+      "status": "good", "statusLabel": "mostly done",
+      "note": "DA_Race_Human and BT_Militia now exist and are PIE-verified (defender handoff GOAL 2). The greatclub is all that is left."
     },
     {
       "id": "score", "lane": "blocked", "utility": 4.0, "block": "G",
@@ -266,14 +300,16 @@ const SEED = {
     {
       "id": "horn-horde", "lane": "blocked", "utility": 3.2, "block": "D",
       "title": "Horn & horde (subsystem, pool, BT, point command)",
-      "missing": ["UGSHordeSubsystem", "AGSHordeSpawnMarker", "UGSGA_Horn", "BT_HordeGoblin", "AGSHordeGoblin"],
-      "status": null, "statusLabel": "", "note": ""
+      "missing": ["UGSHordeSubsystem", "AGSHordeSpawnMarker", "UGSGA_Horn", "BT_HordeGoblin"],
+      "status": null, "statusLabel": "",
+      "note": "AGSHordeGoblin already exists."
     },
     {
       "id": "stealth-five", "lane": "blocked", "utility": 3.0, "block": "F",
       "title": "The stealth five (noise, crouch-detect, takedown, corpse-suspicion, coin toss)",
-      "missing": ["ReportGSNoise", "Takedown", "CoinToss", "DT_NoiseEvents"],
-      "status": null, "statusLabel": "", "note": ""
+      "missing": ["ReportGSNoise", "CoinToss", "DT_NoiseEvents"],
+      "status": null, "statusLabel": "",
+      "note": "Takedown arrived with the interact framework."
     },
     {
       "id": "gore", "lane": "blocked", "utility": 2.5, "block": "G",
@@ -291,36 +327,86 @@ const SEED = {
       "missing": ["UGSPatrolDirector"], "status": null, "statusLabel": "", "note": ""
     },
     {
-      "id": "couriers", "lane": "blocked", "utility": 2.25, "block": "G",
+      "id": "couriers", "lane": "eligible", "utility": 2.25, "block": "G",
       "title": "Loot couriers - sacks + livestock cargo, point-to-courier",
-      "missing": ["UGSCarryComponent"], "status": null, "statusLabel": "",
-      "note": "UGSCarryComponent already exists from the interact framework."
+      "missing": [], "status": "good", "statusLabel": "unblocked",
+      "note": "Was BLOCKED on UGSCarryComponent, which now exists from the interact framework. Nothing else gates it."
     },
     {
       "id": "civilians", "lane": "blocked", "utility": 1.75, "block": "G",
       "title": "Civilians + livestock (routines, disbelief, brigade, flee)",
       "missing": ["BT_Civilian", "DA_Race_Livestock"], "status": null, "statusLabel": "", "note": ""
     },
+
     {
-      "id": "tkt-006", "lane": "inflight", "utility": 0, "block": "-",
-      "title": "Defender crowding: stand-off slots so they stop converging on one point",
-      "missing": [], "ticket": "#006", "agent": "claude-perf",
-      "status": "critical", "statusLabel": "blocked",
-      "note": "Not on the NEXT list - work an agent raised directly. Waiting on the build gate; holds BTService_AcquireTarget, GSEnemyCharacter and BT_Militia."
+      "id": "tkt-036", "lane": "done", "utility": 0, "block": "-", "unranked": true,
+      "title": "gsqueue.ps1: three silent-failure holes closed",
+      "missing": [], "ticket": "#036", "agent": "claude-fixes",
+      "status": "good", "statusLabel": "tested end-to-end",
+      "note": "set -Status done no longer bypasses the close checks (ticket 028 closed unreviewed through it). Claimed paths now resolve against BOTH roots - 102 of 126 claims are project-relative and were never being checked at all. The evaluated stamp carries seconds. Proved with a scratch ticket: a project-relative claim was caught as late, an unresolvable one reported, 18:09:03Z vs 18:09:05Z distinguished."
+    },
+    {
+      "id": "tkt-035", "lane": "done", "utility": 0, "block": "-", "unranked": true,
+      "title": "Refresh NEXT against what is actually built, regenerate this board",
+      "missing": [], "ticket": "#035", "agent": "claude-orchestrator",
+      "status": "good", "statusLabel": "closed",
+      "note": "Removed three NEXT items that had been built days earlier, including the interact framework sitting at u=10.0."
+    },
+    {
+      "id": "tkt-034", "lane": "done", "utility": 0, "block": "-",
+      "title": "Bow: no fire-rate limit, and the arrow was invisible in flight",
+      "missing": [], "ticket": "#034", "agent": "claude-ranged2",
+      "status": "good", "statusLabel": "builds clean",
+      "note": "Rate of fire now reads RangedAttackCooldownSeconds, a data-asset field that had existed with a 1.5s default and NO reader. GS_Arrow assigned. Built 2026-08-06 in 4:43, zero new warnings. Not yet PIE-verified."
+    },
+    {
+      "id": "tkt-buildings", "lane": "done", "utility": 0, "block": "-",
+      "title": "Burnable buildings: one per roof, merged houses, char and flames",
+      "missing": [], "ticket": "#013 #015 #016 #025 #029 #031 #033", "agent": "claude-raid",
+      "status": "good", "statusLabel": "PIE-verified",
+      "note": "Michael, 2026-08-06: 'it works beautiful. burning buildings.' 7 fragments -> 71 buildings over several passes, then merged-house actors."
+    },
+    {
+      "id": "tkt-raid-loop", "lane": "done", "utility": 0, "block": "-",
+      "title": "Raid loop: director, runic site, extraction, spawn fix",
+      "missing": [], "ticket": "#009 + #011", "agent": "claude-raid",
+      "status": "good", "statusLabel": "win verified",
+      "note": "Made the game winnable for the first time. Also fixed two objectives that could never complete. LeftBehind and OutOfLives still never run - see the lose-paths card."
     },
     {
       "id": "tkt-ranged", "lane": "done", "utility": 0, "block": "-",
-      "title": "Ranged combat: aim framework, bow, torch collision, materials",
-      "missing": [], "ticket": "#004 + #005", "agent": "claude-ranged",
+      "title": "Ranged combat: aim framework, bow, torch feel, swapped materials",
+      "missing": [], "ticket": "#004 #005 #023 #026 #030", "agent": "claude-ranged",
       "status": "good", "statusLabel": "closed",
-      "note": "Not on the NEXT list. Builds clean; needs a build + PIE pass to be called verified."
+      "note": "#026 found ArcMaterial and LandingDecalMaterial assigned to each other's slots, which is why no reticle ever appeared. #030 fixed an arc pool that silently truncated the ribbon."
+    },
+    {
+      "id": "tkt-debug", "lane": "done", "utility": 0, "block": "-",
+      "title": "GS.Raid.* debug commands - teleport, burn, status",
+      "missing": [], "ticket": "#018 #019 #021 #027 #028", "agent": "claude-raid",
+      "status": "warning", "statusLabel": "BuildingStatus lies",
+      "note": "Ten commands. BuildingStatus re-derives pieces pivot-to-pivot within a fixed 2500uu instead of reading the building's own adopted set - one of the nine open review findings."
+    },
+    {
+      "id": "tkt-interact", "lane": "done", "utility": 0, "block": "-",
+      "title": "Interact framework - hold-E channels + carry",
+      "missing": [], "ticket": "-", "agent": "live-003",
+      "status": "warning", "statusLabel": "never PIE-tested",
+      "note": "Was the top NEXT item at u=10.0 for two days after it had already been built. All four components exist and build clean, but nothing has ever run: no IA_Interact binding, no CarrySocket, no test chest."
     },
     {
       "id": "tkt-niagara", "lane": "done", "utility": 0, "block": "-",
       "title": "Niagara load-hitch: portal systems re-saved",
       "missing": [], "ticket": "#001 + #003", "agent": "claude-perf",
       "status": "good", "statusLabel": "closed",
-      "note": "48.5s off L_Tutorial_Island load, verified in a fresh process. #003 swept the rest of the folder."
+      "note": "48.5s off L_Tutorial_Island load, verified in a fresh process. #003 swept the remaining 18 systems the first pass missed."
+    },
+    {
+      "id": "tkt-queue", "lane": "done", "utility": 0, "block": "-",
+      "title": "Agent work queue: gsqueue.ps1, protocol, build gate, this board",
+      "missing": [], "ticket": "#010 + #024", "agent": "claude-queue",
+      "status": "warning", "statusLabel": "advisory only",
+      "note": "Protects only against agents that run it. Two of its own close checks are still broken - see the review-findings card."
     }
   ]
 };
@@ -332,7 +418,10 @@ const STATUS = {
   critical: { c: "var(--st-critical)", ic: "✗" }
 };
 
-const KEY = "gs-decision-queue-v1";
+// Bumped v1 -> v2 for the 2026-08-06 regeneration. load() prefers localStorage over SEED, so
+// without this every browser that had ever opened the old board would keep showing it and the
+// refresh would be invisible in exactly the place it was supposed to appear.
+const KEY = "gs-decision-queue-v2";
 let data = load();
 
 function load() {
@@ -345,6 +434,14 @@ function load() {
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
 }
+
+// Unranked sorts FIRST, not last. An item the ranking run never scored is not an item it scored
+// zero, and the default numeric sort cannot tell those apart - it would file the nine code-review
+// findings (one of which is a crash) below a u=1.75 nice-to-have and call that a priority order.
+const byPriority = (a, b) => {
+  if (!!a.unranked !== !!b.unranked) return a.unranked ? -1 : 1;
+  return (+b.utility || 0) - (+a.utility || 0);
+};
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g,
@@ -363,17 +460,15 @@ function render() {
     return '<div class="tile"><span class="v">' + n + '</span>' +
            '<span class="k"><span class="ic">' + esc(l.icon) + '</span>' + esc(l.name) + '</span></div>';
   });
-  const elig = data.cards.filter((c) => c.lane === "eligible")
-                         .sort((a, b) => (+b.utility || 0) - (+a.utility || 0))[0];
+  const elig = data.cards.filter((c) => c.lane === "eligible").sort(byPriority)[0];
   tiles.push('<div class="tile"><span class="v" style="font-size:15px;line-height:1.7">' +
              (elig ? esc(elig.title.split(/[-(]/)[0].trim()) : "—") +
-             '</span><span class="k">highest-utility eligible</span></div>');
+             '</span><span class="k">top of Eligible</span></div>');
   $("#stats").innerHTML = tiles.join("");
 
   // --- board --------------------------------------------------------------
   $("#board").innerHTML = data.lanes.map((l) => {
-    const cards = data.cards.filter((c) => c.lane === l.id)
-                            .sort((a, b) => (+b.utility || 0) - (+a.utility || 0));
+    const cards = data.cards.filter((c) => c.lane === l.id).sort(byPriority);
     return '<section class="lane" data-lane="' + esc(l.id) + '">' +
       '<h2><span class="ic">' + esc(l.icon) + '</span>' + esc(l.name) +
       '<span class="n">' + cards.length + '</span></h2>' +
@@ -398,6 +493,8 @@ function cardHTML(c, maxU) {
   }
   if (c.ticket) badges.push('<span class="badge">' + esc(c.ticket) +
     (c.agent ? " · " + esc(c.agent) : "") + "</span>");
+  // Says out loud that there is no score, so a card with no meter cannot be misread as u=0.
+  if (c.unranked) badges.push('<span class="badge">unranked</span>');
 
   const opts = data.lanes.map((l) =>
     '<option value="' + esc(l.id) + '"' + (l.id === c.lane ? " selected" : "") + ">" +
@@ -422,7 +519,7 @@ function cardHTML(c, maxU) {
 function renderTable(maxU) {
   const rows = data.cards
     .slice()
-    .sort((a, b) => (+b.utility || 0) - (+a.utility || 0))
+    .sort(byPriority)
     .map((c) => "<tr><td>" + esc(c.title) + "</td><td>" +
       esc((data.lanes.find((l) => l.id === c.lane) || {}).name || c.lane) + "</td>" +
       '<td class="num">' + (+c.utility ? (+c.utility).toFixed(2) : "—") + "</td>" +

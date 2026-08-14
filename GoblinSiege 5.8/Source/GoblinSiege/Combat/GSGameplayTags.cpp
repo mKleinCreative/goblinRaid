@@ -20,6 +20,10 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_GuardBroken, "State.GuardBroken", "Guard has been kicked open. Blocks re-raising the guard for the stagger window, which is what makes turtling punishable rather than merely interrupted");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Interacting, "State.Interacting", "Hold-E channel in progress.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Carrying, "State.Carrying", "Carrying an object - slower, cannot attack, cannot throw a torch.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Horn, "State.Horn", "Blowing the war-horn - blocks a second blast until it finishes.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Attacking, "State.Attacking", "A swing is in flight - windup, damage window or recovery. Too coarse to react to; see the Windup child.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Attacking_Windup, "State.Attacking.Windup", "THE TELEGRAPH. Present for exactly the swing's windup. The only channel by which an AI may learn a hit is coming.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Recoil, "State.Recoil", "Your swing was turned aside by a guard. Cannot attack or block for the window - this is what makes a block an opening rather than just cheaper damage.");
 
 	// Interaction verbs (GDD §8). Data, not subclasses - see GSGameplayTags.h.
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Loot, "Interact.Loot", "Loot a container or a corpse.");

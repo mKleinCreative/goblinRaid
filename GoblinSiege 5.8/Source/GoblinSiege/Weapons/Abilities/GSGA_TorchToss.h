@@ -16,6 +16,7 @@
 #include "GSGA_TorchToss.generated.h"
 
 class AGSTorchProjectile;
+class UAnimMontage;
 
 UCLASS()
 class GOBLINSIEGE_API UGSGA_TorchToss : public UGameplayAbility
@@ -85,6 +86,31 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
 	float TorchWindupSeconds = 0.25f;
+
+	/**
+	 * The throw animation, C++-defaulted to /Game/Characters/ScoutV2/Montages/AM_GS_ThrowTorch.
+	 *
+	 * That asset was authored and then referenced by nothing at all - the throw was a 0.25s timer and
+	 * a spawn, with the goblin standing still. Defaulted in code for the same reason
+	 * AGSArrowProjectile::ArrowMesh is: an animation that exists and is wired to nothing is
+	 * indistinguishable, in play, from one that was never made.
+	 *
+	 * Null is fine and degrades to the old behaviour - the throw still works, it just has no pose.
+	 *
+	 * Soft, and resolved on the first throw rather than in the constructor: the constructor runs on
+	 * the CDO during module load, which is the one place a synchronous package load is unwelcome.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch")
+	TSoftObjectPtr<UAnimMontage> ThrowMontage;
+
+	/** Resolved ThrowMontage, cached for the life of the instance so the load happens once and so
+	 *  the montage cannot be collected between throws. Transient: rebuilt on demand, never saved. */
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ResolvedThrowMontage;
+
+	/** Matches UGSGA_SwordLight's stage default: the authored clips read slow for a combat verb. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Torch", meta = (ClampMin = "0.1"))
+	float ThrowMontagePlayRate = 1.5f;
 
 	/** Cooldown/cost are editor-authored GameplayEffect assets assigned on the CDO
 	 *  (CooldownGameplayEffectClass / CostGameplayEffectClass) - data, not code. */

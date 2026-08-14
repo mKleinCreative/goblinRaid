@@ -36,6 +36,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon")
 	float BaseDamage = 10.f;
 
+	/**
+	 * UNUSED, and deliberately left that way. Nothing reads this.
+	 *
+	 * Its ranged twin below had the same problem and was a real bug - the bow fired as fast as the
+	 * mouse could click until #034 wired it up. Melee is different: UGSGA_SwordLight is
+	 * InstancedPerActor and holds a combo stage machine, so GAS refuses re-activation while a swing
+	 * is running, and the pacing a player feels is the stage timings and montage play rate. Adding a
+	 * second gate here would fight the combo rather than tune it.
+	 *
+	 * Left in place rather than deleted because that is a designer-facing call, not a code one.
+	 * If it stays, this comment is why it reads as configured but does nothing.
+	 * AI melee pacing is elsewhere again: UBTTask_MeleeAttack uses GSRaceDataAsset's own
+	 * AttackCooldownSeconds, which IS read.
+	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon")
 	float AttackCooldownSeconds = 1.f;
 
