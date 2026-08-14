@@ -49,6 +49,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "MotionWarping",
+			"Enabled": true
+		},
+		{
 			"Name": "ChaosSolverPlugin",
 			"Enabled": true
 		},
@@ -87,6 +91,10 @@
 		{
 			"Name": "XRBase",
 			"Enabled": true
+		},
+		{
+			"Name": "MetaRoad",
+			"Enabled": false
 		}
 	]
 }
