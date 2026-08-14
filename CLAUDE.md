@@ -7,6 +7,14 @@ anything with the editor, the engine or C++.
 Two paths here contain spaces (`D:\Epic Games\UE_5.8`, `GoblinSiege 5.8`). Quote every path,
 every time.
 
+**Start your session inside `GoblinSiege 5.8`, not here.** Claude discovers skills from the working
+directory, and the project's `.claude/skills/` holds ACF's 40 author-written skill packs (#150). A
+session started at the repo root lists **none of them** — verified 2026-08-13: all 40 by name from
+`GoblinSiege 5.8`, zero from `D:\goblinRaid`. Nothing warns you. You simply go on answering ACF
+questions by reading plugin headers, which is the exact waste #150 was opened to stop. If you are
+already at the root, `cd "D:\goblinRaid\GoblinSiege 5.8"` will fix your shell but **not** your skill
+list for this session - that is fixed only by restarting there.
+
 ---
 
 # READ FIRST — the agent work queue
@@ -22,6 +30,7 @@ cd "D:\goblinRaid\GoblinSiege 5.8"
 & ".\AgentQueue\gsqueue.ps1" check -Id <n>                                 # anyone ahead of me?
 & ".\AgentQueue\gsqueue.ps1" set -Id <n> -Status active                    # start editing
 & ".\AgentQueue\gsqueue.ps1" set -Id <n> -Status review                    # G/E/R written
+& ".\AgentQueue\gsqueue.ps1" observed -Id <n> -What "<saw>" -Scenario "<ran in>"   # somebody watched it
 & ".\AgentQueue\gsqueue.ps1" buildgate                                     # exit 0 = safe to build
 ```
 
@@ -30,7 +39,12 @@ cd "D:\goblinRaid\GoblinSiege 5.8"
    file, wait for it to close. Work your unblocked files, or go `blocked` and report.
 3. **Report Generate → Evaluate → Refine** in your ticket before handing back. `done` refuses
    a ticket still holding placeholders.
-4. **Nobody compiles until the queue is empty.** `Build-GoblinSiege.ps1` enforces this itself.
+4. **Somebody must have WATCHED the work run.** `done` refuses a ticket with no `observed:`, and
+   rejects phrasing that describes the artifact ("compiles", "reads back", "no errors") rather than
+   its behaviour. `-Scenario` matters as much as `-What`: testing an AI change in a duel, or
+   directional locomotion from the player pawn, has repeatedly proved nothing. If nobody could watch
+   it, say so — `done -Id <n> -Unobserved "<reason>"` closes it and marks the board.
+5. **Nobody compiles until the queue is empty.** `Build-GoblinSiege.ps1` enforces this itself.
 5. **A ticket flagged STALE is a question for Michael, never something you close yourself.**
    From inside the repo a long-running job and a dead session look identical. Ask him.
 

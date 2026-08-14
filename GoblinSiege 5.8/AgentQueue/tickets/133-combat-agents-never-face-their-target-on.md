@@ -15,6 +15,8 @@ files:
   - GoblinSiege 5.8/Source/GoblinSiege/AI/Tasks/BTTask_Block.cpp
   - Content/Characters/Humans/ABP_Human.uasset
   - Content/Characters/ScoutV2/Animations/ThirdPerson_AnimBP_Gob.uasset
+observed: 2026-08-12T05:42:07Z | Michael watched a fight and signed off: the combat animation looks good. That is the facing authority and the horde tick working together on screen
+scenario: Michael playing the game himself after the #135 build, with both rigs on their original locomotion
 ---
 
 ## Goal
@@ -346,9 +348,25 @@ false`, `bOrientRotationToMovement = false`. Released on disengage, on death and
 was the only open ticket). No new warnings - the two C4996 `AbilityTags` deprecations in
 `GSGA_Block.cpp` and `GSGA_Interact.cpp` are pre-existing and untouched, exactly as #132 recorded.
 
-**NOTHING HAS BEEN WATCHED. NO FIGHT HAS RUN.** A compile proves the code is well-formed and nothing
-else. Given `AGENT_STATE`'s FAILED entry - three consecutive fixes shipped unwatched, all three
-wrong - that is the headline, not a footnote.
+**WATCHED AND SIGNED OFF BY MICHAEL, 2026-08-11: *"the combat animation looks good now."*** He played
+it himself after #135's build. That is the top rung of the evidence ladder and it settles the
+headline claim of this ticket - that combat agents now face what they are fighting.
+
+Two things had to land before that was true, and both are separate tickets:
+
+- **#135** - `AGSHordeAIController` disabled the tick this ticket's facing authority runs on, so on a
+  horn-summoned goblin `TickFacing` had **never executed**. Until that boolean was fixed, the feature
+  below was live only on defenders.
+- **#137** - `GS.Anim.Snapshot`, which independently confirmed the mechanism rather than the vibe:
+  every horde goblin reporting rotation mode `DesiredRot` is proof `TickFacing` ran, because nothing
+  else sets that flag.
+
+*Superseded, and left visible on purpose: this section previously read "**NOTHING HAS BEEN WATCHED.
+NO FIGHT HAS RUN.**" That was honest when written and stayed false-by-omission on a closed ticket for
+several hours - the exact stale-record failure `AGENT_STATE` records against #073 ("a finding lives
+in three places; closing the ticket closes one of them"). It is corrected rather than deleted so the
+correction itself is legible. Note this ticket closed BEFORE #136 built the observation gate, which
+is why it had no `observed:` field to be wrong in - it was retro-stamped when Michael signed off.*
 
 **Verification recipe, one PIE session:**
 

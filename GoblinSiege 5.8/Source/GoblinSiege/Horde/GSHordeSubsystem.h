@@ -40,10 +40,12 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Horde/GSHordeOrderTypes.h"
 #include "GSHordeSubsystem.generated.h"
 
 class AGSHordeGoblin;
 class AGSCharacterBase;
+class AGSHordeOrderMarker;
 class AController;
 
 /** Reserve remaining, active count, cap. Everything a HUD counter or a bark trigger needs. */
@@ -51,6 +53,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnHordePoolChanged, int32, Res
 
 /** The treeline is silent - fired once, when the reserve first reaches zero. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnHordePoolDry);
+
+/** A standing order was issued, replaced or cleared. Exists so a bark or a marker sound can hang off
+ *  the point command without a rebuild - the provision AGENT_STATE asks new systems to make. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnHordeOrderChanged, EGSHordeOrder, Verb, AActor*, Subject, FVector, Location);
 
 UCLASS(Config = Game)
 class GOBLINSIEGE_API UGSHordeSubsystem : public UWorldSubsystem
@@ -126,6 +132,50 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Horde")
 	FGSOnHordePoolDry OnPoolDry;
 
+	// ------------------------------------------------------------------ the order board (#141)
+	//
+	// GDD §2.5's point command, finally given a writer. EGSHordeState::Commanded has existed since
+	// #069 with nothing anywhere setting it; AGSHordeAIController::RefreshStimulus now does, off these.
+	//
+	// ONE ORDER PER SUMMONER, not per goblin. Splitting a warband needs a selection UI that does not
+	// exist, and the GDD is explicit that there is "no squad-command layer" - this is the one context
+	// command, with the verb named on a wheel instead of guessed from the crosshair.
+
+	/**
+	 * SERVER ONLY. Replaces this summoner's standing order, retiring the previous marker and spawning
+	 * a new one.
+	 *
+	 * Follow (and None) CLEAR rather than set: the recall's whole job is to put the horde back on the
+	 * default Follow-and-Frenzy behaviour, and a standing "Follow" order that had to be honoured would
+	 * be a third thing meaning the same as the absence of an order.
+	 */
+	void IssueOrder(AController* Summoner, EGSHordeOrder Verb, AActor* Subject, const FVector& Location);
+
+	/** Retires the marker and drops the summoner's goblins back to Follow/Frenzy. */
+	void ClearOrder(AController* Summoner);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde")
+	EGSHordeOrder GetOrderVerbFor(AGSHordeGoblin* Goblin) const;
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde")
+	AActor* GetOrderSubjectFor(AGSHordeGoblin* Goblin) const;
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde")
+	FVector GetOrderLocationFor(AGSHordeGoblin* Goblin) const;
+
+	/** Where a courier takes its cargo. Read from the order, which resolved it ONCE at issue time -
+	 *  see FGSHordeOrder::DeliveryLocation for why this must never be a live search. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde")
+	FVector GetDeliveryLocationFor(AGSHordeGoblin* Goblin) const;
+
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Horde")
+	FGSOnHordeOrderChanged OnHordeOrderChanged;
+
+	/** One line per standing order, for GS.Horde.Status. "No orders" has to be distinguishable from
+	 *  "an order nobody is obeying" without attaching a debugger - those look identical in play and
+	 *  they have completely different causes. */
+	FString DescribeOrders() const;
+
 	// ------------------------------------------------------------------ the stimulus bus
 
 	/**
@@ -175,6 +225,12 @@ protected:
 	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Horde")
 	FSoftClassPath HordeGoblinClassPath;
 
+	/** The beacon. Set in DefaultGame.ini to BP_HordeOrderMarker, exactly like the goblin above.
+	 *  Unset is survivable and deliberately so: orders are still issued and still obeyed, the player
+	 *  just cannot see where he sent them. ResolveOrderMarkerClass says so once. */
+	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Horde")
+	FSoftClassPath OrderMarkerClassPath;
+
 	/** How long a registered threat stays interesting with nothing renewing it. Frenzy expiring
 	 *  back to Follow is what stops the horde committing to a guard who ran away. */
 	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Horde", meta = (ClampMin = "0.0"))
@@ -218,6 +274,29 @@ private:
 	TMap<TWeakObjectPtr<AController>, TArray<TWeakObjectPtr<AGSHordeGoblin>>> ActiveGoblins;
 
 	TArray<FGSHordeThreat> Threats;
+
+	/** Keyed the same way ActiveGoblins is, and for the same co-op reason. At most one entry per
+	 *  player. */
+	TMap<TWeakObjectPtr<AController>, FGSHordeOrder> ActiveOrders;
+
+	/** The standing order covering this goblin, or null. Const because the three Get*For accessors
+	 *  are; IssueOrder writes through the map directly. */
+	const FGSHordeOrder* FindOrderFor(const AGSHordeGoblin* Goblin) const;
+
+	/** Which controller summoned this goblin. Hoisted out of GetFollowTargetFor, which was doing the
+	 *  same double loop inline and is now one line shorter for it. */
+	AController* FindSummonerFor(const AGSHordeGoblin* Goblin) const;
+
+	/** Retires orders whose subject has died or vanished. Runs on the EXISTING ScanForThreats timer -
+	 *  the horde does not get a second one, and 0.5s is well inside the time it takes anyone to
+	 *  notice a beacon outliving its target. */
+	void PruneStaleOrders();
+
+	/** Nearest AGSRunicSite, else nearest Marker.HordeArrival, else the summoner. Iterates, so it is
+	 *  called ONCE per order from IssueOrder and cached - never from a getter. */
+	FVector ResolveDeliveryLocation(AController* Summoner, const FVector& From) const;
+
+	UClass* ResolveOrderMarkerClass() const;
 
 	int32 ReserveRemaining = 0;
 

@@ -2,14 +2,16 @@
 id: 134
 title: Eyes sit outside the head on Erika and the Knight: per-character bind pose is discarded by Animation translation retargeting
 agent: claude-eyes
-status: review
+status: done
 claimed: 2026-08-12T02:38Z
 build: none
 waiting_on:
-evaluated: 2026-08-12T02:44:50Z
+evaluated: 2026-08-12T05:11:54Z
 files: 
   - Content/Characters/Humans/SK_Human_Skeleton.uasset
   - GoblinSiege 5.8/AGENT_STATE.md
+observed: 2026-08-12T05:11:36Z | Michael confirmed the eyes now sit in the head on Erika and the Knight after the head-chain retargeting change
+scenario: Michael viewing the affected human characters himself in the editor
 ---
 
 ## Goal
@@ -74,11 +76,18 @@ deliberately cannot regress the body locomotion that had just been signed off in
 
 ## Evaluate
 
-**NOT VERIFIED BY EYE. Nobody has looked at Erika since the change.** The mechanism is measured and
-the arithmetic is above, but the entire claim is "the eyes will now be posed from each mesh's bind
-pose instead of the shared one", and whether that puts them in the right place depends on those bind
-poses being correct - which I have not measured, because the baked meshes' bind data is not readable
-through the tools available here.
+**VERIFIED BY MICHAEL, 2026-08-11: *"close the eyes thing, it works."*** He looked at the affected
+characters in the editor after the change. That is the top rung of the evidence ladder and it settles
+the one thing the measurements could not: whether posing the eyes from each mesh's own bind pose
+actually puts them where the artist put them.
+
+Recorded on the ticket via `observed`/`scenario` (#136), so the claim is attributable rather than
+implied by a closed status.
+
+*Superseded: this section previously read "NOT VERIFIED BY EYE. Nobody has looked at Erika since the
+change." That was true when written and is the reason the stale-Evaluate guard refused the first
+close - correctly. It is rewritten rather than `-Reaffirm`ed, because reaffirming would have left a
+closed ticket asserting the change was unverified.*
 
 **What is verified:**
 

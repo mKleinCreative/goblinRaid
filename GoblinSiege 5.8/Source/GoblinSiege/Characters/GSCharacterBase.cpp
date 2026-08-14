@@ -29,6 +29,41 @@ AGSCharacterBase::AGSCharacterBase()
 	// noticed - and the token budget is also what stops FOUR defenders deleting the player in a
 	// second, which is the same bug pointed the other way.
 	EngagementComponent = CreateDefaultSubobject<UGSEngagementComponent>(TEXT("EngagementComponent"));
+
+	// ---- BODIES DO NOT PUSH THE CAMERA AROUND (#145) -------------------------------------------
+	//
+	// Michael, 2026-08-13, watching a ten-goblin scrum: "the camera for the player zooms in and out
+	// though. We shouldn't zoom in when we're in a crowd, it makes it hard to see or comprehend
+	// what's going on."
+	//
+	// Cause, read off the live objects rather than guessed: AGSPlayerCharacter's spring arm probes on
+	// ECC_Camera with a 12uu probe over a 450uu arm, and BOTH of a character's collision primitives
+	// block that channel by default - the capsule through the `Pawn` profile and the mesh through
+	// `CharacterMesh`. So every body that crosses the line between the camera and the player drags the
+	// boom in and lets it back out again. One passer-by is a shrug; ten goblins in a melee is a camera
+	// that never stops moving, at exactly the moment the player most needs to read the fight.
+	//
+	// The fix belongs HERE, on the base, not on the player: the offenders are the OTHER characters.
+	// The spring arm already ignores its own owner, so the player was never occluding himself - it is
+	// the crowd he is standing in that does it, and that crowd is every defender and every horde
+	// goblin. One line on the shared base covers all of them and cannot be forgotten on a new
+	// adversary Blueprint.
+	//
+	// SAFE because nothing in this project traces on ECC_Camera - grepped for ECC_Camera,
+	// ProbeChannel and Camera trace channels across the whole module before touching this, and the
+	// only consumer is the spring arm itself. Line of sight for perception uses the sight sense's own
+	// channel, and the melee sweeps use ECC_Pawn.
+	//
+	// World geometry still blocks the probe, so the camera continues to pull in at walls and doorways,
+	// which is the behaviour bDoCollisionTest exists for.
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		MeshComp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
 }
 
 void AGSCharacterBase::PossessedBy(AController* NewController)

@@ -5,8 +5,11 @@
 #include "Raid/GSRaidDirector.h"
 #include "Raid/GSScoreSubsystem.h"
 #include "Characters/GSStaminaComponent.h"
+#include "Horde/GSHordeCommandComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
+#include "GameFramework/Pawn.h"
 #include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSHUD, Log, All);
@@ -51,6 +54,30 @@ void UGSPlayerHUDWidget::NativeConstruct()
 	// before possession; BindToCharacter is public so whoever creates the widget can retry.
 	BindToCharacter(Cast<AGSCharacterBase>(GetOwningPlayerPawn()));
 	BindToRaid();
+
+	// ---- reticle (#148/#149) -----------------------------------------------------------------
+	// Deliberately NOT passed to WarnIfUnbound: a project that has not authored a reticle yet is a
+	// valid state, and the six warnings above are for elements that are always supposed to exist.
+	//
+	// FindComponentByClass on the pawn rather than a cast to AGSPlayerCharacter, matching every other
+	// consumer of that component: knowing what is under the crosshair is a property of being able to
+	// give orders, not of being the player class.
+	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
+	{
+		BoundCommandComponent = OwnerPawn->FindComponentByClass<UGSHordeCommandComponent>();
+	}
+
+	if (UGSHordeCommandComponent* Cmd = BoundCommandComponent.Get())
+	{
+		Cmd->OnCrosshairTargetChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleCrosshairTargetChanged);
+		RefreshReticle(Cmd->HasCrosshairTarget());
+	}
+	else
+	{
+		// No component is survivable - the reticle just never lights up. Paint the idle state so it
+		// is at least visible and consistent rather than whatever the asset shipped with.
+		RefreshReticle(false);
+	}
 }
 
 void UGSPlayerHUDWidget::NativeDestruct()
@@ -60,8 +87,34 @@ void UGSPlayerHUDWidget::NativeDestruct()
 		BoundCharacter->OnHealthChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHealthChanged);
 	}
 
+	// Explicit unbind, for the reason UGSWeaponWheelWidget gives: the pawn outliving this widget is
+	// the normal case on a level transition, and a stale dynamic delegate on a destroyed widget is a
+	// crash rather than a leak.
+	if (UGSHordeCommandComponent* Cmd = BoundCommandComponent.Get())
+	{
+		Cmd->OnCrosshairTargetChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleCrosshairTargetChanged);
+	}
+	BoundCommandComponent.Reset();
+
 	UnbindRaid();
 	Super::NativeDestruct();
+}
+
+void UGSPlayerHUDWidget::HandleCrosshairTargetChanged(bool bHasTarget, AActor* Target)
+{
+	RefreshReticle(bHasTarget);
+}
+
+void UGSPlayerHUDWidget::RefreshReticle(bool bHasTarget)
+{
+	if (!Reticle)
+	{
+		return;
+	}
+
+	// Tint only - the rune itself, its size and its material are authored in WBP_GSPlayerHUD. Colour
+	// is the one thing that has to react to gameplay, so it is the one thing C++ owns.
+	Reticle->SetColorAndOpacity(bHasTarget ? ReticleTargetColour : ReticleIdleColour);
 }
 
 void UGSPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

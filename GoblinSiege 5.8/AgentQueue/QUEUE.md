@@ -85,6 +85,39 @@ the next move. This is rule 6's STALE principle applied to *work* instead of to 
 Then `set -Id <n> -Status review` and report. The orchestrator closes the ticket, not you — except
 that you run `done` yourself once the orchestrator says so.
 
+**3a. Somebody has to have WATCHED it. `done` refuses otherwise** (#136).
+
+```powershell
+& ".\AgentQueue\gsqueue.ps1" observed -Id 007 -What "<what you SAW>" -Scenario "<what you ran it in>"
+```
+
+Two fields, because two different things go wrong:
+
+- **`-What`** — what the software *did*, not what the tooling *said*. A phrase list rejects
+  "compiles", "reads back", "no errors", "looks correct" and friends. Every one of those has been
+  offered here as proof that something worked while the thing did nothing at all.
+- **`-Scenario`** — *where* you saw it. This is the one that keeps being skipped and it is the most
+  expensive: #132 and #133 were both tested with `GS.Combat.Duel`, which spawns **defenders**, so
+  neither ever ran on a horn-summoned goblin — and #133's blendspace was signed off from the player
+  pawn, which exercises **one of its five direction columns**. "In the editor" is not a scenario.
+  "PIE `L_CombatArena`, 6 horn-summoned goblins vs a militia patrol" is.
+
+**The escape hatch is real, and it is loud.** A broken editor must never deadlock the queue:
+
+```powershell
+& ".\AgentQueue\gsqueue.ps1" done -Id 007 -Unobserved "<why nobody could watch it>"
+```
+
+That closes the ticket and marks it `**UNOBSERVED**` on the board permanently. Use it honestly —
+it is far better than a confident Evaluate about something that never ran.
+
+**Why this gate exists, in one paragraph.** Every other check in `gsqueue.ps1` inspects the ticket's
+*text and timestamps*; none can tell working code from dead code. Ticket **#120** exists solely to
+record *"three fixes in a row shipped without anyone watching them run, and all three were wrong"* —
+and #120 was itself closed unwatched, its own Evaluate reading *"No PIE. Nobody has watched a
+fight."* Every gate passed it. The pattern then recurred twice inside 24 hours (#133, #135). The
+lesson had been written down five times and prevented nothing, because **prose is not a gate.**
+
 **4. Nobody builds until the queue is empty.** Compiling while another agent is mid-edit produces
 a binary that matches no source tree anyone can name. Before any `Build.bat`, `BuildAndLaunchGame.ps1`,
 Live Coding, or in-editor Compile:
@@ -116,6 +149,26 @@ waiting. So ask, then do only what he says:
 ---
 
 ## Status meanings
+
+## The status quo ante, for anyone tempted to loosen this
+
+The evidence ladder `gsqueue.ps1` prints when it refuses is not invented; it is this project's own
+history, sorted:
+
+| strength | kind of evidence | why it sits there |
+|---|---|---|
+| strongest | **a human watched it** | Michael previewing ONE montage settled #119 before the other ten were touched |
+| | **a runtime log line, right cvar, right scenario** | `GS.Combat.LogAI 1` + a duel settled the recoil punish in one run |
+| | **a screenshot you actually opened** | GoblinSiege CLAUDE.md §6 |
+| weakest | **a static re-read, a compile, a tool return value** | *not evidence* — see below |
+
+That bottom row is where every expensive failure in this repo has come from: *"a successful tool call
+is not evidence"* (2026-08-06), *"verify an editor write against the DISK — never against a
+read-back"* (2026-08-08), *"static reads confirm what is configured; they never show what the engine
+does with it"* (2026-08-10), and *"every check this project's tooling can perform passes on a dead
+asset"* (2026-08-11, four passes at one blendspace).
+
+---
 
 | status | holds file claims | blocks the build | means |
 |--------|-------------------|------------------|-------|
@@ -157,12 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 134 | review | claude-eyes | Eyes sit outside the head on Erika and the Knight: per-character bind pose is discarded by Animation translation retargeting | Content/Characters/Humans/SK_Human_Skeleton.uasset<br>GoblinSiege 5.8/AGENT_STATE.md | none |
-| 135 | review | claude-hordetick | Summoned goblins never face or separate: AGSHordeAIController disables the tick both #132 and #133 rely on | GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeAIController.cpp<br>GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeAIController.h | required |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 62 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -301,6 +351,23 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 131 | done | claude-space | Personal space: a capsule-derived minimum-distance floor in the orbit, plus the spatial instrumentation nobody had |
 | 132 | done | claude-space2 | Four attackers at once, and the spacing floor still lets them press in |
 | 133 | done | claude-facing | Combat agents never face their target: one facing authority, plus the directional locomotion to make it read |
+| 134 | done | claude-eyes | Eyes sit outside the head on Erika and the Knight: per-character bind pose is discarded by Animation translation retargeting |
+| 135 | done | claude-hordetick | Summoned goblins never face or separate: AGSHordeAIController disables the tick both #132 and #133 rely on |
+| 136 | done | claude-gate | The queue refuses to close an unobserved ticket: observed/scenario fields, evidence ladder, loud escape hatch |
+| 137 | done | claude-animsnap | GS.Anim.Snapshot: the runtime readout animation never had |
+| 138 | done | claude-weapons | Import the ArtSource weapons: six meshes into /Game/Weapons, with material instances where bakes exist |
+| 139 | done | claude-armingsword | Put the arming sword in the militia's hands: DA_Weapon_ArmingSword on the four Militia-row defenders |
+| 140 | done | claude-record | Record Michael's sign-off on the combat animation: #133 closed claiming it had never been watched |
+| 141 | done | claude-orders | Order wheel and world markers: the horde takes Attack/Hold/Loot/Follow |
+| 142 | done | claude-acf | ACF Phase 0: make AIFramework reachable - Build.cs dependency and uproject plugin pin |
+| 143 | done | claude-acf | ACF Phase 1a: hoist the facing authority and separation steer off AGSAIControllerBase into UGSAISteeringComponent |
+| 144 | done | claude-gobarm | Horde goblins spawn unarmed: no EquippedWeapon on BP_HordeGoblin, so a warband is wiped in seconds |
+| 145 | done | claude-cam2 | Camera lurches in and out during a crowd fight: every character blocks the spring arm's camera probe |
+| 146 | done **UNOBSERVED** | claude-wheelui | Order wheel labels sit in the corner instead of around the wheel; beacon material reverted to DefaultMaterial |
+| 147 | done | claude-ordertrace | "The order wheel can never find a target: the aim sweep is blocked by terrain, so Attack and Loot are always refused" |
+| 148 | done **UNOBSERVED** | claude-crosshair | "No crosshair: the player aims orders, the bow and the torch with nothing on screen to aim with" |
+| 149 | done | claude-reticle2 | Reticle turns gold when the crosshair is on a valid order target |
+| 150 | done | claude-acfskills | Register ACF's 40 author-written Claude skills so sessions can see them |
 
 <!-- BOARD:END -->
 

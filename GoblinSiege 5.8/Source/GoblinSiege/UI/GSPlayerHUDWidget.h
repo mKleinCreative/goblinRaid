@@ -118,6 +118,37 @@ protected:
 	UFUNCTION()
 	void HandleStaminaChanged(float NewStamina, float MaxStamina);
 
+	// ---- the reticle (#148, coloured by #149) --------------------------------------------------
+	//
+	// Michael: "We need a basic crosshair for this game so people can tell where they're aiming",
+	// then "make the reticle turn gold on a valid target".
+	//
+	// The Image itself and its rune material are authored in WBP_GSPlayerHUD; C++ only tints it. The
+	// tint is the whole feature: an always-on reticle answers "where am I pointing", and the colour
+	// change answers "will an order actually take" - which was the original complaint.
+	//
+	// BlueprintReadOnly for the reason the stamina block above sets out at length: any binding a
+	// designer's graph might read must be Blueprint-visible or the WHOLE widget fails to compile.
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<class UImage> Reticle;
+
+	/** On a valid order target. Matches the weapon wheel's committed-highlight gold, so "gold means
+	 *  this will happen" is one language across the whole UI. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Reticle")
+	FLinearColor ReticleTargetColour = FLinearColor(1.f, 0.82f, 0.25f, 1.f);
+
+	/** Resting. Dimmer and cooler, so the gold reads as a genuine change rather than a brightness
+	 *  wobble - the reticle is on screen permanently and must not nag. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Reticle")
+	FLinearColor ReticleIdleColour = FLinearColor(0.85f, 0.87f, 0.95f, 0.5f);
+
+	UFUNCTION()
+	void HandleCrosshairTargetChanged(bool bHasTarget, AActor* Target);
+
+	/** Paints the reticle for the current state. Safe to call before the component is found. */
+	void RefreshReticle(bool bHasTarget);
+
 	/**
 	 * The end-of-raid panel: a container that is hidden for the whole raid and shown once, when it
 	 * ends. Add a panel named `EndPanel` to WBP_GSPlayerHUD with `EndTitleText` and `EndDetailText`
@@ -239,6 +270,11 @@ private:
 
 	UPROPERTY()
 	TWeakObjectPtr<UGSRaidDirector> BoundDirector;
+
+	/** The order component whose crosshair scan tints the reticle (#149). Weak for the same reason
+	 *  every other binding here is: the raid director can destroy and respawn the pawn under us. */
+	UPROPERTY()
+	TWeakObjectPtr<class UGSHordeCommandComponent> BoundCommandComponent;
 
 	/** Carriers this widget has hooked, so teardown unhooks exactly those and a re-bind does not
 	 *  double-subscribe. */

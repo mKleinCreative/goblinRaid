@@ -1,12 +1,14 @@
 #include "Horde/GSHordeSubsystem.h"
 
 #include "Horde/GSHordeGoblin.h"
+#include "Horde/GSHordeOrderMarker.h"
 #include "AI/GSAIDebug.h"
 #include "Characters/GSCharacterBase.h"
 #include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "Raid/GSRaidMarker.h"
 #include "Raid/GSRaidLibrary.h"
+#include "Raid/GSRunicSite.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
@@ -55,6 +57,10 @@ void UGSHordeSubsystem::Deinitialize()
 	}
 	ActiveGoblins.Empty();
 	Threats.Empty();
+
+	// The markers are level actors and the level is going away, so this does not need to destroy
+	// them - it needs to stop holding weak handles to actors mid-teardown.
+	ActiveOrders.Empty();
 	Super::Deinitialize();
 }
 
@@ -65,6 +71,12 @@ void UGSHordeSubsystem::ScanForThreats()
 	{
 		return;
 	}
+
+	// Piggy-backed on this timer rather than given its own (#141). A beacon left standing over a dead
+	// guard is the visible half of the same staleness the threat registry already prunes here, and
+	// GSHordeAIController.h's rule is about per-agent work on the frame - this is one pass over at
+	// most one entry per player, twice a second.
+	PruneStaleOrders();
 
 	// Nothing summoned means nothing to swarm with, and this is the state the timer spends almost
 	// all of a raid in. Early-out first so the idle cost of the feature is one map lookup.
@@ -175,6 +187,18 @@ void UGSHordeSubsystem::ResetPoolForNewRaid()
 	bDryAnnounced = false;
 	ActiveGoblins.Empty();
 	Threats.Empty();
+
+	// A restarted raid must not inherit last raid's beacons. Retire them properly rather than just
+	// dropping the map - these are spawned actors, and an abandoned one would sit in the level
+	// pointing at a fight that is over.
+	for (TPair<TWeakObjectPtr<AController>, FGSHordeOrder>& Pair : ActiveOrders)
+	{
+		if (AGSHordeOrderMarker* Marker = Pair.Value.Marker.Get())
+		{
+			Marker->Retire();
+		}
+	}
+	ActiveOrders.Empty();
 
 	UE_LOG(LogGSHorde, Log, TEXT("Pool reset: %d in reserve, cap %d active."),
 		ReserveRemaining, ActiveCap);
@@ -507,6 +531,37 @@ AActor* UGSHordeSubsystem::GetAssignedTargetFor(AGSHordeGoblin* Goblin) const
 		return nullptr;
 	}
 
+	// AN EXPLICIT ORDER OUTRANKS THE THREAT REGISTRY (#141). EGSHordeState has put Commanded above
+	// Frenzy since #069; this clause is the line that finally gives that ordering a meaning.
+	//
+	// Funnelling the ordered victim through TargetActor rather than adding a parallel "ordered target"
+	// path is what makes Attack cost almost nothing: AGSAIControllerBase::TickFacing reads TargetActor
+	// by hardcoded literal, and BT_HordeGoblin's Block, MeleeAttack and chase branches all gate on it.
+	// One assignment buys facing, separation, the attack tokens and the ring geometry unchanged.
+	if (const FGSHordeOrder* Order = FindOrderFor(Goblin))
+	{
+		if (Order->Verb == EGSHordeOrder::Attack)
+		{
+			AActor* Victim = Order->Subject.Get();
+			const AGSCharacterBase* AsCharacter = Cast<AGSCharacterBase>(Victim);
+			if (IsValid(Victim) && (!AsCharacter || AsCharacter->IsAlive()))
+			{
+				// NOT capacity-gated, unlike the ambient path below. HasEngagementRoom exists to stop
+				// the whole warband converging on one guard BY ACCIDENT; converging on one guard on
+				// purpose is precisely what the player just asked for, and a gate here would quietly
+				// send most of them somewhere else while the beacon said otherwise. The ring geometry
+				// (MenaceOrbit + TickSeparation) still spaces them and BTDecorator_HasAttackToken still
+				// caps how many swing at once, so this is "everyone piles in, four connect" rather
+				// than a mob standing inside each other.
+				if (UGSEngagementComponent* Engagement = Victim->FindComponentByClass<UGSEngagementComponent>())
+				{
+					Engagement->RegisterEngaged(Goblin);
+				}
+				return Victim;
+			}
+		}
+	}
+
 	const_cast<UGSHordeSubsystem*>(this)->PruneStaleThreats();
 	if (Threats.Num() == 0)
 	{
@@ -589,20 +644,12 @@ AActor* UGSHordeSubsystem::GetFollowTargetFor(AGSHordeGoblin* Goblin) const
 
 	// The summoner this goblin was spawned under, not "player 0" - the TODO the old tick-follow
 	// controller left behind. Falls back to player 0 only when the roster has lost its key.
-	for (const TPair<TWeakObjectPtr<AController>, TArray<TWeakObjectPtr<AGSHordeGoblin>>>& Pair : ActiveGoblins)
+	// (The double loop this used to inline is now FindSummonerFor, which the order board also needs.)
+	if (const AController* Summoner = FindSummonerFor(Goblin))
 	{
-		for (const TWeakObjectPtr<AGSHordeGoblin>& Entry : Pair.Value)
+		if (APawn* Pawn = Summoner->GetPawn())
 		{
-			if (Entry.Get() == Goblin)
-			{
-				if (const AController* Summoner = Pair.Key.Get())
-				{
-					if (APawn* Pawn = Summoner->GetPawn())
-					{
-						return Pawn;
-					}
-				}
-			}
+			return Pawn;
 		}
 	}
 
@@ -628,4 +675,399 @@ int32 UGSHordeSubsystem::GetFollowSlotFor(AGSHordeGoblin* Goblin) const
 		}
 	}
 	return 0;
+}
+
+// ---- the order board (#141) ------------------------------------------------------------------
+//
+// GDD §2.5's point command. The verbs are named on a wheel rather than inferred from the crosshair
+// (Michael, 2026-08-12), but the context resolution the GDD describes still happens: Attack on a
+// breakable smashes it, Attack on a guard swarms him, and both come from this one order.
+
+AController* UGSHordeSubsystem::FindSummonerFor(const AGSHordeGoblin* Goblin) const
+{
+	if (!IsValid(Goblin))
+	{
+		return nullptr;
+	}
+
+	for (const TPair<TWeakObjectPtr<AController>, TArray<TWeakObjectPtr<AGSHordeGoblin>>>& Pair : ActiveGoblins)
+	{
+		for (const TWeakObjectPtr<AGSHordeGoblin>& Entry : Pair.Value)
+		{
+			if (Entry.Get() == Goblin)
+			{
+				return Pair.Key.Get();
+			}
+		}
+	}
+	return nullptr;
+}
+
+const FGSHordeOrder* UGSHordeSubsystem::FindOrderFor(const AGSHordeGoblin* Goblin) const
+{
+	if (ActiveOrders.Num() == 0)
+	{
+		// The state a raid spends almost all of its time in. Early-out before the roster walk so an
+		// un-commanded horde pays one integer compare per goblin per refresh, not a double loop.
+		return nullptr;
+	}
+
+	const AController* Summoner = FindSummonerFor(Goblin);
+	if (!Summoner)
+	{
+		return nullptr;
+	}
+
+	const FGSHordeOrder* Order = ActiveOrders.Find(Summoner);
+	return (Order && Order->Verb != EGSHordeOrder::None) ? Order : nullptr;
+}
+
+UClass* UGSHordeSubsystem::ResolveOrderMarkerClass() const
+{
+	if (!OrderMarkerClassPath.IsValid())
+	{
+		// Warning, not Error, and the difference is the point: unlike HordeGoblinClassPath, an unset
+		// marker class does not stop anything working. The order is issued, the goblins obey, and the
+		// player simply has no beacon to look at.
+		UE_LOG(LogGSHorde, Warning,
+			TEXT("OrderMarkerClassPath is unset - orders will be obeyed but invisible. Set it in "
+			     "DefaultGame.ini under [/Script/GoblinSiege.GSHordeSubsystem] to BP_HordeOrderMarker."));
+		return nullptr;
+	}
+
+	UClass* Resolved = OrderMarkerClassPath.TryLoadClass<AGSHordeOrderMarker>();
+	if (!Resolved)
+	{
+		UE_LOG(LogGSHorde, Warning,
+			TEXT("OrderMarkerClassPath '%s' did not resolve to an AGSHordeOrderMarker."),
+			*OrderMarkerClassPath.ToString());
+	}
+	return Resolved;
+}
+
+FVector UGSHordeSubsystem::ResolveDeliveryLocation(AController* Summoner, const FVector& From) const
+{
+	UWorld* World = GetWorld();
+
+	// 1. The stones. This is what §2.7 means by "banks permanently the instant it reaches the runic
+	//    site", and NotifyCourierDelivered's own comment names it.
+	if (World)
+	{
+		const AGSRunicSite* BestSite = nullptr;
+		float BestDistSq = TNumericLimits<float>::Max();
+		for (TActorIterator<AGSRunicSite> It(World); It; ++It)
+		{
+			const AGSRunicSite* Site = *It;
+			if (!IsValid(Site))
+			{
+				continue;
+			}
+			const float DistSq = FVector::DistSquared(From, Site->GetActorLocation());
+			if (DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				BestSite = Site;
+			}
+		}
+		if (BestSite)
+		{
+			return BestSite->GetActorLocation();
+		}
+	}
+
+	// 2. The treeline they came from. Not a design compromise so much as a testing one that happens
+	//    to read correctly: L_CombatArena has three Marker.HordeArrival markers and NO runic site, so
+	//    without this tier the courier verb could not be demonstrated on the only map where the horn
+	//    summons anything at all. "Carries it back the way it came" is a perfectly legible fiction.
+	TArray<AGSRaidMarker*> Markers;
+	AGSRaidMarker::GatherByType(this, GSTags::Marker_HordeArrival, Markers);
+
+	const AGSRaidMarker* BestMarker = nullptr;
+	float BestMarkerDistSq = TNumericLimits<float>::Max();
+	for (const AGSRaidMarker* Marker : Markers)
+	{
+		if (!IsValid(Marker))
+		{
+			continue;
+		}
+		const float DistSq = FVector::DistSquared(From, Marker->GetActorLocation());
+		if (DistSq < BestMarkerDistSq)
+		{
+			BestMarkerDistSq = DistSq;
+			BestMarker = Marker;
+		}
+	}
+	if (BestMarker)
+	{
+		return BestMarker->GetActorLocation();
+	}
+
+	// 3. The summoner. A last resort that keeps the verb from silently doing nothing on a map with
+	//    neither - the goblin brings you the sack, which is at least an answer.
+	if (Summoner)
+	{
+		if (const APawn* Pawn = Summoner->GetPawn())
+		{
+			return Pawn->GetActorLocation();
+		}
+	}
+
+	return From;
+}
+
+void UGSHordeSubsystem::IssueOrder(AController* Summoner, EGSHordeOrder Verb, AActor* Subject, const FVector& Location)
+{
+	UWorld* World = GetWorld();
+	if (!World || !Summoner)
+	{
+		return;
+	}
+
+	// Follow IS the absence of an order, not a fifth kind of one. See the header.
+	if (Verb == EGSHordeOrder::None || Verb == EGSHordeOrder::Follow)
+	{
+		ClearOrder(Summoner);
+		return;
+	}
+
+	// ATTACK AND LOOT ARE VERBS ABOUT A THING. Refuse one that has no thing.
+	//
+	// Michael, watching the first build 2026-08-12: "there's no way to give it anything to attack -
+	// it says attack the bare ground". Two bugs were stacked there. The trace was the first (fixed in
+	// UGSHordeCommandComponent::TraceForOrder). This is the second: a subject-less Attack was accepted,
+	// planted a beacon, and was then binned by PruneStaleOrders within half a second - because that
+	// function cannot tell "never had a subject" from "its subject just died", and correctly concluded
+	// the order was finished. Net effect on screen: the warband got a third of a second of instruction
+	// and went back to heel, which reads as the whole feature not working.
+	//
+	// Refusing at the door is the honest answer rather than inventing a meaning for it. "Attack that
+	// patch of grass" is not an order, and a wheel that silently commits one is worse than a wheel
+	// that says no.
+	if ((Verb == EGSHordeOrder::Attack || Verb == EGSHordeOrder::Loot) && !IsValid(Subject))
+	{
+		UE_LOG(LogGSHorde, Warning,
+			TEXT("Ignored a %s order: it needs something to point at and the trace found bare ground. "
+			     "Aim at a defender (Attack) or a carryable (Loot)."),
+			*UEnum::GetDisplayValueAsText(Verb).ToString());
+		return;
+	}
+
+	// Retire the previous beacon before planting a new one. One order per summoner means one marker
+	// per summoner; skipping this leaves a trail of stale cones across the hamlet, each one claiming
+	// to be current.
+	if (FGSHordeOrder* Existing = ActiveOrders.Find(Summoner))
+	{
+		if (AGSHordeOrderMarker* OldMarker = Existing->Marker.Get())
+		{
+			OldMarker->Retire();
+		}
+	}
+
+	// HOLD PLANTS WHERE THE PLAYER IS STANDING, not where he is looking. Michael's call, 2026-08-12:
+	// "the default behavior for hold should be wherever the player is currently."
+	//
+	// It is the right reading of the verb. In play, "hold" almost always means "stop trailing me, stay
+	// HERE" - you walk to the doorway you want held and press it - rather than "go to that spot over
+	// there", which is a move order nobody asked for. It also makes Hold the one verb that cannot fail
+	// to find a sensible point, which matters because it is the verb you reach for when things are
+	// going wrong and you want the warband to stop following you into a fight.
+	FVector Spot = Location;
+	if (Verb == EGSHordeOrder::Hold)
+	{
+		if (const APawn* SummonerPawn = Summoner->GetPawn())
+		{
+			Spot = SummonerPawn->GetActorLocation();
+		}
+	}
+
+	// Ground-correct the point. Same call FindArrivalTransform makes, and the same caveat applies:
+	// this is NOT navmesh projection (GEN_NavBounds_Village is only 4000x4000uu), so a marker can
+	// legitimately land somewhere the goblins cannot path to. That is not hidden - the beacon is
+	// truthful about where the player pointed, and goblins failing to arrive is information.
+	FVector Standable;
+	if (UGSRaidLibrary::FindStandableSpotNear(this, Spot, Standable, nullptr))
+	{
+		Spot = Standable;
+	}
+
+	FGSHordeOrder Order;
+	Order.Verb = Verb;
+	Order.Subject = Subject;
+	Order.Location = Spot;
+	Order.IssuedTime = World->GetTimeSeconds();
+	Order.DeliveryLocation = ResolveDeliveryLocation(Summoner, Spot);
+
+	if (UClass* MarkerClass = ResolveOrderMarkerClass())
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Params.Owner = Summoner;
+
+		// Lifted clear of the ground so the beacon reads over grass, corpses and the goblins
+		// themselves. A marker at ankle height is a marker nobody can see in a crowd.
+		const FTransform MarkerTransform(FRotator::ZeroRotator, Spot + FVector(0.f, 0.f, 150.f));
+
+		if (AGSHordeOrderMarker* Marker = World->SpawnActor<AGSHordeOrderMarker>(MarkerClass, MarkerTransform, Params))
+		{
+			Marker->InitialiseOrder(Verb, Subject, Summoner);
+			Order.Marker = Marker;
+		}
+	}
+
+	ActiveOrders.Add(Summoner, Order);
+
+	// The call GSHordeSubsystem.h:132-133 predicted from the day the stimulus bus was written:
+	// "called from the Frenzy hooks ... and from the point command". It is not redundant with the
+	// first clause of GetAssignedTargetFor - that clause only helps goblins the order already covers,
+	// and this is what lets a goblin summoned AFTER the order still find the victim by the normal
+	// path, and what keeps him interesting once the order has expired.
+	if (Verb == EGSHordeOrder::Attack && IsValid(Subject))
+	{
+		RegisterThreat(Subject);
+	}
+
+	UE_LOG(LogGSHorde, Log, TEXT("Order: %s at %s%s."),
+		*UEnum::GetDisplayValueAsText(Verb).ToString(),
+		*Spot.ToCompactString(),
+		IsValid(Subject) ? *FString::Printf(TEXT(" on %s"), *GetNameSafe(Subject)) : TEXT(""));
+
+	OnHordeOrderChanged.Broadcast(Verb, Subject, Spot);
+}
+
+void UGSHordeSubsystem::ClearOrder(AController* Summoner)
+{
+	if (!Summoner)
+	{
+		return;
+	}
+
+	FGSHordeOrder* Existing = ActiveOrders.Find(Summoner);
+	if (!Existing)
+	{
+		// Recalling a horde that has no standing order is a no-op, not an error - it is the most
+		// natural thing in the world to press Follow twice.
+		return;
+	}
+
+	if (AGSHordeOrderMarker* Marker = Existing->Marker.Get())
+	{
+		Marker->Retire();
+	}
+	ActiveOrders.Remove(Summoner);
+
+	UE_LOG(LogGSHorde, Log, TEXT("Order cleared - the warband is back on Follow."));
+	OnHordeOrderChanged.Broadcast(EGSHordeOrder::None, nullptr, FVector::ZeroVector);
+}
+
+void UGSHordeSubsystem::PruneStaleOrders()
+{
+	if (ActiveOrders.Num() == 0)
+	{
+		return;
+	}
+
+	TArray<TWeakObjectPtr<AController>> Expired;
+
+	for (TPair<TWeakObjectPtr<AController>, FGSHordeOrder>& Pair : ActiveOrders)
+	{
+		const FGSHordeOrder& Order = Pair.Value;
+
+		// The summoner is gone (respawned, disconnected). Nothing left to command.
+		if (!Pair.Key.IsValid())
+		{
+			Expired.Add(Pair.Key);
+			continue;
+		}
+
+		// An order whose subject has died, been destroyed or been smashed is finished. Hold orders
+		// have no subject and never expire this way - they stand until recalled, which is the whole
+		// point of a hold.
+		const bool bNeedsSubject =
+			(Order.Verb == EGSHordeOrder::Attack || Order.Verb == EGSHordeOrder::Loot);
+
+		if (!bNeedsSubject)
+		{
+			continue;
+		}
+
+		const AActor* Subject = Order.Subject.Get();
+		bool bFinished = !IsValid(Subject);
+
+		if (!bFinished)
+		{
+			if (const AGSCharacterBase* AsCharacter = Cast<AGSCharacterBase>(Subject))
+			{
+				// Same rule PruneStaleThreats applies, and for the same reason: chasing a ragdoll
+				// hands every goblin within ~50m an AlreadyAtGoal freeze.
+				bFinished = !AsCharacter->IsAlive();
+			}
+		}
+
+		if (bFinished)
+		{
+			Expired.Add(Pair.Key);
+		}
+	}
+
+	for (const TWeakObjectPtr<AController>& Key : Expired)
+	{
+		if (FGSHordeOrder* Order = ActiveOrders.Find(Key))
+		{
+			if (AGSHordeOrderMarker* Marker = Order->Marker.Get())
+			{
+				Marker->Retire();
+			}
+		}
+		ActiveOrders.Remove(Key);
+
+		UE_LOG(LogGSHorde, Log, TEXT("Order expired - its subject is gone. Back to Follow."));
+		OnHordeOrderChanged.Broadcast(EGSHordeOrder::None, nullptr, FVector::ZeroVector);
+	}
+}
+
+EGSHordeOrder UGSHordeSubsystem::GetOrderVerbFor(AGSHordeGoblin* Goblin) const
+{
+	const FGSHordeOrder* Order = FindOrderFor(Goblin);
+	return Order ? Order->Verb : EGSHordeOrder::None;
+}
+
+AActor* UGSHordeSubsystem::GetOrderSubjectFor(AGSHordeGoblin* Goblin) const
+{
+	const FGSHordeOrder* Order = FindOrderFor(Goblin);
+	return Order ? Order->Subject.Get() : nullptr;
+}
+
+FVector UGSHordeSubsystem::GetOrderLocationFor(AGSHordeGoblin* Goblin) const
+{
+	const FGSHordeOrder* Order = FindOrderFor(Goblin);
+	return Order ? Order->Location : FVector::ZeroVector;
+}
+
+FVector UGSHordeSubsystem::GetDeliveryLocationFor(AGSHordeGoblin* Goblin) const
+{
+	const FGSHordeOrder* Order = FindOrderFor(Goblin);
+	return Order ? Order->DeliveryLocation : FVector::ZeroVector;
+}
+
+FString UGSHordeSubsystem::DescribeOrders() const
+{
+	if (ActiveOrders.Num() == 0)
+	{
+		return TEXT("no standing orders - Follow and Frenzy");
+	}
+
+	TArray<FString> Lines;
+	for (const TPair<TWeakObjectPtr<AController>, FGSHordeOrder>& Pair : ActiveOrders)
+	{
+		const FGSHordeOrder& Order = Pair.Value;
+		Lines.Add(FString::Printf(TEXT("%s -> %s on %s at %s%s"),
+			*GetNameSafe(Pair.Key.Get()),
+			*UEnum::GetDisplayValueAsText(Order.Verb).ToString(),
+			Order.Subject.IsValid() ? *GetNameSafe(Order.Subject.Get()) : TEXT("(bare ground)"),
+			*Order.Location.ToCompactString(),
+			// A beacon that failed to spawn is the single most likely reason for "I gave the order and
+			// nothing appeared", and it is invisible from every other readout.
+			Order.Marker.IsValid() ? TEXT("") : TEXT(" [NO MARKER]")));
+	}
+	return FString::Join(Lines, TEXT(" | "));
 }

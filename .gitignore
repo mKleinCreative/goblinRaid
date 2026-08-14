@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Goblin Siege — repo root ignores
 #
 # NOTE: .gitignore does not untrack files already in the index. The
@@ -38,3 +39,6 @@ dev/null/
 # .gitignore. Never commit an API key.
 .env
 .env.*
+=======
+*.blend1
+>>>>>>> e305b7b7a8257f3a36537e29bc7ebaa83b024a53

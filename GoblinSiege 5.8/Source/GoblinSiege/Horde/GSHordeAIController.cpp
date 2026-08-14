@@ -115,10 +115,32 @@ void AGSHordeAIController::RefreshStimulus()
 	// the BT's move task; all the controller owes it is a stable index.
 	BB->SetValueAsInt(FollowSlotKey, Horde->GetFollowSlotFor(Goblin));
 
-	// Commanded, Stranded and PanicStranded are set by the point command and the reachability
-	// checks, not here - this only chooses between the two states the subsystem can see.
-	const EGSHordeState State = Threat
-		? EGSHordeState::Frenzy
-		: (FollowTarget ? EGSHordeState::Follow : EGSHordeState::Idle);
+	// ---- the standing order (#141) ---------------------------------------------------------
+	const EGSHordeOrder Verb = Horde->GetOrderVerbFor(Goblin);
+	BB->SetValueAsEnum(OrderVerbKey, static_cast<uint8>(Verb));
+	BB->SetValueAsObject(OrderSubjectKey, Horde->GetOrderSubjectFor(Goblin));
+	BB->SetValueAsVector(OrderLocationKey, Horde->GetOrderLocationFor(Goblin));
+	BB->SetValueAsVector(DeliveryLocationKey, Horde->GetDeliveryLocationFor(Goblin));
+
+	// THE FIRST WRITER OF Commanded, which has sat in EGSHordeState since #069 with nothing
+	// anywhere setting it (#088 listed the point command as deliberately undone).
+	//
+	// Follow is absent from this test on purpose: UGSHordeSubsystem::IssueOrder clears rather than
+	// stores it, so a Follow order arrives here as None and the goblin drops to the ordinary
+	// Frenzy/Follow choice below - which IS what the recall means.
+	//
+	// Note that an Attack order yields Commanded AND a live TargetActor at the same time. That is
+	// correct and it is why BT_HordeGoblin's combat branches must stay gated on `TargetActor Is Set`
+	// rather than on `HordeState == Frenzy`: gating them on the state would make an ordered goblin
+	// walk up to its victim and refuse to swing. They are already written that way; do not "tidy"
+	// them onto the state key.
+	const bool bCommanded = (Verb != EGSHordeOrder::None);
+
+	// Stranded and PanicStranded remain unwritten - they belong to the reachability checks, which
+	// are still nobody's work.
+	const EGSHordeState State = bCommanded
+		? EGSHordeState::Commanded
+		: (Threat ? EGSHordeState::Frenzy
+		          : (FollowTarget ? EGSHordeState::Follow : EGSHordeState::Idle));
 	BB->SetValueAsEnum(HordeStateKey, static_cast<uint8>(State));
 }

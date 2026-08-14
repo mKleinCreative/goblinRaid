@@ -169,11 +169,103 @@ static FAutoConsoleCommandWithWorld GSHordeStatusCmd(
 			}
 
 			const FString Message = FString::Printf(
-				TEXT("Horde: reserve %d/%d, active %d/%d%s"),
+				TEXT("Horde: reserve %d/%d, active %d/%d%s\nOrders: %s"),
 				Horde->GetReserveRemaining(), Horde->GetRaidPoolSize(),
 				Horde->GetActiveCount(), Horde->GetActiveCap(),
-				Horde->IsPoolDry() ? TEXT(" - THE TREELINE IS SILENT") : TEXT(""));
+				Horde->IsPoolDry() ? TEXT(" - THE TREELINE IS SILENT") : TEXT(""),
+				*Horde->DescribeOrders());
 
+			UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %s"), *Message);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Green, Message);
+			}
+		}));
+
+// ------------------------------------------------------------------------ GS.Horde.Order (#141)
+//
+// Issues the point command straight at UGSHordeSubsystem, bypassing the wheel, the widget and the
+// Server RPC entirely.
+//
+// This exists for the isolation, not the convenience. "The goblins ignore my orders" has two
+// completely different causes - the wheel never committed, or the AI never obeyed - and without a
+// path that skips the input half they are indistinguishable from the chair. Verify Attack/Hold/Loot
+// with this BEFORE touching R; if it works here and not on the key, the bug is in the input.
+
+#include "Horde/GSHordeCommandComponent.h"
+#include "Horde/GSHordeOrderTypes.h"
+
+static FAutoConsoleCommandWithWorldAndArgs GSHordeOrderCmd(
+	TEXT("GS.Horde.Order"),
+	TEXT("GS.Horde.Order <Attack|Hold|Loot|Follow> - issue the point command at whatever the player "
+		 "camera is looking at. Follow clears the standing order."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* InWorld)
+		{
+			UWorld* World = GSHordeGameWorld(InWorld);
+			UGSHordeSubsystem* Horde = World ? World->GetSubsystem<UGSHordeSubsystem>() : nullptr;
+			if (!Horde)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.Order: no UGSHordeSubsystem - are you in PIE?"));
+				return;
+			}
+
+			if (Args.Num() == 0)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.Order: name a verb - Attack, Hold, Loot or Follow."));
+				return;
+			}
+
+			EGSHordeOrder Verb = EGSHordeOrder::None;
+			const FString& Wanted = Args[0];
+			if (Wanted.Equals(TEXT("Attack"), ESearchCase::IgnoreCase))      { Verb = EGSHordeOrder::Attack; }
+			else if (Wanted.Equals(TEXT("Hold"), ESearchCase::IgnoreCase))   { Verb = EGSHordeOrder::Hold; }
+			else if (Wanted.Equals(TEXT("Loot"), ESearchCase::IgnoreCase))   { Verb = EGSHordeOrder::Loot; }
+			else if (Wanted.Equals(TEXT("Follow"), ESearchCase::IgnoreCase)) { Verb = EGSHordeOrder::Follow; }
+			else
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.Order: '%s' is not a verb. Attack, Hold, Loot, Follow."),
+					*Wanted);
+				return;
+			}
+
+			APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
+			APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+			if (!PC || !Pawn)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Horde.Order: no player pawn."));
+				return;
+			}
+
+			// Follow clears, and clearing needs no target - so skip the trace entirely rather than
+			// making a recall fail because the player happened to be facing the sky.
+			if (Verb == EGSHordeOrder::Follow)
+			{
+				Horde->ClearOrder(PC);
+				UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Horde.Order: recalled."));
+				return;
+			}
+
+			// THE SAME TRACE THE WHEEL USES, not a second copy of it. The first version of this
+			// command ran its own line trace and therefore had its own aiming behaviour - which is
+			// exactly how a debug path starts lying about the thing it exists to isolate.
+			FVector Location = FVector::ZeroVector;
+			AActor* Subject = nullptr;
+			if (!UGSHordeCommandComponent::TraceForOrder(World, Pawn, 8000.f, 60.f, Location, Subject))
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.Order: the camera trace hit nothing. Point at "
+					     "something and try again."));
+				return;
+			}
+
+			Horde->IssueOrder(PC, Verb, Subject, Location);
+
+			const FString Message = FString::Printf(TEXT("GS.Horde.Order: %s on %s."),
+				*Wanted, Subject ? *GetNameSafe(Subject) : TEXT("bare ground"));
 			UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %s"), *Message);
 			if (GEngine)
 			{

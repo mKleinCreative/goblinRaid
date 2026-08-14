@@ -2,7 +2,7 @@
 id: 135
 title: Summoned goblins never face or separate: AGSHordeAIController disables the tick both #132 and #133 rely on
 agent: claude-hordetick
-status: review
+status: done
 claimed: 2026-08-12T02:39Z
 build: required
 waiting_on:
@@ -10,6 +10,8 @@ evaluated: 2026-08-12T02:44:50Z
 files: 
   - GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeAIController.cpp
   - GoblinSiege 5.8/Source/GoblinSiege/Horde/GSHordeAIController.h
+observed: 2026-08-12T04:55:22Z | every horn-summoned goblin reported rotation mode DesiredRot and a live blackboard target; that flag is set only by AGSAIControllerBase::TickFacing, which cannot run unless the controller ticks
+scenario: PIE on L_CombatArena, 8 goblins via GS.Horde.SpawnTest against a militia patrol, read out with GS.Anim.Snapshot 0
 ---
 
 ## Goal

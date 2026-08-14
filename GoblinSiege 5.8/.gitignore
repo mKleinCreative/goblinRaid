@@ -59,6 +59,14 @@ _MixamoStaging/
 # Fab plugin copied into the project - reinstallable from Fab
 Plugins/Marketplace/
 
+# 2026-08-13 (#150): ACF's 40 author-written Claude skill packs, copied out of the
+# plugin into .claude/skills by Tools/Register-ACFSkills.ps1 so sessions can see them.
+# Same reasoning as Plugins/Marketplace above - it is marketplace content, and it is
+# regenerable. The GENERATOR is versioned; its output is not. Re-run the script after
+# an ACF update. Hand-written project skills, if any are ever added, would need a
+# negation here.
+.claude/skills/
+
 # Local secrets - never commit (Anthropic API key for the content pipeline)
 .env
 .env.*

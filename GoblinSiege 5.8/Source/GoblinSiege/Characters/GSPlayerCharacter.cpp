@@ -24,6 +24,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "UI/GSWeaponWheelWidget.h"
+#include "UI/GSHordeOrderWheelWidget.h"
+#include "Horde/GSHordeCommandComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -36,6 +38,7 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	InteractionComponent = CreateDefaultSubobject<UGSInteractionComponent>(TEXT("InteractionComponent"));
 	CarryComponent = CreateDefaultSubobject<UGSCarryComponent>(TEXT("CarryComponent"));
 	AimComponent = CreateDefaultSubobject<UGSAimComponent>(TEXT("AimComponent"));
+	HordeCommandComponent = CreateDefaultSubobject<UGSHordeCommandComponent>(TEXT("HordeCommandComponent"));
 
 	// The player is a goblin, so allied goblins and the horde cannot cut him down by standing too
 	// close. Set here rather than on the Blueprint for the same reason the ability classes are.
@@ -193,6 +196,21 @@ void AGSPlayerCharacter::BeginPlay()
 				// Above the HUD: the wheel is momentary, and half a wheel behind the objective list
 				// is worse than no wheel.
 				WeaponWheelWidget->AddToViewport(10);
+			}
+		}
+	}
+
+	// The order wheel's on-screen half (#141). ZOrder 11 - above the weapon wheel's 10 and the HUD's
+	// 0. They are mutually exclusive by construction (see Input_OrderWheelOpen), so the ordering only
+	// matters for the frame in which one is closing as the other opens.
+	if (HordeOrderWheelWidgetClass && IsLocallyControlled())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			HordeOrderWheelWidget = CreateWidget<UGSHordeOrderWheelWidget>(PC, HordeOrderWheelWidgetClass);
+			if (HordeOrderWheelWidget)
+			{
+				HordeOrderWheelWidget->AddToViewport(11);
 			}
 		}
 	}
@@ -464,6 +482,22 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EIC->BindAction(HornAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Horn);
 		}
 
+		// The order wheel (#141). Guarded and with an else-branch, for the reason spelled out on
+		// JumpAction below: BindAction does not assert on a null action in 5.8, it registers a
+		// binding that never fires, and this project has now shipped that bug three times.
+		if (HordeOrderAction)
+		{
+			EIC->BindAction(HordeOrderAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_OrderWheelOpen);
+			EIC->BindAction(HordeOrderAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_OrderWheelClose);
+			EIC->BindAction(HordeOrderAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_OrderWheelClose);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GS.Input] HordeOrderAction is unset on %s - the horde order "
+				"wheel is unreachable. Assign IA_HordeOrder on the character Blueprint (#141)."),
+				*GetNameSafe(this));
+		}
+
 		// Jump straight to ACharacter's own handlers. Started/Completed rather than a single pin
 		// because StopJumping is what ends the variable-height hold - bind only Started and every
 		// jump is a full-height jump regardless of how briefly the key was tapped.
@@ -610,6 +644,16 @@ void AGSPlayerCharacter::Input_Look(const FInputActionValue& Value)
 		return;
 	}
 
+	// The order wheel drags off the same axis, for the same reason (#141). Two consumers is the
+	// ceiling this arrangement handles cleanly: they are kept mutually exclusive in the two open
+	// handlers below, so exactly one of these branches can ever be live. A THIRD wheel would want a
+	// real input-mode concept rather than a third early-return - note that before adding one.
+	if (HordeCommandComponent && HordeCommandComponent->IsWheelOpen())
+	{
+		HordeCommandComponent->AddWheelInput(LookInput);
+		return;
+	}
+
 	if (Controller)
 	{
 		AddControllerYawInput(LookInput.X);
@@ -619,6 +663,13 @@ void AGSPlayerCharacter::Input_Look(const FInputActionValue& Value)
 
 void AGSPlayerCharacter::Input_WheelOpen(const FInputActionValue& Value)
 {
+	// Not while the order wheel is up. Both drag off Input_Look, so allowing both would hand the
+	// player a weapon swap he never asked for every time he issued an order.
+	if (HordeCommandComponent && HordeCommandComponent->IsWheelOpen())
+	{
+		return;
+	}
+
 	if (WeaponComponent)
 	{
 		WeaponComponent->OpenWeaponWheel();
@@ -630,6 +681,31 @@ void AGSPlayerCharacter::Input_WheelClose(const FInputActionValue& Value)
 	if (WeaponComponent)
 	{
 		WeaponComponent->CloseWeaponWheel(true);
+	}
+}
+
+void AGSPlayerCharacter::Input_OrderWheelOpen(const FInputActionValue& Value)
+{
+	// The mirror of the guard in Input_WheelOpen.
+	if (WeaponComponent && WeaponComponent->IsWheelOpen())
+	{
+		return;
+	}
+
+	if (HordeCommandComponent)
+	{
+		// Returns false when the camera trace found nowhere to send anybody, and in that case no
+		// wheel opens at all - see OpenOrderWheel. Nothing to do about it here; a wheel that refuses
+		// to appear while you are staring at the sky is the designed behaviour, not an error.
+		HordeCommandComponent->OpenOrderWheel();
+	}
+}
+
+void AGSPlayerCharacter::Input_OrderWheelClose(const FInputActionValue& Value)
+{
+	if (HordeCommandComponent)
+	{
+		HordeCommandComponent->CloseOrderWheel(true);
 	}
 }
 

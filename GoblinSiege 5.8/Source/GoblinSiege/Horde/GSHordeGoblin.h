@@ -18,6 +18,7 @@
 #include "GSHordeGoblin.generated.h"
 
 class UGSRaceDataAsset;
+class UGSCarryComponent;
 class UGSWeaponComponent;
 class UGSWeaponDataAsset;
 
@@ -60,6 +61,23 @@ protected:
 	 *  warband until now. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Horde")
 	TObjectPtr<UGSWeaponDataAsset> DefaultWeapon;
+
+	/**
+	 * Lets a summoned goblin shoulder a sack, a pig or a rope chain - the courier half of §2.7.
+	 *
+	 * The same component the player has carried since the carry framework was written; until #141 it
+	 * existed only on AGSPlayerCharacter, which is why "point a horde goblin at a pen and watch it
+	 * waddle off with a pig" had no code path at all. Everything about carrying - the State.Carrying
+	 * tag, the speed penalty, the attach, the drop trace, dropping cargo on death - is already
+	 * server-authoritative in there; the two courier BT tasks only call StartCarry and PutDown.
+	 *
+	 * KNOWN COSMETIC GAP: UGSCarryComponent::CarrySocketName defaults to `CarrySocket`, which the
+	 * goblin rig does not have, so the component falls back to the mesh origin and the sack rides at
+	 * the goblin's feet rather than on its shoulder. That is art work (add the socket to
+	 * GOB_Scout_v2_Skeleton), not a code fix, and it is ugly rather than broken.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Horde")
+	TObjectPtr<UGSCarryComponent> CarryComponent;
 
 private:
 	/** Applies the archetype row's stats. A near-copy of AGSEnemyCharacter's version rather than a

@@ -92,6 +92,35 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
 	FName HordeStateKey = TEXT("HordeState");
 
+	// ---- the order board (#141) ------------------------------------------------------------
+	// Four more keys, written from the same refresh. The cost is four blackboard writes per goblin
+	// at 5Hz, which clears this class's stated bar comfortably: no world iteration, no per-agent
+	// search, no re-issued MoveTo. The expensive half (finding the delivery point) is resolved once
+	// when the order is issued and cached on it - see FGSHordeOrder::DeliveryLocation.
+
+	/** EGSHordeOrder as a byte. None (0) is the un-commanded default, so a tree with no order branch
+	 *  behaves exactly as it did before this ticket. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName OrderVerbKey = TEXT("OrderVerb");
+
+	/** What to attack, smash or carry. Null for a Hold order, which is a location and nothing else. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName OrderSubjectKey = TEXT("OrderSubject");
+
+	/** Where the beacon is.
+	 *
+	 *  NOT TargetLocation, and that is not a naming preference. UBTService_AcquireTarget OWNS
+	 *  TargetLocation and rewrites it every tick with the ring-slot standoff around TargetActor
+	 *  (BTService_AcquireTarget.cpp:368), so a Hold point written there would survive about 0.2
+	 *  seconds - and the header explains that key exists specifically to dodge the ragdoll-bounds
+	 *  AlreadyAtGoal freeze, which is not a mechanism worth sharing a key with. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName OrderLocationKey = TEXT("OrderLocation");
+
+	/** Where a courier takes its cargo (§2.7). */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
+	FName DeliveryLocationKey = TEXT("DeliveryLocation");
+
 private:
 	void RefreshStimulus();
 

@@ -4,6 +4,7 @@
 #include "Horde/GSHordeSubsystem.h"
 #include "Combat/GSGameplayTags.h"
 #include "Combat/GSRaceDataAsset.h"
+#include "Interaction/GSCarryComponent.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSWeaponDataAsset.h"
@@ -39,6 +40,10 @@ AGSHordeGoblin::AGSHordeGoblin()
 	// The same component the player and (since #097) the defenders carry. Without it a goblin cannot
 	// hold anything, which is why the whole warband has been swinging bare fists at armoured men.
 	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
+
+	// The courier's hands (#141). See the header for the socket caveat. This is the component that
+	// makes NotifyCourierDelivered reachable at all - it has been written and callerless since #069.
+	CarryComponent = CreateDefaultSubobject<UGSCarryComponent>(TEXT("CarryComponent"));
 }
 
 void AGSHordeGoblin::BeginPlay()

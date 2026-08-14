@@ -87,6 +87,10 @@
 		{
 			"Name": "XRBase",
 			"Enabled": true
+		},
+		{
+			"Name": "AscentCombatFramework",
+			"Enabled": true
 		}
 	]
 }

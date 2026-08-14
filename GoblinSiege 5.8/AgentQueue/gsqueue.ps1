@@ -13,13 +13,14 @@
         & ".\AgentQueue\gsqueue.ps1" claim -Agent aim-arc -Title "Arc materials" -Files "Content/UI/WBP_GSPlayerHUD.uasset" -Build
         & ".\AgentQueue\gsqueue.ps1" check -Id 007
         & ".\AgentQueue\gsqueue.ps1" set -Id 007 -Status active
+        & ".\AgentQueue\gsqueue.ps1" observed -Id 007 -What "..." -Scenario "..."
         & ".\AgentQueue\gsqueue.ps1" done -Id 007
         & ".\AgentQueue\gsqueue.ps1" buildgate
 #>
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('list', 'claim', 'check', 'set', 'done', 'buildgate', 'render', 'help')]
+    [ValidateSet('list', 'claim', 'check', 'set', 'observed', 'done', 'buildgate', 'render', 'help')]
     [string]$Command = 'list',
 
     [string]$Id,
@@ -32,7 +33,17 @@ param(
     [string]$Note,
     [string]$WaitingOn,
     [double]$StaleHours,
-    [switch]$Reaffirm
+    [switch]$Reaffirm,
+
+    # ---- the observation gate (#136) ----------------------------------------------------------
+    # What you SAW when the thing ran, and what you ran it in. Two fields rather than one because
+    # "evidence came from the wrong scenario" is this project's most repeated failure and was
+    # invisible in every ticket that committed it: #132 and #133 both tested on GS.Combat.Duel,
+    # which spawns defenders, and neither ever ran on a horn-summoned goblin; #133's blendspace was
+    # signed off from the player pawn, which exercises one of its five direction columns.
+    [string]$What,
+    [string]$Scenario,
+    [string]$Unobserved
 )
 
 $ErrorActionPreference = 'Stop'
@@ -89,6 +100,8 @@ function Read-Ticket {
     $buildNeed = 'none'
     $waiting   = ''
     $evaluated = ''
+    $observed  = ''
+    $scenario  = ''
     $fileList  = @()
 
     $inFm    = $false
@@ -118,6 +131,8 @@ function Read-Ticket {
                 'build'      { $buildNeed = $v.ToLower() }
                 'waiting_on' { $waiting   = $v }
                 'evaluated'  { $evaluated = $v }
+                'observed'   { $observed  = $v }
+                'scenario'   { $scenario  = $v }
             }
         }
     }
@@ -146,6 +161,8 @@ function Read-Ticket {
         Build     = $buildNeed
         WaitingOn = $waiting
         Evaluated = $evaluated
+        Observed  = $observed
+        Scenario  = $scenario
         Files     = $fileList
         AgeHours  = $ageHours
         IsOpen    = ($OpenStatuses -contains $status)
@@ -401,7 +418,14 @@ function Format-Board {
         [void]$sb.AppendLine('| # | status | agent | title |')
         [void]$sb.AppendLine('|---|--------|-------|-------|')
         foreach ($t in $closed) {
-            [void]$sb.AppendLine("| $($t.Id) | $($t.Status) | $($t.Agent) | $($t.Title) |")
+            # A ticket closed without anyone watching it run stays marked, permanently. The point
+            # is not to shame the agent that did it - sometimes the editor is broken and shipping
+            # blind is the right call - it is that the next agent reading this board can see at a
+            # glance which finished work has never actually been seen to work. Before #136 that
+            # was invisible, and #120 is the proof of what invisible costs.
+            $mark = ''
+            if ($t.Observed -like 'UNOBSERVED*') { $mark = ' **UNOBSERVED**' }
+            [void]$sb.AppendLine("| $($t.Id) | $($t.Status)$mark | $($t.Agent) | $($t.Title) |")
         }
         [void]$sb.AppendLine('')
     }
@@ -484,6 +508,8 @@ claimed: $stamp
 build: $buildNeed
 waiting_on:
 evaluated:
+observed:
+scenario:
 files: $fileBlock
 ---
 
@@ -646,6 +672,62 @@ function Invoke-Set {
     }
 }
 
+# Phrases that describe the ARTIFACT rather than its BEHAVIOUR. Every one of these has been
+# offered in this repo as proof that something worked, while the thing did nothing at all.
+#
+# Scanned ONLY against the one-line `observed:` field, never against the Generate/Evaluate/Refine
+# prose. That is deliberate and follows the precedent set by the placeholder scan above: an italics
+# heuristic was rejected there because real writeups are full of underscores, and a phrase scan over
+# prose has the same defect in a worse form - a good Evaluate DISCUSSES these phrases in order to
+# disclaim them, so scanning prose would punish exactly the honest writeups it is meant to reward.
+$NonEvidence = @(
+    'compil', 'read back', 'reads back', 'read-back', 'should work', 'by inspection',
+    'builds clean', 'build succeeded', 'no errors', 'no warnings', 'samples match',
+    'looks correct', 'looks right', 'verified the asset', 'up to date', 'up-to-date'
+)
+
+function Write-EvidenceLadder {
+    # Printed at the moment of refusal rather than kept in a document. The ranking below exists
+    # today only as scattered prose across ~800 lines of AGENT_STATE.md, which nothing forces an
+    # agent to re-read while it is writing an Evaluate - so it has never once been in front of
+    # anyone at the moment the decision was actually made.
+    Write-Output '  strongest  a human watched it happen'
+    Write-Output '             a runtime log line, under the right cvar, in the right scenario'
+    Write-Output '             a screenshot you opened and looked at'
+    Write-Output '  weakest    a static re-read, a compile result, a tool return value  <- NOT evidence'
+}
+
+function Invoke-Observed {
+    if (-not $Id) { throw 'observed needs -Id.' }
+    if (-not $What) { throw 'observed needs -What "<what you SAW when it ran>".' }
+    if (-not $Scenario) {
+        throw 'observed needs -Scenario "<what you ran it in>", e.g. "PIE L_CombatArena, 6 horn-summoned goblins vs a militia patrol".'
+    }
+    $t = Get-TicketById $Id
+    if (-not $t) { throw "No ticket #$Id." }
+
+    $lower = $What.ToLower()
+    foreach ($phrase in $NonEvidence) {
+        if ($lower -like "*$phrase*") {
+            Write-Output "REFUSED - '$What' describes the artifact, not what it DID."
+            Write-Output "The phrase '$phrase' is on the non-evidence list because it has been offered"
+            Write-Output 'here before as proof that something worked, while the thing did nothing.'
+            Write-Output ''
+            Write-EvidenceLadder
+            Write-Output ''
+            Write-Output 'Say what you SAW: "goblins turned to face the militiaman and held it through the cooldown".'
+            exit 1
+        }
+    }
+
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    Set-TicketField -Path $t.Path -Key 'observed' -Value "$stamp | $What"
+    Set-TicketField -Path $t.Path -Key 'scenario' -Value $Scenario
+    Update-Board
+    Write-Output "#$($t.Id) observed: $What"
+    Write-Output "#$($t.Id) scenario: $Scenario"
+}
+
 function Invoke-Done {
     if (-not $Id) { throw 'done needs -Id.' }
     $t = Get-TicketById $Id
@@ -684,6 +766,39 @@ function Invoke-Done {
         Write-Output "  set -Id $($t.Id) -Status review"
         Write-Output 'and hand it to the orchestrator, which is what QUEUE.md rule 3 asks for.'
         exit 1
+    }
+
+    # --- has anyone actually WATCHED it? (#136) -------------------------------------------
+    # Every gate above this line inspects the ticket's TEXT and TIMESTAMPS. None of them can tell
+    # a working change from a dead one, and the project has the receipt: ticket #120 exists solely
+    # to record "three fixes in a row shipped without anyone watching them run, and all three were
+    # wrong" - and #120 was ITSELF closed unwatched, its own Evaluate reading "No PIE. Nobody has
+    # watched a fight." Every gate passed it. The pattern then recurred twice within 24 hours
+    # (#133's blendspace, #135's horde tick), because the response to it had been prose, and prose
+    # about verification already appears in five normative places and a dozen case-law entries.
+    #
+    # This is the first gate in this file that asks whether the work RAN.
+    if (-not $t.Observed) {
+        if ($Unobserved) {
+            $stamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            Set-TicketField -Path $t.Path -Key 'observed' -Value "UNOBSERVED $stamp - $Unobserved"
+            Set-TicketField -Path $t.Path -Key 'scenario' -Value 'none - never run'
+            Write-Output "WARNING - #$($t.Id) is closing UNOBSERVED: $Unobserved"
+            Write-Output 'It will carry an UNOBSERVED marker on the board for as long as the board exists.'
+            Write-Output "This owes AGENT_STATE.md a line saying what is unproven, in the words you would"
+            Write-Output 'want to read if it turns out to be wrong.'
+            Write-Output ''
+        }
+        else {
+            Write-Output "REFUSED - #$($t.Id) has never been observed running."
+            Write-Output 'A compile, a read-back and a green editor status all pass on something that does nothing.'
+            Write-Output ''
+            Write-EvidenceLadder
+            Write-Output ''
+            Write-Output "  observed -Id $($t.Id) -What ""<what you saw>"" -Scenario ""<what you ran it in>"""
+            Write-Output "  done -Id $($t.Id) -Unobserved ""<reason>""    (ships it unwatched, and says so on the board)"
+            exit 1
+        }
     }
 
     $checked    = @(Get-FilesTouchedSinceEvaluate -Ticket $t)
@@ -760,10 +875,16 @@ gsqueue.ps1 - Goblin Siege agent work queue
   check -Id <n> | -Files a,b                    who is ahead of me on these files?
   set -Id <n> -Status <s> [-Note "..."]         queued|active|review|done|blocked|abandoned
   set -Id <n> -WaitingOn "<#n or prose>"        say what is stalling you (shows on the board)
-  done -Id <n> [-Reaffirm]                      close; refuses unless G/E/R are written, the
-                                                ticket passed through review, and no claimed
-                                                file changed after the Evaluate was stamped.
-                                                -Reaffirm = "I re-read it and it still stands"
+  observed -Id <n> -What "..." -Scenario "..."  record what you SAW when it ran, and what you
+                                                ran it in. Refuses phrasing that describes the
+                                                artifact ("compiles", "reads back") rather than
+                                                its behaviour.
+  done -Id <n> [-Reaffirm] [-Unobserved "..."]  close; refuses unless G/E/R are written, the
+                                                ticket passed through review, no claimed file
+                                                changed after the Evaluate was stamped, and
+                                                somebody observed the work running.
+                                                -Reaffirm   = "I re-read it and it still stands"
+                                                -Unobserved = ship it unwatched; the board says so
   buildgate                                     exit 0 only if nothing is open
   render                                        rewrite the board in QUEUE.md
 
@@ -781,6 +902,7 @@ switch ($Command) {
     'claim'     { Invoke-Claim }
     'check'     { Invoke-Check }
     'set'       { Invoke-Set }
+    'observed'  { Invoke-Observed }
     'done'      { Invoke-Done }
     'buildgate' { Invoke-BuildGate }
     'render'    { Update-Board; Write-Output 'Board rewritten.' }

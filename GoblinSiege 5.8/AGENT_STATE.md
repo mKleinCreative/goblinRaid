@@ -167,9 +167,45 @@ next agent rediscovers it.
 
 ## DECISIONS
 
+- **2026-08-11 (#136): A TICKET CANNOT CLOSE UNLESS SOMEBODY WATCHED THE WORK RUN.** `gsqueue.ps1`
+  gained `observed:` and `scenario:` fields, an `observed -Id <n> -What "..." -Scenario "..."` verb,
+  and a refusal in `done`. It is the first gate in that script that asks whether the work RAN — every
+  other one inspects the ticket's text and timestamps.
+  - **`-What` is phrase-scanned** and rejects `compil`, `read back`, `should work`, `no errors`,
+    `looks correct` and friends: those describe the artifact, not its behaviour. The scan runs on
+    that one line only, **never on the Evaluate prose** — a good Evaluate quotes those phrases in
+    order to disown them.
+  - **`-Scenario` is the one that matters most.** "In the editor" is not a scenario. Wrong-scenario
+    evidence is this project's most repeated failure: #132/#133 tested with `GS.Combat.Duel` (which
+    spawns *defenders*) and never ran on the horde; #133's blendspace was signed off from the player
+    pawn, which exercises one of its five direction columns.
+  - **`done -Id <n> -Unobserved "<reason>"` is the honest escape** — a broken editor must never
+    deadlock the queue — and marks the board `**UNOBSERVED**` permanently.
+  - Why mechanical and not another rule: "verify with evidence" already existed in **5 normative
+    places and ~12 case-law restatements**, and #120 — the ticket that exists to record *"three fixes
+    shipped without anyone watching them run"* — was **itself closed unwatched**, passing every gate.
+    Prose is not a gate.
+- **2026-08-11 (#137): `GS.Anim.Snapshot [radius]` IS THE ANIMATION INSTRUMENT.** Before it, this
+  module had 18 cvars and 26 commands and **not one reported anything about animation** (no
+  `UAnimInstance` subclass; no line had ever printed a speed).
+  - One row per live pawn: `pawn | controller | speed | direction | rotation mode | REFPOSE |
+    playing | blackboard target`. `Direction` uses `UKismetAnimationLibrary::CalculateDirection`,
+    the same call the AnimBPs use, so it cannot drift from what the graph sees.
+  - **The `REFPOSE` column answers "did this pose evaluate to nothing".** T-pose, "no locomotion at
+    all" and A-pose were all one condition and nothing could state it. **Validated against a
+    known-BAD case**: 0/18 in reference pose on the working blendspace, **9/15 on the dead one** —
+    exactly the pawns running the goblin AnimBP.
+  - **It prints EVERY pawn on purpose**, so a player-only test cannot hide an AI-only failure.
+    Measured in one table: player `Direction 0.0 / OrientToMove`, horde goblins spanning −138° to
+    +122°.
+  - Gotcha: the header is `"KismetAnimationLibrary.h"` — **directly in `AnimGraphRuntime/Public/`,
+    NOT under `Kismet/`** — and needs the `AnimGraphRuntime` private module dependency.
 - **2026-08-11 (#133): COMBAT FACING HAS EXACTLY ONE AUTHORITY — `AGSAIControllerBase::TickFacing`**
   (`SetFocus` at `EAIFocusPriority::Gameplay` + `bUseControllerDesiredRotation`), behind
-  `GS.Combat.FaceTarget`. `UBTTask_MenaceOrbit`, `UBTTask_MeleeAttack` and `UBTTask_Block` keep their
+  `GS.Combat.FaceTarget`. **WATCHED AND SIGNED OFF by Michael, 2026-08-11: *"the combat animation
+  looks good now."*** This is settled work, not a pending fix — do not re-open it on suspicion.
+  It only became true once **#135** re-enabled the horde controller's tick, without which
+  `TickFacing` had never executed on a single horn-summoned goblin. `UBTTask_MenaceOrbit`, `UBTTask_MeleeAttack` and `UBTTask_Block` keep their
   `SetActorRotation` code **only as the switch-off path** — deleting it would turn
   `GS.Combat.FaceTarget 0` into #089's deadlock rather than a comparison.
   - **CORRECTION to a comment repeated across the codebase:** `BTTask_Block.h:121` claims these pawns
@@ -181,15 +217,21 @@ next agent rediscovers it.
   - Priority is `Gameplay`, **not** `Move`: path following parks its own focus at `Move`
     (`AAIController::SetMoveFocus`), so a combat focus there is overwritten by every MoveTo.
     `UBTTask_RangedAttack` focuses the same blackboard actor at the same priority, so they agree.
-- **2026-08-11 (#133): the goblin runs a Direction x Speed 2D blendspace; the HUMAN DOES NOT, YET.**
-  `BS_GS_Locomotion_Gob` is wired into `ThirdPerson_AnimBP_Gob` and confirmed good by Michael.
-  `BS_GS_Locomotion_Hu`, `A_HU_Std_RunL`/`RunR` and `HU_Direction` all exist and are correct, but
-  `ABP_Human` is still on its original Idle/Walk/Run state machine — the blendspace player sits in
-  the graph with its Pose output unconnected. **Wiring the human is two connections** (state machine
-  off `Slot 'DefaultSlot'.Source`, blendspace player on), left undone deliberately after two broken
-  passes so it gets its own confirmation.
+- **2026-08-11 (#133): DIRECTIONAL LOCOMOTION IS NOT SHIPPED. BOTH RIGS ARE ON THEIR ORIGINAL
+  LOCOMOTION.** `ThirdPerson_AnimBP_Gob` is back on the 1D `ThirdPerson_IdleRun_2D_Gob` (Speed->X)
+  and `ABP_Human` is back on its Idle/Walk/Run state machine. **Do not read the two new blendspaces
+  as working assets.**
+  - `BS_GS_Locomotion_Gob` / `BS_GS_Locomotion_Hu`, `A_HU_Std_RunL`/`RunR`, `HU_Direction` and both
+    `CalculateDirection` graphs all EXIST and are correct by every check the tooling can perform.
+    They are simply not wired in, and the blendspaces are **not known-good** — see the FAILED entry.
   - `ThirdPerson_IdleRun_2D_Gob` is a **`BlendSpace1D`** despite the `_2D_` in its name.
-  - The goblin's `Direction` variable existed for months and **nothing ever set it**.
+  - The goblin's `Direction` variable existed for months and **nothing ever set it**; it is now set,
+    harmlessly, whether or not anything reads it.
+  - **The trap for the next agent:** the player goblin runs `bOrientRotationToMovement=true`, so its
+    `Direction` is pinned at ~0 and it only ever samples the FORWARD column. Every other AI pawn
+    (`BP_HordeGoblin`, the defenders) runs `bUseControllerRotationYaw=true` instead and uses the full
+    ±180 range. **Testing directional locomotion as the player proves nothing** — it exercises one
+    column out of five. That is how a broken blendspace got signed off as "looks good".
 - **2026-08-11 (#133, open): `BP_CastleGuard01` has MaxWalkSpeed 1210 against a ~420 uu/s run
   animation.** A 2.9x mismatch that no blendspace can absorb — a charging guard must foot-slide or
   play at ~3x rate. Pre-existing and equally true of the single `A_HU_Std_RunF` before #133. It is a
@@ -495,18 +537,28 @@ below as priority; it is grouped by kind. The first item is the only one anyone 
     `HeadTop_End` to `Skeleton` retargeting. **The rest of the skeleton is still `Animation`, so the
     trap is disarmed only for the head** — the canonical fix (all non-`Hips` bones to `Skeleton`,
     `Hips` to `AnimationScaled`) is deliberately still outstanding.
-- 2026-08-11 **A BLENDSPACE BUILT FROM PYTHON IS COSMETICALLY PERFECT AND FUNCTIONALLY DEAD UNLESS
-  YOU PASS `notify_mode=ALWAYS`** (#133). `UBlendSpace` generates its grid/triangulation inside
-  `PostEditChangeProperty`; `set_editor_property` was not firing it, so the samples were written and
-  **the blend surface never existed**. Every agent falls through to the reference pose.
-  - This is invisible to every check this project's tooling can perform: the samples read back
-    perfectly, skeletons match, and the AnimBP compiles `BS_UP_TO_DATE`. Use
-    `set_editor_property(name, value, unreal.PropertyAccessChangeNotifyMode.ALWAYS)`.
-  - Two further blendspace traps from the same ticket: a direction axis needs an explicit `+180`
-    column (`wrap_input` does **not** close the convex hull, and an agent moving backward-right falls
-    outside every sample → T-pose), and per-sample `rate_scale` must not be combined with
-    `axis_to_scale_animation` — the working `ThirdPerson_IdleRun_2D_Gob` uses axis scaling alone with
-    every rate at 1.000.
+- 2026-08-11 **A 2D BLENDSPACE AUTHORED FROM PYTHON IS COSMETICALLY PERFECT AND FUNCTIONALLY DEAD,
+  AND I NEVER GOT ONE WORKING** (#133). Four passes, four different failures, all shipped to Michael
+  as "verified" because **every check this project's tooling can perform passes on a dead asset**:
+  the samples read back exactly, the skeletons match, the sample grid is a complete rectangle, the
+  AnimBP compiles `BS_UP_TO_DATE`, and the thing still evaluates to the reference pose.
+  - **CONFIRMED DEAD BY MEASUREMENT 2026-08-11 (#137), not by inference.** `GS.Anim.Snapshot` on the
+    goblin AnimBP pointed at `BS_GS_Locomotion_Gob` reported **9 of 15 pawns in the reference pose** —
+    every pawn using that graph — against **0 of 18** on the old 1D asset. Four passes of reasoning
+    in #133 could not settle this; one command did.
+  - **The strong suspicion, unproven:** `UBlendSpace` builds its grid/triangulation inside
+    `PostEditChangeProperty`, and writing `sample_data` from Python does not reliably fire it, so the
+    blend surface never exists and only inputs landing EXACTLY on a sample resolve. Passing
+    `set_editor_property(name, value, unreal.PropertyAccessChangeNotifyMode.ALWAYS)` did **not** fix
+    it. There is no Python API that exposes the triangulation, so this cannot be checked — only
+    inferred from behaviour.
+  - **If you need a 2D blendspace, author it BY HAND in the editor.** Do not spend another session
+    proving the array was written. The clips, the skeletons and the sample maths were all correct
+    every time; the asset was not.
+  - Genuine sub-findings worth keeping regardless: a direction axis needs an explicit `+180` column
+    (`wrap_input` does **not** close the convex hull); per-sample `rate_scale` must not be combined
+    with `axis_to_scale_animation` (the working `ThirdPerson_IdleRun_2D_Gob` uses axis scaling alone
+    with every rate at 1.000); and `A_MX_Sprint_Gob` lives in `Anims_Climb`, not `Anims_Loco`.
 - 2026-08-10 **THREE FIXES IN A ROW SHIPPED WITHOUT ANYONE WATCHING THEM RUN, AND ALL THREE WERE
   WRONG** (#113, #116, #118). The pattern, not the individual bugs, is the entry worth reading:
   - **#113** set `force_root_lock=True` on 9 human clips to stop attacks popping upward, and closed

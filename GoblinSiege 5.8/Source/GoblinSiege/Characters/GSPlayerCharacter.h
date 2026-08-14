@@ -106,6 +106,22 @@ protected:
 	/** Q up: commit whatever sector is highlighted. Bound to Completed AND Canceled, so losing focus
 	 *  mid-drag closes the wheel rather than leaving it stuck open eating the mouse. */
 	void Input_WheelClose(const FInputActionValue& Value);
+
+	/**
+	 * R down: latch what the crosshair is on, then open the horde order wheel (#141).
+	 *
+	 * MUTUAL EXCLUSION WITH THE WEAPON WHEEL LIVES HERE, in the character, rather than as a
+	 * dependency between the two components. Neither component learns about the other; the pawn that
+	 * owns both is the only thing that has any business deciding that two wheels must not be open at
+	 * once. Both wheels feed off Input_Look, and two live drag accumulators over one axis would give
+	 * the player a weapon swap he did not ask for every time he issued an order.
+	 */
+	void Input_OrderWheelOpen(const FInputActionValue& Value);
+
+	/** R up: commit the highlighted verb against the latched target. Bound to Completed AND Canceled,
+	 *  for the reason Input_WheelClose gives. */
+	void Input_OrderWheelClose(const FInputActionValue& Value);
+
 	/** True when the right mouse button should mean BLOCK rather than AIM. Sword, or no weapon
 	 *  component at all - see the comment on Input_AimStart. */
 	bool IsSwordEquipped() const;
@@ -173,6 +189,12 @@ protected:
 	/** Owns the aim state, the predicted trajectory and the arc ribbon for every ranged verb. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Aim")
 	TObjectPtr<UGSAimComponent> AimComponent;
+
+	/** The order wheel and its one Server RPC (#141). On the pawn rather than on
+	 *  UGSHordeSubsystem because a UWorldSubsystem has no NetRole and cannot host an RPC - see the
+	 *  component's header for the other two reasons. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Horde")
+	TObjectPtr<class UGSHordeCommandComponent> HordeCommandComponent;
 
 	/**
 	 * The stamina pool. BlueprintReadOnly so BP_GSPlayerCharacter's sprint and traversal graphs can
@@ -301,6 +323,22 @@ protected:
 	 *  as long as the key is down. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> InteractAction;
+
+	/**
+	 * The horde order wheel (#141) - hold to open, drag to pick a verb, release to commit. Bound to R.
+	 *
+	 * R rather than a mouse button: LMB/RMB/MMB are attack, block and the horn, and the horn is the
+	 * thing you press immediately BEFORE you want this - putting them on the same button would make
+	 * "summon then order" one gesture with two meanings. Q is the weapon wheel, so R sits next to it
+	 * and reads as its sibling.
+	 *
+	 * MUST BE ASSIGNED ON THE BLUEPRINT CDO, and SetupPlayerInputComponent logs loudly if it is not.
+	 * An unset TObjectPtr<UInputAction> does not crash BindAction in 5.8 - it registers a binding that
+	 * never fires - which is a dead key with no error and nothing to search for. This project has
+	 * shipped that exact bug three times (InteractAction, JumpAction in #060, again in #116).
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> HordeOrderAction;
 
 	/** Universal torch toss (racial trait) - granted in BeginPlay regardless of weapon kit. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
@@ -463,6 +501,15 @@ protected:
 	/** The live instance, kept so it is not garbage collected out from under the viewport. */
 	UPROPERTY(Transient)
 	TObjectPtr<class UGSWeaponWheelWidget> WeaponWheelWidget;
+
+	/** The order wheel's on-screen half. Set to WBP_HordeOrderWheel on BP_GSPlayerCharacter.
+	 *  Same lifetime rules as the weapon wheel above: created once, left collapsed in the viewport.
+	 *  Leave it unset and orders still work perfectly - you simply drag blind. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|UI")
+	TSubclassOf<class UGSHordeOrderWheelWidget> HordeOrderWheelWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UGSHordeOrderWheelWidget> HordeOrderWheelWidget;
 
 	virtual void PossessedBy(AController* NewController) override;
 
