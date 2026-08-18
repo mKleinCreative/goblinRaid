@@ -10,20 +10,22 @@ AGSDestructibleObjective::AGSDestructibleObjective()
 
 	GeometryCollectionComponent = CreateDefaultSubobject<UGeometryCollectionComponent>(TEXT("GeometryCollection"));
 	RootComponent = GeometryCollectionComponent;
-	// Fracture stays dormant until burn-complete - the granary stands solid while it burns.
+	// Fracture stays dormant until burn-complete - the objective stands solid while it burns.
 	GeometryCollectionComponent->SetSimulatePhysics(false);
 
 	FlammableComponent = CreateDefaultSubobject<UGSFlammableComponent>(TEXT("FlammableComponent"));
 
-	// 2026-07-31: burning the granary has to be worth having done ten minutes later. Constructed
-	// here rather than added per-Blueprint so every granary in every level - including ones nobody
-	// has kitbashed yet - chars while it burns and keeps smoking after the flames have gone out.
-	// Hand-wiring this in a Blueprint is exactly the step someone forgets on the one granary the
-	// playtest happens to stand in front of.
+	// 2026-07-31: destroying this has to be worth having done ten minutes later. Constructed here
+	// rather than added per-Blueprint so every instance in every level - including ones nobody has
+	// kitbashed yet - chars while it burns and keeps smoking after the flames have gone out.
+	// Hand-wiring this in a Blueprint is exactly the step someone forgets on the one the playtest
+	// happens to stand in front of.
 	BurnFXComponent = CreateDefaultSubobject<UGSBurnFXComponent>(TEXT("BurnFX"));
 
-	// GSObjective_BurnGranaries finds its targets by this tag - "counts what it finds".
-	Tags.Add(FName(TEXT("Objective.Granary")));
+	// AGSObjective_ToppleStatue finds its targets by this tag - "counts what it finds".
+	// Renamed from "Objective.Granary" 2026-08-18 with queue #156; a CoreRedirect covers the
+	// class rename, but a tag typed by hand onto a placed actor is NOT redirected - see #189.
+	Tags.Add(FName(TEXT("Objective.Statue")));
 }
 
 void AGSDestructibleObjective::BeginPlay()

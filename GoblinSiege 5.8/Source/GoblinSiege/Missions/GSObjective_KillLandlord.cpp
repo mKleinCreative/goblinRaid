@@ -11,7 +11,7 @@ void AGSObjective_KillLandlord::BeginObjective()
 {
 	Super::BeginObjective();
 
-	// Tagged-actor lookup, matching AGSObjective_BurnGranaries' pattern (see header comment).
+	// Tagged-actor lookup, matching AGSObjective_ToppleStatue's pattern (see header comment).
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsWithTag(this, LandlordActorTag, FoundActors);
 	if (FoundActors.Num() > 0)

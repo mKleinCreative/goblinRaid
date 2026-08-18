@@ -147,7 +147,7 @@ void AGSSpawnerActor::Silence()
 	}
 
 	// Chaos fracture / collapse visuals for the building mesh are left to a Blueprint event bound
-	// to OnSpawnerSilenced, matching AGSDestructibleObjective's pattern for granaries.
+	// to OnSpawnerSilenced, matching AGSDestructibleObjective's pattern for destructible objectives.
 }
 
 void AGSSpawnerActor::HandleHordeWaveTriggered(EGSReinforcementTier NewTier)

@@ -6,9 +6,23 @@ code cannot. So the checks below are deterministic geometry, and the optional ag
 (--verifier) is reserved for judgement — does this read as a hamlet, is the silhouette
 legible — never for anything a raycast can settle.
 
-Every check cites the GDD section it enforces. None of these rules were invented here;
-they are the constraints 2.8 and 3.3 already committed to. That is the difference between
-an evaluator and a generic validity check.
+Every check carries the section it answers to, and the `gdd` field is honest about which kind
+of rule it is:
+
+  * A section number — a **design rule the GDD actually states**, quoted in the check's
+    docstring. cover_guarantee (2.4, restated 3.1), objective_mix (2.8 for the roster, 1 for
+    "never more than two of a kind"), statue_not_burned (2.8), reachability (2.8's week-2
+    timebox), roads_clear and buildable_ground (2.8's two named placement bugs), wayfinding
+    (2.8).
+  * `"build"` — a **buildability check with no GDD rule behind it**. no_overlap,
+    building_integrity and roof_coverage are here: the GDD states no building-intersection
+    rule, no roof rule and no door rule. They are worth running, and they are not evidence
+    that this evaluator enforces the design document.
+
+That distinction is the whole difference between an evaluator and a generic validity check,
+so it is recorded per finding rather than asserted in a comment. An earlier version of this
+file stamped all ten checks "2.8" and claimed in this docstring that none of the rules were
+invented here. Three of them were.
 
 Each finding carries `fix` — the specific data the refiner needs to make a *targeted*
 correction rather than a blind re-roll.
@@ -21,7 +35,7 @@ from dataclasses import dataclass, asdict
 
 from .geom import Disc, Rect, cell_of, flood_reachable, ring_points, seg_intersects_disc, \
     seg_intersects_rect
-from .generate import Plan
+from .generate import DESTRUCTION, REQUIRED_KINDS, Plan
 
 TREELINE_SAMPLES = 48        # rays cast per objective from the treeline ring
 NAV_CELL = 250.0             # cm; coarse reachability grid
@@ -45,11 +59,23 @@ class Finding:
 
 def check_cover_guarantee(plan: Plan) -> list[Finding]:
     """
-    GDD 2.8: broken sightlines guaranteed between the treeline and EVERY objective.
+    GDD 2.4: broken sightlines guaranteed between the treeline and EVERY objective.
 
-    The headline rule. An objective visible in an unbroken line from the treeline means the
-    player is confirmed before the first spark, "First Spark Unseen" (+40, 2.9) is unwinnable,
-    and 2.4's quiet half of the raid is dead on that map.
+    The headline rule, and the GDD states it twice. 2.4: "the tutorial hamlet guarantees
+    broken sightlines between the treeline and every objective. If the hamlet is hand-placed
+    that guarantee is a review pass; if the generator authors it, the cover-placement rule has
+    to be enforced algorithmically from day one". 3.1 (the Settlement Generator Agent) repeats
+    it: "it is the rule a generated layout has to enforce algorithmically rather than by
+    review."
+
+    Cited to 2.4 rather than 2.8 because 2.4 is where the sentence lives. 2.8 governs the
+    hamlet this generator targets but says nothing about sightlines beyond trees filling the
+    seams between modules — an earlier version of this file cited 2.8 for all of it, which is
+    the sort of thing a reader checking the citation would catch.
+
+    An objective visible in an unbroken line from the treeline means the player is confirmed
+    before the first spark, "First Spark Unseen" (+40, 2.9) is unwinnable, and 2.4's quiet
+    half of the raid is dead on that map.
     """
     out: list[Finding] = []
     occluders_r = [b.rect for b in plan.buildings]
@@ -87,7 +113,7 @@ def check_cover_guarantee(plan: Plan) -> list[Finding]:
             width = (a1 - a0) % (2 * math.pi)
             out.append(Finding(
                 check="cover_guarantee",
-                gdd="2.8",
+                gdd="2.4",
                 severity="fail",
                 message=(f"{obj.id} ({obj.kind}) is in unbroken line of sight from the "
                          f"treeline across an arc of {math.degrees(width):.0f}° "
@@ -101,21 +127,59 @@ def check_cover_guarantee(plan: Plan) -> list[Finding]:
 
 
 def check_objective_mix(plan: Plan) -> list[Finding]:
-    """GDD 2.8: three objectives, never more than two of a kind."""
+    """
+    GDD 2.8 (revised 2026-08-14): the raid assigns exactly three REQUIRED objectives, drawn
+    from Market / Statue / Windmill, never more than two of a kind. Wheat fields and houses
+    are optional — "worth points but not gating extraction" — so they do not count toward
+    the three and may not masquerade as one of them.
+
+    The count is over required objectives only. Counting all of them would let a plan with
+    three fields and no windmill pass, which is not a raid.
+    """
     out = []
-    n = len(plan.objectives)
+    required = [o for o in plan.objectives if o.required]
+    n = len(required)
     if n != 3:
-        out.append(Finding("objective_mix", "2.8", "fail",
-                           f"{n} objectives; the raid assigns exactly three",
+        out.append(Finding("objective_mix", "2.8/1", "fail",
+                           f"{n} required objectives; the raid assigns exactly three",
                            {"kind": "objective_count", "have": n, "want": 3}))
+
     counts: dict[str, int] = {}
-    for o in plan.objectives:
+    for o in required:
         counts[o.kind] = counts.get(o.kind, 0) + 1
     for kind, c in sorted(counts.items()):
+        if kind not in REQUIRED_KINDS:
+            out.append(Finding("objective_mix", "2.8/1", "fail",
+                               f"{kind} is not a required objective type; the roster is "
+                               f"{'/'.join(REQUIRED_KINDS)}",
+                               {"kind": "objective_not_required", "objective_kind": kind}))
         if c > 2:
-            out.append(Finding("objective_mix", "2.8", "fail",
+            out.append(Finding("objective_mix", "2.8/1", "fail",
                                f"{c} x {kind}; never more than two of a kind",
                                {"kind": "objective_dupes", "objective_kind": kind, "count": c}))
+    return out
+
+
+def check_statue_is_toppled(plan: Plan) -> list[Finding]:
+    """
+    GDD 2.8: "The statue is the one target that doesn't burn: it has to be brought down,
+    stone on stone." 2.10 carries the reason — it is a monument to the king who supposedly
+    wiped the goblins out, and toppling it is the tutorial's thesis rather than set dressing.
+
+    A statue marked to burn is not a cosmetic error. It lands on the wrong runtime class:
+    the burn objectives derive from AGSBurnObjectiveBase, while the statue is the one that
+    wants AGSDestructibleObjective's geometry-collection release (queue #156). A generator
+    that emits a burnable statue produces an objective the game cannot complete.
+    """
+    out = []
+    for obj in plan.objectives:
+        want = DESTRUCTION.get(obj.kind)
+        if want and obj.destruction != want:
+            out.append(Finding("statue_not_burned", "2.8", "fail",
+                               f"{obj.id} is a {obj.kind} marked '{obj.destruction}'; 2.8 "
+                               f"requires '{want}'",
+                               {"kind": "wrong_destruction", "objective": obj.id,
+                                "have": obj.destruction, "want": want}))
     return out
 
 
@@ -134,7 +198,7 @@ def check_reachability(plan: Plan) -> list[Finding]:
         touch = [(cx, obj.rect.y - NAV_CELL), (cx, obj.rect.y2 + NAV_CELL),
                  (obj.rect.x - NAV_CELL, cy), (obj.rect.x2 + NAV_CELL, cy)]
         if not any(cell_of(p, plan.site, NAV_CELL) in reach for p in touch):
-            out.append(Finding("reachability", "2.1/2.2", "fail",
+            out.append(Finding("reachability", "2.8", "fail",
                                f"{obj.id} cannot be reached on foot from the runic site",
                                {"kind": "unreachable", "objective": obj.id,
                                 "at": [round(cx, 1), round(cy, 1)]}))
@@ -144,11 +208,18 @@ def check_reachability(plan: Plan) -> list[Finding]:
 def check_no_overlap(plan: Plan) -> list[Finding]:
     """Buildings may not intersect. Week 1 shipped the physical version of this."""
     out = []
-    # (id, rect, movable, linked_objective). Objectives are anchors: the granary sits where
-    # the guards are thickest and the field sprawls at the edge (2.8), so a conflict is
-    # resolved by moving the house, never the objective.
+    # (id, rect, movable, linked_objective). Objectives are anchors: the statue stands in the
+    # village square where the guards are thickest and the field sprawls at the edge (2.8),
+    # so a conflict is resolved by moving the house, never the objective.
+    # A building that BELONGS to an objective is not listed separately. The windmill building
+    # literally shares its objective's Rect object, and market stalls sit inside the market's
+    # footprint, so listing both reports one collision twice - and the refiner then moves the
+    # same house twice for it. On seed 6 the redundant second move was what carried the
+    # occluder away from obj_2_windmill and opened a sightline on the final pass, where no
+    # pass remained to close it. The objective entry already stands for that footprint.
     items: list[tuple[str, Rect, bool, str]] = (
-        [(b.id, b.rect, b.kind not in ("windmill",), b.objective_id) for b in plan.buildings]
+        [(b.id, b.rect, b.kind not in ("windmill",), b.objective_id)
+         for b in plan.buildings if not b.objective_id]
         + [(o.id, o.rect, False, o.id) for o in plan.objectives]
     )
     for i in range(len(items)):
@@ -169,11 +240,11 @@ def check_no_overlap(plan: Plan) -> list[Finding]:
             elif ma and mb:
                 a_id, b_id = ia, ib
             else:
-                out.append(Finding("no_overlap", "2.8", "fail",
+                out.append(Finding("no_overlap", "build", "fail",
                                    f"{ia} overlaps {ib}, and neither can be moved",
                                    {"kind": "overlap_immovable", "a": ia, "b": ib}))
                 continue
-            out.append(Finding("no_overlap", "2.8", "fail",
+            out.append(Finding("no_overlap", "build", "fail",
                                f"{a_id} overlaps {b_id}",
                                {"kind": "overlap", "a": a_id, "b": b_id, "move": b_id}))
     return out
@@ -231,12 +302,12 @@ def check_building_integrity(plan: Plan) -> list[Finding]:
         doors = [p for p in b.placements
                  if p.mesh.startswith("SM_Door") or "_Door_" in p.mesh]
         if floors and len(roofs) < len(floors):
-            out.append(Finding("building_integrity", "2.8", "fail",
+            out.append(Finding("building_integrity", "build", "fail",
                                f"{b.id}: {len(roofs)} roof pieces for {len(floors)} modules — "
                                f"the roof does not close",
                                {"kind": "roof_gap", "building": b.id}))
         if not doors:
-            out.append(Finding("building_integrity", "2.8", "fail",
+            out.append(Finding("building_integrity", "build", "fail",
                                f"{b.id} has no door", {"kind": "no_door", "building": b.id}))
     return out
 
@@ -268,7 +339,7 @@ def check_roof_coverage(plan: Plan) -> list[Finding]:
         # sentinel, leaving a consumer with no producer. Removed in #115.
         roofs = [p for p in b.placements if "Roof" in p.mesh and p.bb]
         if not roofs:
-            out.append(Finding("roof_coverage", "2.8", "fail", f"{b.id} has no roof",
+            out.append(Finding("roof_coverage", "build", "fail", f"{b.id} has no roof",
                                {"kind": "roof_missing", "building": b.id}))
             continue
         # Sample the FLOORED area, not the bounding rect. Since houses carry their own base
@@ -299,7 +370,7 @@ def check_roof_coverage(plan: Plan) -> list[Finding]:
         )
         frac = uncovered / float(len(pts))
         if frac > ROOF_COVERAGE_TOLERANCE:
-            out.append(Finding("roof_coverage", "2.8", "fail",
+            out.append(Finding("roof_coverage", "build", "fail",
                                f"{b.id}: {frac:.0%} of the footprint has no roof above it",
                                {"kind": "roof_hole", "building": b.id,
                                 "uncovered_fraction": round(frac, 3)}))
@@ -323,6 +394,7 @@ def check_buildable_ground(plan: Plan) -> list[Finding]:
 DETERMINISTIC = [
     check_cover_guarantee,
     check_objective_mix,
+    check_statue_is_toppled,
     check_reachability,
     check_no_overlap,
     check_roads_clear,

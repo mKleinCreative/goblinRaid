@@ -190,14 +190,22 @@ namespace GSTags
 	 * Marker.ObjectiveAnchor.* is a hierarchy on purpose: AGSRaidMarker::GatherByType uses
 	 * MatchesTag, so a query for the parent finds every objective anchor while a query for
 	 * .Field finds only the fields.
+	 *
+	 * The anchor set follows the GDD 2.8 roster as revised 2026-08-14 (queue #156): the raid's
+	 * three REQUIRED objectives are Market, Statue and Mill; the wheat Field is OPTIONAL,
+	 * worth points but not gating extraction. Marker_ObjectiveAnchor_Granary was retired with
+	 * that ruling - the granary had no mesh, no Blueprint and no placed instance, and nothing
+	 * ever queried the tag.
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_GuardPost);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_PatrolNode);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_CivilianAnchor);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_CoverProp);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_HordeArrival);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Field);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Mill);
+	// Required trio (2.8).
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Market);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Granary);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Statue);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Mill);
+	// Optional (2.8).
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Field);
 }
