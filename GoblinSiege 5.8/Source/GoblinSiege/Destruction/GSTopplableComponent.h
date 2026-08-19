@@ -31,6 +31,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "GSTopplableComponent.generated.h"
 
 class UGeometryCollectionComponent;
@@ -125,6 +126,37 @@ protected:
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Topple")
 	FName IntactMeshComponentName = FName("IntactMesh");
+
+	// ---- score (#196) ---------------------------------------------------------------------------
+	//
+	// Until now, bringing down a monument scored NOTHING. OnToppled had no subscribers anywhere in the
+	// project, UGSScoreSubsystem binds only to AGSBurnObjectiveBase, and the sole trace a toppled idol
+	// left behind was one line in the log. The raid's whole point is what you did to the place, and the
+	// most dramatic thing a goblin can do to it did not register.
+	//
+	// Rates match the existing objective scale rather than inventing one (GSScoreSubsystem.cpp:20-21):
+	// 100 for the first of its type, 40 for each after. The Statue is one of the three REQUIRED
+	// objectives in the GDD roster, so the full rate is the right one.
+
+	/** Deeds for the first monument of this type. Matches DeedsPerRequiredObjective. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Topple|Score", meta = (ClampMin = "0"))
+	int32 ToppleDeeds = 100;
+
+	/** Deeds for each further monument of the same type, once one is already down. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Topple|Score", meta = (ClampMin = "0"))
+	int32 DuplicateToppleDeeds = 40;
+
+	/**
+	 * Score bucket this monument counts towards.
+	 *
+	 * Deliberately EMPTY by default and left to be set in the editor. The obvious value is
+	 * `Objective.Statue`, but that string is currently only an ACTOR tag - there is no gameplay tag for
+	 * it, and GSGameplayTags.h is claimed by another agent's open ticket (#179), so declaring one here
+	 * would collide. An unset tag still scores; it simply does not break down by type in
+	 * GetDeedsForType, which is a reporting nicety rather than the feature.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Topple|Score")
+	FGameplayTag DeedTypeTag;
 
 	UPROPERTY(Replicated)
 	bool bToppled = false;

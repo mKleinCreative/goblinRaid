@@ -3,6 +3,7 @@
 #include "GeometryCollection/GeometryCollectionComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Raid/GSScoreSubsystem.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "HAL/IConsoleManager.h"
@@ -163,6 +164,31 @@ bool UGSTopplableComponent::Topple(AActor* Toppler, const FVector& PullDirection
 	{
 		World->GetTimerManager().SetTimer(ToppleOutcomeTimer,
 			FTimerDelegate::CreateWeakLambda(this, [this]() { ReportToppleOutcome(); }), 0.5f, false);
+	}
+
+	// ---- score it ------------------------------------------------------------------------------
+	// Awarded HERE rather than from a listener on OnToppled, for the reason the idempotence guard at
+	// the top of this function exists: the topple is already first-wins, so scoring inside it cannot
+	// double-count. A subscriber could be bound twice and silently award twice, and a wrong score is
+	// the kind of bug nobody notices until an end-of-raid screen looks odd.
+	if (UWorld* World = GetWorld())
+	{
+		if (UGSScoreSubsystem* Score = World->GetSubsystem<UGSScoreSubsystem>())
+		{
+			// First of its type scores full, later ones the duplicate rate - the same demotion the
+			// burn objectives use, so a hamlet with three idols does not out-score the whole raid.
+			const bool bFirstOfType = !DeedTypeTag.IsValid() || Score->GetDeedsForType(DeedTypeTag) <= 0;
+			const int32 Points = bFirstOfType ? ToppleDeeds : DuplicateToppleDeeds;
+
+			Score->AddDeeds(DeedTypeTag, Points);
+
+			UE_LOG(LogGSTopple, Log,
+				TEXT("[GoblinSiege] '%s' scored +%d deeds (%s %s) -> %d total."),
+				*Owner->GetName(), Points,
+				bFirstOfType ? TEXT("first") : TEXT("duplicate"),
+				DeedTypeTag.IsValid() ? *DeedTypeTag.ToString() : TEXT("untagged"),
+				Score->GetTotal());
+		}
 	}
 
 	// Deliberately NOT calling Break(). The statue is not broken yet - it is falling. It shatters when
