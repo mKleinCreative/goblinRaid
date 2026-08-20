@@ -1,0 +1,283 @@
+{
+  "case": "statueprompt",
+  "title": "FirstSight.Statue - the missing sibling of the Market and Windmill prompts",
+  "violation_class": "(none - real content generation)",
+  "model": "claude-cli",
+  "threshold": 9,
+  "outcome": "PASS",
+  "source": "generated",
+  "brief": "Write ONE first-time tutorial prompt row for a dark fantasy raid game, fired the first moment the player lays eyes on the king's statue in the village square. The row needs an Overlord line (the goblin's unseen master, who whispers) and a one-line HUD note.\n\nHard facts it must respect:\n- The statue is one of the three REQUIRED objectives. The other two are burned; this one is NOT. Fire does nothing to it.\n- It is destroyed by throwing a grappling hook onto it and then WALKING AWAY until the rope tension drags it down. The grapple is a weapon-wheel slot.\n- It is a propaganda monument to the king who supposedly slew the last dragon and wiped the goblins out - the kingdom has told everyone goblins are extinct. Toppling it is the tutorial's thesis, not set dressing.\n- It stands in the village square, where the guards are thickest.\n\nThe HUD note must be ONE short line naming the objective, the payoff, and the one control that does it. Match the shape of its siblings above. The Overlord is apocalyptic gravitas applied to petty theft and vandalism; he mocks more than he mourns.",
+  "retrieval": [
+    {
+      "query": "tutorial prompt HUD note objective payoff one control dismissible first time",
+      "hits": [
+        {
+          "chunk_id": "A02§2.8#6",
+          "score": 26.423,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "A02§2.8#5",
+          "score": 24.78,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "A02§2.8#3",
+          "score": 10.706,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "A02§2.8#4",
+          "score": 9.072,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        }
+      ]
+    },
+    {
+      "query": "statue king propaganda toppled brought down stone square does not burn",
+      "hits": [
+        {
+          "chunk_id": "A02§2.8#3",
+          "score": 19.367,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "A02§2.8#4",
+          "score": 17.4,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§6#6",
+          "score": 16.408,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        },
+        {
+          "chunk_id": "GDD§6#7",
+          "score": 15.999,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        }
+      ]
+    },
+    {
+      "query": "grapple weapon wheel slot rope haul walk away controls bindings",
+      "hits": [
+        {
+          "chunk_id": "GDD§4#0",
+          "score": 37.004,
+          "heading": "GOBLIN SIEGE — Game Design Document > 4. The goblins — controls & kit"
+        },
+        {
+          "chunk_id": "GDD§4#1",
+          "score": 23.709,
+          "heading": "GOBLIN SIEGE — Game Design Document > 4. The goblins — controls & kit"
+        },
+        {
+          "chunk_id": "GDD§6#7",
+          "score": 7.844,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        },
+        {
+          "chunk_id": "GDD§6#6",
+          "score": 7.827,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        }
+      ]
+    }
+  ],
+  "before": [
+    {
+      "speaker": "Overlord",
+      "trigger": "First line-of-sight on the king's statue in the village square (AGSObjective_ToppleStatue, first-time prompt)",
+      "text": "There he is, goblin. The dragonslayer. The man who scrubbed us off the world — cast in stone so the children know we were never here. Fire won't touch him; stone doesn't care. So put a hook in his throat, and then walk away. Just walk. Let the rope explain what a corpse we are.",
+      "hud_line": "King's Statue: topple it, deny the lie — grapple (Q), then walk away",
+      "control": "Q — weapon wheel, Grapple slot (throw with ATTACK, then walk away to haul)",
+      "sources": [
+        "GDD§6#6",
+        "GDD§4#0",
+        "GDD§4#1",
+        "A02§2.8#3",
+        "A02§2.8#6"
+      ]
+    }
+  ],
+  "after": [
+    {
+      "speaker": "Overlord",
+      "trigger": "First line-of-sight on the king's statue in the village square (AGSObjective_ToppleStatue, first-time prompt)",
+      "text": "Behold the dragonslayer, goblin. A lump of rock with a haircut. Fire won't touch him; stone doesn't care. Hook him and stroll. ...adequate.",
+      "hud_line": "King's Statue: pull it down, the lie falls with it — Grapple (Q)",
+      "control": "Q — weapon wheel, Grapple slot",
+      "sources": [
+        "GDD§6#6",
+        "GDD§4#0",
+        "GDD§4#1",
+        "A02§2.8#3",
+        "A02§2.8#6"
+      ]
+    }
+  ],
+  "history": [
+    {
+      "attempt": 1,
+      "score": 5,
+      "reason": "Row 1 (Overlord bark, first line-of-sight on the king's statue) is correct on the slice facts — the statue is toppled with the grapple, not burned (\"Fire won't touch him; stone doesn't care\", GDD§6#6), the hamlet is never named, and nothing references audio. It fails on voice and on prompt shape. TONE_OVERLORD: the bark is a grievance elegy, not a whispered shrug — \"The man who scrubbed us off the world — cast in stone so the children know we were never here\" and \"Let the rope explain what a corpse we are\" are grimdark mourning; the guide requires an underwhelmed, pompous mocker applying apocalyptic gravitas to petty vandalism, with the trailing \"...adequate\" (GDD 2.1). Rewrite as roughly two short whispered clauses that belittle the king rather than lament the goblins, e.g. a bored verdict on a lump of stone, closing on \"...adequate.\" FORMAT_PROMPT: the bark is five sentences of chained clauses plus a stage direction (\"So put a hook in his throat, and then walk away. Just walk.\"), and the HUD line \"King's Statue: topple it, deny the lie — grapple (Q), then walk away\" chains a second action clause after the control; the `control` field compounds two inputs (\"Q — weapon wheel, Grapple slot (throw with ATTACK, then walk away to haul)\"). The HUD line must name exactly three things — objective, payoff, one control — in one unchained clause under 90 chars, e.g. \"King's Statue: pull it down, the lie falls with it — Grapple (Q)\".",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#6"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§6#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#6"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 5,
+          "verdict": "FAIL",
+          "row": "Row 1 (Overlord, first line-of-sight on the king's statue)",
+          "quote": "The man who scrubbed us off the world — cast in stone so the children know we were never here. ... Let the rope explain what a corpse we are.",
+          "required_instead": "His Eternal Darkness mocks more than he mourns: whispered, pompous, chronically underwhelmed — apocalyptic gravitas spent on petty vandalism, closing on the trailing \"...adequate.\" Cut the grievance elegy and the martyr framing; belittle the king's statue instead of eulogising the goblins.",
+          "evidence_chunk_id": "GDD§6#6"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 6,
+          "verdict": "FAIL",
+          "row": "Row 1 (hud_line and control)",
+          "quote": "King's Statue: topple it, deny the lie — grapple (Q), then walk away",
+          "required_instead": "One HUD line under 90 chars naming exactly three things — objective, payoff, one control — with no chained clause and no second control. Drop \"then walk away\" from the HUD (it is a second action) and drop \"throw with ATTACK\" from the control field; e.g. \"King's Statue: pull it down, the lie falls with it — Grapple (Q)\". The bark must also be a single short bark, not five sentences with stage directions (\"So put a hook in his throat, and then walk away. Just walk.\").",
+          "evidence_chunk_id": "A02§2.8#6"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#6"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "First line-of-sight on the king's statue in the village square (AGSObjective_ToppleStatue, first-time prompt)",
+          "text": "There he is, goblin. The dragonslayer. The man who scrubbed us off the world — cast in stone so the children know we were never here. Fire won't touch him; stone doesn't care. So put a hook in his throat, and then walk away. Just walk. Let the rope explain what a corpse we are.",
+          "hud_line": "King's Statue: topple it, deny the lie — grapple (Q), then walk away",
+          "control": "Q — weapon wheel, Grapple slot (throw with ATTACK, then walk away to haul)",
+          "sources": [
+            "GDD§6#6",
+            "GDD§4#0",
+            "GDD§4#1",
+            "A02§2.8#3",
+            "A02§2.8#6"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "score": 9,
+      "reason": "Strong, shippable row. The single row (Overlord, first line-of-sight on AGSObjective_ToppleStatue) gets the hardest thing right: the statue is toppled, not burned — \"Fire won't touch him; stone doesn't care. Hook him and stroll.\" matches GDD§6#6 (\"It does not burn: it is brought down — grapple it, anchor it, and walk away until the rope pulls it over\") and even teaches the walk-away haul in-fiction. The bark is pompous, mocking rather than mourning, and lands the trailing \"...adequate.\" per TONE_OVERLORD. No settlement is christened (\"the village square\" only), no out-of-slice vocabulary (no Slasher, Brute, granary, palisade, no county placeholder names), and no reference to a voice file, SFX or sound anywhere. The HUD line \"King's Statue: pull it down, the lie falls with it — Grapple (Q)\" is 62 characters, one clause, and names exactly three things: objective (King's Statue / pull it down), payoff (the lie falls with it), control (Grapple (Q)). The only drift is on FORMAT_PROMPT's \"the one control that does it\": per GDD§4#0/GDD§4#1 the grapple is a *weapon-wheel slot* (`EGSWeaponSlot::Grapple`) selected on Q and then **fired by ATTACK (left mouse)** — so \"Grapple (Q)\" names the selector, not the control that throws the hook, and the row's own control field (\"Q — weapon wheel, Grapple slot\") concedes it. A rewriter should either collapse it to the firing verb (e.g. \"— Grapple, then walk\" with the wheel taught elsewhere) or name the one control that actually does it, without adding a second binding to the HUD line. TONE_DISBELIEF is not exercised by this row — it contains no villager first-contact line, and nothing in the bark leaks fear or a \"run for your lives\" register — so it passes clean rather than vacuously failing.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#6"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§6#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#3"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#3"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 9,
+          "verdict": "PASS",
+          "row": "Row 1 (Overlord, first line-of-sight on the king's statue)",
+          "quote": "King's Statue: pull it down, the lie falls with it — Grapple (Q)",
+          "required_instead": "The HUD line must name the one control that *does* the thing. Q is the weapon wheel; the grapple is a wheel slot fired by ATTACK (left mouse) per GDD§4#0. Name the firing control (or the verb alone, e.g. \"— Grapple, then walk away\") rather than the wheel key — and still only one control, one clause, ≤90 chars.",
+          "evidence_chunk_id": "GDD§4#0"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#6"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "First line-of-sight on the king's statue in the village square (AGSObjective_ToppleStatue, first-time prompt)",
+          "text": "Behold the dragonslayer, goblin. A lump of rock with a haircut. Fire won't touch him; stone doesn't care. Hook him and stroll. ...adequate.",
+          "hud_line": "King's Statue: pull it down, the lie falls with it — Grapple (Q)",
+          "control": "Q — weapon wheel, Grapple slot",
+          "sources": [
+            "GDD§6#6",
+            "GDD§4#0",
+            "GDD§4#1",
+            "A02§2.8#3",
+            "A02§2.8#6"
+          ]
+        }
+      ]
+    }
+  ],
+  "first_score": 5,
+  "final_score": 9
+}

@@ -52,6 +52,11 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> Label_Sword;
 
+	/** The fourth slot (2026-08-17). BindWidgetOptional like the others, so a WBP that has not been
+	 *  re-authored yet still compiles and simply shows no grapple label. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Label_Grapple;
+
 	/** The slot the drag is currently pointing at. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Wheel|Style")
 	FLinearColor HighlightColour = FLinearColor(1.f, 0.82f, 0.25f, 1.f);

@@ -2,6 +2,7 @@
 #include "Characters/GSCharacterBase.h"
 #include "Combat/GSGE_WeaponDamage.h"
 #include "Combat/GSGameplayTags.h"
+#include "Weapons/Abilities/GSGA_SwordLight.h"   // GSCombatDebugEnabled() - see the note there (#167)
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Components/SphereComponent.h"

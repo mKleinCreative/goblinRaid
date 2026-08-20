@@ -53,20 +53,40 @@ OUT = ROOT / "out"
 MODEL = "claude-opus-5"
 
 # Knowledge base: the project's own design docs. (key, path, label)
+#
+# REPOINTED 2026-08-19 (#202). The canonical GDD moved to GoblinSiege 5.8/docs/goblin-siege-gdd.md
+# and the repo-root document was FROZEN as the submitted Assignment #02 artifact. This corpus was
+# still reading only the frozen one, which is how the banked text ended up teaching bind/capture
+# (cut 2026-08-14) and a "Torch: Q" binding that three remaps ago stopped being true: the generator
+# was faithfully grounded in a document that had stopped being the design.
+#
+# Both are kept on purpose. The frozen doc carries prose the export summarises away - the tone
+# chapter especially, which is what a bark is actually written from - so it stays as REGISTER.
+# The canonical doc decides every question of fact.
 SOURCES = [
-    ("GDD", REPO / "goblin-siege-design-document.md", "Goblin Siege GDD (final draft)"),
+    ("GDD", REPO / "GoblinSiege 5.8" / "docs" / "goblin-siege-gdd.md",
+     "Goblin Siege GDD (CANONICAL, v1.0 locked 2026-08-19)"),
+    ("LEDGER", REPO / "GoblinSiege 5.8" / "docs" / "decisions-ledger.md",
+     "Decisions ledger — every ruling, dated, with its source"),
+    ("A02", REPO / "goblin-siege-design-document.md",
+     "Assignment #02 submission (FROZEN 2026-08-19) — tone and register only, NOT authoritative"),
     ("GOB", REPO / "race-design-goblins.md", "Race brief — Goblins"),
     ("HUM", REPO / "race-design-humans.md", "Race brief — Humans"),
     ("ELF", REPO / "race-design-elves.md", "Race brief — Elves"),
     ("DWA", REPO / "race-design-dwarves.md", "Race brief — Dwarves"),
 ]
 
-# The GDD supersedes the race briefs where they disagree: the briefs predate the
-# 2026-07-23/24 scope decisions (one class this slice, hamlet not palisade town).
+# Authority order, newest ruling wins. Restated 2026-08-19 for the two-GDD split.
 AUTHORITY = (
-    "The GDD is authoritative. The race design briefs are older reference material — "
-    "where a brief contradicts the GDD (older class names, palisade-era assumptions, "
-    "archetypes not in this slice), the GDD wins and the brief is stale."
+    "The CANONICAL GDD (key GDD) and the DECISIONS LEDGER are authoritative; the ledger wins over "
+    "everything, including the canonical GDD, because it carries the dated rulings the GDD is "
+    "written from. The Assignment #02 submission (key A02) is FROZEN and is reference for TONE AND "
+    "REGISTER ONLY - where it states a fact that the canonical GDD or the ledger contradicts, it is "
+    "stale and must not be used. Specifically: A02 still describes bind/capture and prisoner rope "
+    "chains (CUT 2026-08-14), the watchtower, bell and well (DEFERRED 2026-08-19), a granary "
+    "(removed 2026-08-14), and a control map from before three remaps - none of those exist. The "
+    "race design briefs are older still: where a brief contradicts either GDD (older class names, "
+    "palisade-era assumptions, archetypes not in this slice), the brief is stale."
 )
 
 MAX_CHUNK_CHARS = 1600

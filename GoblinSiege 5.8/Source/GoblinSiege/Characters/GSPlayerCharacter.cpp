@@ -11,6 +11,7 @@
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Weapons/Abilities/GSGA_Block.h"
 #include "Weapons/Abilities/GSGA_Horn.h"
+#include "Weapons/Abilities/GSGA_GrappleThrow.h"
 #include "Weapons/Abilities/GSGA_BowShot.h"
 #include "Weapons/Abilities/GSGA_TorchToss.h"
 #include "Destruction/GSTorchProjectile.h"
@@ -69,6 +70,7 @@ AGSPlayerCharacter::AGSPlayerCharacter()
 	BlockAbilityClass = UGSGA_Block::StaticClass();
 	InteractAbilityClass = UGSGA_Interact::StaticClass();
 	HornAbilityClass = UGSGA_Horn::StaticClass();
+	GrappleThrowAbilityClass = UGSGA_GrappleThrow::StaticClass();
 	// SwordHeavyAbilityClass is deliberately NOT defaulted: it and the light share a class, so a
 	// C++ default would silently give the heavy the light's stage array and the two would feel
 	// identical for no visible reason. Better to have the heavy do nothing until it is pointed at
@@ -275,6 +277,10 @@ void AGSPlayerCharacter::BeginPlay()
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(BowShotAbilityClass, 1, INDEX_NONE, this));
 		}
+		if (GrappleThrowAbilityClass)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(GrappleThrowAbilityClass, 1, INDEX_NONE, this));
+		}
 	}
 }
 
@@ -456,6 +462,19 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_InteractStart);
 			EIC->BindAction(InteractAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_InteractStop);
 			EIC->BindAction(InteractAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_InteractStop);
+		}
+		else
+		{
+			// This branch is not hypothetical: InteractAction has been unset on BP_GSPlayerCharacter
+			// since the day it was written (#061), so Input_InteractStart - the only caller of the
+			// interact ability anywhere - has NEVER fired. Loot, takedown, foul-well, extract and the
+			// whole carry state ride on it, which is five systems held shut by one empty CDO field.
+			// It survived because a missing binding is silent: the guard skips, nothing warns, and
+			// the framework reads as "written" forever. Say it loudly instead.
+			UE_LOG(LogTemp, Warning, TEXT("[GS.Input] InteractAction is unset on %s - interact is DEAD. "
+				"No loot, no takedown, no foul-well, no extract, no carry. Assign IA_Interact on the "
+				"character Blueprint's Class Defaults (#061, #161)."),
+				*GetName());
 		}
 
 		// Torch: hold to aim, release to throw. Canceled is bound as well as Completed because a
@@ -772,6 +791,27 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 	// looses the bow - one key whose meaning follows what is in your hand. Checked before the bow
 	// because the two are mutually exclusive slots and this ordering keeps the bow branch below
 	// byte-identical to what it was.
+	// The grapple is checked FIRST, and for the same reason the torch is checked before the bow:
+	// the slots are mutually exclusive, so ordering the newest one at the top leaves every branch
+	// below byte-identical to what it was. Same shape as the torch throughout - suppress the heavy
+	// charge (a melee verb whose 1.5s timer would otherwise fire a sword swing out of a raised
+	// hook), then activate by class.
+	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Grapple
+		&& GrappleThrowAbilityClass)
+	{
+		bAttackHeld = false;
+		bHeavyFiredThisHold = false;
+		AttackPressedTime = -1.f;
+		GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
+		OnHeavyChargeChanged.Broadcast(0.f);
+
+		if (AbilitySystemComponent)
+		{
+			AbilitySystemComponent->TryActivateAbilityByClass(GrappleThrowAbilityClass);
+		}
+		return;
+	}
+
 	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Torch
 		&& TorchTossAbilityClass)
 	{
@@ -1154,7 +1194,9 @@ void AGSPlayerCharacter::UpdateRotationMode()
 	// The State.Aiming tag below deliberately stays on bShouldFaceAim rather than this. Nothing in
 	// C++ reads that tag, which means a Blueprint might - a reticle is the obvious candidate - and
 	// raising a guard should not put an aiming reticle on screen.
-	const bool bShouldFaceLock = bShouldFaceAim || IsBlocking();
+	// bCameraRelativeMovement makes this permanent rather than aim/block-only - see the property's
+	// comment for why it is gated on the eight-way blendspace existing.
+	const bool bShouldFaceLock = bCameraRelativeMovement || bShouldFaceAim || IsBlocking();
 
 	bUseControllerRotationYaw = bShouldFaceLock;
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())

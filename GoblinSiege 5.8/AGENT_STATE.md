@@ -167,6 +167,58 @@ next agent rediscovers it.
 
 ## DECISIONS
 
+- **2026-08-19 (#198): THE GDD MOVED, AND IT IS NOW THE CANONICAL ONE. `docs/goblin-siege-gdd.md`.**
+  What used to be a derived export under `Tools/CodeArchitect/docs/` is now **v1.0, LOCKED**, and the
+  repo-root `goblin-siege-design-document.md` is **frozen** as the submitted Assignment #02 artifact
+  — do not edit the root doc to record a design change. The move needed no code change:
+  `ca/config.py:48-54` already probed `project_root/docs/` first.
+  - **The decisions ledger now EXISTS: `docs/decisions-ledger.md`.** Both documents had pointed at a
+    "§13 ledger" for weeks that was in neither of them, which is why settled questions kept being
+    re-opened. Today's 23 rulings plus the horde, climbing, ACF, ranged and interact rulings are
+    there with their sources. **Add to it by ticket, not by memory.**
+  - **`Tools/check_gdd.py` is the drift gate.** Nine checks: the parser contract, `features.json`
+    coverage, the GDD roster vs the generator's `REQUIRED_KINDS`, and banked CSV vocabulary. Rules
+    are **imported** from `gsstyle.py` and `gslevelgen.generate`, never restated. Exit 0 clean, 1
+    drift, **2 incomplete** — a check that could not run does not exit 0. **It is WIRED into
+    `Build-GoblinSiege.ps1`** (#200), immediately after the queue gate, and refuses the build with
+    **exit 5** on drift — watched refusing one. `-IgnoreGddDrift` is the escape hatch, and it is the
+    same kind of knowingly-loud bypass as `-IgnoreQueue`. The four banked rows that named the granary
+    were regenerated first, so the gate went in clean rather than blocking the build window.
+  - **A rule I derived by READING the regex was false, and the break test caught it.** A fourth
+    column in §12.1 does **not** drop the row — it is absorbed into the status string, which is worse,
+    because a drop is loud in the id list. Rows are actually dropped by a non-numeric id (`5b` is the
+    one legal suffix), an id prefix like `#14`, a missing trailing pipe, two columns, or **any leading
+    whitespace before the first pipe**. The contract in the GDD is now written from mutation tests.
+  - **`gdd.py` uses `re.search` for the never-cut line, so the FIRST match in the file wins** — my own
+    prose mentioning the heading hijacked the parse. And that line must stay **unwrapped**: it had
+    been silently truncating five items to three.
+- **2026-08-19 (#179/#189/#190 closed UNOBSERVED): THE STATUE SCORES, BUT IT IS NOT AN OBJECTIVE
+  YET.** Michael watched a toppled statue award +100 deeds twice (#196). That does **not** mean the
+  statue objective works, and the difference matters before Block C:
+  - **`AGSObjective_ToppleStatue` is instantiated NOWHERE.** Its only references outside its own
+    files are comments. The +100 came from `GSTopplableComponent.cpp:176` calling
+    `UGSScoreSubsystem::AddDeeds` **directly**, bypassing the mission-objective class entirely. So
+    nothing yet makes the statue a *required raid objective* that gates extraction — it is a prop
+    that pays deeds.
+  - **`Marker.ObjectiveAnchor.Statue` is defined and read by nothing.** No map places an
+    ObjectiveAnchor marker of any kind, so `AGSRaidMarker::GatherByType` has never been asked for
+    one.
+  - Both are in the 2026-08-18 20:49 binary. Neither has run. **Do not read #196's green tick as
+    "the statue objective is done"** — that inference is exactly what these three tickets were closed
+    UNOBSERVED to prevent.
+
+- **2026-08-19 (#198): TWO FINDINGS THAT MUST NOT BE REDISCOVERED.**
+  - **THE TUTORIAL MAP AND THE ARENA HAVE DIVERGED.** `L_Tutorial_Island` holds the **2026-08-05**
+    world — 67 `GSBuildingObjective`, 2 field objectives, market, mill, runic site, 3 defenders,
+    `GEN_NavBounds_Village`. It contains **ZERO** raid markers, horde arrival points, interactables,
+    loot, breakables, grapple anchors or the topplable statue. **Every system shipped since
+    ~2026-08-07 exists only in `L_CombatArena`**, whose actors are labelled `BP_*_TEST`. Its objective
+    roster is also a revision behind (Mill/Market/**Field**). **Any claim that something "works in the
+    tutorial" is false by default until re-checked.**
+  - **THE ×1.5 EXTRACTION MULTIPLIER DOES NOT EXIST ANYWHERE IN SOURCE.** Not stubbed, not unwired —
+    absent. The rule that makes deeds provisional, and the whole reason the run home is a decision,
+    has never been implemented. `UGSScoreSubsystem::AddLoot` still has zero callers beside it.
+
 - **2026-08-11 (#136): A TICKET CANNOT CLOSE UNLESS SOMEBODY WATCHED THE WORK RUN.** `gsqueue.ps1`
   gained `observed:` and `scenario:` fields, an `observed -Id <n> -What "..." -Scenario "..."` verb,
   and a refusal in `done`. It is the first gate in that script that asks whether the work RAN — every
@@ -471,17 +523,88 @@ next agent rediscovers it.
     >30 deg in one 40uu step, but there is NO evidence it breaks anything, so it waits on observation
     rather than a fix. **Neither is a known defect.** Climbing is finished work.
 
+- **THE INTERACTION FRAMEWORK — plan of action, and the ACF comparison (2026-08-14).**
+
+  **How it went missing.** The NEXT refresh of 2026-08-06 *removed* the interact framework from the
+  ranked list — at u=10.0, the highest-utility item on it — with the note *"all four components exist
+  in `Interaction/` and `Weapons/Abilities/`"*. The symbols existed, so the item was deleted as done.
+  **It has never executed once.** `BP_GSPlayerCharacter`'s `InteractAction` is unset on the CDO, so
+  `GSPlayerCharacter.cpp:454` skips the bind and `Input_InteractStart` — the only caller of the
+  interact ability — has never fired. #061 recorded this in July and it is still true. Nothing in the
+  project carries a `UGSInteractableComponent` either, so `ResolveChannelTarget` always returns null.
+  **1409 lines of written, compiling, replicated interaction code have never run.** This is the exact
+  failure the BUILT/WIRED/SKELETON grading was introduced to prevent, and it happened to the single
+  most load-bearing system in the slice: five other systems sit behind it.
+
+  **What ACF ships, checked before building anything (Michael's standing rule).** ACF has the whole
+  stack, not just the interface: `IACFInteractableInterface` (contract), `UACFInteractableComponent`
+  (Free/Busy state, per-item montage override, display name, examination texts),
+  `UACFInteractionComponent` (sphere-overlap detection with a camera-forward offset, best-target
+  selection, replicated `CurrentInteractingActor`, `ServerInteractOnBehalf` for possession swaps),
+  `UACFInteractActionAbility` (**motion-warps the pawn to the interactable**, camera lock, montage
+  driven), `AACFBaseInteractableActor`, and `ACFInteractSmartObjectsTask` — **a behaviour-tree task so
+  AI can interact**, which is the missing consumer for the courier run's Loot order.
+
+  **Three ACF capabilities we do not have and want:** motion warping (the goblin *steps to* the sack
+  instead of looting it at arm's length), camera lock during the interaction, and the AI BT task.
+
+  **Two things ours has that ACF's does not, and both are load-bearing design:** a real
+  **hold-to-channel with abortable progress** (`BeginChannel` / `AbortChannel` /
+  `ReleaseInteractInput` + `ChannelProgress`) — ACF's "duration" is just a montage length, with no
+  release-to-cancel — and **abort-on-damage** (`HandleOwnerHealthChanged`). Hold-F takedowns, 1.5s
+  loot channels and "get hit and you lose the channel" are all specified in the GDD and none of them
+  survive a straight swap to ACF. Ours also gates focus on **facing cone + distance + line of sight**
+  where ACF uses sphere overlap.
+
+  **Why adopting ACF is not a drop-in.** `UACFInteractActionAbility` derives from `UACFActionAbility`
+  and triggers by tag on the ACF ability system; the interactable expects an ACF-shaped interactor.
+  Our characters are `AGSCharacterBase` on plain `UGameplayAbility`. #142/#143 completed ACF Phase 0
+  and 1a only. Adopting the interaction stack means pulling the character-and-ability migration
+  forward into the critical path of a seven-week slice.
+
+  **THE PLAN, in order:**
+
+  1. **Assign `IA_Interact` to `InteractAction`** and add the missing `else` log beside the guard at
+     `GSPlayerCharacter.cpp:454`, copying the `HordeOrderAction` pattern at `:488-494`. Half an hour.
+     This is the whole reason the comparison below is currently unanswerable: we are choosing between
+     a vendor system we have not tested and our own system that has never run.
+  2. **Build one interactable and watch a channel.** The livestock MVP's pig is the natural first.
+     Requires the same three fixes the livestock plan names: `CarrySocket` on
+     `GOB_Scout_v2_Skeleton` (it exists on **none** of the project's 25 skeletons, so cargo silently
+     attaches at the carrier's feet) with a `DoesSocketExist` guard that warns; and the
+     `CompleteChannel` ordering fix, which consumes the interactable *before* `StartCarry`, so a
+     put-down object can never be picked up again. Exit test: hold F, a bar fills, a pig ends up on a
+     shoulder, put it down, pick it up again.
+  3. **Then decide, with evidence.** If the channel works, keep it and take ACF's three ideas
+     piecemeal — motion warp on channel start, camera lock, and the AI interact task as the Loot-order
+     branch. If it is broken in ways that are not cheap, price the ACF migration honestly *then*,
+     knowing what would be given up.
+
+  **Deliberately not doing:** adopting ACF's interaction stack sight-unseen, to replace a system that
+  may already work, at the cost of the two mechanics the design actually specifies.
+
+  **Open questions for Michael:** whether piecemeal borrowing is acceptable against a cleaner all-ACF
+  future; and whether the AI-interact half is in scope this slice at all — a player-only courier run
+  satisfies GDD 2.7's first-courier-run beat, and the AI courier is 4-6 days with the order-wheel work
+  bundled in.
+
 ## NEXT
 
 *Refreshed 2026-08-06. Every `missing:` symbol below was re-checked against the tree that day; an
 item whose symbols all now exist was removed rather than left to rot. Three were: **interact
-framework** (u=10.0 — all four components exist in `Interaction/` and `Weapons/Abilities/`),
+framework** (u=10.0 — all four components exist in `Interaction/` and `Weapons/Abilities/`)
+— **THIS REMOVAL WAS WRONG AND COST EIGHT DAYS (corrected 2026-08-14).** "Every symbol exists" is
+not "the system runs": the interact framework's components all exist and it has **never executed**,
+because `InteractAction` is unset on the player CDO. It is restored to the list below at the top.
+The refresh rule that produced this deletion — *remove an item once its `missing:` symbols exist* —
+is unsafe on its own and should be read as *remove it once something has been observed running*, —
 **lives / respawn** (`AGSPlayerState` exists, `EGSRaidResult::OutOfLives` ends the raid, #009), and
 **runic site** (`AGSRunicSite` + `BP_GS_RunicSite` exist, #009/#011). The NEXT list had carried all
 three as outstanding for two days while they were being built.*
 
 **Ranked — u carried from run live-003, 2026-08-04. Not re-scored; treat the order as two days old.**
 
+- [EDITOR] u=10.0 **Interact framework — make it RUN** (block A) — **RESTORED 2026-08-14 after being wrongly removed on 08-06.** Nothing is missing in code; 1409 lines exist and have never executed. Blocking five other systems (loot, takedown, foul-well, extract, carry). Step 1 is one CDO property: assign `IA_Interact` to `InteractAction` on `BP_GSPlayerCharacter`, plus the `else` log at `GSPlayerCharacter.cpp:454`. Then one interactable to channel against, `CarrySocket` on `GOB_Scout_v2_Skeleton`, and the `CompleteChannel` consume-ordering fix. Full plan and the ACF comparison in DECISIONS. **Do not remove this item again on the strength of symbols existing.**
 - [EDITOR] u=6.0 **Death & hit-reaction clips retargeted ('nothing can die on screen')** (block B) — missing: AM_GS_Death
 - [ELIGIBLE] u=5.75 **Someone to fight — the last piece** (block B) — DA_Race_Human and BT_Militia now EXIST and are PIE-verified; missing: DA_Weapon_Greatclub only
 - [BLOCKED] u=4.0 **Score system — deeds/loot two-kind tally + end screen** (block G) — missing: UGSScoreSubsystem, GSScore

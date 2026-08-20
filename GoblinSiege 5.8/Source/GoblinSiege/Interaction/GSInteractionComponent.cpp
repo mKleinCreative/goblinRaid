@@ -11,6 +11,16 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 
+// This component shipped with NO logging of any kind, and that turned out to be its most expensive
+// property. Twice now a working interaction has been indistinguishable from a dead keypress: the loot
+// chest in #163, reported broken while behaving correctly, and the crate in #168, where Michael's
+// verdict was "wasn't able to tell if holding F on it worked."
+//
+// The on-screen half of that is #169's channel ring. This is the other half: after the fact, the log
+// should be able to answer "did that interaction complete, and if not why not" without a breakpoint.
+// Log, not VeryVerbose - a completed interaction is a rare, deliberate player act, not spam.
+DEFINE_LOG_CATEGORY_STATIC(LogGSInteract, Log, All);
+
 static TAutoConsoleVariable<int32> CVarInteractDebug(
 	TEXT("GS.Interact.Debug"),
 	0,
@@ -199,6 +209,20 @@ bool UGSInteractionComponent::BeginChannel()
 	bool bPutDown = false;
 	if (!ResolveChannelTarget(Target, bPutDown))
 	{
+		// Refused. If the press was aimed at something - a crate that has not been smashed open yet -
+		// say so, so the HUD can shake the reticle (#187). ResolveChannelTarget has just run
+		// RefreshFocus, so FocusedInteractable is current as of this frame.
+		//
+		// Null focus is deliberately NOT broadcast: a press into empty air is not a refusal, it is a
+		// press at nothing, and shaking for it would train the player to ignore the shake.
+		if (UGSInteractableComponent* Refused = FocusedInteractable.Get())
+		{
+			UE_LOG(LogGSInteract, Verbose,
+				TEXT("[GoblinSiege] Interaction REFUSED: '%s' is not available."),
+				IsValid(Refused->GetOwner()) ? *Refused->GetOwner()->GetName() : TEXT("<none>"));
+
+			OnInteractRefused.Broadcast(Refused);
+		}
 		return false;
 	}
 
@@ -304,6 +328,9 @@ void UGSInteractionComponent::CompleteChannel()
 	const bool bAuthority = HasChannelAuthority();
 	UGSCarryComponent* Carry = GetCarryComponent();
 
+	// Captured before ClearChannelState wipes it, so the log below can name the verb.
+	const FGameplayTag CompletedVerb = ActiveVerbTag;
+
 	// State is cleared BEFORE the payout: an effect is allowed to open a chest, kill a guard, or
 	// start another channel, and none of that may land inside the channel that is finishing.
 	ClearChannelState();
@@ -332,6 +359,16 @@ void UGSInteractionComponent::CompleteChannel()
 		}
 	}
 
+	// The line that makes a successful interaction falsifiable. It reports the AUTHORITY flag because
+	// that is the difference between "the player saw a bar fill" and "the world actually changed" -
+	// a client-only completion is exactly the failure this would otherwise hide.
+	UE_LOG(LogGSInteract, Log,
+		TEXT("[GoblinSiege] Interaction COMPLETED: verb '%s' on '%s'%s%s."),
+		CompletedVerb.IsValid() ? *CompletedVerb.ToString() : TEXT("<none>"),
+		IsValid(TargetActor) ? *TargetActor->GetName() : TEXT("<put-down>"),
+		bPutDown ? TEXT(" (put down)") : (bCarryable ? TEXT(" (picked up)") : TEXT("")),
+		bAuthority ? TEXT("") : TEXT(" [CLIENT ONLY - no payout ran here]"));
+
 	OnChannelEnded.Broadcast(true, EGSInteractEndReason::Completed);
 }
 
@@ -340,6 +377,22 @@ void UGSInteractionComponent::AbortChannel(EGSInteractEndReason Reason)
 	if (!bIsInteracting)
 	{
 		return;
+	}
+
+	// An abort is the interesting case when someone reports "holding F did nothing", because it names
+	// WHICH gate closed - released too early, walked out of range, turned away, the target was taken by
+	// somebody else. Verbose rather than Log: releasing early is routine player behaviour and would
+	// otherwise drown the completions above. Raise with `LogGSInteract Verbose` when diagnosing.
+	{
+		const UEnum* ReasonEnum = StaticEnum<EGSInteractEndReason>();
+		const AActor* TargetActor = ActiveInteractable.IsValid() ? ActiveInteractable->GetOwner() : nullptr;
+
+		UE_LOG(LogGSInteract, Verbose,
+			TEXT("[GoblinSiege] Interaction ABORTED at %.0f%%: reason %s, verb '%s' on '%s'."),
+			ChannelProgress * 100.f,
+			ReasonEnum ? *ReasonEnum->GetNameStringByValue(static_cast<int64>(Reason)) : TEXT("?"),
+			ActiveVerbTag.IsValid() ? *ActiveVerbTag.ToString() : TEXT("<none>"),
+			IsValid(TargetActor) ? *TargetActor->GetName() : TEXT("<none>"));
 	}
 
 	// Tell the server before clearing: the authoritative channel has to stop too, or it pays out for
@@ -401,8 +454,12 @@ void UGSInteractionComponent::RefreshFocus()
 
 		for (AActor* Candidate : Overlapped)
 		{
+			// CanFocus, not CanInteract: an unavailable interactable must still be able to take focus,
+			// or there is nothing to hang a "Smash it open" prompt on (#187). Every path that actually
+			// STARTS a channel tests CanInteract separately, so widening this cannot make a locked
+			// container interactable - only visible.
 			UGSInteractableComponent* Interactable = IsValid(Candidate) ? Candidate->FindComponentByClass<UGSInteractableComponent>() : nullptr;
-			if (!Interactable || !Interactable->CanInteract(Owner))
+			if (!Interactable || !Interactable->CanFocus(Owner))
 			{
 				continue;
 			}
@@ -423,7 +480,15 @@ void UGSInteractionComponent::RefreshFocus()
 
 			// Facing decides, distance only breaks ties - the thing you are looking at wins over the
 			// thing you are standing on.
-			const float Score = FacingDot - (Distance / FMath::Max(InteractRange, 1.f)) * 0.25f;
+			//
+			// Availability outranks both, and by more than the other two terms can ever make up
+			// (FacingDot is at most 1 and the distance penalty at most 0.25). Without this, a smashed
+			// barrel and the locked crate beside it compete on geometry alone, and standing slightly
+			// nearer the crate would silently steal the prompt from the thing you can actually loot -
+			// turning a feature meant to explain a locked container into a reason you cannot open an
+			// unlocked one.
+			const float AvailabilityBonus = Interactable->IsAvailable() ? 10.f : 0.f;
+			const float Score = AvailabilityBonus + FacingDot - (Distance / FMath::Max(InteractRange, 1.f)) * 0.25f;
 			if (Score > BestScore)
 			{
 				BestScore = Score;

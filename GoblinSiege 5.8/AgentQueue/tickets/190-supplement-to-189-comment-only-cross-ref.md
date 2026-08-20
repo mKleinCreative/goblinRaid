@@ -2,13 +2,13 @@
 id: 190
 title: Supplement to 189 - comment-only cross-references to the renamed class in three files missed by that claim
 agent: claude-statuerename
-status: review
+status: done
 claimed: 2026-08-18T22:14Z
 build: none
 waiting_on:
 evaluated: 2026-08-18T22:16:18Z
-observed:
-scenario:
+observed: UNOBSERVED 2026-08-19T22:55:18Z - Comment-only cross-references in three files. There is no behaviour here to watch by construction. Closed on Michael's instruction 2026-08-19.
+scenario: none - never run
 files: 
   - Source/GoblinSiege/Missions/GSObjective_KillLandlord.h
   - Source/GoblinSiege/Missions/GSObjective_KillLandlord.cpp

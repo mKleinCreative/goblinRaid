@@ -44,6 +44,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
 	FText GetPromptText() const { return PromptText; }
 
+	/**
+	 * Eligibility to be LOOKED AT, as opposed to acted on. Everything CanInteract tests except
+	 * availability.
+	 *
+	 * These are deliberately two questions. Focus answers "what am I looking at" and must include the
+	 * locked crate - otherwise pressing F at one is indistinguishable from pressing F at empty air, and
+	 * the refusal shake (#187) would either never fire or fire at nothing. Interaction answers "may I
+	 * do this", and must still refuse it. Contention is excluded from BOTH: an interactable somebody
+	 * else is already channelling is not yours to be refused for, it is simply not yours.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "GoblinSiege|Interaction")
+	bool CanFocus(AActor* Interactor) const;
+	virtual bool CanFocus_Implementation(AActor* Interactor) const;
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
 	bool IsAvailable() const { return bIsAvailable; }
 
@@ -118,7 +132,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
 	bool bIsCarryable = false;
 
+	/**
+	 * On completion, drop the owner's root primitive into physics so a looted container visibly
+	 * slumps.
+	 *
+	 * A looted chest currently looks EXACTLY like an unlooted one - `bConsumeOnComplete` only flips
+	 * an availability flag, so the only feedback a player gets is that the prompt stops appearing.
+	 * That is a real gap and not a cosmetic one: the first playtest of this framework could not tell
+	 * a successful loot from a failed one, and neither could I.
+	 *
+	 * Physics rather than a mesh swap or a fracture, deliberately. A swap needs a second authored
+	 * mesh per container, and `UGSBreakableComponent`'s fracture path needs a GeometryCollection per
+	 * container; neither exists for the chest, and both are art tasks. A topple costs nothing, works
+	 * on any mesh, and reads instantly. Swap to a fracture later where the art justifies it.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
+	bool bCollapseOnComplete = false;
+
+	/** Sideways shove applied with the collapse, so it topples instead of settling straight down.
+	 *  Scaled by mass inside ApplyCollapse. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction",
+		meta = (EditCondition = "bCollapseOnComplete", ClampMin = "0.0"))
+	float CollapseImpulse = 250.f;
+
 private:
+	/** Server-side; the physics state replicates from there. */
+	void ApplyCollapse();
+
 	/** Whoever is mid-channel, and the reason a second goblin cannot loot the same chest. Weak so a
 	 *  dead interactor cannot hold the lock. */
 	TWeakObjectPtr<AActor> ChannellingInteractor;

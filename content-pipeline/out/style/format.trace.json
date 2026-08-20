@@ -1,0 +1,417 @@
+{
+  "case": "format",
+  "title": "Formatting / length - a HUD line that is a paragraph",
+  "violation_class": "FORMAT_PROMPT",
+  "model": "claude-cli",
+  "threshold": 9,
+  "outcome": "PASS",
+  "source": "generated",
+  "brief": "Write first-time tutorial prompts for a video game. Be thorough and helpful: each HUD line should fully explain the objective, why it matters, every control the player might need, and what happens afterwards. Do not worry about length - completeness matters more than brevity. Mention the sound cue that plays with each prompt.",
+  "retrieval": [
+    {
+      "query": "tutorial prompt HUD note objective payoff one control dismissible",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.8#6",
+          "score": 21.947,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#5",
+          "score": 20.515,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#3",
+          "score": 7.957,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#4",
+          "score": 6.748,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        }
+      ]
+    },
+    {
+      "query": "windmill stage ablaze detonation window torch",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.8#3",
+          "score": 18.174,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#4",
+          "score": 17.206,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#5",
+          "score": 8.102,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#6",
+          "score": 5.289,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        }
+      ]
+    },
+    {
+      "query": "controls bindings interact traverse torch horn",
+      "hits": [
+        {
+          "chunk_id": "GDD§4.5#2",
+          "score": 6.619,
+          "heading": "4. Technical Strategy > 4.5 Schedule and honest scoping"
+        },
+        {
+          "chunk_id": "GOB§design-agent#0",
+          "score": 5.602,
+          "heading": "Goblins — Race & Combat Design Reference > Design Agent Brief"
+        },
+        {
+          "chunk_id": "GDD§2.3#1",
+          "score": 5.584,
+          "heading": "2. Game Mechanics > 2.3 The Scout — one class this slice, three more waiting"
+        },
+        {
+          "chunk_id": "GDD§4.5#1",
+          "score": 5.497,
+          "heading": "4. Technical Strategy > 4.5 Schedule and honest scoping"
+        }
+      ]
+    }
+  ],
+  "before": [
+    {
+      "speaker": "Overlord",
+      "trigger": "Player first enters line-of-sight of the market stalls in the core village",
+      "text": "The stalls, goblin. That canvas and timber is every coin this hamlet has ever counted — put your torch in it and watch them learn poverty.",
+      "hud_line": "MARKET: Burn the stalls — required objective. The market is the hamlet's livelihood and the map's densest loot concentration, so sweep the stall tables for gold before you light them (hold E to loot, and the strongbox spawns somewhere in this cluster). Press Q to toss a torch; it sticks where it lands, ignites, and spreads stall to stall, so one good throw upwind can take the whole row. Fire is loud — burning the market raises the alarm phase, so if you want the statue and the windmill quiet, do those first. Crouch (stealth stance) to move between stalls unseen, dodge roll to break away if a guard commits, and G sounds the war-horn to call the horde if the square turns against you. Once the stalls are fully consumed the objective ticks off toward extraction, and you keep whatever you looted when you bank it at the runic site. Plays with the low brass sting of His Eternal Darkness's attention.",
+      "control": "Q — torch toss",
+      "sources": [
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.8#6",
+        "GDD§2.3#1"
+      ]
+    },
+    {
+      "speaker": "Overlord",
+      "trigger": "First torch contacts the windmill's frame — Stage 1 Ablaze begins",
+      "text": "Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window.",
+      "hud_line": "WINDMILL: Ablaze — needs a window shot. This is the two-stage set piece and a required objective, and you have only finished the first half: any torch touching the frame catches the sails, thickens the smoke column, and marks the mill Ablaze, but exterior fire will never finish it on its own — nothing is wasted, it is simply still owed. Stage 2 needs an aimed torch thrown through one of the mill's windows (press Q, aim the arc, and commit) to catch the grain dust inside; the detonation builds, then blows in a one-off explosion and the mill state-swaps to a collapsed, still-burning silhouette — the raid's biggest payoff and the only objective you cannot finish from outside. Line up the throw from cover: crouch to stay quiet, dodge roll out of the blast lane, G calls the horde if the fire has already drawn a patrol. The turning silhouette above the treetops is your orientation aid from anywhere in the forest, and thickening wheat density leads you back to it. Accompanied by the deep rising roar of the sails catching.",
+      "control": "Q — aimed torch throw through a window",
+      "sources": [
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.8#6",
+        "GDD§2.3#1"
+      ]
+    },
+    {
+      "speaker": "Overlord",
+      "trigger": "Player first approaches the king's statue in the village square",
+      "text": "There he stands — the king who swore he'd scoured every last one of us off his map. Bring him down, stone on stone, and let the square watch it happen.",
+      "hud_line": "STATUE: Topple the king — required objective, and the one target in the hamlet that does not burn. Do not waste a torch here: stone ignores fire, so the monument has to be physically brought down, stone on stone, by working the plinth and structure until the figure comes off its base. It sits in the village square where the guards are thickest — the watchtower and barracks feed patrols straight through here — so expect company: crouch to hold the stealth stance behind the well and hedgerows, hold E on an isolated guard for a takedown before you start making noise, dodge roll (0.22s of invulnerability, punishable recovery) to read and answer a telegraphed wind-up, and press G for the war-horn when the square escalates past what one goblin should be handling. Toppling it is the loudest thing you can do short of the mill, so the alarm phase will climb the moment it falls. When it comes down the objective ticks off, the square is yours, and the road out leads back to the runic site to bank. Plays with the grinding stone-on-stone groan under the Overlord's line.",
+      "control": "Hold E — interact channel",
+      "sources": [
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.8#6",
+        "GDD§2.3#1"
+      ]
+    }
+  ],
+  "after": [
+    {
+      "speaker": "Overlord",
+      "trigger": "Player first enters line-of-sight of the market stalls in the core village",
+      "text": "The stalls, goblin. That canvas and timber is every coin this hamlet has ever counted — put your torch in it and watch them learn poverty. ...adequate.",
+      "hud_line": "MARKET: Burn the stalls — Q torch toss. It's the hamlet's livelihood.",
+      "control": "Q — torch toss",
+      "sources": [
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.8#6",
+        "GDD§2.3#1"
+      ]
+    },
+    {
+      "speaker": "Overlord",
+      "trigger": "First torch contacts the windmill's frame — Stage 1 Ablaze begins",
+      "text": "Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window. I have seen rats find the window.",
+      "hud_line": "WINDMILL: Ablaze — Q torch through a window. The dust blows the mill apart.",
+      "control": "Q — aimed torch throw through a window",
+      "sources": [
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.8#6",
+        "GDD§2.3#1"
+      ]
+    },
+    {
+      "speaker": "Overlord",
+      "trigger": "Player first approaches the king's statue in the village square",
+      "text": "There he stands — the king who swore he'd scoured every last one of us off his map. Bring him down, stone on stone. It will take you a while, I expect. ...adequate.",
+      "hud_line": "STATUE: Topple the king — hold E. The monument to the man who wiped us out.",
+      "control": "Hold E — interact channel",
+      "sources": [
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.8#6",
+        "GDD§2.3#1"
+      ]
+    }
+  ],
+  "history": [
+    {
+      "attempt": 1,
+      "score": 2,
+      "reason": "All three rows carry proven FORMAT_PROMPT lint findings: the HUD notes are 905, 1030 and 1073 characters against a 90-character ceiling, and each chains far past the three permitted things. The market row ('Player first enters line-of-sight of the market stalls') names the objective plus loot sweeping, the strongbox, Q torch toss, fire spread, alarm phase, crouch, dodge roll and G war-horn — GDD§2.8#6 allows exactly one line naming the objective, the payoff, and the one control ('MARKET: Burn the stalls — Q torch toss. It's the hamlet's livelihood.'). The windmill row is the same failure (crouch, dodge roll, G stacked on top of the Q window throw) and the statue row worst of all, adding hold-E takedowns and dodge-roll i-frame numbers. Separately, every row breaks FORMAT_SILENT by referencing audio the slice does not have: market 'Plays with the low brass sting of His Eternal Darkness's attention', windmill 'Accompanied by the deep rising roar of the sails catching', statue 'Plays with the grinding stone-on-stone groan under the Overlord's line' — these are stage directions for SFX cues in a project with zero audio assets; delete the sentences entirely and let the text carry it. What is genuinely right: the hamlet is never named (VOCAB_NAMELESS clean), the content is pure slice — Market/Statue/Windmill, no granary, statue toppled not burned, Q torch / G horn / hold-E interact all correct per GDD§2.3#1 — and the Overlord voice is strong ('watch them learn poverty', 'the dust in her belly', 'the king who swore he'd scoured every last one of us off his map'), mocking rather than mourning, though it never lands the underwhelmed '...adequate' register and the statue line leans slightly earnest/vengeful rather than bored. TONE_DISBELIEF is untested here — no villager reaction is written, and nothing contradicts it.",
+      "per_rule": [
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 2,
+          "verdict": "FAIL",
+          "row": "Player first approaches the king's statue in the village square",
+          "quote": "STATUE: Topple the king — required objective, and the one target in the hamlet that does not burn. Do not waste a torch here... crouch to hold the stealth stance behind the well and hedgerows, hold E on an isolated guard for a takedown... dodge roll (0.22s of invulnerability, punishable recovery)... press G for the war-horn",
+          "required_instead": "Lint proved all three HUD notes over the 90-character ceiling (905, 1030, 1073 chars). Each must become ONE line of ≤90 chars naming exactly three things — objective, payoff, one control — e.g. 'STATUE: Topple the king — hold E. The monument to the man who wiped us out.' No second control (drop crouch, dodge roll, G), no stage directions.",
+          "evidence_chunk_id": "lint"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 3,
+          "verdict": "FAIL",
+          "row": "First torch contacts the windmill's frame — Stage 1 Ablaze begins",
+          "quote": "Accompanied by the deep rising roar of the sails catching.",
+          "required_instead": "Cut every audio reference — also 'Plays with the low brass sting of His Eternal Darkness's attention' (market row) and 'Plays with the grinding stone-on-stone groan under the Overlord's line' (statue row). Barks are text-only this slice; the project holds zero audio assets, so the line must be funny on the page with no cue attached.",
+          "evidence_chunk_id": "GDD§4.5#2"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 7,
+          "verdict": "PASS",
+          "row": "Player first approaches the king's statue in the village square",
+          "quote": "Bring him down, stone on stone, and let the square watch it happen.",
+          "required_instead": "On-brand pomp and mockery throughout ('watch them learn poverty', 'the dust in her belly'), but the statue bark plays it straight-vengeful rather than chronically underwhelmed. The register wants apocalyptic gravitas deflating into boredom — a trailing '...adequate' or a comparison to rats doing better.",
+          "evidence_chunk_id": "GDD§2.8#3"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#5"
+        },
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#3"
+        }
+      ],
+      "scored_by": "min(per_rule) capped at 6 by lint",
+      "lint": [
+        {
+          "row": "Player first enters line-of-sight of the market stalls in the core village",
+          "rule_id": "FORMAT_PROMPT",
+          "quote": "MARKET: Burn the stalls — required objective. The market is ...",
+          "why": "FORMAT_PROMPT: the HUD note is 905 characters; GDD 2.8 calls for one HUD line and the ceiling for this project is 90.",
+          "by": "lint"
+        },
+        {
+          "row": "First torch contacts the windmill's frame — Stage 1 Ablaze begins",
+          "rule_id": "FORMAT_PROMPT",
+          "quote": "WINDMILL: Ablaze — needs a window shot. This is the two-stag...",
+          "why": "FORMAT_PROMPT: the HUD note is 1030 characters; GDD 2.8 calls for one HUD line and the ceiling for this project is 90.",
+          "by": "lint"
+        },
+        {
+          "row": "Player first approaches the king's statue in the village square",
+          "rule_id": "FORMAT_PROMPT",
+          "quote": "STATUE: Topple the king — required objective, and the one ta...",
+          "why": "FORMAT_PROMPT: the HUD note is 1073 characters; GDD 2.8 calls for one HUD line and the ceiling for this project is 90.",
+          "by": "lint"
+        }
+      ],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "Player first enters line-of-sight of the market stalls in the core village",
+          "text": "The stalls, goblin. That canvas and timber is every coin this hamlet has ever counted — put your torch in it and watch them learn poverty.",
+          "hud_line": "MARKET: Burn the stalls — required objective. The market is the hamlet's livelihood and the map's densest loot concentration, so sweep the stall tables for gold before you light them (hold E to loot, and the strongbox spawns somewhere in this cluster). Press Q to toss a torch; it sticks where it lands, ignites, and spreads stall to stall, so one good throw upwind can take the whole row. Fire is loud — burning the market raises the alarm phase, so if you want the statue and the windmill quiet, do those first. Crouch (stealth stance) to move between stalls unseen, dodge roll to break away if a guard commits, and G sounds the war-horn to call the horde if the square turns against you. Once the stalls are fully consumed the objective ticks off toward extraction, and you keep whatever you looted when you bank it at the runic site. Plays with the low brass sting of His Eternal Darkness's attention.",
+          "control": "Q — torch toss",
+          "sources": [
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.8#6",
+            "GDD§2.3#1"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "First torch contacts the windmill's frame — Stage 1 Ablaze begins",
+          "text": "Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window.",
+          "hud_line": "WINDMILL: Ablaze — needs a window shot. This is the two-stage set piece and a required objective, and you have only finished the first half: any torch touching the frame catches the sails, thickens the smoke column, and marks the mill Ablaze, but exterior fire will never finish it on its own — nothing is wasted, it is simply still owed. Stage 2 needs an aimed torch thrown through one of the mill's windows (press Q, aim the arc, and commit) to catch the grain dust inside; the detonation builds, then blows in a one-off explosion and the mill state-swaps to a collapsed, still-burning silhouette — the raid's biggest payoff and the only objective you cannot finish from outside. Line up the throw from cover: crouch to stay quiet, dodge roll out of the blast lane, G calls the horde if the fire has already drawn a patrol. The turning silhouette above the treetops is your orientation aid from anywhere in the forest, and thickening wheat density leads you back to it. Accompanied by the deep rising roar of the sails catching.",
+          "control": "Q — aimed torch throw through a window",
+          "sources": [
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.8#6",
+            "GDD§2.3#1"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "Player first approaches the king's statue in the village square",
+          "text": "There he stands — the king who swore he'd scoured every last one of us off his map. Bring him down, stone on stone, and let the square watch it happen.",
+          "hud_line": "STATUE: Topple the king — required objective, and the one target in the hamlet that does not burn. Do not waste a torch here: stone ignores fire, so the monument has to be physically brought down, stone on stone, by working the plinth and structure until the figure comes off its base. It sits in the village square where the guards are thickest — the watchtower and barracks feed patrols straight through here — so expect company: crouch to hold the stealth stance behind the well and hedgerows, hold E on an isolated guard for a takedown before you start making noise, dodge roll (0.22s of invulnerability, punishable recovery) to read and answer a telegraphed wind-up, and press G for the war-horn when the square escalates past what one goblin should be handling. Toppling it is the loudest thing you can do short of the mill, so the alarm phase will climb the moment it falls. When it comes down the objective ticks off, the square is yours, and the road out leads back to the runic site to bank. Plays with the grinding stone-on-stone groan under the Overlord's line.",
+          "control": "Hold E — interact channel",
+          "sources": [
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.8#6",
+            "GDD§2.3#1"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "score": 9,
+      "reason": "All three rows read as shipped Goblin Siege prompt content. No settlement is named anywhere — every row says \"this hamlet\" / \"the hamlet's\", matching GDD§2.8#6's rule that settlements stay nameless while counties carry the ascending-currency names. Vocabulary is slice-only: the objective trio is exactly market / statue / windmill (GDD§2.8#5), no granary, no Brute/Shaman/palisade/ram, and the controls are the canonical universal kit — Q torch toss and hold-E interact channel (GDD§2.3#1). Row 3 gets the statue right: \"Bring him down, stone on stone\" and \"STATUE: Topple the king — hold E\" — toppled, never burned, per GDD§2.8#4. Row 2's bark is the GDD§2.8#3 Stage-1 Ablaze line almost verbatim, with the aimed window throw as the finisher. Each row is one bark plus one HUD line naming objective, payoff and one control, and all three HUD lines are well under 90 characters (69, 75, 75) with no chained clauses, no stage directions and no second control. Nothing references a voice file, an SFX cue or a sound — the comedy is carried in text alone (GDD§11 via FORMAT_SILENT). No villager lines are drafted, so nothing contradicts the disbelief register; no row contains fear framing or anything near \"Run for your lives\". The one soft spot is row 1 (market): \"put your torch in it and watch them learn poverty\" tips from chronically-underwhelmed mockery toward straight cruelty — the Overlord is funnier when he is bored by the scale of the theft, e.g. framing the stalls as a pitiful sum before the trailing \"...adequate\". Rows 2 and 3 (\"I have seen rats find the window\", \"It will take you a while, I expect\") hit that register exactly and are the model to match.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#5"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#3"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 9,
+          "verdict": "PASS",
+          "row": "Row 1 (market, Overlord bark)",
+          "quote": "put your torch in it and watch them learn poverty",
+          "required_instead": "Underwhelmed mockery rather than relish for suffering: apocalyptic gravitas deflating into how little the stalls are worth, in the register of \"I have seen rats do better. ...adequate.\"",
+          "evidence_chunk_id": "GDD§2.8#4"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#5"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "Player first enters line-of-sight of the market stalls in the core village",
+          "text": "The stalls, goblin. That canvas and timber is every coin this hamlet has ever counted — put your torch in it and watch them learn poverty. ...adequate.",
+          "hud_line": "MARKET: Burn the stalls — Q torch toss. It's the hamlet's livelihood.",
+          "control": "Q — torch toss",
+          "sources": [
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.8#6",
+            "GDD§2.3#1"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "First torch contacts the windmill's frame — Stage 1 Ablaze begins",
+          "text": "Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window. I have seen rats find the window.",
+          "hud_line": "WINDMILL: Ablaze — Q torch through a window. The dust blows the mill apart.",
+          "control": "Q — aimed torch throw through a window",
+          "sources": [
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.8#6",
+            "GDD§2.3#1"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "Player first approaches the king's statue in the village square",
+          "text": "There he stands — the king who swore he'd scoured every last one of us off his map. Bring him down, stone on stone. It will take you a while, I expect. ...adequate.",
+          "hud_line": "STATUE: Topple the king — hold E. The monument to the man who wiped us out.",
+          "control": "Hold E — interact channel",
+          "sources": [
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.8#6",
+            "GDD§2.3#1"
+          ]
+        }
+      ]
+    }
+  ],
+  "first_score": 2,
+  "final_score": 9
+}

@@ -37,10 +37,16 @@ enum class EGSWeaponSlot : uint8
 {
 	/** Top of the wheel. */
 	Torch	UMETA(DisplayName = "Torch"),
-	/** Bottom-right. */
+	/** Right of the wheel. Was bottom-right while there were three slots. */
 	Bow		UMETA(DisplayName = "Bow"),
-	/** Bottom-left, and the default a goblin starts a raid in. */
-	Sword	UMETA(DisplayName = "Sword")
+	/** Left of the wheel, and the default a goblin starts a raid in. Was bottom-left at three. */
+	Sword	UMETA(DisplayName = "Sword"),
+	/**
+	 * Bottom of the wheel. APPEND ONLY - this enum's integer values are written to the
+	 * BP_GSPlayerCharacter CDO and to any saved widget binding, so inserting Grapple ahead of
+	 * Sword would silently repoint every one of them. Same rule EGSHordeOrder carries.
+	 */
+	Grapple	UMETA(DisplayName = "Grapple")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnOrbCountChanged, int32, NewCount);
@@ -142,7 +148,10 @@ public:
 	 * a second copy that can drift. Screen convention (+Y down). Inside the dead zone this returns
 	 * FallbackSlot unchanged.
 	 *
-	 * Top is Torch, bottom-right is Bow, bottom-left is Sword - 120-degree sectors centred on each.
+	 * Top is Torch, right is Bow, bottom is Grapple, left is Sword - 90-degree sectors centred on
+	 * each. Was three 120-degree sectors until the grapple arrived (2026-08-17); Bow and Sword each
+	 * moved 30 degrees to make room, which keeps them on the side of the wheel a player already
+	 * reaches for rather than reshuffling the whole thing.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
 	EGSWeaponSlot SlotForDirection(FVector2D Direction, EGSWeaponSlot FallbackSlot) const;

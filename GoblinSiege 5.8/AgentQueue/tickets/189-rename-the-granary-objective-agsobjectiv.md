@@ -2,13 +2,13 @@
 id: 189
 title: Rename the granary objective: AGSObjective_BurnGranaries -> AGSObjective_ToppleStatue, Objective.Granary -> Objective.Statue, with CoreRedirects - WRITTEN, needs build
 agent: claude-statuerename
-status: review
+status: done
 claimed: 2026-08-18T22:12Z
 build: required
 waiting_on:
 evaluated: 2026-08-18T22:16:17Z
-observed:
-scenario:
+observed: UNOBSERVED 2026-08-19T22:55:18Z - The rename is in the 2026-08-18 20:49 binary and the CoreRedirect is in DefaultEngine.ini, but AGSObjective_ToppleStatue is instantiated NOWHERE - checked, its only external references are comments. The +100 deeds Michael watched in 193/196 came from GSTopplableComponent calling AddDeeds directly, NOT through this class, so that evidence does not transfer. Nothing creates a statue mission objective until Block C. Closed on Michael's instruction 2026-08-19.
+scenario: none - never run
 files: 
   - Source/GoblinSiege/Missions/GSObjective_BurnGranaries.h
   - Source/GoblinSiege/Missions/GSObjective_BurnGranaries.cpp

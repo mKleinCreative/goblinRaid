@@ -23,6 +23,11 @@
 #include "Alarm/GSAlarmTypes.h"
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Raid/GSRaidTypes.h"
+// Both needed by UHT rather than by the compiler: HandleChannelEnded takes EGSInteractEndReason and
+// HandleChannelStarted takes FGameplayTag BY VALUE in a UFUNCTION, so a forward declaration will not
+// do - the generated glue has to know their layout.
+#include "GameplayTagContainer.h"
+#include "Interaction/GSInteractionComponent.h"
 #include "GSPlayerHUDWidget.generated.h"
 
 class UProgressBar;
@@ -148,6 +153,146 @@ protected:
 
 	/** Paints the reticle for the current state. Safe to call before the component is found. */
 	void RefreshReticle(bool bHasTarget);
+
+	// ---- the interact channel ring (#169) ------------------------------------------------------
+	//
+	// Michael: "we need to create a visual indicator ... a circle around that reticule we have that
+	// slowly fills based on the percentage done with the interaction."
+	//
+	// UGSInteractionComponent has published OnChannelStarted / OnChannelProgress / OnChannelEnded
+	// since it was written and NOTHING has ever bound to them. That is not a missing nicety: a 1.5s
+	// hold with no feedback is indistinguishable from a dead key, and it is why the loot chest was
+	// reported broken in #163 when it was working correctly the whole time. This class is the first
+	// consumer of those delegates.
+	//
+	// The ring is an Image in WBP_GSPlayerHUD wearing M_GS_ChannelRing, concentric with the Reticle.
+	// C++ owns only the fill fraction and the visibility, exactly as it owns only the reticle's tint.
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<class UImage> InteractRing;
+
+	/** Scalar parameter on the ring material that carries 0..1 fill. Must match M_GS_ChannelRing. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Channel")
+	FName ChannelPercentParameter = FName("Percent");
+
+	/**
+	 * How long a COMPLETED ring stays on screen, full, before it disappears.
+	 *
+	 * Not decoration, and the mechanism is worth stating exactly because it is easy to get wrong.
+	 * UGSInteractionComponent::TickComponent broadcasts a clamped 1.0 and then calls CompleteChannel
+	 * on the SAME TICK (GSInteractionComponent.cpp:284-294). So the ring does receive a full value -
+	 * it just never gets a frame to draw it in, because OnChannelEnded hides it before the next
+	 * present. Without this hold the player watches the ring vanish just shy of closing, every single
+	 * time, and reads a success as a failure. That precise illusion is what made the loot chest look
+	 * broken in #163, where the debug text died on the same frame for the same reason.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Channel", meta = (ClampMin = "0.0"))
+	float ChannelCompleteHoldSeconds = 0.18f;
+
+	UFUNCTION()
+	void HandleChannelStarted(class UGSInteractableComponent* Interactable, FGameplayTag VerbTag, float DurationSeconds);
+
+	UFUNCTION()
+	void HandleChannelProgress(float Progress);
+
+	UFUNCTION()
+	void HandleChannelEnded(bool bCompleted, EGSInteractEndReason Reason);
+
+	/** Push a 0..1 fill into the ring material. No-op when the ring is not authored. */
+	void SetChannelProgress(float Progress);
+
+	void ShowChannelRing(bool bVisible);
+
+	/** Cached so the fill is not a material lookup per frame. Created lazily from the Image's brush. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UMaterialInstanceDynamic> ChannelRingMID;
+
+	/** Weak for the same reason BoundCommandComponent is: the pawn routinely outlives this widget. */
+	TWeakObjectPtr<class UGSInteractionComponent> BoundInteractionComponent;
+
+	FTimerHandle ChannelHideTimer;
+
+	// ---- the interact prompt (#187) -------------------------------------------------------------
+	//
+	// The last of UGSInteractionComponent's four delegates to find a consumer, and the other half of
+	// what #163 asked for: the ring says how far through you are, this says what you are looking at
+	// and what F will do to it. Without it the player has to press the key to discover whether there
+	// was anything there at all.
+	//
+	// Michael's two rulings, 2026-08-18:
+	//   1. The prompt does NOT name the key. "Loot the barrel", not "Hold F to loot the barrel" -
+	//      the binding has already been remapped once (#058) and baking it into every prompt makes
+	//      the next remap a content pass.
+	//   2. It DOES show for unavailable interactables, which is why UGSInteractableComponent needed
+	//      CanFocus split out of CanInteract. A locked crate reading "Smash it open" teaches the
+	//      smash-then-loot chain at the only moment the player cares about it.
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<UTextBlock> InteractPrompt;
+
+	/** Something you can act on right now. Matches the reticle's valid-target gold. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Prompt")
+	FLinearColor PromptAvailableColour = FLinearColor(1.f, 0.82f, 0.25f, 1.f);
+
+	// ---- the refusal shake (#187) ---------------------------------------------------------------
+	//
+	// Michael chose this over a "Locked" caption: "is it possible to make the UI reticule jiggle
+	// slightly to give you the indication you can't interact with the item."
+	//
+	// It is the better answer, and not only because it needs no reading. A locked caption would sit
+	// under the reticle every time the player so much as glanced at an unsmashed crate, which is
+	// exactly the nagging ReticleIdleColour above was chosen to avoid. A shake costs nothing until
+	// the player actually asks a question, and answers it in the same instant.
+
+	/** Peak sideways offset, in slate units. Small on purpose - this is a nudge, not an alarm. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Prompt")
+	float RefusalShakePixels = 7.f;
+
+	/** How long the wobble takes to die away. Long enough to read as deliberate, short enough that
+	 *  mashing F does not produce a permanently vibrating reticle. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Prompt", meta = (ClampMin = "0.01"))
+	float RefusalShakeSeconds = 0.22f;
+
+	/** Oscillations per second. ~14 reads as a shiver rather than a slide. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Prompt")
+	float RefusalShakeFrequency = 14.f;
+
+	UFUNCTION()
+	void HandleInteractRefused(class UGSInteractableComponent* Interactable);
+
+	/** Seconds remaining in the current shake; 0 when at rest. Ticked in NativeTick. */
+	float RefusalShakeRemaining = 0.f;
+
+	/** Advances the shake and writes the reticle's render transform. No-op at rest. */
+	void TickRefusalShake(float DeltaSeconds);
+
+	// ---- the grapple haul (#193) ----------------------------------------------------------------
+	//
+	// A second driver for the SAME ring. Michael's call: hauling a monument over is a hold-and-wait
+	// act like looting a crate, so it should look like one rather than inventing a second progress
+	// idiom for the same idea.
+	//
+	// Nothing about the ring is duplicated - these handlers call the identical SetChannelProgress and
+	// ShowChannelRing the interaction channel uses. The two sources cannot overlap in practice (you
+	// cannot loot a crate while leaning on a rope) and if they ever did, last writer wins, which is
+	// the honest behaviour for a single ring.
+
+	UFUNCTION()
+	void HandleHaulStarted(AActor* Target, float DurationSeconds);
+
+	UFUNCTION()
+	void HandleHaulProgress(float Progress);
+
+	UFUNCTION()
+	void HandleHaulEnded(bool bCompleted);
+
+	TWeakObjectPtr<class UGSGrappleHaulComponent> BoundHaulComponent;
+
+	UFUNCTION()
+	void HandleFocusChanged(class UGSInteractableComponent* NewFocus);
+
+	/** Paints the prompt for a focus target, or hides it for none. */
+	void RefreshPrompt(class UGSInteractableComponent* Focus);
 
 	/**
 	 * The end-of-raid panel: a container that is hidden for the whole raid and shown once, when it

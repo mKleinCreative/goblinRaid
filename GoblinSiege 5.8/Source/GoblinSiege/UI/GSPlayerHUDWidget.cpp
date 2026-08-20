@@ -6,9 +6,14 @@
 #include "Raid/GSScoreSubsystem.h"
 #include "Characters/GSStaminaComponent.h"
 #include "Horde/GSHordeCommandComponent.h"
+#include "Interaction/GSInteractionComponent.h"
+#include "Interaction/GSInteractableComponent.h"
+#include "Weapons/GSGrappleHaulComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "TimerManager.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/World.h"
 
@@ -78,6 +83,52 @@ void UGSPlayerHUDWidget::NativeConstruct()
 		// is at least visible and consistent rather than whatever the asset shipped with.
 		RefreshReticle(false);
 	}
+
+	// ---- interact channel ring (#169) ---------------------------------------------------------
+	// Same shape as the reticle above, and not warned about for the same reason: a project with no
+	// interactables authored yet is a valid state.
+	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
+	{
+		BoundInteractionComponent = OwnerPawn->FindComponentByClass<UGSInteractionComponent>();
+	}
+
+	if (UGSInteractionComponent* Interaction = BoundInteractionComponent.Get())
+	{
+		Interaction->OnChannelStarted.AddDynamic(this, &UGSPlayerHUDWidget::HandleChannelStarted);
+		Interaction->OnChannelProgress.AddDynamic(this, &UGSPlayerHUDWidget::HandleChannelProgress);
+		Interaction->OnChannelEnded.AddDynamic(this, &UGSPlayerHUDWidget::HandleChannelEnded);
+		Interaction->OnFocusChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleFocusChanged);
+		Interaction->OnInteractRefused.AddDynamic(this, &UGSPlayerHUDWidget::HandleInteractRefused);
+	}
+	else if (InteractRing)
+	{
+		// The ring is authored but nothing will ever drive it. Worth a line: a permanently invisible
+		// ring is the same symptom as a broken one, and this distinguishes them.
+		UE_LOG(LogGSHUD, Warning,
+			TEXT("[GoblinSiege] HUD has an InteractRing but the pawn has no UGSInteractionComponent - ")
+			TEXT("the channel ring will never appear."));
+	}
+
+	// ---- grapple haul (#193) ------------------------------------------------------------------
+	// Optional in the strongest sense: the component is added on BP_GSPlayerCharacter, not in native
+	// code, so a pawn without it is normal rather than broken. No warning for the same reason the
+	// reticle gets none.
+	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
+	{
+		BoundHaulComponent = OwnerPawn->FindComponentByClass<UGSGrappleHaulComponent>();
+	}
+
+	if (UGSGrappleHaulComponent* Haul = BoundHaulComponent.Get())
+	{
+		Haul->OnHaulStarted.AddDynamic(this, &UGSPlayerHUDWidget::HandleHaulStarted);
+		Haul->OnHaulProgress.AddDynamic(this, &UGSPlayerHUDWidget::HandleHaulProgress);
+		Haul->OnHaulEnded.AddDynamic(this, &UGSPlayerHUDWidget::HandleHaulEnded);
+	}
+
+	// Start hidden regardless of what the asset saved, for the reason EndPanel is hidden above: a
+	// designer leaving it visible mid-edit would otherwise ship a ring stuck on screen all raid.
+	ShowChannelRing(false);
+	RefreshPrompt(nullptr);
 }
 
 void UGSPlayerHUDWidget::NativeDestruct()
@@ -95,6 +146,30 @@ void UGSPlayerHUDWidget::NativeDestruct()
 		Cmd->OnCrosshairTargetChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleCrosshairTargetChanged);
 	}
 	BoundCommandComponent.Reset();
+
+	if (UGSInteractionComponent* Interaction = BoundInteractionComponent.Get())
+	{
+		Interaction->OnChannelStarted.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleChannelStarted);
+		Interaction->OnChannelProgress.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleChannelProgress);
+		Interaction->OnChannelEnded.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleChannelEnded);
+		Interaction->OnFocusChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleFocusChanged);
+		Interaction->OnInteractRefused.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleInteractRefused);
+	}
+	BoundInteractionComponent.Reset();
+
+	if (UGSGrappleHaulComponent* Haul = BoundHaulComponent.Get())
+	{
+		Haul->OnHaulStarted.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHaulStarted);
+		Haul->OnHaulProgress.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHaulProgress);
+		Haul->OnHaulEnded.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHaulEnded);
+	}
+	BoundHaulComponent.Reset();
+
+	// A pending hide would fire into a destroyed widget.
+	if (const UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ChannelHideTimer);
+	}
 
 	UnbindRaid();
 	Super::NativeDestruct();
@@ -117,9 +192,183 @@ void UGSPlayerHUDWidget::RefreshReticle(bool bHasTarget)
 	Reticle->SetColorAndOpacity(bHasTarget ? ReticleTargetColour : ReticleIdleColour);
 }
 
+// ---- interact channel ring (#169) -------------------------------------------------------------
+
+void UGSPlayerHUDWidget::HandleChannelStarted(UGSInteractableComponent* Interactable,
+	FGameplayTag VerbTag, float DurationSeconds)
+{
+	// A previous completion's hold could still be pending; a new channel supersedes it.
+	if (const UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ChannelHideTimer);
+	}
+
+	// Zero BEFORE showing. Otherwise the ring appears carrying the previous channel's fill for one
+	// frame, which reads as the hold having started already part-done.
+	SetChannelProgress(0.f);
+	ShowChannelRing(true);
+}
+
+void UGSPlayerHUDWidget::HandleChannelProgress(float Progress)
+{
+	SetChannelProgress(Progress);
+}
+
+void UGSPlayerHUDWidget::HandleChannelEnded(bool bCompleted, EGSInteractEndReason Reason)
+{
+	if (!bCompleted)
+	{
+		// Released or interrupted: the ring vanishing IS the feedback that it did not take.
+		ShowChannelRing(false);
+		return;
+	}
+
+	// Completed. Snap to a genuinely full circle and hold it briefly - see ChannelCompleteHoldSeconds
+	// for why this is not decoration.
+	SetChannelProgress(1.f);
+
+	UWorld* World = GetWorld();
+	if (!World || ChannelCompleteHoldSeconds <= 0.f)
+	{
+		ShowChannelRing(false);
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(ChannelHideTimer,
+		FTimerDelegate::CreateWeakLambda(this, [this]() { ShowChannelRing(false); }),
+		ChannelCompleteHoldSeconds, false);
+}
+
+void UGSPlayerHUDWidget::SetChannelProgress(float Progress)
+{
+	if (!InteractRing)
+	{
+		return;
+	}
+
+	// Lazily, and cached: GetDynamicMaterial creates the MID on first call and returns the same one
+	// after, but it is not free enough to want per-frame during a channel.
+	if (!ChannelRingMID)
+	{
+		ChannelRingMID = InteractRing->GetDynamicMaterial();
+
+		if (!ChannelRingMID)
+		{
+			// The Image has a plain texture brush, not a material. The ring cannot fill, and silently
+			// showing an unmoving circle is worse than saying so.
+			UE_LOG(LogGSHUD, Warning,
+				TEXT("[GoblinSiege] InteractRing has no material brush, so it cannot show progress - ")
+				TEXT("set its brush to M_GS_ChannelRing (or another material with a '%s' scalar)."),
+				*ChannelPercentParameter.ToString());
+			return;
+		}
+	}
+
+	ChannelRingMID->SetScalarParameterValue(ChannelPercentParameter, FMath::Clamp(Progress, 0.f, 1.f));
+}
+
+void UGSPlayerHUDWidget::HandleFocusChanged(UGSInteractableComponent* NewFocus)
+{
+	RefreshPrompt(NewFocus);
+}
+
+void UGSPlayerHUDWidget::RefreshPrompt(UGSInteractableComponent* Focus)
+{
+	if (!InteractPrompt)
+	{
+		return;
+	}
+
+	// Available only. A locked container deliberately shows NOTHING here - it answers through the
+	// refusal shake instead, at the moment the player presses rather than every time they look.
+	if (!IsValid(Focus) || !Focus->IsAvailable())
+	{
+		InteractPrompt->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	InteractPrompt->SetText(Focus->GetPromptText());
+	InteractPrompt->SetColorAndOpacity(FSlateColor(PromptAvailableColour));
+	InteractPrompt->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UGSPlayerHUDWidget::HandleHaulStarted(AActor* Target, float DurationSeconds)
+{
+	if (const UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ChannelHideTimer);
+	}
+
+	SetChannelProgress(0.f);
+	ShowChannelRing(true);
+}
+
+void UGSPlayerHUDWidget::HandleHaulProgress(float Progress)
+{
+	SetChannelProgress(Progress);
+}
+
+void UGSPlayerHUDWidget::HandleHaulEnded(bool bCompleted)
+{
+	// Same reasoning as the interaction channel: on success hold a full ring briefly, because the
+	// statue starts falling on the same frame the haul completes and the ring would otherwise vanish
+	// at 99% during the one moment the player is looking at something else.
+	HandleChannelEnded(bCompleted, EGSInteractEndReason::Completed);
+}
+
+void UGSPlayerHUDWidget::TickRefusalShake(float DeltaSeconds)
+{
+	if (RefusalShakeRemaining <= 0.f || !Reticle)
+	{
+		return;
+	}
+
+	RefusalShakeRemaining = FMath::Max(0.f, RefusalShakeRemaining - DeltaSeconds);
+
+	// Damped horizontal oscillation: amplitude falls off with the time remaining, so it settles
+	// instead of stopping dead mid-swing. Sideways only - a vertical shake on a centre-screen reticle
+	// reads as the camera moving rather than the UI answering you.
+	const float Alpha = RefusalShakeRemaining / FMath::Max(RefusalShakeSeconds, 0.01f);
+	const float Elapsed = FMath::Max(RefusalShakeSeconds, 0.01f) - RefusalShakeRemaining;
+	const float Offset = FMath::Sin(Elapsed * RefusalShakeFrequency * 2.f * PI) * RefusalShakePixels * Alpha;
+
+	FWidgetTransform Transform = Reticle->GetRenderTransform();
+	Transform.Translation.X = Offset;
+	Reticle->SetRenderTransform(Transform);
+
+	// Land exactly on zero. Leaving a sub-pixel offset behind would nudge the reticle permanently
+	// off-centre after enough refusals, and the reticle is the thing the player aims with.
+	if (RefusalShakeRemaining <= 0.f)
+	{
+		Transform.Translation.X = 0.f;
+		Reticle->SetRenderTransform(Transform);
+	}
+}
+
+void UGSPlayerHUDWidget::HandleInteractRefused(UGSInteractableComponent* Interactable)
+{
+	// Restart rather than accumulate. Mashing F should re-shake from full amplitude, not stack into a
+	// longer and longer vibration.
+	RefusalShakeRemaining = FMath::Max(RefusalShakeSeconds, 0.01f);
+}
+
+void UGSPlayerHUDWidget::ShowChannelRing(bool bVisible)
+{
+	if (!InteractRing)
+	{
+		return;
+	}
+
+	// Collapsed rather than Hidden: the ring is in a canvas panel at a fixed size, so it costs no
+	// layout either way, and Collapsed is what the rest of this class uses for "not now".
+	InteractRing->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+}
+
 void UGSPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	TickRefusalShake(InDeltaTime);
 
 	// Retry the raid bind until it takes. The GameState, PlayerState and director can all arrive
 	// after this widget is constructed, and on a client they arrive by replication - so there is no

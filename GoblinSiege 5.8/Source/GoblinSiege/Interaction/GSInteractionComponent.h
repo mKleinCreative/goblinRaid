@@ -32,6 +32,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnInteractFocusChanged, UGSIntera
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnInteractChannelStarted, UGSInteractableComponent*, Interactable, FGameplayTag, VerbTag, float, DurationSeconds);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnInteractChannelProgress, float, Progress);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnInteractChannelEnded, bool, bCompleted, EGSInteractEndReason, Reason);
+/** A press that was refused before any channel began - the locked crate case (#187). Carries the
+ *  interactable that said no, or null when the press found nothing at all. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnInteractRefused, UGSInteractableComponent*, Interactable);
 
 UCLASS(ClassGroup = (GoblinSiege), meta = (BlueprintSpawnableComponent))
 class GOBLINSIEGE_API UGSInteractionComponent : public UActorComponent
@@ -91,6 +94,19 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Interaction")
 	FGSOnInteractChannelEnded OnChannelEnded;
+
+	/**
+	 * Fired when an interact press could not start a channel.
+	 *
+	 * Michael, 2026-08-18, choosing this over a "Locked" caption: "is it possible to make the UI
+	 * reticule jiggle slightly to give you the indication you can't interact with the item."
+	 *
+	 * Only fires when something was actually LOOKED AT and refused, never on a press into empty air -
+	 * a shake every time F is tapped while running would be noise, and would teach the player to
+	 * ignore the one signal that means something.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Interaction")
+	FGSOnInteractRefused OnInteractRefused;
 
 protected:
 	/** Damage aborts (stealth spec). Bound to AGSCharacterBase::OnHealthChanged rather than a new

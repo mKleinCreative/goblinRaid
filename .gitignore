@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Goblin Siege — repo root ignores
 #
 # NOTE: .gitignore does not untrack files already in the index. The
@@ -39,6 +38,14 @@ dev/null/
 # .gitignore. Never commit an API key.
 .env
 .env.*
-=======
+
+# Blender's rolling auto-backup. Every save of a .blend in ArtSource/ drops a
+# .blend1 beside it, so these arrive in pairs with files we DO version and are
+# pure noise in `git status`. The .blend itself stays tracked.
+#
+# Arrived from the other side of the merge conflict this file sat in; kept
+# because it is an independent rule, not an alternative to anything above.
 *.blend1
->>>>>>> e305b7b7a8257f3a36537e29bc7ebaa83b024a53
+
+# Cygwin/MSYS grep crash dumps. Pure noise; one already slipped into the index.
+*.stackdump

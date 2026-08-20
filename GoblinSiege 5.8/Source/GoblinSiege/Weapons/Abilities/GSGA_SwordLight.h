@@ -19,6 +19,17 @@
 class UAnimMontage;
 class UGameplayEffect;
 
+/**
+ * Master switch for combat debug drawing - the `GS.Combat.Debug` cvar. Defined in
+ * GSGA_SwordLight.cpp, which is where the cvar itself lives.
+ *
+ * DECLARED HERE because it was declared NOWHERE (#167). GSArrowProjectile.cpp called it and compiled
+ * only because the unity build happened to put both files in one translation unit; adding an
+ * unrelated include to this file re-split the blob and the call became "identifier not found". A
+ * free function used across files needs a declaration, not luck about how the build groups them.
+ */
+GOBLINSIEGE_API bool GSCombatDebugEnabled();
+
 /** One swing in the chain. Every number that decides how a hit feels lives here. */
 USTRUCT(BlueprintType)
 struct FGSSwingStage
@@ -79,6 +90,16 @@ struct FGSSwingStage
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit", meta = (ClampMin = "0.0"))
 	float Damage = 25.f;
+
+	/**
+	 * Damage dealt to breakable PROPS by this swing, in hit points rather than health.
+	 *
+	 * Separate from Damage on purpose: props are not combatants and have no health attribute, no
+	 * armour and no race. A crate takes 1 hit, a statue 4, and that scale has nothing to do with the
+	 * 25 health a militiaman loses. 0 disables prop smashing for this stage entirely.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit", meta = (ClampMin = "0"))
+	int32 SmashDamage = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit", meta = (ClampMin = "1.0"))
 	float SweepRadius = 110.f;

@@ -258,3 +258,81 @@ bool UGSRaidLibrary::FindStandableSpotNear(const UObject* WorldContextObject, FV
 
 	return false;
 }
+
+int32 UGSRaidLibrary::SmashBreakablesInArc(const UObject* WorldContextObject, AActor* Instigator,
+	const FVector& Origin, float Radius, const FVector& Forward, float ArcDegrees,
+	int32 Damage, TSet<TObjectPtr<AActor>>& AlreadyHit)
+{
+	if (Damage <= 0 || Radius <= 0.f)
+	{
+		return 0;
+	}
+
+	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(
+		WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr;
+	if (!World)
+	{
+		return 0;
+	}
+
+	// WorldStatic AND WorldDynamic. A placed prop is usually WorldStatic; anything already simulating
+	// - a crate someone pushed, a collection mid-break - is WorldDynamic. Missing the second would
+	// make props stop being hittable at exactly the moment they became interesting.
+	FCollisionObjectQueryParams ObjParams;
+	ObjParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(GSSmashArc), false, Instigator);
+
+	TArray<FOverlapResult> Overlaps;
+	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, ObjParams,
+		FCollisionShape::MakeSphere(Radius), Params);
+
+	const FVector FlatForward = FVector(Forward.X, Forward.Y, 0.f).GetSafeNormal();
+	const float CosHalfArc = FMath::Cos(FMath::DegreesToRadians(ArcDegrees * 0.5f));
+	const FVector SwingOrigin = Instigator ? Instigator->GetActorLocation() : Origin;
+
+	int32 Smashed = 0;
+
+	for (const FOverlapResult& O : Overlaps)
+	{
+		AActor* Target = O.GetActor();
+		if (!Target || Target == Instigator || AlreadyHit.Contains(Target))
+		{
+			continue;
+		}
+
+		UGSBreakableComponent* Breakable = Target->FindComponentByClass<UGSBreakableComponent>();
+		if (!Breakable || Breakable->IsBroken())
+		{
+			continue;
+		}
+
+		// Same flattened-dot arc test the character sweep uses. A sphere centred in front still
+		// reaches behind the shoulders, and smashing a crate that is behind you reads as a bug even
+		// when the maths is right.
+		if (ArcDegrees < 360.f && !FlatForward.IsNearlyZero())
+		{
+			FVector ToTarget = Target->GetActorLocation() - SwingOrigin;
+			ToTarget.Z = 0.f;
+			if (!ToTarget.IsNearlyZero()
+				&& FVector::DotProduct(ToTarget.GetSafeNormal(), FlatForward) < CosHalfArc)
+			{
+				continue;
+			}
+		}
+
+		// Mark before applying: ApplySmash can destroy or otherwise invalidate the actor, and one
+		// swing must never hit the same prop twice regardless of what the break does.
+		AlreadyHit.Add(Target);
+
+		const FVector ImpactPoint = O.GetComponent()
+			? O.GetComponent()->GetComponentLocation()
+			: Target->GetActorLocation();
+
+		Breakable->ApplySmash(Damage, ImpactPoint, FlatForward * 500.f, Instigator);
+		++Smashed;
+	}
+
+	return Smashed;
+}

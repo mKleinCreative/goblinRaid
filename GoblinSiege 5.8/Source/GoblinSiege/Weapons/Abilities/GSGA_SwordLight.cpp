@@ -1,6 +1,7 @@
 #include "Weapons/Abilities/GSGA_SwordLight.h"
 #include "Combat/GSGE_WeaponDamage.h"
 #include "Combat/GSEngagementComponent.h"
+#include "Raid/GSRaidLibrary.h"
 #include "Combat/GSGameplayTags.h"
 #include "Characters/GSCharacterBase.h"
 #include "AIController.h"
@@ -414,6 +415,27 @@ void UGSGA_SwordLight::DoSweep()
 		{
 			DrawDebugSphere(World, Target->GetActorLocation() + FVector(0, 0, 60.f), 45.f, 12,
 				FColor::Red, false, 0.6f, 0, 3.f);
+		}
+	}
+
+	// ---- props (#165) ------------------------------------------------------------------------
+	//
+	// A SECOND overlap, deliberately, rather than adding WorldStatic to the one above. Everything
+	// between here and the top of the loop - the hostility check, the ASC lookup, guard break,
+	// recoil, the damage effect - is about characters, and a crate has no business entering any of
+	// it. Widening the first query would have put props into all of it at once.
+	//
+	// Same HitActorsThisSwing set, so a swing that clips a crate and a militiaman hits each once, and
+	// a three-hit chain gets three cracks at the same crate.
+	if (S.SmashDamage > 0)
+	{
+		const int32 Smashed = UGSRaidLibrary::SmashBreakablesInArc(this, Avatar, Origin, S.SweepRadius,
+			Forward, S.SweepArcDegrees, S.SmashDamage, HitActorsThisSwing);
+
+		if (Smashed > 0 && bShowDebug)
+		{
+			DrawDebugString(World, Origin + FVector(0.f, 0.f, 90.f),
+				FString::Printf(TEXT("smashed %d"), Smashed), nullptr, FColor::Yellow, 0.6f, true);
 		}
 	}
 }

@@ -18,9 +18,10 @@ namespace
 	{
 		switch (Slot)
 		{
-		case EGSWeaponSlot::Torch: return TEXT("Torch");
-		case EGSWeaponSlot::Bow:   return TEXT("Bow");
-		default:                   return TEXT("Sword");
+		case EGSWeaponSlot::Torch:   return TEXT("Torch");
+		case EGSWeaponSlot::Bow:     return TEXT("Bow");
+		case EGSWeaponSlot::Grapple: return TEXT("Grapple");
+		default:                     return TEXT("Sword");
 		}
 	}
 }
@@ -285,9 +286,12 @@ EGSWeaponSlot UGSWeaponComponent::SlotForDirection(FVector2D Direction, EGSWeapo
 	const float Degrees = FRotator::ClampAxis(
 		FMath::RadiansToDegrees(FMath::Atan2(-Direction.Y, Direction.X)));
 
-	// 120-degree sectors centred on 90 (top), 210 (bottom-left) and 330 (bottom-right).
-	if (Degrees >= 30.f && Degrees < 150.f)  { return EGSWeaponSlot::Torch; }
-	if (Degrees >= 150.f && Degrees < 270.f) { return EGSWeaponSlot::Sword; }
+	// 90-degree sectors centred on 90 (top), 180 (left), 270 (bottom) and 0 (right).
+	// Bow and Sword each shifted 30 degrees when the fourth slot landed, rather than rotating the
+	// whole wheel: a player reaching left for the sword still finds it left.
+	if (Degrees >= 45.f  && Degrees < 135.f) { return EGSWeaponSlot::Torch; }
+	if (Degrees >= 135.f && Degrees < 225.f) { return EGSWeaponSlot::Sword; }
+	if (Degrees >= 225.f && Degrees < 315.f) { return EGSWeaponSlot::Grapple; }
 	return EGSWeaponSlot::Bow;
 }
 

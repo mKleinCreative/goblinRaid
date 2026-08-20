@@ -215,7 +215,10 @@ void AGSTorchProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 			{
 				// ImpactVelocity, not the hit normal: shards and the torch should carry on the way
 				// the throw was going, into the room.
-				Breakable->Break(Hit.ImpactPoint, ImpactVelocity);
+				// One damage, not an outright Break (#165). A window has one hit point, so
+					// this is still a single-throw kill and the flow is unchanged - but a crate or
+					// a statue can cost several hits now, and the torch need not know which it hit.
+					Breakable->ApplySmash(1, Hit.ImpactPoint, ImpactVelocity, GetInstigator());
 			}
 			else if (AGSBuildingObjective* Building =
 				AGSBuildingObjective::FindBuildingOwning(this, OtherActor))

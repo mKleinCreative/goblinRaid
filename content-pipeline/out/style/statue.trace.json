@@ -1,0 +1,512 @@
+{
+  "case": "statue",
+  "title": "Statue topple barks - the moment the propaganda monument comes down",
+  "violation_class": "(none - real content generation, not a staged violation)",
+  "model": "claude-cli",
+  "threshold": 9,
+  "outcome": "PASS",
+  "source": "generated",
+  "brief": "Write NPC reaction barks for the moment a goblin raider attacks the king's statue in the village square of a small human hamlet. Context you must respect: the statue is a propaganda monument to the king who supposedly slew the last dragon and wiped the goblins out, so the kingdom has told everyone for generations that goblins are extinct. The statue does NOT burn - the goblin throws a grappling hook onto it, hooks it, and walks away until the rope drags it down onto the square, stone on stone. Write three barks: one for a guard the first moment he sees a rope go taut around the king's neck, one for a civilian watching the statue actually come down, and one for a militiaman afterwards standing in the rubble. The humans are pompous, greedy and a little bit stupid, and their first instinct is denial - but this is the moment the denial is hardest to sustain, because the thing being destroyed is the monument to the lie. Keep the comedy; let it strain.",
+  "retrieval": [
+    {
+      "query": "statue king propaganda toppled brought down stone square monument",
+      "hits": [
+        {
+          "chunk_id": "A02§2.8#3",
+          "score": 19.283,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "A02§2.8#4",
+          "score": 16.735,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§6#6",
+          "score": 16.255,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        },
+        {
+          "chunk_id": "GDD§6#7",
+          "score": 16.054,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        }
+      ]
+    },
+    {
+      "query": "tone comedy satire propaganda denial badger disbelief villagers extinct",
+      "hits": [
+        {
+          "chunk_id": "A02§2.10#1",
+          "score": 40.059,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "A02§2.10#0",
+          "score": 38.858,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "A02§2.10#2",
+          "score": 27.658,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "A02§2.10#3",
+          "score": 25.959,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        }
+      ]
+    },
+    {
+      "query": "grapple hook rope haul topple statue does not burn",
+      "hits": [
+        {
+          "chunk_id": "GDD§6#6",
+          "score": 14.447,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        },
+        {
+          "chunk_id": "GDD§6#7",
+          "score": 14.035,
+          "heading": "GOBLIN SIEGE — Game Design Document > 6. The level — the hamlet"
+        },
+        {
+          "chunk_id": "GDD§4#0",
+          "score": 13.103,
+          "heading": "GOBLIN SIEGE — Game Design Document > 4. The goblins — controls & kit"
+        },
+        {
+          "chunk_id": "GDD§4#1",
+          "score": 9.261,
+          "heading": "GOBLIN SIEGE — Game Design Document > 4. The goblins — controls & kit"
+        }
+      ]
+    }
+  ],
+  "before": [
+    {
+      "speaker": "Watchman",
+      "trigger": "OnGrappleAnchored_StatuePlayerVisible",
+      "text": "Oi! Oi, there's a rope round the King's neck! Who — that's a lad on a ladder, that's all that is, that's a — that's not a ladder. Where's his ladder?!",
+      "hud_line": "Statue: Hooked — walk away to pull it down",
+      "control": "Grapple — ATTACK from the weapon wheel (Q)",
+      "sources": [
+        "GDD§6#6",
+        "GDD§4#0",
+        "A02§2.10#0"
+      ]
+    },
+    {
+      "speaker": "Civilian",
+      "trigger": "OnStatueToppled_CivilianWitness",
+      "text": "He's tipping! He's tipping! HE SLEW THE DRAGON AND HE'S GOING OVER — no, no, it's subsidence, it's the wet spring, the Crown said so, the Crown said — MOVE, Bess, the head's coming!",
+      "hud_line": "",
+      "control": "",
+      "sources": [
+        "A02§2.10#1",
+        "A02§2.8#3",
+        "GDD§6#6"
+      ]
+    },
+    {
+      "speaker": "Militia",
+      "trigger": "OnStatueToppled_MilitiaArrivesAtRubble",
+      "text": "Right. Right. Forty ton of King, face-down in the square, and a hook mark in the neck you could hang a pig off. Badgers, that. Big organised badgers with rope. ...Say badgers, Tam. Say badgers or we're both explaining what a goblin is to the tax man.",
+      "hud_line": "",
+      "control": "",
+      "sources": [
+        "A02§2.10#0",
+        "A02§2.10#1",
+        "A02§2.8#3"
+      ]
+    }
+  ],
+  "after": [
+    {
+      "speaker": "Overlord",
+      "trigger": "OnGrappleAnchored_StatuePlayerVisible",
+      "text": "Forty feet of stone, and the man was five foot four. Lean on the rope, goblin. Let us see how a god holds his footing. ...adequate.",
+      "hud_line": "Statue: Hooked — walk away to pull it down",
+      "control": "Walk away (movement) to haul the rope",
+      "sources": [
+        "GDD§6#6",
+        "GDD§4#0",
+        "A02§2.10#2",
+        "A02§2.8#3"
+      ]
+    },
+    {
+      "speaker": "Watchman",
+      "trigger": "OnGrappleAnchored_WatchmanWitness",
+      "text": "Oi! Oi, there's a rope round the King's neck! Who — that's a lad on a ladder, that's all that is, that's a — that's not a ladder. Where's his ladder?!",
+      "hud_line": "",
+      "control": "",
+      "sources": [
+        "A02§2.10#0",
+        "A02§2.10#1",
+        "GDD§6#6"
+      ]
+    },
+    {
+      "speaker": "Civilian",
+      "trigger": "OnStatueToppled_CivilianWitness",
+      "text": "He's tipping! He's tipping! HE SLEW THE DRAGON AND HE'S GOING OVER — no, no, it's subsidence, it's the wet spring, the Crown said so, the Crown said — step left, Bess, the head's coming down on the turnips.",
+      "hud_line": "",
+      "control": "",
+      "sources": [
+        "A02§2.10#1",
+        "A02§2.8#3",
+        "GDD§6#6"
+      ]
+    },
+    {
+      "speaker": "Militia",
+      "trigger": "OnStatueToppled_MilitiaArrivesAtRubble",
+      "text": "Right. Right. Forty ton of King, face-down in the square, and a hook mark in the neck you could hang a pig off. Badgers, that. Big organised badgers with rope. ...Say badgers, Tam. Say badgers or we're both explaining what a goblin is to the tax man.",
+      "hud_line": "",
+      "control": "",
+      "sources": [
+        "A02§2.10#0",
+        "A02§2.10#1",
+        "A02§2.8#3"
+      ]
+    }
+  ],
+  "history": [
+    {
+      "attempt": 1,
+      "score": 7,
+      "reason": "Strong, on-brand slice content. The disbelief spine is exactly right and lands three different ways: row 1's watchman talks himself out of what he's seeing (\"that's a lad on a ladder, that's all that is\") before the ladder fails to exist; row 2 reaches straight for the Crown's own line (\"it's subsidence, it's the wet spring, the Crown said so\"); row 3 escalates the badger gag into complicity (\"Big organised badgers with rope. ...Say badgers, Tam\"), which is the denial-straining-under-evidence beat of A02§2.10#1 without darkening past Tier 1's goofy register (A02§2.10#2). Vocabulary is clean: no settlement or county name is spoken (Bess and Tam are villager given names, not place names), the statue is grappled and toppled rather than burned (GDD§6#6), and the control string \"Grapple — ATTACK from the weapon wheel (Q)\" matches the shipped binding in GDD§4#0 exactly. Nothing references a voice file, SFX cue or sound; the ALL-CAPS shouting in rows 2 and 3 is typographic, not an audio direction (FORMAT_SILENT holds). The one thing a rewriter should fix: row 1 is the draft's only first-time prompt (it is the row carrying hud_line and control), and FORMAT_PROMPT requires that HUD line to be paired with a bark from His Eternal Darkness — here it is paired with the Watchman's \"Oi! Oi, there's a rope round the King's neck!\" and the Overlord never speaks in any of the three rows. The HUD line itself is model-grade — \"Statue: Hooked — walk away to pull it down\" is 41 characters and names objective, payoff and control in the same shape as the canonical \"Windmill: Ablaze — needs a window shot\" (A02§2.8#3) — so the fix is to add an Overlord bark to row 1 (whispered gravitas applied to pulling down a lump of rock, ending \"...adequate\") and demote or re-trigger the Watchman line as a separate civilian reaction bark, not the prompt's bark. As a consequence the Overlord register is nowhere demonstrated in this batch; it is not violated, but it is also untested.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#0"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§6#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#1"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 8,
+          "verdict": "PASS",
+          "row": "OnGrappleAnchored_StatuePlayerVisible",
+          "quote": "",
+          "required_instead": "No line in the batch is spoken by His Eternal Darkness, so the register is never shown; nothing here is off-brand for him, but row 1 (the prompt row) should carry a whispered, chronically-underwhelmed bark about hauling down a lump of painted rock, closing on the trailing '...adequate'.",
+          "evidence_chunk_id": "A02§2.10#0"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 7,
+          "verdict": "PASS",
+          "row": "OnGrappleAnchored_StatuePlayerVisible",
+          "quote": "Oi! Oi, there's a rope round the King's neck! Who — that's a lad on a ladder, that's all that is, that's a — that's not a ladder. Where's his ladder?!",
+          "required_instead": "A first-time prompt is one OVERLORD bark plus the HUD line. Keep the HUD line verbatim ('Statue: Hooked — walk away to pull it down', 41 chars, objective/payoff/control) and replace the paired bark with one from His Eternal Darkness; move the Watchman line to its own civilian-reaction trigger with no hud_line or control attached.",
+          "evidence_chunk_id": "A02§2.8#3"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#0"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Watchman",
+          "trigger": "OnGrappleAnchored_StatuePlayerVisible",
+          "text": "Oi! Oi, there's a rope round the King's neck! Who — that's a lad on a ladder, that's all that is, that's a — that's not a ladder. Where's his ladder?!",
+          "hud_line": "Statue: Hooked — walk away to pull it down",
+          "control": "Grapple — ATTACK from the weapon wheel (Q)",
+          "sources": [
+            "GDD§6#6",
+            "GDD§4#0",
+            "A02§2.10#0"
+          ]
+        },
+        {
+          "speaker": "Civilian",
+          "trigger": "OnStatueToppled_CivilianWitness",
+          "text": "He's tipping! He's tipping! HE SLEW THE DRAGON AND HE'S GOING OVER — no, no, it's subsidence, it's the wet spring, the Crown said so, the Crown said — MOVE, Bess, the head's coming!",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#1",
+            "A02§2.8#3",
+            "GDD§6#6"
+          ]
+        },
+        {
+          "speaker": "Militia",
+          "trigger": "OnStatueToppled_MilitiaArrivesAtRubble",
+          "text": "Right. Right. Forty ton of King, face-down in the square, and a hook mark in the neck you could hang a pig off. Badgers, that. Big organised badgers with rope. ...Say badgers, Tam. Say badgers or we're both explaining what a goblin is to the tax man.",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#0",
+            "A02§2.10#1",
+            "A02§2.8#3"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "score": 8,
+      "reason": "Strong, on-brand draft: the statue comes down by grapple-and-walk-away (GDD§6#6, GDD§4#0), never burns; no settlement is named; the villager reactions are denial rather than fear (\"Badgers, that. Big organised badgers with rope\" in OnStatueToppled_MilitiaArrivesAtRubble is textbook A02§2.10#0); no line references audio. Two points of minor drift. (1) OnGrappleAnchored_StatuePlayerVisible opens with \"They carved him forty feet tall so the little ones would remember who ended us\" — \"who ended us\" is the goblin-genocide grievance played straight, i.e. mourning. A02§2.10#2/#3 rules Tier 1 as \"an Overlord who mocks more than he mourns\"; the mockery (\"Let us see how a god holds his footing\") and the \"...adequate.\" are right, so cut or deflate the elegiac first clause (e.g. make the forty feet a joke about human vanity rather than about what was done to goblins). (2) The same row's control field reads \"Grapple — ATTACK from the weapon wheel (Q)\" while the HUD line names \"walk away\" as the action — that is two bindings plus a third verb across one first-time prompt, against \"the one control that does it\" and \"no second control\" (GDD§2.8). The HUD line itself is fine: \"Statue: Hooked — walk away to pull it down\" is 41 chars and mirrors the canonical \"Windmill: Ablaze — needs a window shot\" shape (A02§2.8#3). Pick one control for the prompt and let the wheel teach itself. Also borderline: OnStatueToppled_CivilianWitness ends \"MOVE, Bess, the head's coming!\" — acceptable only because the panic is about falling masonry, not about the goblin, and the denial (\"it's subsidence, it's the wet spring, the Crown said so\") is intact in the same breath; do not let it slide any nearer to \"run for your lives\".",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#0"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§6#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 9,
+          "verdict": "PASS",
+          "row": "OnStatueToppled_CivilianWitness",
+          "quote": "MOVE, Bess, the head's coming!",
+          "required_instead": "Fear is only ever of falling stone, never of the goblin; keep the denial (\"it's subsidence, it's the wet spring, the Crown said so\") load-bearing so the line stays a double-take, not an alarm. The watchman and militia rows are exactly right.",
+          "evidence_chunk_id": "A02§2.10#1"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 8,
+          "verdict": "PASS",
+          "row": "OnGrappleAnchored_StatuePlayerVisible",
+          "quote": "They carved him forty feet tall so the little ones would remember who ended us.",
+          "required_instead": "Tier 1 Overlord mocks more than he mourns — apocalyptic gravitas aimed at petty theft, not at goblin extermination. Replace the grievance clause with contempt for the humans' self-regard, keeping \"Let us see how a god holds his footing\" and the trailing \"...adequate.\"",
+          "evidence_chunk_id": "A02§2.10#2"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 8,
+          "verdict": "PASS",
+          "row": "OnGrappleAnchored_StatuePlayerVisible",
+          "quote": "Grapple — ATTACK from the weapon wheel (Q)",
+          "required_instead": "One bark plus one HUD line naming exactly three things and ONE control. The HUD already says \"walk away\"; naming both Q and ATTACK adds a second control. Collapse to a single binding for the prompt.",
+          "evidence_chunk_id": "A02§2.8#3"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#0"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "OnGrappleAnchored_StatuePlayerVisible",
+          "text": "They carved him forty feet tall so the little ones would remember who ended us. Lean on the rope, goblin. Let us see how a god holds his footing. ...adequate.",
+          "hud_line": "Statue: Hooked — walk away to pull it down",
+          "control": "Grapple — ATTACK from the weapon wheel (Q)",
+          "sources": [
+            "GDD§6#6",
+            "GDD§4#0",
+            "A02§2.10#0",
+            "A02§2.8#3"
+          ]
+        },
+        {
+          "speaker": "Watchman",
+          "trigger": "OnGrappleAnchored_WatchmanWitness",
+          "text": "Oi! Oi, there's a rope round the King's neck! Who — that's a lad on a ladder, that's all that is, that's a — that's not a ladder. Where's his ladder?!",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#0",
+            "A02§2.10#1",
+            "GDD§6#6"
+          ]
+        },
+        {
+          "speaker": "Civilian",
+          "trigger": "OnStatueToppled_CivilianWitness",
+          "text": "He's tipping! He's tipping! HE SLEW THE DRAGON AND HE'S GOING OVER — no, no, it's subsidence, it's the wet spring, the Crown said so, the Crown said — MOVE, Bess, the head's coming!",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#1",
+            "A02§2.8#3",
+            "GDD§6#6"
+          ]
+        },
+        {
+          "speaker": "Militia",
+          "trigger": "OnStatueToppled_MilitiaArrivesAtRubble",
+          "text": "Right. Right. Forty ton of King, face-down in the square, and a hook mark in the neck you could hang a pig off. Badgers, that. Big organised badgers with rope. ...Say badgers, Tam. Say badgers or we're both explaining what a goblin is to the tax man.",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#0",
+            "A02§2.10#1",
+            "A02§2.8#3"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "score": 10,
+      "reason": "All four rows are on-brand and I found nothing to fix; no deterministic lint findings were reported. Row 1 (OnGrappleAnchored_StatuePlayerVisible) is a textbook first-time prompt: one Overlord bark that applies apocalyptic gravitas to petty vandalism (\"Let us see how a god holds his footing\") and lands the trailing \"...adequate\" verbatim in register (A02§2.10#0, A02§2.10#2), plus a single 44-character HUD line \"Statue: Hooked — walk away to pull it down\" that names the objective (Statue), the payoff (pull it down) and the one control (walk away) — the same shape as the canonical \"Windmill: Ablaze — needs a window shot\" (A02§2.8#3), and it names the correct grapple-haul verb (GDD§4#0, GDD§6#6). Rows 2-4 are all disbelief, never fear: the Watchman argues himself out of what he sees (\"that's a lad on a ladder, that's all that is\"), the Civilian retreats into propaganda (\"it's subsidence, it's the wet spring, the Crown said so\"), and the Militia reaches for the canonical cope (\"Badgers, that. Big organised badgers with rope.\") — exactly the double-take pattern in A02§2.10#0/#1, with no \"run for your lives\" anywhere. Vocabulary is clean: the hamlet is never christened and no county name is misused as a town name; only slice content appears (Scout-era grapple, statue, market square), no granary, no Brute/Shaman/palisade, and the statue is toppled rather than burned per GDD§6#6 Ruling 8. No row references a voice file, SFX cue or sound — the comedy is carried by text alone (\"HE SLEW THE DRAGON AND HE'S GOING OVER\", \"Where's his ladder?!\"), which is what the zero-audio slice requires.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#0"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§6#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#1"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#2"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.8#3"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "A02§2.10#0"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "OnGrappleAnchored_StatuePlayerVisible",
+          "text": "Forty feet of stone, and the man was five foot four. Lean on the rope, goblin. Let us see how a god holds his footing. ...adequate.",
+          "hud_line": "Statue: Hooked — walk away to pull it down",
+          "control": "Walk away (movement) to haul the rope",
+          "sources": [
+            "GDD§6#6",
+            "GDD§4#0",
+            "A02§2.10#2",
+            "A02§2.8#3"
+          ]
+        },
+        {
+          "speaker": "Watchman",
+          "trigger": "OnGrappleAnchored_WatchmanWitness",
+          "text": "Oi! Oi, there's a rope round the King's neck! Who — that's a lad on a ladder, that's all that is, that's a — that's not a ladder. Where's his ladder?!",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#0",
+            "A02§2.10#1",
+            "GDD§6#6"
+          ]
+        },
+        {
+          "speaker": "Civilian",
+          "trigger": "OnStatueToppled_CivilianWitness",
+          "text": "He's tipping! He's tipping! HE SLEW THE DRAGON AND HE'S GOING OVER — no, no, it's subsidence, it's the wet spring, the Crown said so, the Crown said — step left, Bess, the head's coming down on the turnips.",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#1",
+            "A02§2.8#3",
+            "GDD§6#6"
+          ]
+        },
+        {
+          "speaker": "Militia",
+          "trigger": "OnStatueToppled_MilitiaArrivesAtRubble",
+          "text": "Right. Right. Forty ton of King, face-down in the square, and a hook mark in the neck you could hang a pig off. Badgers, that. Big organised badgers with rope. ...Say badgers, Tam. Say badgers or we're both explaining what a goblin is to the tax man.",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "A02§2.10#0",
+            "A02§2.10#1",
+            "A02§2.8#3"
+          ]
+        }
+      ]
+    }
+  ],
+  "first_score": 7,
+  "final_score": 10
+}

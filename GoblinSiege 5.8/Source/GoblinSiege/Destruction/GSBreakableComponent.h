@@ -1,44 +1,48 @@
-// Makes a kit piece breakable - and, on a window, makes it a way into a building.
+// Makes a prop breakable - and, on a window, makes it a way into a building.
 // Written 2026-08-05 for Michael's flow: "a torch gets thrown into a window ... the torch flies
 // into the window and causes the building to catch on fire."
 //
 // ---------------------------------------------------------------------------------------------
-// WHY A WINDOW IS THE ONE THING WORTH FRACTURING
+// WHAT THIS COMPONENT IS, AFTER THE ACF ADOPTION (2026-08-17, #165)
 //
-// Whole buildings are a bad Chaos candidate: a house here is 20-40 kitbashed pieces of 12-780
-// triangles, and fracturing all of them means thousands of rigid bodies on a game thread that has
-// no room. A window is the opposite case and it is worth being precise about why:
+// It is the ADAPTER, not the destruction system. ACF's UACFDestructableComponent owns Chaos: it
+// applies external strain to a registered geometry collection over a NetMulticast, derives piece
+// velocity from impulse/mass, and forces the Destructible collision profile. That is the part we
+// were going to write badly, and it already exists.
 //
-//   - it is small (82-432 triangles across the 18 window meshes on this map)
-//   - it breaks exactly once, and never un-breaks
-//   - only the window the player actually hit ever simulates
-//   - the debris falls, settles, and sleeps within a couple of seconds
+// What ACF has no opinion about, and what stays here:
 //
-// So the cost is bounded by how many windows the player has personally thrown a torch through,
-// which is a small number, rather than by how many exist.
+//   - WHETHER a thing breaks. Hit points, idempotence, server authority.
+//   - What breaking MEANS to this game: bOpensBuilding -> AGSBuildingObjective::IgniteInterior.
+//     A broken window is a way in; that concept does not exist in ACF and cannot.
+//   - The no-collection fallback. ACF's BeginPlay finds a geometry collection or logs a warning and
+//     does nothing at all. 113 placed windows have no fracture asset and are not getting one, so
+//     without this path they would simply stop working.
+//
+// So: Break() decides, then delegates. If the owner carries a UACFDestructableComponent it hands
+// off to ACF; otherwise it hides the mesh and puffs FX, which is the intended treatment for windows.
 //
 // ---------------------------------------------------------------------------------------------
-// THE FALLBACK IS NOT A COMPROMISE, IT IS THE SHIPPING ORDER
+// THE ONE THING THAT WILL BITE THE NEXT PERSON
 //
-// BrokenCollection is OPTIONAL. With one assigned you get a real fracture; without one the window
-// hides, drops its collision and puffs debris. Both paths open the building identically.
-//
-// That split is deliberate. The GDD deferred breaking meshes ("anything burnable chars black +
-// smoulders ... breaking meshes later"), and authoring 18 geometry collections is real art time.
-// Gating the GAMEPLAY on that art would mean the torch-through-a-window flow could not be played or
-// tuned until every asset existed. This way the flow works today and each fracture asset upgrades
-// one window type whenever someone makes it, with no code change.
+// ACF NEVER CALLS SetSimulatePhysics. ApplyChaosDestructionAt only applies strain and breaking
+// velocity, and bEnforceDestructibleCollisionSetup only sets a collision profile and clears body
+// locks. A dormant collection - which is what you want for a cheap intact prop, and what
+// AGSDestructibleObjective authors - will absorb the strain and visibly do nothing. Break() enables
+// simulation immediately before delegating. Do not remove that line because it looks redundant.
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GSBreakableComponent.generated.h"
 
-class UGeometryCollection;
+class UStaticMesh;
 class UStaticMeshComponent;
 class UNiagaraSystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnBroken);
+/** Fired on a hit that did NOT finish the prop off - for a flinch, a dust tick, a chip. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnSmashHit, int32, HitPointsRemaining, int32, MaxHitPoints);
 
 UCLASS(ClassGroup = (GoblinSiege), meta = (BlueprintSpawnableComponent))
 class GOBLINSIEGE_API UGSBreakableComponent : public UActorComponent
@@ -49,17 +53,33 @@ public:
 	UGSBreakableComponent();
 
 	/**
-	 * Break it. Idempotent - a broken window stays broken, and a second torch through the same hole
-	 * must not re-shatter it or re-light the building.
+	 * Take a hit. Returns true if this hit BROKE it.
 	 *
-	 * @param ImpactPoint    where the torch struck, for debris impulse and FX placement
-	 * @param ImpactVelocity the torch's velocity, so shards fly INTO the room rather than outward
+	 * The single entry point for everything that damages props: a thrown torch deals 1, a sword swing
+	 * deals 1, and a prop with SmashHitPoints 1 dies to either. This replaced the torch calling
+	 * Break() directly, which made "how many hits does this take" a question the torch could not ask.
+	 *
+	 * Server-only, like Break(). Calling it on a client is a no-op rather than an error - the client's
+	 * swing is cosmetic and the server's copy is what counts.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Breakable")
+	bool ApplySmash(int32 Damage, const FVector& ImpactPoint, const FVector& ImpactVelocity, AActor* Instigator);
+
+	/**
+	 * Break it outright, ignoring remaining hit points. Idempotent - a broken window stays broken, and
+	 * a second torch through the same hole must not re-shatter it or re-light the building.
+	 *
+	 * @param ImpactPoint    where the hit landed, for strain origin and FX placement
+	 * @param ImpactVelocity direction of travel, so shards fly INTO the room rather than outward
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Breakable")
 	void Break(const FVector& ImpactPoint, const FVector& ImpactVelocity);
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Breakable")
 	bool IsBroken() const { return bBroken; }
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Breakable")
+	int32 GetHitPointsRemaining() const { return HitPointsRemaining; }
 
 	/**
 	 * Should breaking this piece light the building behind it?
@@ -73,9 +93,16 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Breakable")
 	FGSOnBroken OnBroken;
 
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Breakable")
+	FGSOnSmashHit OnSmashHit;
+
 	/** Placement-time setter. A window opens its building; a crate or a fence does not. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Breakable")
 	void SetOpensBuilding(bool bValue) { bOpensBuilding = bValue; }
+
+	/** Placement-time setter, for the Python dressing pass. See IntactMeshComponentName. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Breakable")
+	void SetIntactMeshComponent(UStaticMeshComponent* InMesh) { IntactMeshComponent = InMesh; }
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -89,20 +116,50 @@ protected:
 	 *  instead of bouncing off a window that is visually gone. */
 	void RetireIntactMesh();
 
-	/** Spawn the fractured version, if one was authored. Returns false when there is none, which is
-	 *  the normal case until the art exists. */
-	bool SpawnFracture(const FVector& ImpactPoint, const FVector& ImpactVelocity);
+	/** Which mesh RetireIntactMesh hides. Resolved once, at BeginPlay. */
+	UStaticMeshComponent* ResolveIntactMesh() const;
 
 	// ------------------------------------------------------------------ tuning
 
 	/**
-	 * The fractured version of this piece. Optional - see the header. Soft, because a level holding
-	 * 113 windows should not load 113 geometry collections that most players will never break.
+	 * How many hits it takes. Window and crate 1, chest 2, statue 4.
+	 *
+	 * A torch deals 1, so a window still dies to a single throw exactly as it did before hit points
+	 * existed - which is the whole reason the default is 1.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable", meta = (ClampMin = "1"))
+	int32 SmashHitPoints = 1;
+
+	/**
+	 * The mesh to hide when this breaks. Leave unset and it resolves automatically at BeginPlay.
+	 *
+	 * This exists because the old code hid EVERY UStaticMeshComponent on the owner. That is right for
+	 * a window, which is a StaticMeshActor with exactly one mesh, and catastrophic for a multi-mesh
+	 * prop Blueprint - the whole actor vanishes, base and all, and it reads as a Chaos bug rather
+	 * than a naming one.
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
-	TSoftObjectPtr<UGeometryCollection> BrokenCollection;
+	FName IntactMeshComponentName;
 
-	/** Debris puff. Carries the moment when there is no fracture asset, and adds dust when there is. */
+	/**
+	 * Swap the intact mesh to this on break, instead of hiding it.
+	 *
+	 * The cheapest credible destruction in the project, and it costs no art at all where a pack
+	 * already ships a broken variant. Measured 2026-08-17: SM_CrateSquare -> SM_CrateBroken and
+	 * SM_Barrel_01 -> SM_BarrelBroken share a pivot, a base height and their bounds to within a
+	 * centimetre, so the swap needs no offset and no per-prop tuning. They are authored swap pairs,
+	 * not set dressing - which is worth recording, because they LOOK like set dressing in the content
+	 * browser and were nearly dismissed as such.
+	 *
+	 * Unset (the normal case) and breaking hides the mesh, which is the right answer for a window.
+	 *
+	 * Soft, for the same reason the old fracture reference was: a level should not load a broken
+	 * variant for every prop a player will probably never touch.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
+	TSoftObjectPtr<UStaticMesh> BrokenMesh;
+
+	/** Debris puff. Carries the moment on props with no fracture asset, and adds dust on ones with. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
 	TSoftObjectPtr<UNiagaraSystem> BreakFX;
 
@@ -110,14 +167,31 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
 	bool bOpensBuilding = true;
 
-	/** Push applied to the shards, along the torch's direction of travel. */
+	/**
+	 * On break, make the owner's UGSInteractableComponent available.
+	 *
+	 * This is what turns "smash" and "loot" into one verb chain instead of two unrelated ones: a
+	 * crate ships with its interactable switched OFF and its lid on, you break the lid, and only then
+	 * can you loot it. Set bIsAvailable=false on the interactable for that to mean anything - an
+	 * already-available container will simply stay available and this flag does nothing.
+	 *
+	 * Cheaper than fracturing, and it reuses meshes that already ship: a crate is SM_CrateOpen with
+	 * SM_CrateLid sitting on top, and breaking hides only the lid (see IntactMeshComponentName).
+	 * Reserve real Chaos for things that should genuinely shatter, like the statue.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
+	bool bUnlockInteractableOnBreak = false;
+
+	/** Push applied to the pieces, along the hit's direction of travel. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
 	float DebrisImpulse = 400.f;
 
-	/** Debris is litter, not physics you keep paying for. Cleared after this long. */
-	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Breakable")
-	float DebrisLifeSeconds = 12.f;
-
 	UPROPERTY(ReplicatedUsing = OnRep_Broken)
 	bool bBroken = false;
+
+	/** Server-side only; clients learn the outcome through bBroken, not the countdown. */
+	int32 HitPointsRemaining = 0;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> IntactMeshComponent;
 };

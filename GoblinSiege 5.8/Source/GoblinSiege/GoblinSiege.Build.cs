@@ -45,6 +45,17 @@ public class GoblinSiege : ModuleRules
 			// AnimGraphRuntime reasoning below, and deliberately so.
 			"AIFramework",
 
+			// AscentCombatFramework is named EXPLICITLY, and the paragraph above is wrong about why
+			// it did not need to be (#166, 2026-08-17). A transitive dependency gives you the INCLUDE
+			// PATHS, so `#include "Components/ACFDestructableComponent.h"` compiles happily - and then
+			// the link fails with LNK2019 on every ACF symbol you actually called. The distinction is
+			// invisible until the first time you call into ACF rather than merely deriving from a type
+			// it re-exports.
+			//
+			// Reached for directly: UACFDestructableComponent (Chaos destruction, #165) and
+			// FACFDamageEvent. Add the next ACF module here the moment you CALL into it.
+			"AscentCombatFramework",
+
 			// Destruction & FX
 			"GeometryCollectionEngine",
 			"FieldSystemEngine",

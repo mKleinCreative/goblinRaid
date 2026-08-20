@@ -69,6 +69,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde|Wheel")
 	bool IsWheelOpen() const { return bWheelOpen; }
 
+	/** Played on the owning character the moment an order actually commits - the goblin barks the
+	 *  command with a gesture instead of the horde silently changing behaviour. Cosmetic only:
+	 *  nothing about the order depends on it, and a null montage just means no gesture.
+	 *
+	 *  Deliberately fired in CloseOrderWheel, not in ServerIssueOrder: the gesture belongs to the
+	 *  player who made it and should be seen locally the instant they release, not after a round
+	 *  trip. It is skipped when the release lands in the dead zone, so an aborted wheel gesture
+	 *  does not animate. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Wheel")
+	TObjectPtr<class UAnimMontage> OrderIssuedMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Wheel")
+	float OrderIssuedMontagePlayRate = 1.f;
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde|Wheel")
 	EGSHordeOrder GetWheelHighlight() const { return WheelHighlight; }
 

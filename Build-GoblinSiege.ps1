@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Full C++ build of the Goblin Siege editor target.
 
@@ -35,7 +35,8 @@ param(
     [switch]$Force,
     [switch]$Rebuild,
     [switch]$Wait,
-    [switch]$IgnoreQueue
+    [switch]$IgnoreQueue,
+    [switch]$IgnoreGddDrift
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +77,43 @@ else {
         Write-Host 'Wait for those tickets to close, or pass -IgnoreQueue if you know the'
         Write-Host 'open tickets cannot affect this build.'
         exit 4
+    }
+}
+
+# --- the GDD drift gate -----------------------------------------------------
+# On 2026-08-14 the GDD dropped the granary. The level generator's evaluator went on enforcing it
+# and every seed passed a check for a building the design no longer contained; the banked bark and
+# prompt text went on naming it too, for five days. Nothing failed, because nothing compared the
+# design to the things that consume it.
+#
+# This runs beside the queue gate for the same reason that one does: a build is where a stale
+# document stops being a document and becomes behaviour. check_gdd.py exits 0 clean, 1 on drift,
+# and 2 when a check could not run at all - and 2 is NOT treated as success, because "I could not
+# look" and "nothing is wrong" have been indistinguishable here before.
+Write-Step 'Checking the GDD for drift'
+$GddCheck = Join-Path $PSScriptRoot 'GoblinSiege 5.8\Tools\check_gdd.py'
+if ($IgnoreGddDrift) {
+    Write-Host 'SKIPPED - -IgnoreGddDrift was given.' -ForegroundColor Yellow
+    Write-Host 'The design document and the code that consumes it may disagree.' -ForegroundColor Yellow
+}
+elseif (-not (Test-Path -LiteralPath $GddCheck)) {
+    Write-Host "check_gdd.py not found at $GddCheck - cannot check." -ForegroundColor Yellow
+    Write-Host 'Continuing, but nothing is comparing the GDD to the systems that read it.' -ForegroundColor Yellow
+}
+else {
+    & python $GddCheck
+    if ($LASTEXITCODE -eq 1) {
+        Write-Host "`nBuild refused: the GDD has drifted from what reads it." -ForegroundColor Red
+        Write-Host 'Fix the drift above, or pass -IgnoreGddDrift if you know it cannot affect'
+        Write-Host 'this build. Regenerate banked text with content-pipeline/gsstyle.py rather'
+        Write-Host 'than hand-editing it.'
+        exit 5
+    }
+    elseif ($LASTEXITCODE -ne 0) {
+        Write-Host "`nBuild refused: the GDD check could not complete." -ForegroundColor Red
+        Write-Host 'A check that cannot run is not a check that passed - see the SKIP lines above.'
+        Write-Host 'Pass -IgnoreGddDrift to build anyway.'
+        exit 5
     }
 }
 

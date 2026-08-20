@@ -8,6 +8,8 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "CollisionQueryParams.h"
+#include "GameFramework/Character.h"
+#include "Animation/AnimMontage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSHordeOrderWheel, Log, All);
 
@@ -188,6 +190,22 @@ void UGSHordeCommandComponent::CloseOrderWheel(bool bCommit)
 	}
 
 	ServerIssueOrder(Chosen, CommitSubject, CommitLocation);
+
+	// The order gesture. PlayAnimMontage returns 0 when the montage's skeleton does not match the
+	// character's and says nothing about it, so read the return rather than assuming it played.
+	if (OrderIssuedMontage)
+	{
+		if (ACharacter* OwnerChar = Cast<ACharacter>(GetOwner()))
+		{
+			const float Rate = FMath::IsNearlyZero(OrderIssuedMontagePlayRate) ? 1.f : OrderIssuedMontagePlayRate;
+			if (OwnerChar->PlayAnimMontage(OrderIssuedMontage, Rate) <= 0.f)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GS.Horde] Order montage '%s' refused on %s - skeleton mismatch?"),
+					*OrderIssuedMontage->GetName(), *OwnerChar->GetName());
+			}
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------------------------

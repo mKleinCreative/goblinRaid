@@ -119,4 +119,26 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
 	static int32 CountBreakable(const TArray<AActor*>& Actors);
+
+	/**
+	 * Damage every breakable prop inside a swing arc. Returns how many were hit.
+	 *
+	 * WHY THIS EXISTS: until now nothing the player swings could break anything. The blocker was
+	 * never the hostility check - AGSCharacterBase::IsHostileTo already returns true for a prop, and
+	 * says so in a comment. It was that UGSGA_SwordLight::DoSweep queries ECC_Pawn only, so a
+	 * StaticMeshActor never entered the result set at all, and that the loop below it requires both
+	 * actors to have an AbilitySystemComponent. A crate has neither an ASC nor a race tag.
+	 *
+	 * So this is a SECOND, separate overlap rather than more object types on the existing one. Props
+	 * must never fall into the GAS path below - guard-break, recoil, frenzy and the hit set are all
+	 * about characters, and a barrel entering any of them is a bug waiting to happen.
+	 *
+	 * Deliberately NOT a UFUNCTION: a TSet by-reference out-param is awkward through UHT, and every
+	 * caller (the sword ability, the horde's smash task) is C++.
+	 *
+	 * @param AlreadyHit  the caller's per-swing hit set, so one swing smashes each prop exactly once.
+	 */
+	static int32 SmashBreakablesInArc(const UObject* WorldContextObject, AActor* Instigator,
+		const FVector& Origin, float Radius, const FVector& Forward, float ArcDegrees,
+		int32 Damage, TSet<TObjectPtr<AActor>>& AlreadyHit);
 };

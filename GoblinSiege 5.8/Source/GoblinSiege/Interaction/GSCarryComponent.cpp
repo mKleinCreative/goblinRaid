@@ -164,7 +164,28 @@ void UGSCarryComponent::AttachCarried()
 		return;
 	}
 
-	Object->AttachToComponent(AttachTo, FAttachmentTransformRules::SnapToTargetNotIncludingScale, CarrySocketName);
+	// A missing socket is NOT a soft failure. AttachToComponent with a name the mesh does not carry
+	// attaches at the component ORIGIN and returns success - so the sack rides at the goblin's feet,
+	// looking like a physics bug or a bad pivot rather than a naming problem. Verified 2026-08-14:
+	// "CarrySocket" exists on NONE of the 25 skeletal meshes under /Game, including the livestock,
+	// so every carry this project has ever done would have attached to the floor. GSHordeGoblin.h:74
+	// already called this a "known cosmetic gap"; it is not cosmetic, it is the visible half of the
+	// courier run. Warn once per attach, name all three parties, and attach anyway - the fallback is
+	// deliberate so the feature still functions while the socket is missing (#161).
+	const bool bHasSocket = CarrySocketName.IsNone() || AttachTo->DoesSocketExist(CarrySocketName);
+	if (!bHasSocket)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GS.Carry] Socket '%s' does not exist on %s (owner %s) - "
+			"attaching '%s' at the component origin instead, which will look like it is at the "
+			"character's feet. Add the socket to the SKELETON (GOB_Scout_v2_Skeleton, parented to "
+			"Spine02) so player and horde goblin both get it, or clear CarrySocketName to attach at "
+			"the origin on purpose."),
+			*CarrySocketName.ToString(), *AttachTo->GetName(), *GetOwner()->GetName(),
+			*Object->GetName());
+	}
+
+	Object->AttachToComponent(AttachTo, FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		bHasSocket ? CarrySocketName : NAME_None);
 	Object->SetActorRelativeTransform(CarryRelativeTransform);
 }
 

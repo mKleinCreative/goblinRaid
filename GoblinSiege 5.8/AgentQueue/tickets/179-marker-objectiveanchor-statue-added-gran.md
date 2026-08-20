@@ -2,13 +2,13 @@
 id: 179
 title: Marker.ObjectiveAnchor.Statue added, .Granary retired (GDD 156 roster) - WRITTEN, staged for the next build window
 agent: claude-anchortags
-status: review
+status: done
 claimed: 2026-08-18T01:25Z
 build: required
 waiting_on:
 evaluated: 2026-08-18T01:27:54Z
-observed:
-scenario:
+observed: UNOBSERVED 2026-08-19T22:55:17Z - Marker.ObjectiveAnchor.Statue is DEFINED and nothing reads it yet: no map places an ObjectiveAnchor marker of any kind, so AGSRaidMarker::GatherByType has never been asked for one. The tag is in the 2026-08-18 20:49 binary. Nothing to watch until Block D places the marker set on L_Groatsworth. Closed on Michael's instruction 2026-08-19.
+scenario: none - never run
 files: 
   - Source/GoblinSiege/Combat/GSGameplayTags.h
   - Source/GoblinSiege/Combat/GSGameplayTags.cpp

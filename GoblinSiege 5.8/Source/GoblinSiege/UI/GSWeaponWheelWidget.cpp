@@ -95,17 +95,20 @@ UTextBlock* UGSWeaponWheelWidget::LabelFor(EGSWeaponSlot WhichSlot) const
 {
 	switch (WhichSlot)
 	{
-	case EGSWeaponSlot::Torch: return Label_Torch;
-	case EGSWeaponSlot::Bow:   return Label_Bow;
-	default:                   return Label_Sword;
+	case EGSWeaponSlot::Torch:   return Label_Torch;
+	case EGSWeaponSlot::Bow:     return Label_Bow;
+	case EGSWeaponSlot::Grapple: return Label_Grapple;
+	default:                     return Label_Sword;
 	}
 }
 
 void UGSWeaponWheelWidget::Repaint(EGSWeaponSlot Highlighted, bool bCommitted)
 {
-	// Three labels, one lit. Written as a loop over the enum rather than three explicit assignments
-	// so adding a fourth slot cannot leave one label stuck on the previous frame's colour.
-	const EGSWeaponSlot All[] = { EGSWeaponSlot::Torch, EGSWeaponSlot::Bow, EGSWeaponSlot::Sword };
+	// Four labels, one lit. Written as a loop over the enum rather than explicit assignments so
+	// adding a slot cannot leave one label stuck on the previous frame's colour - which is exactly
+	// what this array being kept in step bought when Grapple landed (2026-08-17).
+	const EGSWeaponSlot All[] = { EGSWeaponSlot::Torch, EGSWeaponSlot::Bow, EGSWeaponSlot::Sword,
+								  EGSWeaponSlot::Grapple };
 	for (const EGSWeaponSlot WhichSlot : All)
 	{
 		if (UTextBlock* Label = LabelFor(WhichSlot))

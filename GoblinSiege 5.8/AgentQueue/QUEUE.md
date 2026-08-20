@@ -210,9 +210,15 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 178 | queued (waiting on: BUILD. The four pack dodge montages now exist and are ready to assign: AM_GOB_Dodge_Fwd (0.833s), AM_GOB_Dodge_Back (0.833s), AM_GOB_Dodge_Left (1.000s), AM_GOB_Dodge_Right (1.000s) in Content/Characters/ScoutV2/Anims_Pack/Montages, retargeted from DSAS_V3 Dodge_F/L/R and Evade_B, root motion ON, blend 0.080/0.180. After the build: create GA_GS_Dodge as a BP subclass of UGSGA_DodgeRoll, assign those four to DodgeMontageForward/Backward/Left/Right, and repoint BP_GSPlayerCharacter.DodgeAbilityClass at it - it currently resolves to the native class so the montage slots can never be set.) **STALE 48.0h** | claude-dodge | A1: directional dodge montages - UGSGA_DodgeRoll plays one of the four authored rolls instead of a bare LaunchCharacter | Source/GoblinSiege/Weapons/Abilities/GSGA_DodgeRoll.h<br>Source/GoblinSiege/Weapons/Abilities/GSGA_DodgeRoll.cpp | none |
+| 184 | queued (waiting on: Windup corrected on all four pack stages so the damage window straddles the measured contact frame - contact was landing at -63/-26/-33/-38 percent, i.e. before the window opened. Totals held constant, reclaimed time moved into recovery, so recovery/clip on light stage 0 goes 0.146 to 0.333 (above 121s 0.287). NEEDS MICHAEL TO SWING IT: unobserved. Chain speed deliberately NOT changed - his second complaint about the combo not linking fast enough is a separate variable and changing both at once would make it impossible to tell what did what (123).) **STALE 47.4h** | claude-packanim | Pack attacks: wrap DTA combos into montages and repoint the 5 goblin swing stages | Content/Blueprints/Abilities/GA_GS_SwordLight.uasset<br>Content/Blueprints/Abilities/GA_GS_SwordHeavy.uasset<br>Content/Blueprints/Abilities/GA_GS_GuardBreak.uasset | none |
 
-**BUILD GATE: OPEN - and 62 finished ticket(s) asked for a build.**
+**STALE - #178, #184 open longer than 2h.** Ask Michael whether each is
+still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
+
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -368,6 +374,56 @@ _Queue is empty. The build gate is OPEN._
 | 148 | done **UNOBSERVED** | claude-crosshair | "No crosshair: the player aims orders, the bow and the torch with nothing on screen to aim with" |
 | 149 | done | claude-reticle2 | Reticle turns gold when the crosshair is on a valid order target |
 | 150 | done | claude-acfskills | Register ACF's 40 author-written Claude skills so sessions can see them |
+| 151 | abandoned | claude-movespeed | SwordLight writes MaxWalkSpeed directly instead of applying UGSGE_MoveSpeedScalar |
+| 152 | abandoned | claude-assettags | Retire deprecated AbilityTags in GSGA_Block and GSGA_Interact (C4996) |
+| 153 | done | claude-hordebt | "BT_HordeGoblin is gutted: 0 tasks, 5 null decorators, blackboard repointed to ACFAIBB" |
+| 154 | done | claude-hordebt | Supplement to #153 - BB_HordeGoblin is missing the four order keys #141 writes |
+| 155 | done **UNOBSERVED** | claude-gitignore | Resolve the unresolved merge conflict in the repo-root .gitignore |
+| 156 | done **UNOBSERVED** | claude-gdd | GDD 2.8/2.9: objective roster becomes Windmill/Market/Statue; granary removed, field demoted to optional |
+| 157 | done **UNOBSERVED** | claude-gdd2 | GDD 2.8: reverse the hand-authored-only ruling - generator gets a timeboxed attempt with the blockout as fallback |
+| 158 | done **UNOBSERVED** | claude-gddexport | Re-export the CodeArchitect GDD: roster, controls, map ruling and real build status |
+| 159 | done **UNOBSERVED** | claude-interactplan | Record the interaction-framework plan and the ACF comparison in AGENT_STATE |
+| 160 | done **UNOBSERVED** | claude-autosave | Disable editor autosave programmatically (Editor Preferences UI will not open) |
+| 161 | done **UNOBSERVED** | claude-interact | Unblock the interact framework: loud unset-input log, CarrySocket guard, carry-does-not-consume |
+| 162 | done **UNOBSERVED** | claude-interact | Supplement to #161 - the consume fix belongs in GSInteractableComponent, not the caller |
+| 163 | done | claude-interactables | The project's first two interactables: a carryable pig and a lootable chest |
+| 164 | done **UNOBSERVED** | claude-collapse | Looted containers collapse: bCollapseOnComplete on the interactable |
+| 165 | done | claude-smash | Smashable props stage 1+2: hit points, ACF delegation, scoped retire, player sword smash |
+| 166 | done **UNOBSERVED** | claude-smash | Supplement to #165 - AscentCombatFramework must be named explicitly to LINK, not just include |
+| 167 | done **UNOBSERVED** | claude-smash | Supplement to #165 - GSCombatDebugEnabled had no declaration and only linked via unity build |
+| 168 | done | claude-lidcrate | Smashing a container opens it: bUnlockInteractableOnBreak |
+| 169 | done | claude-channelring | Channel progress ring around the reticle: the interact feedback nothing was bound to |
+| 170 | done | claude-rosterdrift | Assignment 6: level-gen objective roster follows GDD 156 (granary out, Market/Statue/Windmill in); submission docs |
+| 171 | done | claude-axe | Goblin sword to axe: SM_Axe_DA on DA_Weapon_Scout and DA_Weapon_HordeGoblin, grip offset re-derived |
+| 172 | done | claude-channelring | A completed interaction leaves no trace: log the channel lifecycle |
+| 173 | done | claude-grapple | Grappling hook prototype: throw, stick, rope appears (Blueprint only, no build) |
+| 174 | done | claude-axe | BS_GS_Locomotion_Gob measured dead in PIE and reverted - #133's blend-surface fix was never applied to it |
+| 175 | done | claude-grapple | Supplement to 173: M_GS_Rope master material (flat colour, spline-mesh flag) so the shared Dreamscape parent is not touched |
+| 176 | done | claude-grapple | Grapple as a weapon-wheel slot: EGSWeaponSlot::Grapple, 4 sectors, UGSGA_GrappleThrow (WRITTEN, gate closed - not compiled) |
+| 177 | abandoned | claude-grapple | Grapple as a weapon-wheel slot: EGSWeaponSlot::Grapple, 4 sectors, UGSGA_GrappleThrow (WRITTEN, gate closed - not compiled) |
+| 179 | done **UNOBSERVED** | claude-anchortags | Marker.ObjectiveAnchor.Statue added, .Granary retired (GDD 156 roster) - WRITTEN, staged for the next build window |
+| 180 | done | claude-grapple | Supplement to 176: WBP_WeaponWheel has no Label_Grapple, and the 90-degree sectors left Bow and Sword labels in the old 120-degree positions |
+| 181 | done | claude-channelring | Smashable lootable barrel: BP_LootBarrel on the SM_Barrel_01 to SM_BarrelBroken swap pair |
+| 182 | done | claude-packanim | Replace goblin combat+locomotion animation with CombatMasterBundle: retarget DK2 in-place loco (16) and DTA combat (29) onto GOB_Scout_v2_Skeleton |
+| 183 | done | claude-grapple | Grapple hook renders red and weird: kill the 15s debug trace draw, and stop the placeholder cone standing upright on the wall |
+| 185 | done | claude-packanim | Play the pack Buff montage when a horde order commits |
+| 186 | done | claude-packanim | Camera-relative movement: body follows the camera by default so the goblin can strafe and backpedal |
+| 187 | done | claude-prompt | Interact prompt: OnFocusChanged finally bound, and a locked container tells you to smash it |
+| 188 | done | claude-roadpush | level-gen: _move_building_clear rotates a house back onto the road it was escaping, burning all 3 passes and opening a sightline |
+| 189 | done **UNOBSERVED** | claude-statuerename | Rename the granary objective: AGSObjective_BurnGranaries -> AGSObjective_ToppleStatue, Objective.Granary -> Objective.Statue, with CoreRedirects - WRITTEN, needs build |
+| 190 | done **UNOBSERVED** | claude-statuerename | Supplement to 189 - comment-only cross-references to the renamed class in three files missed by that claim |
+| 191 | done | claude-styleagent | Assignment 7: Style Guide Agent - GDD-anchored rules, scoring Evaluator (SCORE+REASON), Refiner loop, three before/after demos |
+| 192 | done | claude-fracture | Stage 0: the statue actually shatters - Dataflow fracture pipeline and the first real GeometryCollection |
+| 193 | done | claude-idol | Tear down the false idol: grapple the statue and haul it over by walking away |
+| 194 | done | claude-styledeterm | Style agent determinism: code-computed score, response cache with replay, so a graded run is byte-reproducible |
+| 195 | done | claude-idol | Supplement to 193 - the same kinematic trap in GSBreakableComponent::Break(): SetSimulatePhysics does not make a collection dynamic |
+| 196 | done | claude-idol | A toppled idol scores: OnToppled feeds UGSScoreSubsystem deeds |
+| 197 | done | claude-qaagent | Assignment 9: adversarial QA agent + deterministic unit-test suite (editor Python, no C++, no build) |
+| 198 | done | claude-gddlock | GDD v1.0: export becomes canonical, moved to docs/, reconciled to the live tree, and locked (freeze rule + drift check + ledger + scope table) |
+| 199 | done **UNOBSERVED** | claude-gddlock | Supplement to 198 - fold the GDD relocation, the new ledger, and two rediscovery-prone findings into AGENT_STATE.md |
+| 200 | done | claude-gddlock | Regenerate the banked bark/prompt/whisper rows off the Market-Statue-Windmill roster, then wire check_gdd.py into Build-GoblinSiege.ps1 |
+| 201 | abandoned | claude-gddlock | Sweep the banked text of cut and deferred systems (prisoners/bind, well/bucket brigade) and add the missing Statue coverage |
+| 202 | done | claude-gddlock | Supplement to 200 - repoint the bark machine's RAG corpus at the canonical GDD (it still reads the frozen assignment doc) |
 
 <!-- BOARD:END -->
 

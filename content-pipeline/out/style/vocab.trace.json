@@ -1,0 +1,551 @@
+{
+  "case": "vocab",
+  "title": "Vocabulary / lore - banked content still names the retired granary",
+  "violation_class": "VOCAB_SLICE, VOCAB_NAMELESS",
+  "model": "claude-cli",
+  "threshold": 9,
+  "outcome": "PASS",
+  "source": "banked",
+  "brief": "",
+  "retrieval": [
+    {
+      "query": "tutorial hamlet objectives market statue windmill required trio optional fields",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.8#5",
+          "score": 28.492,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#4",
+          "score": 23.224,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.9#0",
+          "score": 17.824,
+          "heading": "2. Game Mechanics > 2.9 Scoring (placeholder values, tuned in week 6–7 playtests)"
+        },
+        {
+          "chunk_id": "GDD§2.1#1",
+          "score": 14.758,
+          "heading": "2. Game Mechanics > 2.1 The core loop"
+        }
+      ]
+    },
+    {
+      "query": "statue king propaganda toppled brought down stone",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.8#3",
+          "score": 14.151,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#4",
+          "score": 12.549,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.10#0",
+          "score": 8.753,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        },
+        {
+          "chunk_id": "GDD§2.10#1",
+          "score": 8.75,
+          "heading": "2. Game Mechanics > 2.10 Tone — the comedy is systemic"
+        }
+      ]
+    },
+    {
+      "query": "settlements nameless county names register",
+      "hits": [
+        {
+          "chunk_id": "GDD§2.8#6",
+          "score": 14.332,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§2.8#7",
+          "score": 12.01,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        },
+        {
+          "chunk_id": "GDD§1#0",
+          "score": 6.424,
+          "heading": "1. Executive Summary"
+        },
+        {
+          "chunk_id": "GDD§2.8#9",
+          "score": 5.409,
+          "heading": "2. Game Mechanics > 2.8 The tutorial hamlet — and the ladder it's the first rung of"
+        }
+      ]
+    }
+  ],
+  "before": [
+    {
+      "name": "Prompts_01_FirstSightGranary",
+      "speaker": "HUD",
+      "trigger": "FirstSight.Granary",
+      "text": "Their whole winter sleeps in that shed, goblin. Wake it.",
+      "hud_line": "Granary — burn it: one of three targets done. Torch: Q",
+      "control": "Q",
+      "sources": [
+        "GDD§2.8#2",
+        "GDD§2.8#3",
+        "GDD§2.8#4",
+        "GDD§2.1#1",
+        "GDD§2.3#1"
+      ]
+    },
+    {
+      "name": "Whispers_04_ObjectiveGranaryStage1FirstT",
+      "speaker": "Overlord",
+      "trigger": "Objective.Granary.Stage1.FirstTime",
+      "text": "Their whole winter, stacked in one shed — light it and go. The guards are thickest here; that is the tax.",
+      "hud_line": "",
+      "control": "",
+      "sources": [
+        "GDD§2.8#1",
+        "GDD§2.8#3",
+        "GDD§2.1#1"
+      ]
+    }
+  ],
+  "after": [
+    {
+      "speaker": "Overlord",
+      "trigger": "FirstSight.Market",
+      "text": "The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Light it. …adequate.",
+      "hud_line": "Market — burn the stalls, gut their livelihood. Torch: Q",
+      "control": "Q",
+      "sources": [
+        "GDD§2.8#4",
+        "GDD§2.8#5",
+        "GDD§2.1#1",
+        "GDD§2.8#3"
+      ]
+    },
+    {
+      "speaker": "Overlord",
+      "trigger": "Objective.Windmill.Stage1.FirstTime",
+      "text": "Her skin's alight, goblin, and they're still calling it a badger. It's the dust in her belly that'll bring her down — put fire through a window.",
+      "hud_line": "Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB",
+      "control": "RMB",
+      "sources": [
+        "GDD§2.8#4",
+        "GDD§2.8#3",
+        "GDD§2.8#5",
+        "GDD§2.1#1",
+        "GDD§2.10#0"
+      ]
+    }
+  ],
+  "history": [
+    {
+      "attempt": 1,
+      "score": 2,
+      "reason": "Both rows are built on the granary, an objective the GDD deleted on 2026-08-14; the deterministic lint proves this on both rows and caps them. Prompts_01_FirstSightGranary names a nonexistent objective in its trigger (\"FirstSight.Granary\"), its bark (\"Their whole winter sleeps in that shed, goblin. Wake it.\") and its HUD line (\"Granary — burn it: one of three targets done. Torch: Q\"); the required trio is Market / Statue / Windmill (GDD§2.8#5), so this row must be retargeted at one of those three — e.g. the market stalls, whose burn is \"burn the stalls and you burn the hamlet's livelihood\" (GDD§2.8#4). Whispers_04_ObjectiveGranaryStage1FirstT has the same problem plus a structural one: it invents a Stage-1 for the granary, when the only two-stage set piece in the slice is the windmill (Ablaze → window shot → Detonation, GDD§2.8#4). Its bark also chains clauses — \"light it and go. The guards are thickest here; that is the tax\" — where the format calls for one bark and one HUD line naming objective/payoff/control (GDD§2.8#6); it carries no HUD line at all despite being a FirstTime prompt, so the trio isn't delivered. Beyond the granary, the writing is on-register: no settlement is christened, no fear reaction, no cut-content vocabulary (no Slasher, palisade, Pennybrook), and no audio cue is referenced. The Overlord voice is close but a touch flat — \"that is the tax\" is dry rather than pompous-and-underwhelmed, and neither line lands the trailing \"…adequate\" mockery of GDD§2.1#1.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 2,
+          "verdict": "FAIL",
+          "row": "Prompts_01_FirstSightGranary, Whispers_04_ObjectiveGranaryStage1FirstT",
+          "quote": "Granary — burn it: one of three targets done. Torch: Q",
+          "required_instead": "Deterministic lint finding (granary, removed from the GDD 2026-08-14, queue #156) on both rows — unresolvable by judgement. The required trio is Market / Statue / Windmill; retarget both rows onto one of those three, and note the only two-stage objective is the windmill, so \"Objective.Granary.Stage1\" has no counterpart to convert to except Objective.Windmill.Stage1.",
+          "evidence_chunk_id": "lint"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 4,
+          "verdict": "FAIL",
+          "row": "Whispers_04_ObjectiveGranaryStage1FirstT",
+          "quote": "Their whole winter, stacked in one shed — light it and go. The guards are thickest here; that is the tax.",
+          "required_instead": "A first-time prompt is one bark plus ONE HUD line naming exactly three things: objective, payoff, and the one control. This row is a FirstTime trigger with hud_line and control both empty, so the player is told no control at all, and the bark chains an extra clause (\"The guards are thickest here; that is the tax\"). Cut the trailing clause and supply a ≤90-char HUD line, e.g. the shape used in Prompts_01. Prompts_01's own HUD line is well-formed at 53 chars (objective / payoff \"one of three targets done\" / control \"Torch: Q\").",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 7,
+          "verdict": "PASS",
+          "row": "Whispers_04_ObjectiveGranaryStage1FirstT",
+          "quote": "The guards are thickest here; that is the tax.",
+          "required_instead": "Register is right — whispered, proprietary, unimpressed, not grimdark assassin menace — but this lands dry and tactical rather than pompous-gravitas-over-petty-theft, and neither row reaches for the mockery of GDD§2.1#1 (\"I have seen rats do better. …adequate.\"). Minor drift only; \"Their whole winter sleeps in that shed, goblin. Wake it.\" is genuinely on-voice.",
+          "evidence_chunk_id": "GDD§2.1#1"
+        },
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.10#1"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§1#0"
+        }
+      ],
+      "scored_by": "min(per_rule) capped at 6 by lint",
+      "lint": [
+        {
+          "row": "Prompts_01_FirstSightGranary",
+          "rule_id": "VOCAB_SLICE",
+          "quote": "granary",
+          "why": "VOCAB_SLICE: the granary was removed from the GDD on 2026-08-14 (queue #156). The required trio is Market / Statue / Windmill.",
+          "by": "lint"
+        },
+        {
+          "row": "Whispers_04_ObjectiveGranaryStage1FirstT",
+          "rule_id": "VOCAB_SLICE",
+          "quote": "granary",
+          "why": "VOCAB_SLICE: the granary was removed from the GDD on 2026-08-14 (queue #156). The required trio is Market / Statue / Windmill.",
+          "by": "lint"
+        }
+      ],
+      "verify_only": false,
+      "rows": [
+        {
+          "name": "Prompts_01_FirstSightGranary",
+          "speaker": "HUD",
+          "trigger": "FirstSight.Granary",
+          "text": "Their whole winter sleeps in that shed, goblin. Wake it.",
+          "hud_line": "Granary — burn it: one of three targets done. Torch: Q",
+          "control": "Q",
+          "sources": [
+            "GDD§2.8#2",
+            "GDD§2.8#3",
+            "GDD§2.8#4",
+            "GDD§2.1#1",
+            "GDD§2.3#1"
+          ]
+        },
+        {
+          "name": "Whispers_04_ObjectiveGranaryStage1FirstT",
+          "speaker": "Overlord",
+          "trigger": "Objective.Granary.Stage1.FirstTime",
+          "text": "Their whole winter, stacked in one shed — light it and go. The guards are thickest here; that is the tax.",
+          "hud_line": "",
+          "control": "",
+          "sources": [
+            "GDD§2.8#1",
+            "GDD§2.8#3",
+            "GDD§2.1#1"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "score": 5,
+      "reason": "Both rows are keyed to a granary that no longer exists — the deterministic lint finding fires on both trigger ids (\"FirstSight.Granary\" and \"Objective.Granary.Stage1.FirstTime\"), and the GDD removed the granary on 2026-08-14; the required trio is Market / Statue / Windmill (GDD§2.8#5). That lint is proven and caps VOCAB_SLICE at 6 regardless of the body text, which does otherwise describe legitimate slice content (market stalls, windmill two-stage). Fix by re-keying the triggers to FirstSight.Market and Objective.Windmill.Stage1.FirstTime. Beyond that, both HUD lines break FORMAT_PROMPT by naming a second thing beyond the required three: row FirstSight.Granary's \"Market — burn the stalls: one of three targets done. Torch: Q\" pads with a progress-counter clause instead of a clean objective/payoff/control triple, and row Objective.Granary.Stage1.FirstTime's \"Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB + Q\" names two controls (\"RMB + Q\") where the guide requires the ONE control that does it (GDD§2.8#5) — the GDD's own line is \"Windmill: Ablaze — needs a window shot.\" Both are under 90 characters. Tone is good: \"…adequate\" lands the Overlord register (GDD§2.1#1), the windmill bark is near-verbatim canon, and \"the town is impressed. I am not\" is mockery, not mourning. No settlement is named, no non-slice vocabulary appears, and nothing references audio.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 5,
+          "verdict": "FAIL",
+          "row": "FirstSight.Granary / Objective.Granary.Stage1.FirstTime",
+          "quote": "granary",
+          "required_instead": "The granary was deleted from the GDD on 2026-08-14; the required trio is Market / Statue / Windmill. Re-key the triggers to FirstSight.Market and Objective.Windmill.Stage1.FirstTime.",
+          "evidence_chunk_id": "lint"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 5,
+          "verdict": "FAIL",
+          "row": "Objective.Granary.Stage1.FirstTime",
+          "quote": "Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB + Q",
+          "required_instead": "Exactly three things and ONE control. \"RMB + Q\" is a second control; the FirstSight row also adds a fourth element (\"one of three targets done\"). Write e.g. \"Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB\" and \"Market — burn the stalls, gut their livelihood. Torch: Q\".",
+          "evidence_chunk_id": "GDD§2.8#5"
+        },
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.1#1"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.10#0"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§1#0"
+        }
+      ],
+      "scored_by": "min(per_rule) capped at 6 by lint",
+      "lint": [
+        {
+          "row": "FirstSight.Granary",
+          "rule_id": "VOCAB_SLICE",
+          "quote": "granary",
+          "why": "VOCAB_SLICE: the granary was removed from the GDD on 2026-08-14 (queue #156). The required trio is Market / Statue / Windmill.",
+          "by": "lint"
+        },
+        {
+          "row": "Objective.Granary.Stage1.FirstTime",
+          "rule_id": "VOCAB_SLICE",
+          "quote": "granary",
+          "why": "VOCAB_SLICE: the granary was removed from the GDD on 2026-08-14 (queue #156). The required trio is Market / Statue / Windmill.",
+          "by": "lint"
+        }
+      ],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "HUD",
+          "trigger": "FirstSight.Granary",
+          "text": "The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Light it. …adequate.",
+          "hud_line": "Market — burn the stalls: one of three targets done. Torch: Q",
+          "control": "Q",
+          "sources": [
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.1#1",
+            "GDD§2.8#3"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "Objective.Granary.Stage1.FirstTime",
+          "text": "Her skin's alight, goblin, and the town is impressed. I am not. It's the dust in her belly that ends her — put fire through a window.",
+          "hud_line": "Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB + Q",
+          "control": "RMB + Q",
+          "sources": [
+            "GDD§2.8#4",
+            "GDD§2.8#3",
+            "GDD§2.8#5",
+            "GDD§2.1#1"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "score": 7,
+      "reason": "Both rows are close to shipped quality: the market bark and the windmill Stage-1 bark carry the Overlord's whispered, underwhelmed register (GDD§2.1#1, GDD§2.8#4), both HUD lines are well under 90 characters and name exactly the objective, the payoff and one control, and nothing references a voice file, SFX or sound. Two actionable drifts. (1) Row 1 (FirstSight.Market) is tagged \"speaker\": \"HUD\" while its text is plainly an Overlord bark — \"The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Light it. …adequate.\" The prompt system in GDD§2.8#5 is one bark from His Eternal Darkness PLUS one HUD note; the bark row must be speaker \"Overlord\" (as row 2 correctly is), with the hud_line as the separate HUD element. Fix the speaker field; the wording itself is fine. (2) Row 2 (Objective.Windmill.Stage1.FirstTime) adds \"and the town is impressed\" to the canon bark. Per GDD§2.10#0 the hamlet's reaction to arson is denial, not admiration — the town mutters \"must've been a badger\" and keeps pottering. Either drop the clause back to the canon line (\"Her skin's alight, goblin, but it's the dust in her belly that'll bring her down — put fire through a window\") or replace it with a denial beat the Overlord can sneer at, e.g. \"and they're still calling it a badger. I am not impressed.\" No settlement is named, no out-of-slice content (no granary, no Slasher, no palisade, no Pennybrook) appears, and the statue is not invoked as burnable.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#5"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 7,
+          "verdict": "PASS",
+          "row": "Objective.Windmill.Stage1.FirstTime",
+          "quote": "Her skin's alight, goblin, and the town is impressed.",
+          "required_instead": "The hamlet's first response to arson is denial, not admiration — villagers double-take and mutter \"must've been a badger\". Cut \"the town is impressed\" or turn it into a denial the Overlord mocks (\"and they're still calling it a badger\").",
+          "evidence_chunk_id": "GDD§2.10#0"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.1#1"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 8,
+          "verdict": "PASS",
+          "row": "FirstSight.Market",
+          "quote": "\"speaker\": \"HUD\", \"text\": \"The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Light it. …adequate.\"",
+          "required_instead": "A first-time prompt is one Overlord bark plus one HUD line; this row's text is the bark, so speaker must be \"Overlord\" with the hud_line carried separately. The HUD lines themselves are correct — 55 and 62 characters, each naming objective, payoff and one control.",
+          "evidence_chunk_id": "GDD§2.8#5"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§1#0"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": false,
+      "rows": [
+        {
+          "speaker": "HUD",
+          "trigger": "FirstSight.Market",
+          "text": "The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Light it. …adequate.",
+          "hud_line": "Market — burn the stalls, gut their livelihood. Torch: Q",
+          "control": "Q",
+          "sources": [
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.1#1",
+            "GDD§2.8#3"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "Objective.Windmill.Stage1.FirstTime",
+          "text": "Her skin's alight, goblin, and the town is impressed. I am not. It's the dust in her belly that ends her — put fire through a window.",
+          "hud_line": "Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB",
+          "control": "RMB",
+          "sources": [
+            "GDD§2.8#4",
+            "GDD§2.8#3",
+            "GDD§2.8#5",
+            "GDD§2.1#1"
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 4,
+      "score": 9,
+      "reason": "Both rows read as shipped Tier-1 Goblin Siege content. Row 1 (FirstSight.Market) uses only slice vocabulary — market stalls, torch — and its HUD line \"Market — burn the stalls, gut their livelihood. Torch: Q\" (55 chars) names exactly the objective (market), the payoff (their livelihood), and one control (Q), matching GDD§2.8#5's three-part prompt spec and GDD§2.8#4's \"burn the stalls and you burn the hamlet's livelihood.\" Row 2 (Objective.Windmill.Stage1.FirstTime) is a faithful variant of the canon Stage-1 bark in GDD§2.8#4, and its added clause \"and they're still calling it a badger\" lands the disbelief joke of GDD§2.10#0 rather than fear — no 'run for your lives' register anywhere. Its HUD line \"Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB\" (62 chars) again names objective, payoff, and one control, with the aimed throw exactly as canon requires. Neither row names the hamlet (GDD§2.8#6: settlements stay nameless), neither mentions granary, palisade, Slasher, Brute, Pennybrook or Silverford, neither burns the statue, and neither references a voice line, SFX cue or sound — barks are text-only. No deterministic lint findings were reported. The one soft spot is TONE_OVERLORD in row 1: \"Light it. …adequate.\" attaches the trailing \"…adequate\" to an order the player has not yet carried out, whereas GDD§2.1#1 uses it as a whispered *verdict* on work already done (\"Adequate. I have seen rats do better. …adequate.\"). A rewriter should either withhold the sign-off until there is something to be underwhelmed by, or aim the underwhelm at the target rather than the unperformed act — e.g. \"The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Barely worth the flame. Light it.\" Everything else is on-brand; do not change it.",
+      "per_rule": [
+        {
+          "rule_id": "VOCAB_NAMELESS",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#6"
+        },
+        {
+          "rule_id": "VOCAB_SLICE",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#4"
+        },
+        {
+          "rule_id": "TONE_DISBELIEF",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.10#0"
+        },
+        {
+          "rule_id": "TONE_OVERLORD",
+          "rule_score": 9,
+          "verdict": "PASS",
+          "row": "FirstSight.Market",
+          "quote": "Light it. …adequate.",
+          "required_instead": "The trailing '…adequate' is a verdict on work already done (GDD§2.1#1), not a sign-off on an order just given; either hold it back or point the underwhelm at the target — e.g. 'Their whole livelihood, stacked in wicker. Barely worth the flame. Light it.'",
+          "evidence_chunk_id": "GDD§2.1#1"
+        },
+        {
+          "rule_id": "FORMAT_PROMPT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§2.8#5"
+        },
+        {
+          "rule_id": "FORMAT_SILENT",
+          "rule_score": 10,
+          "verdict": "PASS",
+          "row": "",
+          "quote": "",
+          "required_instead": "",
+          "evidence_chunk_id": "GDD§1#0"
+        }
+      ],
+      "scored_by": "min(per_rule)",
+      "lint": [],
+      "verify_only": true,
+      "rows": [
+        {
+          "speaker": "Overlord",
+          "trigger": "FirstSight.Market",
+          "text": "The stalls, goblin. Their whole livelihood, stacked in wicker and waiting. Light it. …adequate.",
+          "hud_line": "Market — burn the stalls, gut their livelihood. Torch: Q",
+          "control": "Q",
+          "sources": [
+            "GDD§2.8#4",
+            "GDD§2.8#5",
+            "GDD§2.1#1",
+            "GDD§2.8#3"
+          ]
+        },
+        {
+          "speaker": "Overlord",
+          "trigger": "Objective.Windmill.Stage1.FirstTime",
+          "text": "Her skin's alight, goblin, and they're still calling it a badger. It's the dust in her belly that'll bring her down — put fire through a window.",
+          "hud_line": "Windmill: Ablaze — a window shot detonates it. Aimed throw: RMB",
+          "control": "RMB",
+          "sources": [
+            "GDD§2.8#4",
+            "GDD§2.8#3",
+            "GDD§2.8#5",
+            "GDD§2.1#1",
+            "GDD§2.10#0"
+          ]
+        }
+      ]
+    }
+  ],
+  "first_score": 2,
+  "final_score": 9
+}

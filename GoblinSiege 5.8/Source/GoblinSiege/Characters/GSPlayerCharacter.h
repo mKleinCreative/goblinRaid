@@ -174,6 +174,27 @@ protected:
 	 *  animation/combat systems can query it without reaching into player-only state. */
 	void UpdateRotationMode();
 
+	/**
+	 * Camera-relative movement. TRUE (the default) makes the body follow the camera at all times, so
+	 * the goblin strafes and backpedals instead of turning to face wherever it is walking: you keep
+	 * looking at what you are looking at, and change facing with the mouse rather than with WASD.
+	 *
+	 * FALSE restores the previous behaviour - bOrientRotationToMovement, body turns to face travel,
+	 * and aim/block are the only things that ever face-lock.
+	 *
+	 * THIS DEPENDS ON THE EIGHT-WAY LOCOMOTION BLENDSPACE. With movement-facing, Direction is pinned
+	 * near zero and a single forward clip is always correct. With camera-facing it is not: the pawn
+	 * genuinely moves sideways and backwards, and without directional locomotion it slides while
+	 * playing a forward walk. Do not turn this on against a forward-only blendspace.
+	 *
+	 * It also changes combat, not just the camera: UGSDamageExecCalculation tests the block arc
+	 * against GetActorForwardVector, so a permanently camera-locked body means the guard always
+	 * points where the camera points (see the note above UpdateRotationMode's face-lock term).
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "GoblinSiege|Camera",
+		meta = (AllowPrivateAccess = "true"))
+	bool bCameraRelativeMovement = true;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Weapon")
 	TObjectPtr<UGSWeaponComponent> WeaponComponent;
 
@@ -389,6 +410,16 @@ protected:
 	 *  point it at UGSGA_BowShot or a Blueprint child of it. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
 	TSubclassOf<UGameplayAbility> BowShotAbilityClass;
+
+	/** The fourth wheel slot's verb (2026-08-17). Routed from the ATTACK button while the weapon
+	 *  component reports the Grapple slot, exactly as the torch is - one attack key whose meaning
+	 *  follows what is in your hand, rather than a fourth key to remember.
+	 *
+	 *  C++-defaulted, unlike BowShotAbilityClass, because the grapple has no second home: the bow
+	 *  at least fails loudly into the sword, whereas an unset grapple class makes the newest wheel
+	 *  slot do nothing at all. That is #048 and #088, twice. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Abilities")
+	TSubclassOf<UGameplayAbility> GrappleThrowAbilityClass;
 
 	// ---- torch aiming (2026-08-03, moved to UGSAimComponent 2026-08-04) --------------------
 	// TorchAimMaxSimSeconds and TorchAimArcColour now live on UGSAimComponent (as MaxSimSeconds and
