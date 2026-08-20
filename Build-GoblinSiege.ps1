@@ -198,22 +198,85 @@ if ($staleBuild -and $compilers.Count -eq 0) {
 
 # --- UBA cache permissions (the reason builds take ~6 minutes) --------------
 Write-Step 'Checking Unreal Build Accelerator cache'
+# THIS CHECK USED TO LIE, AND IT LIED FOR 13 DAYS (fixed 2026-08-20, #206).
+#
+# The old version created a BRAND NEW file at the cache root and deleted it. That always
+# succeeded, because ProgramData's default ACL lets any user create new files - so the script
+# printed "UBA cache is writable - parallel compilation available" in the same run that UBA
+# itself was failing every write it cared about:
+#
+#   UbaSessionServer - ERROR opening file ...\memgroups for write after retrying for 20 seconds
+#   UbaStorageServer - Can't move file from ...\cas\casdb.tmp to ...\cas\casdb (Access is denied.)
+#   ~20x Failed to delete directory ...\sessions\260809_* (Access is denied.)
+#
+# UBA never creates fresh files at the root. It REWRITES memgroups, REPLACES cas\casdb, and
+# DELETES stale session folders - and all of those already exist, owned by BUILTIN\Administrators
+# from an elevated install. A non-elevated user can create beside them and cannot touch them.
+#
+# AGENT_STATE.md recorded this problem as FIXED on 2026-08-07 purely on the strength of the green
+# line below, while every build since has paid full compile cost with a dead cache (the 2026-08-20
+# build logged "Validated storage (size 0b)" and took 12m17s). So: probe the things UBA actually
+# does, not a thing that always works.
 $ubaOk = $false
+$ubaWhy = 'cache directory does not exist yet - UBA will create it'
 if (Test-Path -LiteralPath $UbaCache) {
-    try {
-        $probe = Join-Path $UbaCache ('.writetest_' + [guid]::NewGuid().ToString('N'))
-        [IO.File]::WriteAllText($probe, 'x')
-        Remove-Item -LiteralPath $probe -Force
-        $ubaOk = $true
-    } catch { $ubaOk = $false }
+    $ubaOk = $true
+    $ubaWhy = ''
+
+    # 1. memgroups: UBA opens this EXISTING file for write, and retries for 20s before giving up.
+    $memGroups = Join-Path $UbaCache 'memgroups'
+    if (Test-Path -LiteralPath $memGroups) {
+        try {
+            $fs = [IO.File]::Open($memGroups, 'Open', 'Write', 'None')
+            $fs.Close()
+        } catch {
+            $ubaOk = $false
+            $ubaWhy = 'cannot open the existing memgroups file for write'
+        }
+    }
+
+    # 2. cas: UBA moves casdb.tmp over casdb here, which needs delete rights in the directory.
+    if ($ubaOk) {
+        $cas = Join-Path $UbaCache 'cas'
+        if (Test-Path -LiteralPath $cas) {
+            try {
+                $probe = Join-Path $cas ('.writetest_' + [guid]::NewGuid().ToString('N'))
+                [IO.File]::WriteAllText($probe, 'x')
+                Remove-Item -LiteralPath $probe -Force -ErrorAction Stop
+            } catch {
+                $ubaOk = $false
+                $ubaWhy = 'cannot write and remove inside the cas directory'
+            }
+        }
+    }
+
+    # 3. stale sessions: every one that cannot be deleted is a permanent 'Access is denied' in the
+    #    log and a directory that never gets reclaimed.
+    if ($ubaOk) {
+        $sessions = Join-Path $UbaCache 'sessions'
+        if (Test-Path -LiteralPath $sessions) {
+            $stale = @(Get-ChildItem -LiteralPath $sessions -Directory -ErrorAction SilentlyContinue)
+            $blocked = 0
+            foreach ($d in $stale) {
+                $owner = (Get-Acl -LiteralPath $d.FullName).Owner
+                if ($owner -ne "$env:USERDOMAIN\$env:USERNAME") { $blocked++ }
+            }
+            if ($blocked -gt 0) {
+                $ubaOk = $false
+                $ubaWhy = "$blocked of $($stale.Count) session folder(s) are owned by someone else and cannot be cleaned"
+            }
+        }
+    }
 }
 if ($ubaOk) {
-    Write-Host 'UBA cache is writable - parallel compilation available.' -ForegroundColor Green
+    Write-Host 'UBA cache is writable where it matters - parallel compilation available.' -ForegroundColor Green
 } else {
-    Write-Host 'UBA cache is NOT writable. The build will fall back to near-serial' -ForegroundColor Yellow
-    Write-Host 'compilation (one cl.exe at a time) and take several times longer.'   -ForegroundColor Yellow
-    Write-Host "Fix once, in an elevated shell:"
+    Write-Host "UBA cache is NOT usable: $ubaWhy." -ForegroundColor Yellow
+    Write-Host 'The cache is dead, so every build pays full compile cost (a 4-5 min build'  -ForegroundColor Yellow
+    Write-Host 'becomes 12+). The build will still SUCCEED - this is speed, not correctness.' -ForegroundColor Yellow
+    Write-Host 'Fix once, in an ELEVATED shell:'
     Write-Host "  icacls `"$UbaCache`" /grant `"$env:USERNAME`:(OI)(CI)F`" /T"
+    Write-Host "  Remove-Item `"$UbaCache\sessions\*`" -Recurse -Force"
 }
 
 # --- build ------------------------------------------------------------------

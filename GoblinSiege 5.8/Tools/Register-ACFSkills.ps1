@@ -49,7 +49,30 @@ $ErrorActionPreference = 'Stop'
 $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 
-$PluginRoot  = Join-Path $ProjectRoot 'Plugins\Marketplace\AscentCombatFramework'
+# ACF can live in EITHER of two places and the answer changed on 2026-08-20 (#205): a 4.4.2
+# install from Fab landed in the ENGINE while the project already carried its own 4.4 copy, two
+# plugins claimed the name 'AscentCombatFramework', and UnrealBuildTool refused to build at all -
+# "does not contain the AscentCombatFramework module, but lists it". The project copy was retired
+# and the engine copy is now authoritative.
+#
+# So this script DISCOVERS the plugin instead of hardcoding one path. The engine install folder is
+# named with an install-specific hash (ACFUAsce5ab7c1439afbV5), which is exactly the kind of string
+# that must never be pasted into a script - it changes on reinstall. Project-local is searched
+# first, because if that copy ever exists again it is the one a build would use.
+$PluginRoot = $null
+$searchRoots = @(
+    (Join-Path $ProjectRoot 'Plugins\Marketplace'),
+    'D:\Epic Games\UE_5.8\Engine\Plugins\Marketplace'
+)
+foreach ($root in $searchRoots) {
+    if (-not (Test-Path $root)) { continue }
+    $found = Get-ChildItem -Path $root -Recurse -Depth 2 -Filter 'AscentCombatFramework.uplugin' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { $PluginRoot = $found.DirectoryName; break }
+}
+if (-not $PluginRoot) {
+    # Keeps the path in the error message below meaningful rather than blank.
+    $PluginRoot = Join-Path $ProjectRoot 'Plugins\Marketplace\AscentCombatFramework'
+}
 $SourceRoot  = Join-Path $PluginRoot  'Resources\Skills'
 $SkillsRoot  = Join-Path $ProjectRoot '.claude\skills'
 $Manifest    = Join-Path $SkillsRoot  '.acf-manifest.json'
@@ -90,9 +113,15 @@ if (-not (Test-Path $SourceRoot)) {
 ACF skills not found at:
   $SourceRoot
 
-The Ascent Combat Framework plugin is gitignored (Plugins/Marketplace/), so a fresh
-clone will not have it. Reinstall the plugin from Fab into Plugins/Marketplace/ and
-run this script again.
+Searched, in order:
+  <project>/Plugins/Marketplace   then   the engine's Plugins/Marketplace
+
+The plugin is gitignored (Plugins/Marketplace/) and an engine install lives outside the
+repo entirely, so a fresh clone will have neither. Install it from Fab - into the ENGINE
+is what this project expects since #205 - and re-run.
+
+Do NOT end up with both: two plugins claiming the same name stop UnrealBuildTool dead
+before it compiles anything.
 
   Fab listing: https://www.fab.com/listings/cc258205-8fcf-41e5-9b48-6ec44e46d7eb
 "@

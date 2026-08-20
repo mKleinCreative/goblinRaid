@@ -6,6 +6,19 @@
 #include "GameFramework/Character.h"
 #include "Animation/AnimMontage.h"
 
+// The dodge path had NO instrument at all. #178 shipped four directional rolls, every static check
+// passed - slots assigned, four distinct clips, the right slot name, facing decoupled, the picker
+// maths correct by inspection - and it still played the forward roll in all four directions. Three
+// investigation passes ended in a dead end because nothing anywhere reports what the picker was
+// actually handed or what it chose. Same lesson as GS.Anim.Snapshot (#137): a system with no
+// runtime readout is a system you argue about instead of measure.
+static TAutoConsoleVariable<int32> CVarLogDodge(
+	TEXT("GS.Combat.LogDodge"),
+	0,
+	TEXT("Log every dodge: move input, world dodge direction, the actor frame it is projected into, "
+	     "both dot products, which montage was chosen and whether it actually played. 0 off, 1 on."),
+	ECVF_Default);
+
 UGSGA_DodgeRoll::UGSGA_DodgeRoll()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
@@ -94,6 +107,15 @@ UAnimMontage* UGSGA_DodgeRoll::PickDirectionalMontage(const ACharacter* Avatar, 
 {
 	if (!Avatar || WorldDodgeDir.IsNearlyZero())
 	{
+		// GetDodgeDirection() returns GetActorForwardVector() when LastMoveInput is zero, so this
+		// arm is also reached by "dodged without a direction held" - which looks identical to a
+		// broken picker from outside.
+		if (CVarLogDodge.GetValueOnAnyThread() != 0)
+		{
+			UE_LOG(LogTemp, Log,
+				TEXT("[GS.Dodge] no usable direction (avatar=%s, dir=%s) -> Forward by fallback"),
+				Avatar ? TEXT("ok") : TEXT("NULL"), *WorldDodgeDir.ToCompactString());
+		}
 		return DodgeMontageForward.Get();
 	}
 
@@ -106,6 +128,22 @@ UAnimMontage* UGSGA_DodgeRoll::PickDirectionalMontage(const ACharacter* Avatar, 
 	UAnimMontage* Chosen = (FMath::Abs(Fwd) >= FMath::Abs(Rgt))
 		? (Fwd >= 0.f ? DodgeMontageForward : DodgeMontageBackward)
 		: (Rgt >= 0.f ? DodgeMontageRight   : DodgeMontageLeft);
+
+	if (CVarLogDodge.GetValueOnAnyThread() != 0)
+	{
+		// Print the INPUTS as well as the verdict. "It chose Forward" on its own cannot tell you
+		// whether the direction was wrong or the projection was - which is exactly the ambiguity
+		// that cost three passes.
+		UE_LOG(LogTemp, Log,
+			TEXT("[GS.Dodge] dir=(%.2f,%.2f) actorFwd=(%.2f,%.2f) actorRgt=(%.2f,%.2f) "
+			     "dotFwd=%.3f dotRgt=%.3f -> %s%s"),
+			Flat.X, Flat.Y,
+			Avatar->GetActorForwardVector().X, Avatar->GetActorForwardVector().Y,
+			Avatar->GetActorRightVector().X, Avatar->GetActorRightVector().Y,
+			Fwd, Rgt,
+			Chosen ? *Chosen->GetName() : TEXT("<null slot>"),
+			Chosen ? TEXT("") : TEXT(" (falls back to Forward)"));
+	}
 
 	// Any unassigned quadrant falls back to the forward roll rather than to no animation at all.
 	// .Get() on both arms: mixing a raw UAnimMontage* with a TObjectPtr in one conditional is

@@ -113,10 +113,19 @@ the Python. Don't reload a pack you already loaded this session.
 ### 3a. ACF's own skills — a SECOND, unrelated skill system
 
 Ascent Combat Framework ships **40 author-written Claude skill packs** of its own, and they have
-nothing to do with the VibeUE/`AgentSkillToolset` mechanism above. They are plain `SKILL.md` files at
-`Plugins/Marketplace/AscentCombatFramework/Resources/Skills/`, and they are **Claude Code project
-skills** — invoke them by name (`acf-core`, `ai-framework`, `collisions-manager`, `anim-blueprints`,
-`character-controller`, `teams`, …), not through `call_tool`.
+nothing to do with the VibeUE/`AgentSkillToolset` mechanism above. They are plain `SKILL.md` files in
+the plugin's `Resources/Skills/`, and they are **Claude Code project skills** — invoke them by name
+(`acf-core`, `ai-framework`, `collisions-manager`, `anim-blueprints`, `character-controller`,
+`teams`, …), not through `call_tool`.
+
+**ACF LIVES IN THE ENGINE, NOT THE PROJECT (changed 2026-08-20, #205).** A 4.4.2 install from Fab
+landed in the engine's `Plugins/Marketplace/` while the project still carried its own 4.4 copy under
+`Plugins/Marketplace/`. **Two plugins claiming the name `AscentCombatFramework` stop UnrealBuildTool
+dead before it compiles anything** — *"does not contain the AscentCombatFramework module, but lists
+it"* — and no build could run at all until one was retired. The project copy was moved out to
+`D:/ACF_4.4_replaced_20260820` and the engine copy is authoritative. **Never let both exist.** If a
+build dies on that error, that is what happened. The engine folder is named with an install-specific
+hash, so never hardcode it — `Register-ACFSkills.ps1` searches project-local first, then the engine.
 
 Claude only discovers skills under `.claude/skills/`, so on a stock install these are invisible.
 **`Tools/Register-ACFSkills.ps1` copies them in** (#150, 2026-08-13). The copies are gitignored

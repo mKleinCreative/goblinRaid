@@ -41,6 +41,9 @@ namespace
 		// Added 2026-08-08 with NPC-vs-NPC melee. Chatty by nature - it logs a line per decision per
 		// agent - so it belongs in the table more than most of the entries above it.
 		{ TEXT("GS.Combat.LogAI"),    0, 1 },  // AI target/block/guard-break decision log
+		// Added 2026-08-20 (#204). The dodge shipped four directional rolls and played one of them
+		// in all four directions, and nothing in the path could say why.
+		{ TEXT("GS.Combat.LogDodge"), 0, 1 },  // per-dodge direction, projection and montage choice
 	};
 
 	void GSSetPlayerView(const TArray<FString>& Args, UWorld* World, FOutputDevice& Ar)

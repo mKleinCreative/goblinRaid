@@ -210,15 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 178 | queued (waiting on: BUILD. The four pack dodge montages now exist and are ready to assign: AM_GOB_Dodge_Fwd (0.833s), AM_GOB_Dodge_Back (0.833s), AM_GOB_Dodge_Left (1.000s), AM_GOB_Dodge_Right (1.000s) in Content/Characters/ScoutV2/Anims_Pack/Montages, retargeted from DSAS_V3 Dodge_F/L/R and Evade_B, root motion ON, blend 0.080/0.180. After the build: create GA_GS_Dodge as a BP subclass of UGSGA_DodgeRoll, assign those four to DodgeMontageForward/Backward/Left/Right, and repoint BP_GSPlayerCharacter.DodgeAbilityClass at it - it currently resolves to the native class so the montage slots can never be set.) **STALE 48.0h** | claude-dodge | A1: directional dodge montages - UGSGA_DodgeRoll plays one of the four authored rolls instead of a bare LaunchCharacter | Source/GoblinSiege/Weapons/Abilities/GSGA_DodgeRoll.h<br>Source/GoblinSiege/Weapons/Abilities/GSGA_DodgeRoll.cpp | none |
-| 184 | queued (waiting on: Windup corrected on all four pack stages so the damage window straddles the measured contact frame - contact was landing at -63/-26/-33/-38 percent, i.e. before the window opened. Totals held constant, reclaimed time moved into recovery, so recovery/clip on light stage 0 goes 0.146 to 0.333 (above 121s 0.287). NEEDS MICHAEL TO SWING IT: unobserved. Chain speed deliberately NOT changed - his second complaint about the combo not linking fast enough is a separate variable and changing both at once would make it impossible to tell what did what (123).) **STALE 47.4h** | claude-packanim | Pack attacks: wrap DTA combos into montages and repoint the 5 goblin swing stages | Content/Blueprints/Abilities/GA_GS_SwordLight.uasset<br>Content/Blueprints/Abilities/GA_GS_SwordHeavy.uasset<br>Content/Blueprints/Abilities/GA_GS_GuardBreak.uasset | none |
+_Queue is empty. The build gate is OPEN._
 
-**STALE - #178, #184 open longer than 2h.** Ask Michael whether each is
-still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
-
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 67 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -401,11 +395,13 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 175 | done | claude-grapple | Supplement to 173: M_GS_Rope master material (flat colour, spline-mesh flag) so the shared Dreamscape parent is not touched |
 | 176 | done | claude-grapple | Grapple as a weapon-wheel slot: EGSWeaponSlot::Grapple, 4 sectors, UGSGA_GrappleThrow (WRITTEN, gate closed - not compiled) |
 | 177 | abandoned | claude-grapple | Grapple as a weapon-wheel slot: EGSWeaponSlot::Grapple, 4 sectors, UGSGA_GrappleThrow (WRITTEN, gate closed - not compiled) |
+| 178 | done | claude-dodge | A1: directional dodge montages - UGSGA_DodgeRoll plays one of the four authored rolls instead of a bare LaunchCharacter |
 | 179 | done **UNOBSERVED** | claude-anchortags | Marker.ObjectiveAnchor.Statue added, .Granary retired (GDD 156 roster) - WRITTEN, staged for the next build window |
 | 180 | done | claude-grapple | Supplement to 176: WBP_WeaponWheel has no Label_Grapple, and the 90-degree sectors left Bow and Sword labels in the old 120-degree positions |
 | 181 | done | claude-channelring | Smashable lootable barrel: BP_LootBarrel on the SM_Barrel_01 to SM_BarrelBroken swap pair |
 | 182 | done | claude-packanim | Replace goblin combat+locomotion animation with CombatMasterBundle: retarget DK2 in-place loco (16) and DTA combat (29) onto GOB_Scout_v2_Skeleton |
 | 183 | done | claude-grapple | Grapple hook renders red and weird: kill the 15s debug trace draw, and stop the placeholder cone standing upright on the wall |
+| 184 | done | claude-packanim | Pack attacks: wrap DTA combos into montages and repoint the 5 goblin swing stages |
 | 185 | done | claude-packanim | Play the pack Buff montage when a horde order commits |
 | 186 | done | claude-packanim | Camera-relative movement: body follows the camera by default so the goblin can strafe and backpedal |
 | 187 | done | claude-prompt | Interact prompt: OnFocusChanged finally bound, and a locked container tells you to smash it |
@@ -424,6 +420,10 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 200 | done | claude-gddlock | Regenerate the banked bark/prompt/whisper rows off the Market-Statue-Windmill roster, then wire check_gdd.py into Build-GoblinSiege.ps1 |
 | 201 | abandoned | claude-gddlock | Sweep the banked text of cut and deferred systems (prisoners/bind, well/bucket brigade) and add the missing Statue coverage |
 | 202 | done | claude-gddlock | Supplement to 200 - repoint the bark machine's RAG corpus at the canonical GDD (it still reads the frozen assignment doc) |
+| 203 | done | claude-combofeel | Combo link speed: the contact fix parked its reclaimed time in RecoverySeconds, which is the gap between swings |
+| 204 | done **UNOBSERVED** | claude-dodgedir | Dodge plays the forward roll in every direction: add the instrument the dodge path has never had, then diagnose |
+| 205 | done **UNOBSERVED** | claude-acfswap | Two ACF installs collide and no build can run: retire the project 4.4 copy, adopt the engine 4.4.2, repoint the skills registration |
+| 206 | done | claude-ubacheck | The UBA cache check passes while UBA cannot write: it probes a NEW file at the root, UBA fails on admin-owned pre-existing ones |
 
 <!-- BOARD:END -->
 
