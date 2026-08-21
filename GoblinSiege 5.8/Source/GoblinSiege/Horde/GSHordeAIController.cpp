@@ -106,8 +106,31 @@ void AGSHordeAIController::RefreshStimulus()
 	AActor* Threat = Horde->GetAssignedTargetFor(Goblin);
 	AActor* FollowTarget = Horde->GetFollowTargetFor(Goblin);
 
+	// Read the standing order BEFORE publishing FollowTarget - the write below depends on it.
+	const EGSHordeOrder OrderVerb = Horde->GetOrderVerbFor(Goblin);
+	const bool bHasStandingOrder = (OrderVerb != EGSHordeOrder::None);
+
 	BB->SetValueAsObject(TargetActorKey, Threat);
-	BB->SetValueAsObject(FollowTargetKey, FollowTarget);
+
+	// AN ORDERED GOBLIN PUBLISHES NO FOLLOW TARGET (2026-08-20, Michael: "we need them to not worry
+	// about following me if there's an attack order").
+	//
+	// BT_HordeGoblin has two branches that were both able to pass at once: "Follow Summoner" behind
+	// a `Has A Follow Target` blackboard decorator, and "Chase Target" behind `Has A Target`. This
+	// function used to write BOTH keys unconditionally, so a goblin under an Attack order had a live
+	// TargetActor AND a live FollowTarget, the Selector had two valid children, and it flip-flopped
+	// between them every re-evaluation. On screen that is a goblin that stares at you, breaks off,
+	// stares again - which is exactly how it was reported.
+	//
+	// Clearing the KEY rather than reordering the tree is deliberate: the branch order in
+	// BT_HordeGoblin is fine, and the tree cannot be the place this is decided because the
+	// controller is the only thing that knows an order exists. A decorator cannot out-vote a key
+	// that should never have been set.
+	//
+	// Note this is NOT the same as cancelling the follow: UGSHordeSubsystem still knows the
+	// summoner and the follow slot, so the instant the order clears, the next refresh republishes
+	// the target and the goblin falls straight back into the scamper.
+	BB->SetValueAsObject(FollowTargetKey, bHasStandingOrder ? nullptr : FollowTarget);
 
 	// A deterministic slot, not a random angle. The slice this replaces rolled FMath::FRand() on
 	// every repath, so a goblin standing still still changed its mind about where to stand - which
@@ -116,7 +139,7 @@ void AGSHordeAIController::RefreshStimulus()
 	BB->SetValueAsInt(FollowSlotKey, Horde->GetFollowSlotFor(Goblin));
 
 	// ---- the standing order (#141) ---------------------------------------------------------
-	const EGSHordeOrder Verb = Horde->GetOrderVerbFor(Goblin);
+	const EGSHordeOrder Verb = OrderVerb;   // read once, above - two reads could disagree mid-frame
 	BB->SetValueAsEnum(OrderVerbKey, static_cast<uint8>(Verb));
 	BB->SetValueAsObject(OrderSubjectKey, Horde->GetOrderSubjectFor(Goblin));
 	BB->SetValueAsVector(OrderLocationKey, Horde->GetOrderLocationFor(Goblin));

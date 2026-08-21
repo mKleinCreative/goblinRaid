@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 67 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 71 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -424,6 +424,25 @@ _Queue is empty. The build gate is OPEN._
 | 204 | done **UNOBSERVED** | claude-dodgedir | Dodge plays the forward roll in every direction: add the instrument the dodge path has never had, then diagnose |
 | 205 | done **UNOBSERVED** | claude-acfswap | Two ACF installs collide and no build can run: retire the project 4.4 copy, adopt the engine 4.4.2, repoint the skills registration |
 | 206 | done | claude-ubacheck | The UBA cache check passes while UBA cannot write: it probes a NEW file at the root, UBA fails on admin-owned pre-existing ones |
+| 207 | done **UNOBSERVED** | claude-dodgekey | Dodge moves to E (tap), traversal becomes hold-E, LeftAlt retired - and the traversal roll stops stealing the dodge's animation slot |
+| 208 | done | claude-traversepin | Traversal detection moves off the Started pin onto Triggered behind a Sequence, so a tap of E is the dodge alone |
+| 209 | done **UNOBSERVED** | claude-dodgestam | Dodging costs stamina so it cannot be spammed - UGSGA_DodgeRoll gains a TryConsume gate |
+| 210 | done **UNOBSERVED** | claude-hordeorder | An ordered goblin still publishes a FollowTarget, so Follow Summoner and Chase Target both pass and the tree oscillates |
+| 211 | done **UNOBSERVED** | claude-statelog | Fold the traversal/dodge session into AGENT_STATE: two dodge systems, the Started pin, the horde follow competition, and what the UNOBSERVED closes leave unproven |
+| 212 | done **UNOBSERVED** | claude-hordetarget | BT_HordeGoblin's AcquireTarget service has bSelectTarget ON, so it overwrites the ordered target every rescan and the goblin flickers between attacking and following |
+| 213 | abandoned | claude-hordehold | Hold is unbuilt: BT_HordeGoblin has no branch reading OrderVerb, so a Hold order lands nowhere |
+| 214 | done **UNOBSERVED** | claude-acfphase1 | ACF Phase 1: reparent AGSAIControllerBase onto AACFAIController - moves the horde AND the defenders in one edit |
+| 215 | done **UNOBSERVED** | claude-acfentity | ACF 4.4.2 ships AACFBaseAIController implementing only 2 of IACFEntityInterface's 4 methods - supply the other two or nothing deriving from it can link |
+| 216 | done **UNOBSERVED** | claude-attrruling | Record the Phase 2 attribute ruling: ACF AdvancedRPGSystem becomes the attribute owner, and what that puts at risk |
+| 217 | done | claude-acf | Silence per-frame GSDBG climb/LIP print spam in BP_GSPlayerCharacter |
+| 218 | done | claude-acf | Overflow attackers get a distinct outer-ring bearing instead of stacking |
+| 219 | done | claude-acf | CrowdStats: report outer-ring claims and mark a breached engagement cap |
+| 220 | done | claude-acf | Ring promotion leaks the old claim: an agent can hold an inner AND an outer slot |
+| 221 | done | claude-acf | Crowd feel: TokenBudget 6, stagger blocks only its causer, ordered overflow spills to another enemy |
+| 222 | abandoned | claude-warren | The Warren: N_ChaosRune2 as arrival mouth, respawn point and loot bank |
+| 223 | done | claude-acf | ACF Phase 2a: AGSCharacterBase reparents to AACFCharacter, one ASC |
+| 224 | abandoned | claude-warren | Horn: tap summons one, hold streams the squad out of the Warren (supplement to 222) |
+| 225 | done **UNOBSERVED** | claude-acf | ACF Phase 2c: audit the class-identity checks against the AACFCharacter reparent |
 
 <!-- BOARD:END -->
 

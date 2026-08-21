@@ -123,6 +123,35 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
 	bool CanBeAttacked(bool bRecoilCountsAsOpening = false) const;
 
+	/**
+	 * Per-attacker version of CanBeAttacked, and the one the token gate uses (#221).
+	 *
+	 * Death and a broken guard still veto absolutely, whoever asks. A FLINCH OR RECOIL now refuses
+	 * only the attacker that caused it - the rest of the gang keeps swinging.
+	 *
+	 * This is a deliberate reversal of the old rule, made by Michael on 2026-08-21 after measurement:
+	 * CrowdStats on a gang of 9-10 read either `weight 4/4` (saturated) or `swinging 0-1`, never
+	 * anything between, because one flinch made CanBeAttacked() false and every attacker lost its
+	 * token at once. The mob went full-throttle, stall, full-throttle.
+	 *
+	 * THE COST, STATED UP FRONT: piling onto a flinching target is exactly what the old veto existed
+	 * to prevent, and with TokenBudget now 6 a victim can be hit by six attackers while flinching.
+	 * If defenders start melting, THIS is the change that did it, and the honest fix is to tune the
+	 * budget rather than to quietly restore the blanket veto.
+	 *
+	 * An UNKNOWN causer refuses nobody. Every hit that can name its instigator does
+	 * (see AGSCharacterBase::PlayHitReact), so an unknown one means a source that never claimed
+	 * authorship - a fall, a fire volume - and those should not gate the melee at all.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	bool CanBeAttackedBy(const AActor* Requester, bool bRecoilCountsAsOpening = false) const;
+
+	/** Records who caused the flinch/recoil the owner is currently in. Read by CanBeAttackedBy for
+	 *  as long as the State.HitReact / State.Recoil tags last - the tags own the lifetime, this only
+	 *  remembers authorship. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Engagement")
+	void NoteFlinchCausedBy(AActor* Causer);
+
 	/** Weight currently reserved. For GS.Combat.CrowdStats - a cap you cannot observe is a cap you
 	 *  cannot trust. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
@@ -180,6 +209,36 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
 	int32 GetClaimedSlotCount() const;
+
+	/**
+	 * The OUTER ring - where an attacker goes when the inner ring is full.
+	 *
+	 * Added by #218. The Attack order is deliberately uncapped (GSHordeSubsystem.cpp:549-555:
+	 * converging on one guard is what the player asked for), so a warband of 9 routinely produces
+	 * 6 ring claims and 3 agents with nowhere to be. Those three used to be aimed at
+	 * StandoffRadius * 1.8 along their OWN bearing with no exclusivity, which meant two of them
+	 * could be handed the same point and stand in each other - the stacking this fixes.
+	 *
+	 * Same angular divisions as the inner ring, offset by HALF A STEP so an outer agent stands in
+	 * the gap between two inner ones rather than directly behind one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Engagement")
+	int32 ClaimOuterSlot(AActor* Claimant);
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Engagement")
+	void ReleaseOuterSlot(AActor* Claimant);
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	FVector GetOuterSlotLocation(int32 SlotIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	int32 GetClaimedOuterCount() const;
+
+	/** Reads MaxEngagedAttackers so GS.Combat.CrowdStats can say whether the cap was breached
+	 *  instead of printing a bare number with nothing to compare it against. The cap is advisory -
+	 *  RegisterEngaged does not enforce it - so this is a readout, not a promise. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Engagement")
+	int32 GetMaxEngaged() const { return MaxEngagedAttackers; }
 
 	// ------------------------------------------------------------------ release-everything
 
@@ -259,7 +318,7 @@ protected:
 	 * standstill, four guards on the player is a deletion.
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "1"))
-	int32 TokenBudget = 4;
+	int32 TokenBudget = 6;   // 4 -> 6, Michael 2026-08-21. See CrowdStats evidence in #221.
 
 	/**
 	 * How many attackers may be assigned at once. Deliberately larger than the token budget: the
@@ -313,6 +372,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "0.0"))
 	float RingRadius = 200.f;
 
+	/**
+	 * Outer ring radius as a multiple of RingRadius. 1.8 reproduces the 360uu the old unexclusive
+	 * fallback used, so this changes WHERE overflow agents stand relative to each other without
+	 * changing how far out the formation sits.
+	 *
+	 * Must stay comfortably OUTSIDE BTTask_MeleeAttack's AttackRange (250) or the outer ring stops
+	 * being a waiting room and becomes a second rank of attackers - 200 * 1.8 = 360.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Engagement", meta = (ClampMin = "1.1"))
+	float OuterRingRadiusScale = 1.8f;
+
 	/** A claimant that is neither on its slot nor closing on it for this long loses it, so an agent
 	 *  stuck on geometry cannot hold a place in the ring for the rest of the fight. Raised 4 -> 6 now
 	 *  that the clock only runs on an agent making NO progress: a long path around a building can
@@ -343,6 +413,22 @@ private:
 
 	UPROPERTY()
 	TArray<FGSRingSlot> RingSlots;
+
+	/** Same shape and same watchdog as RingSlots, one ring further out. See ClaimOuterSlot. */
+	UPROPERTY()
+	TArray<FGSRingSlot> OuterRingSlots;
+
+	/** Whoever most recently put this owner into a flinch or a recoil. See CanBeAttackedBy (#221). */
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> FlinchCauser;
+
+	/** The claim search, shared by both rings so the arrival watchdog exists in ONE place. Adding
+	 *  a second copy of that logic was the obvious way to build this and the wrong one - the
+	 *  re-stamp rule it contains was paid for in #105-#132 and must not fork. */
+	int32 ClaimSlotIn(TArray<FGSRingSlot>& Slots, AActor* Claimant, bool bOuter);
+
+	/** World-space position of a slot in either ring. */
+	FVector SlotLocationIn(const TArray<FGSRingSlot>& Slots, int32 SlotIndex, bool bOuter) const;
 
 	/** Assigned attackers, which is a superset of token holders. */
 	UPROPERTY()

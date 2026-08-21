@@ -6,7 +6,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AIController.h"
+// ACF migration Phase 1 (2026-08-20, #214). Was "AIController.h" / AAIController.
+//
+// AACFAIController brings its own BehaviorTree, Blackboard, Commands, Targeting, CombatBehaviour and
+// ThreatManager components, and - easy to miss - replaces the path-following component with a
+// UCrowdFollowingComponent in its constructor. Its OnPossess early-returns on a non-AACFCharacter
+// pawn, which ours are until Phase 2, so ACF's blackboard init and StartTree do not run yet. OUR
+// OnPossess overrides call RunBehaviorTree() themselves after Super, which is the only reason the
+// trees still start - that is load-bearing, not redundant.
+#include "ACFAIController.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "GSAIControllerBase.generated.h"
 
@@ -17,7 +25,7 @@ class UAISenseConfig_Sight;
 class UGSAISteeringComponent;
 
 UCLASS()
-class GOBLINSIEGE_API AGSAIControllerBase : public AAIController
+class GOBLINSIEGE_API AGSAIControllerBase : public AACFAIController
 {
 	GENERATED_BODY()
 
@@ -42,6 +50,20 @@ public:
 	 * the intent is still correct and the fix belongs with whoever measures the cost.
 	 */
 	AGSAIControllerBase(const FObjectInitializer& ObjectInitializer);
+
+	// ---- IACFEntityInterface, the half ACF 4.4.2 does not ship -----------------------------
+	//
+	// AACFBaseAIController declares `public IACFEntityInterface` and defines only two of its four
+	// methods (GetEntityCombatTeam, AssignTeamToEntity). These two are never overridden there, and
+	// AscentCoreInterfaces' ACFEntityInterface.cpp is empty apart from a "add default functionality
+	// here" comment - so nothing in the plugin defines them. ACF links anyway; WE cannot, because
+	// deriving from that class makes UHT emit our own interface thunks into our module, which then
+	// have nothing to bind to (LNK2001 on both symbols, 2026-08-20, #215).
+	//
+	// Implemented properly rather than stubbed: ACF's targeting and motion warp both read the
+	// extent radius, and aliveness decides whether this entity is a legal target at all.
+	virtual bool IsEntityAlive_Implementation() const override;
+	virtual float GetEntityExtentRadius_Implementation() const override;
 
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;

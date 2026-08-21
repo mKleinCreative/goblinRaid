@@ -6,7 +6,8 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-AGSEnemyCharacter::AGSEnemyCharacter()
+AGSEnemyCharacter::AGSEnemyCharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// 2026-08-02: until today this constructor was empty, which meant every defender was possessed
 	// by a stock AAIController - so AGSAIControllerBase's perception setup had never actually run on

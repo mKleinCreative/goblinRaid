@@ -56,6 +56,22 @@ public class GoblinSiege : ModuleRules
 			// FACFDamageEvent. Add the next ACF module here the moment you CALL into it.
 			"AscentCombatFramework",
 
+			// AscentSaveSystem (#223, Phase 2a). Reparenting onto AACFCharacter drags in
+			// IALSSavableInterface, which AACFCharacter declares - and the moment WE derive from it,
+			// UHT emits our class's interface thunks into OUR module and the linker needs the
+			// interface's symbols here:
+			//     LNK2001: IALSSavableInterface::OnSaved_Implementation
+			//     LNK2001: IALSSavableInterface::ShouldBeIgnored_Implementation
+			// This is the exact trap the paragraph above describes - the include path resolved
+			// transitively and compiled cleanly, then the link failed.
+			"AscentSaveSystem",
+
+			// CharacterController (#223). UGSCharacterMovementComponent DERIVES from
+			// UACFCharacterMovementComponent, which lives here. Deriving is exactly the case the
+			// paragraph above warns about: the include resolves transitively and compiles, and the
+			// link fails.
+			"CharacterController",
+
 			// Destruction & FX
 			"GeometryCollectionEngine",
 			"FieldSystemEngine",

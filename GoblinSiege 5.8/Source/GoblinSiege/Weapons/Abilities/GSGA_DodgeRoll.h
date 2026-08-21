@@ -40,6 +40,30 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Dodge")
 	float DodgeDurationSeconds = 0.22f;
 
+	/**
+	 * Stamina taken by one dodge, spent through UGSStaminaComponent::TryConsume.
+	 *
+	 * TryConsume is ALL-OR-NOTHING by design - its own comment says a vault that takes your last 3
+	 * stamina and then fails to clear the wall is worse than a vault that refuses - so a dodge that
+	 * cannot be paid for simply does not happen. The ability ends before the launch, before the
+	 * montage, and before State.Dodging can lock movement.
+	 *
+	 * SIZING THIS AGAINST REGEN MATTERS MORE THAN THE NUMBER LOOKS. The pool is 100 and regenerates
+	 * 25/second with no delay, while a dodge commits for the montage's length (0.833s forward and
+	 * back, 1.000s left and right). So roughly 21-25 stamina comes BACK during the roll itself, and
+	 * any cost at or under that is free in practice - the spam this exists to stop would still work.
+	 * 30 nets about -8 per dodge cycle, which drains a full bar in about a dozen consecutive rolls
+	 * while never interfering with using one or two in a fight.
+	 *
+	 * If that is still too permissive the second lever is UGSStaminaComponent's RegenDelaySeconds,
+	 * currently 0 - a short delay after any spend bites much harder than a bigger number here, but
+	 * it also affects sprint and climb, so it is a balance decision rather than a dodge one.
+	 *
+	 * For scale, the Blueprint's traversal moves cost 8 (vault) and 18 (mantle).
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Dodge", meta = (ClampMin = "0.0"))
+	float DodgeStaminaCost = 30.f;
+
 	/** A short duration GameplayEffect granting State.Invulnerable for DodgeDurationSeconds - author
 	 *  as a data asset (same pattern as GSCharacterBase::ApplyRespawnState's invulnerability note).
 	 *  Left null-safe: the roll still moves and locks input without it, it just won't grant i-frames

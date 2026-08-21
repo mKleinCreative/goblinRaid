@@ -372,6 +372,27 @@ void UBTService_AcquireTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
 		// Ring full: hold outside it rather than pushing in. The melee branch will fail on range and
 		// the tree falls through to the menace orbit, which is where an agent without a place
 		// belongs - circling, not queuing motionless against someone else's back.
+		//
+		// #218: take an EXCLUSIVE slot on the outer ring. This used to aim the agent at
+		// StandoffRadius * 1.8 along ITS OWN CURRENT BEARING, which is not a position so much as
+		// "stay where you are, further out" - two overflow agents approaching from the same side
+		// were handed the same point and stood in each other. Measured on 2026-08-20: an Attack
+		// order is uncapped on purpose (GSHordeSubsystem.cpp:549-555), so a warband of 9 reliably
+		// produces 3 agents on this path, and they stacked.
+		//
+		// The outer ring is offset half a step from the inner one, so these agents fill the gaps
+		// between the attackers rather than lining up behind them.
+		const int32 OuterIndex = Engagement->ClaimOuterSlot(Self);
+		if (OuterIndex != INDEX_NONE)
+		{
+			BB->SetValueAsVector(TargetLocationKey.SelectedKeyName,
+				Engagement->GetOuterSlotLocation(OuterIndex));
+			return;
+		}
+
+		// BOTH rings full - more attackers than the formation has places for. Fall back to the old
+		// own-bearing hold. It stacks, but it is the twelfth-plus agent on one victim and standing
+		// still further out is better than pushing into the ring.
 		FVector OutwardBearing = Self->GetActorLocation() - TargetLoc;
 		OutwardBearing.Z = 0.f;
 		if (OutwardBearing.IsNearlyZero())

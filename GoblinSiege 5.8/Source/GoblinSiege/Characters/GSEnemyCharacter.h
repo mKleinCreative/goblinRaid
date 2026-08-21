@@ -20,7 +20,9 @@ class GOBLINSIEGE_API AGSEnemyCharacter : public AGSCharacterBase
 	GENERATED_BODY()
 
 public:
-	AGSEnemyCharacter();
+	// AACFCharacter has NO default constructor - it takes an FObjectInitializer (ACFCharacter.h:54),
+	// so the whole chain must pass one down (#223).
+	AGSEnemyCharacter(const FObjectInitializer& ObjectInitializer);
 
 	/** Server-only. Applies the archetype row's stats (HP/Armor/MoveSpeed/TurnRate) to this pawn.
 	 *  Called by GSSpawnerActor after spawn, or from BeginPlay for level-placed enemies. */

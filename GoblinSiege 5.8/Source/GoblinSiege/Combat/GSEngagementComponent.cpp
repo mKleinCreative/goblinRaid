@@ -77,20 +77,27 @@ void UGSEngagementComponent::PruneStale()
 
 	Engaged.RemoveAll([](const TWeakObjectPtr<AActor>& Actor) { return GSIsDeadOrGone(Actor); });
 
-	for (FGSRingSlot& Slot : RingSlots)
+	// BOTH rings (#218). An outer claim that is never released leaks exactly like an inner one,
+	// and the outer ring is where the agents least likely to arrive end up.
+	auto SweepRing = [this, Now](TArray<FGSRingSlot>& Slots)
 	{
-		if (GSIsDeadOrGone(Slot.Claimant))
+		for (FGSRingSlot& Slot : Slots)
 		{
-			Slot.Claimant = nullptr;
-			continue;
+			if (GSIsDeadOrGone(Slot.Claimant))
+			{
+				Slot.Claimant = nullptr;
+				continue;
+			}
+			if (SlotClaimTimeoutSeconds > 0.f && (Now - Slot.ClaimedTime) > SlotClaimTimeoutSeconds)
+			{
+				// Claimed but never arrived - stuck on geometry, or pathing around the long way. Free
+				// it rather than let one agent hold a place in the ring for the rest of the fight.
+				Slot.Claimant = nullptr;
+			}
 		}
-		if (SlotClaimTimeoutSeconds > 0.f && (Now - Slot.ClaimedTime) > SlotClaimTimeoutSeconds)
-		{
-			// Claimed but never arrived - stuck on geometry, or pathing around the long way. Free
-			// it rather than let one agent hold a place in the ring for the rest of the fight.
-			Slot.Claimant = nullptr;
-		}
-	}
+	};
+	SweepRing(RingSlots);
+	SweepRing(OuterRingSlots);
 }
 
 int32 UGSEngagementComponent::RelevancePriority(const AActor* Actor)
@@ -122,6 +129,40 @@ int32 UGSEngagementComponent::RelevancePriority(const AActor* Actor)
 		}
 	}
 	return Priority;
+}
+
+void UGSEngagementComponent::NoteFlinchCausedBy(AActor* Causer)
+{
+	FlinchCauser = Causer;
+}
+
+bool UGSEngagementComponent::CanBeAttackedBy(const AActor* Requester, bool bRecoilCountsAsOpening) const
+{
+	// Dead and guard-broken veto everyone; CanBeAttacked already encodes that, so ask it first and
+	// only soften the flinch/recoil half.
+	if (CanBeAttacked(bRecoilCountsAsOpening))
+	{
+		return true;
+	}
+
+	const AActor* Owner = GetOwner();
+	const UAbilitySystemComponent* ASC = IsValid(Owner)
+		? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Owner) : nullptr;
+	if (!ASC)
+	{
+		return false;
+	}
+
+	// Absolute vetoes stay absolute.
+	if (ASC->HasMatchingGameplayTag(GSTags::State_Dead)
+		|| ASC->HasMatchingGameplayTag(GSTags::State_GuardBroken))
+	{
+		return false;
+	}
+
+	// Everything left is a flinch or a recoil, and #221 says that is the CAUSER'S problem alone.
+	// Unknown authorship refuses nobody - see the header.
+	return FlinchCauser.Get() != Requester;
 }
 
 bool UGSEngagementComponent::CanBeAttacked(bool bRecoilCountsAsOpening) const
@@ -222,7 +263,10 @@ bool UGSEngagementComponent::TryAcquireToken(AActor* Requester, int32 Cost)
 
 	PruneStale();
 
-	if (!CanBeAttacked())
+	// PER-ATTACKER since #221. This used to be a blanket CanBeAttacked(), which made one flinch
+	// drop the token of every attacker in the gang simultaneously - measured as the bimodal
+	// "weight 4/4 or swinging 0" pattern on 2026-08-21.
+	if (!CanBeAttackedBy(Requester))
 	{
 		return false;
 	}
@@ -475,6 +519,39 @@ float UGSEngagementComponent::GetMinSeparation(const AActor* A, const AActor* B,
 
 int32 UGSEngagementComponent::ClaimRingSlot(AActor* Claimant)
 {
+	const int32 Index = ClaimSlotIn(RingSlots, Claimant, /*bOuter=*/false);
+
+	// An agent promoted from the outer ring must LET GO of its outer place (#220). Without this the
+	// old claim survives until SlotClaimTimeoutSeconds sweeps it, and a ring of ghosts turns a real
+	// overflow agent away - which drops it back onto the own-bearing fallback #218 exists to stop.
+	// Measured before this line existed: "engaged 10/6, slots 6 inner + 6 outer" - twelve claims
+	// held by ten attackers.
+	//
+	// Released only on SUCCESS. Freeing the outer slot after a FAILED inner claim would evict an
+	// agent from the one place it legitimately holds.
+	if (Index != INDEX_NONE)
+	{
+		ReleaseOuterSlot(Claimant);
+	}
+	return Index;
+}
+
+int32 UGSEngagementComponent::ClaimOuterSlot(AActor* Claimant)
+{
+	const int32 Index = ClaimSlotIn(OuterRingSlots, Claimant, /*bOuter=*/true);
+
+	// Symmetric. The inner ring is the one under pressure, so a demoted agent holding a phantom
+	// inner slot is the more expensive direction of this bug: it denies a place to an attacker that
+	// could actually be swinging.
+	if (Index != INDEX_NONE)
+	{
+		ReleaseRingSlot(Claimant);
+	}
+	return Index;
+}
+
+int32 UGSEngagementComponent::ClaimSlotIn(TArray<FGSRingSlot>& Slots, AActor* Claimant, bool bOuter)
+{
 	const AActor* Owner = GetOwner();
 	if (!IsValid(Claimant) || !IsValid(Owner))
 	{
@@ -483,16 +560,16 @@ int32 UGSEngagementComponent::ClaimRingSlot(AActor* Claimant)
 
 	PruneStale();
 
-	if (RingSlots.Num() == 0)
+	if (Slots.Num() == 0)
 	{
-		RingSlots.SetNum(FMath::Max(1, RingSlotCount));
+		Slots.SetNum(FMath::Max(1, RingSlotCount));
 	}
 
 	// Keeping an existing claim is what stops an agent re-picking a different slot every scan and
 	// sliding sideways around the target forever.
-	for (int32 i = 0; i < RingSlots.Num(); ++i)
+	for (int32 i = 0; i < Slots.Num(); ++i)
 	{
-		if (RingSlots[i].Claimant.Get() == Claimant)
+		if (Slots[i].Claimant.Get() == Claimant)
 		{
 			// Re-stamp the clock while the claimant is ARRIVED OR STILL CLOSING. Previously this
 			// returned without touching ClaimedTime, so PruneStale's SlotClaimTimeoutSeconds expired
@@ -504,11 +581,11 @@ int32 UGSEngagementComponent::ClaimRingSlot(AActor* Claimant)
 			// stuck on geometry hold a place for the rest of the fight, which is the very thing the
 			// timeout is for. Measuring "arrived, or closing" keeps the watchdog pointed at the only
 			// case it should ever fire on - a claimant making no progress at all.
-			const float Dist = FVector::Dist2D(Claimant->GetActorLocation(), GetRingSlotLocation(i));
-			if (Dist <= SlotArrivedRadius || Dist < RingSlots[i].ClosestApproach - SlotProgressEpsilon)
+			const float Dist = FVector::Dist2D(Claimant->GetActorLocation(), SlotLocationIn(Slots, i, bOuter));
+			if (Dist <= SlotArrivedRadius || Dist < Slots[i].ClosestApproach - SlotProgressEpsilon)
 			{
-				RingSlots[i].ClosestApproach = FMath::Min(RingSlots[i].ClosestApproach, Dist);
-				RingSlots[i].ClaimedTime = NowSeconds();
+				Slots[i].ClosestApproach = FMath::Min(Slots[i].ClosestApproach, Dist);
+				Slots[i].ClaimedTime = NowSeconds();
 			}
 			return i;
 		}
@@ -523,7 +600,7 @@ int32 UGSEngagementComponent::ClaimRingSlot(AActor* Claimant)
 		Bearing = FVector::ForwardVector;
 	}
 
-	const int32 Count = RingSlots.Num();
+	const int32 Count = Slots.Num();
 	const float StepRadians = 2.f * PI / static_cast<float>(Count);
 	const int32 Preferred = FMath::RoundToInt(FMath::Atan2(Bearing.Y, Bearing.X) / StepRadians);
 
@@ -535,26 +612,39 @@ int32 UGSEngagementComponent::ClaimRingSlot(AActor* Claimant)
 
 		// GSIsDeadOrGone, not IsValid: a corpse stays a valid UObject (CorpseLifespan 0) and would
 		// hold a place in the ring for the rest of the raid.
-		if (GSIsDeadOrGone(RingSlots[Index].Claimant))
+		if (GSIsDeadOrGone(Slots[Index].Claimant))
 		{
-			RingSlots[Index].Claimant = Claimant;
-			RingSlots[Index].ClaimedTime = NowSeconds();
+			Slots[Index].Claimant = Claimant;
+			Slots[Index].ClaimedTime = NowSeconds();
 			// Seed the progress baseline with the real starting distance. Leaving it at FLT_MAX would
 			// make the very first progress test pass trivially and re-stamp the clock for an agent
 			// that had not moved.
-			RingSlots[Index].ClosestApproach =
-				FVector::Dist2D(Claimant->GetActorLocation(), GetRingSlotLocation(Index));
+			Slots[Index].ClosestApproach =
+				FVector::Dist2D(Claimant->GetActorLocation(), SlotLocationIn(Slots, Index, bOuter));
 			return Index;
 		}
 	}
 
-	// Ring full. The caller holds at the outer radius and menaces - see UBTTask_MenaceOrbit.
+	// Ring full. For the inner ring the caller falls through to the OUTER ring (#218); for the
+	// outer ring there is nowhere left, and the caller menaces - see UBTTask_MenaceOrbit.
 	return INDEX_NONE;
 }
 
 void UGSEngagementComponent::ReleaseRingSlot(AActor* Claimant)
 {
 	for (FGSRingSlot& Slot : RingSlots)
+	{
+		// Clears STALE slots as well as this claimant's, deliberately - the sweep is free here.
+		if (!Slot.Claimant.IsValid() || Slot.Claimant.Get() == Claimant)
+		{
+			Slot.Claimant = nullptr;
+		}
+	}
+}
+
+void UGSEngagementComponent::ReleaseOuterSlot(AActor* Claimant)
+{
+	for (FGSRingSlot& Slot : OuterRingSlots)
 	{
 		if (!Slot.Claimant.IsValid() || Slot.Claimant.Get() == Claimant)
 		{
@@ -565,6 +655,29 @@ void UGSEngagementComponent::ReleaseRingSlot(AActor* Claimant)
 
 FVector UGSEngagementComponent::GetRingSlotLocation(int32 SlotIndex) const
 {
+	return SlotLocationIn(RingSlots, SlotIndex, /*bOuter=*/false);
+}
+
+FVector UGSEngagementComponent::GetOuterSlotLocation(int32 SlotIndex) const
+{
+	return SlotLocationIn(OuterRingSlots, SlotIndex, /*bOuter=*/true);
+}
+
+int32 UGSEngagementComponent::GetClaimedOuterCount() const
+{
+	int32 Count = 0;
+	for (const FGSRingSlot& Slot : OuterRingSlots)
+	{
+		if (!GSIsDeadOrGone(Slot.Claimant))
+		{
+			++Count;
+		}
+	}
+	return Count;
+}
+
+FVector UGSEngagementComponent::SlotLocationIn(const TArray<FGSRingSlot>& Slots, int32 SlotIndex, bool bOuter) const
+{
 	const AActor* Owner = GetOwner();
 	if (!IsValid(Owner))
 	{
@@ -572,7 +685,7 @@ FVector UGSEngagementComponent::GetRingSlotLocation(int32 SlotIndex) const
 	}
 
 	const FVector Centre = Owner->GetActorLocation();
-	if (!RingSlots.IsValidIndex(SlotIndex))
+	if (!Slots.IsValidIndex(SlotIndex))
 	{
 		return Centre;
 	}
@@ -580,9 +693,11 @@ FVector UGSEngagementComponent::GetRingSlotLocation(int32 SlotIndex) const
 	// WORLD-space angles, not relative to the owner's facing. A ring that rotates with the defender
 	// would drag every attacker around with him every time he turned to swing, which reads as the
 	// crowd sliding rather than standing.
-	const float StepRadians = 2.f * PI / static_cast<float>(RingSlots.Num());
-	const float Angle = StepRadians * static_cast<float>(SlotIndex);
-	return Centre + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f) * RingRadius;
+	const float StepRadians = 2.f * PI / static_cast<float>(Slots.Num());
+	// Outer slots sit HALF A STEP round from the inner ones, so an overflow agent stands in the gap
+	// between two attackers rather than directly behind one (#218).
+	const float Angle = StepRadians * (static_cast<float>(SlotIndex) + (bOuter ? 0.5f : 0.f));
+	return Centre + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f) * (bOuter ? RingRadius * OuterRingRadiusScale : RingRadius);
 }
 
 int32 UGSEngagementComponent::GetClaimedSlotCount() const
@@ -602,5 +717,6 @@ void UGSEngagementComponent::ReleaseAll(AActor* Requester)
 {
 	ReleaseToken(Requester);
 	ReleaseRingSlot(Requester);
+	ReleaseOuterSlot(Requester);   // #218 - an outer claim leaks exactly like an inner one
 	UnregisterEngaged(Requester);
 }

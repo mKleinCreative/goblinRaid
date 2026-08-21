@@ -5,7 +5,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+// ACF migration Phase 2a (2026-08-21, #223). Was "GameFramework/Character.h" / ACharacter.
+//
+// AACFCharacter builds FOURTEEN components of its own, including ActionsComp (a
+// UACFAbilitySystemComponent) and StatisticsComp (UACFGASStatisticsComponent), and its
+// GetAbilitySystemComponent() returns ActionsComp. We therefore no longer create an ASC: doing so
+// would put TWO ability system components on every character, which is the failure ruling 25 exists
+// to prevent. See the AbilitySystemComponent member below - it is now a cached pointer, not a
+// subobject.
+#include "Actors/ACFCharacter.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
 #include "GSCharacterBase.generated.h"
@@ -33,17 +41,29 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnDamaged, AActor*, Attacker, fl
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnDealtDamage, AActor*, Victim);
 
 UCLASS(Abstract)
-class GOBLINSIEGE_API AGSCharacterBase : public ACharacter, public IAbilitySystemInterface
+// IAbilitySystemInterface is NOT listed here any more: AACFCharacter already declares it (along with
+// IGenericTeamAgentInterface, IACFEntityInterface and IALSSavableInterface), and UHT treats a
+// re-declaration in a derived class as an error.
+class GOBLINSIEGE_API AGSCharacterBase : public AACFCharacter
 {
 	GENERATED_BODY()
 
 public:
-	AGSCharacterBase();
+	// AACFCharacter has NO default constructor - it takes an FObjectInitializer (ACFCharacter.h:54),
+	// so the whole chain must pass one down (#223).
+	AGSCharacterBase(const FObjectInitializer& ObjectInitializer);
 
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	/**
+	 * Re-exposed as PUBLIC (#223). AACFCharacter declares GetAbilitySystemComponent as **protected**,
+	 * which broke four external callers the moment we reparented - GSBuffAuraComponent,
+	 * GSWeaponComponent and GSObjective_KillLandlord (twice). This does not change WHAT is returned:
+	 * it forwards to Super, so ACF's ActionsComp remains the one and only ASC. No UFUNCTION specifier:
+	 * UHT rejects one above an override of a parent UFUNCTION.
+	 */
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UGSAttributeSetBase* GetAttributeSetBase() const { return AttributeSetBase; }
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
@@ -52,7 +72,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
 	float GetMaxHealth() const;
 
-	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
+	/**
+	 * NOT a UFUNCTION any more (#223). AACFCharacter declares its own
+	 * `UFUNCTION(BlueprintPure) bool IsAlive() const`, and UHT rejects a same-named UFUNCTION in a
+	 * derived class outright. Dropping the specifier keeps this as plain C++ and costs nothing:
+	 * a search of every .uasset in Content found ZERO Blueprint callers of IsAlive, while 21 C++
+	 * call sites depend on it.
+	 *
+	 * THIS ONE IS THE TRUTH IN PHASE 2A, and ACF's is not. ACF's reads
+	 * `GetDamageHandlerComponent()->GetIsAlive()`, whose `bIsAlive` defaults to true and is only
+	 * ever cleared by ACF's OWN damage path - which nothing in this project drives yet. So ACF's
+	 * IsAlive answers "alive" for a corpse. That matters the moment ACF's targeting or
+	 * IACFEntityInterface::IsEntityAlive starts being consulted, which is Phase 2b's job: route
+	 * death through UACFDamageHandlerComponent and then DELETE this function rather than keep two.
+	 */
 	bool IsAlive() const { return !bIsDead; }
 
 	/** Applied on respawn: sets Health to RespawnHealthFraction * MaxHealth and grants brief i-frames. */
@@ -114,6 +147,7 @@ public:
 	float GetBaseWalkSpeed() const { return BaseWalkSpeed; }
 
 protected:
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
 	/** Grants the base GameplayEffect (Health/MaxHealth/Armor/MoveSpeed init values) from data. Called
@@ -170,7 +204,14 @@ public:
 	 *  pass zero if unknown and the front reaction is used. Safe to call every frame - it self-gates
 	 *  on the cooldown and on State.HitReact. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
-	void PlayHitReact(const FVector& FromDirection);
+	/**
+	 * @param Causer  WHO caused this flinch. Named Causer, not Instigator: UHT refuses the
+	 *        latter because AActor already declares an Instigator in scope and shadowing is an error. Optional, and null is honest rather than lazy - a
+	 *        fall or a fire volume genuinely has no attacker. Forwarded to the engagement
+	 *        component so CanBeAttackedBy can refuse the causer alone rather than the whole gang
+	 *        (#221); an unnamed instigator refuses nobody.
+	 */
+	void PlayHitReact(const FVector& FromDirection, AActor* Causer = nullptr);
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Combat")
 	bool IsBlocking() const;
@@ -307,7 +348,13 @@ protected:
 	/** Called once when Health first reaches 0. Notifies GSGameMode::HandleGoblinDeath. */
 	virtual void HandleDeath();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Abilities")
+	/**
+	 * CACHED, NOT OWNED (#223). Points at AACFCharacter's ActionsComp, assigned in
+	 * PostInitializeComponents. Kept under the old name deliberately: ~20 call sites in this class
+	 * and its subclasses read it directly, and renaming them would have made a reparent look like a
+	 * refactor. There is exactly one ASC on the actor and this is it.
+	 */
+	UPROPERTY(Transient)
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Abilities")

@@ -28,7 +28,9 @@ class GOBLINSIEGE_API AGSHordeGoblin : public AGSCharacterBase
 	GENERATED_BODY()
 
 public:
-	AGSHordeGoblin();
+	// AACFCharacter has NO default constructor - it takes an FObjectInitializer (ACFCharacter.h:54),
+	// so the whole chain must pass one down (#223).
+	AGSHordeGoblin(const FObjectInitializer& ObjectInitializer);
 
 	const UGSRaceDataAsset* GetRaceData() const { return RaceData; }
 	FName GetArchetypeRowName() const { return ArchetypeRowName; }

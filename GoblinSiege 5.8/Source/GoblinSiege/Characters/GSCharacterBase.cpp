@@ -14,15 +14,78 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Characters/GSCharacterMovementComponent.h"
 #include "HAL/IConsoleManager.h"
 
-AGSCharacterBase::AGSCharacterBase()
+// PHASE 2A IS MOVEMENT-NEUTRAL ON PURPOSE (Michael, 2026-08-21).
+//
+// AACFCharacter's constructor swaps the movement component for a UACFCharacterMovementComponent
+// (ACFCharacter.cpp:64). That component is NOT a passive upgrade: TickComponent -> UpdateLocomotion
+// classifies the pawn's velocity into a locomotion band every frame and rewrites MaxWalkSpeed from
+// its LocomotionStates table, which ships populated - Idle 0, Walk 250, Jog 500, Sprint 650, with
+// DefaultState = EJog.
+//
+// The consequence, measured the moment the reparent shipped: SPRINT BECOMES STRUCTURALLY
+// IMPOSSIBLE. Reaching the Sprint band needs velocity above 505, MaxWalkSpeed is pinned at 500, so
+// the band can never be entered. ACF expects sprint to be SetLocomotionState(ESprint) - a state
+// change - not a speed write. And it is not only sprint: every move-speed effect this project has
+// (the block slow, the carry slow, per-swing MoveSpeedScale, ApplyMoveSpeed itself) was being
+// overwritten every frame.
+//
+// So we undo the swap and keep the plain UCharacterMovementComponent. This is a DEFERRAL, not a
+// rejection: ruling 27 already says move speed becomes ACF locomotion states, and Phase 2b does that
+// properly alongside the ARS attribute migration - deciding once how carry + block + swing compose,
+// rather than twice.
+//
+// Safe to do: AACFCharacter::PostInitProperties only logs a warning when the cast fails
+// (ACFCharacter.cpp:107), and every other use of LocomotionComp in that class is null-guarded.
+// Expect one "Your Character Movement component MUST BE an ACFCharacterMovementComponent" warning
+// per character until 2b. It is noise, not a failure.
+AGSCharacterBase::AGSCharacterBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UGSCharacterMovementComponent>(
+		ACharacter::CharacterMovementComponentName))
 {
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	// ---- TICK, WHICH ACF TURNS OFF (#223, 2026-08-21) ------------------------------------------
+	//
+	// AACFCharacter's constructor sets `PrimaryActorTick.bStartWithTickEnabled = false`
+	// (ACFCharacter.cpp:83) and NOTHING in ACF ever turns it back on. The engine default is TRUE, so
+	// this is ACF changing behaviour out from under anything that derives from it.
+	//
+	// The symptom is not subtle and it is not obviously about tick: SPRINT AND STAMINA BOTH STOP
+	// DEAD. Both live in BP_GSPlayerCharacter's Event Tick - sprint selects between BaseWalkSpeed and
+	// SprintSpeed and writes MaxWalkSpeed, stamina drains and regenerates - so an actor that can tick
+	// but starts with ticking disabled loses both at once, while everything event-driven (attacks,
+	// dodge, interaction, death) keeps working perfectly. That combination reads as "sprint is
+	// broken" rather than "the actor is not ticking", and it cost a PIE session and three wrong
+	// theories about MaxWalkSpeed before the constructor was read.
+	//
+	// This is #135 repeating: "a subclass constructor silently disabling the tick cost two shipped
+	// features". Same failure, opposite direction - the base class did it this time.
+	//
+	// Set on the BASE so every character gets it. AGSPlayerCharacter already sets bCanEverTick = true
+	// and that was never the problem: CAN tick and STARTS ticking are different flags.
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
+	// NO ASC CREATED HERE ANY MORE (#223). AACFCharacter's constructor already builds ActionsComp,
+	// and GetAbilitySystemComponent() returns it. Creating a second one is the two-health-bars bug.
+	// AbilitySystemComponent is cached from it in PostInitializeComponents.
+
+	// The attribute set STAYS a default subobject of the actor, which is exactly how it reaches the
+	// ASC: UAbilitySystemComponent::InitializeComponent walks the owner's default subobjects and
+	// registers every UAttributeSet it finds. That is why this worked before the reparent and why it
+	// keeps working after - ACF's ActionsComp adopts it without being told.
 	AttributeSetBase = CreateDefaultSubobject<UGSAttributeSetBase>(TEXT("AttributeSetBase"));
+
+	// ACF'S OWN INITIALISER IS OFF IN PHASE 2A.
+	//
+	// bAutoInit defaults to TRUE, which makes UACFCharacterInitializerComponent apply a
+	// UACFCharacterDataAsset at BeginPlay. We have not authored one for a single character, and the
+	// acf-core skill's failure table names the result exactly: "Characters have no stats / zero
+	// health - CharacterRow is empty or points to a missing DataTable row." Turning this off keeps
+	// ACF's StatisticsComp dormant while OUR UGSAttributeSetBase remains the only live attribute
+	// source. Phase 2b authors the DataAssets and turns it back on.
+	SetAutoInit(false);
 
 	// On the base, so the player is rationed by exactly the same rules as everyone else. A crowd
 	// that visibly takes turns on a militiaman but mobs the player would be the first thing anyone
@@ -87,6 +150,20 @@ void AGSCharacterBase::OnRep_PlayerState()
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	}
+}
+
+UAbilitySystemComponent* AGSCharacterBase::GetAbilitySystemComponent() const
+{
+	return Super::GetAbilitySystemComponent();
+}
+
+void AGSCharacterBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// One ASC, and it is ACF's. Cached here rather than in BeginPlay because PossessedBy can fire
+	// first on a server-spawned pawn, and that path dereferences this pointer immediately.
+	AbilitySystemComponent = Super::GetAbilitySystemComponent();
 }
 
 void AGSCharacterBase::BeginPlay()
@@ -252,7 +329,7 @@ void AGSCharacterBase::NotifyAttackWasBlocked(AActor* Blocker, float RecoilSecon
 	// most common failure in NPC-vs-NPC melee.
 	if (IsValid(Blocker))
 	{
-		PlayHitReact(Blocker->GetActorLocation() - GetActorLocation());
+		PlayHitReact(Blocker->GetActorLocation() - GetActorLocation(), Blocker);
 	}
 }
 
@@ -294,8 +371,15 @@ float AGSCharacterBase::PlayAnimMontage(UAnimMontage* AnimMontage, float InPlayR
 	return Super::PlayAnimMontage(AnimMontage, InPlayRate, StartSectionName);
 }
 
-void AGSCharacterBase::PlayHitReact(const FVector& FromDirection)
+void AGSCharacterBase::PlayHitReact(const FVector& FromDirection, AActor* Causer)
 {
+	// Record authorship BEFORE the tag goes on, so nothing can read the tag with a stale causer
+	// still attached from the previous flinch (#221).
+	if (UGSEngagementComponent* Engagement = FindComponentByClass<UGSEngagementComponent>())
+	{
+		Engagement->NoteFlinchCausedBy(Causer);
+	}
+
 	if (!bEnableHitReact || bIsDead)
 	{
 		GS_HITREACT_LOG(TEXT("disabled (bEnableHitReact %d, bIsDead %d)"),
@@ -441,7 +525,7 @@ void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 			: FVector::ZeroVector;
 		GS_HITREACT_LOG(TEXT("damage %.1f of %.0f -> requesting flinch (attacker dir %s)"),
 			-Delta, MaxHealth, *FromAttacker.ToCompactString());
-		PlayHitReact(FromAttacker);
+		PlayHitReact(FromAttacker, Attacker);   // #221: the flinch names its author
 	}
 }
 

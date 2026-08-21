@@ -10,7 +10,8 @@
 #include "Weapons/GSWeaponDataAsset.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-AGSHordeGoblin::AGSHordeGoblin()
+AGSHordeGoblin::AGSHordeGoblin(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AIControllerClass = AGSHordeAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;

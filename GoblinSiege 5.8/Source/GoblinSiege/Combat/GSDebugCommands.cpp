@@ -685,11 +685,22 @@ static FAutoConsoleCommandWithWorld GSCombatCrowdStatsCmd(
 
 				// The OVER markers are the point: they are the only thing in this readout that says
 				// a cap has actually been breached rather than merely approached.
+				// engaged is printed AGAINST ITS CAP (#219). It used to be a bare number, so the
+				// 2026-08-20 reading of "engaged 8" against MaxEngagedAttackers 6 had to be
+				// reconstructed by hand from the log. Note OVER ENGAGED is not necessarily a fault:
+				// the Attack order registers without capacity on purpose
+				// (GSHordeSubsystem.cpp:549-555). It marks that the surplus exists, which is what
+				// decides whether the outer ring is doing its job.
+				const int32 MaxEng = Engagement->GetMaxEngaged();
+				const int32 Outer = Engagement->GetClaimedOuterCount();
+
 				UE_LOG(LogGSAI, Warning,
-					TEXT("[GS.Crowd] %-28s engaged %d  swinging %d  weight %d/%d%s  slots %d  %s"),
-					*Victim->GetName(), Engaged, Attackers, Weight, Budget,
+					TEXT("[GS.Crowd] %-28s engaged %d/%d%s  swinging %d  weight %d/%d%s  slots %d inner + %d outer  %s"),
+					*Victim->GetName(), Engaged, MaxEng,
+					(Engaged > MaxEng) ? TEXT(" <-- OVER ENGAGED") : TEXT(""),
+					Attackers, Weight, Budget,
 					(Weight > Budget) ? TEXT(" <-- OVER BUDGET") : TEXT(""),
-					Engagement->GetClaimedSlotCount(),
+					Engagement->GetClaimedSlotCount(), Outer,
 					Engagement->CanBeAttacked() ? TEXT("") : TEXT("(immune: staggered/recoiling/dead)"));
 				++Rows;
 			}

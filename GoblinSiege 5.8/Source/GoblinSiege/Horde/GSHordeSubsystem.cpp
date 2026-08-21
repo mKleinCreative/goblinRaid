@@ -553,11 +553,32 @@ AActor* UGSHordeSubsystem::GetAssignedTargetFor(AGSHordeGoblin* Goblin) const
 				// (MenaceOrbit + TickSeparation) still spaces them and BTDecorator_HasAttackToken still
 				// caps how many swing at once, so this is "everyone piles in, four connect" rather
 				// than a mob standing inside each other.
-				if (UGSEngagementComponent* Engagement = Victim->FindComponentByClass<UGSEngagementComponent>())
+				// SPILL-OVER (#221, Michael 2026-08-21: "are they focusing on another enemy if one is
+				// over saturated? that's how I would love them to work").
+				//
+				// This REFINES ruling 34 rather than reversing it. The order still converges the
+				// warband on the named victim - that is what the player asked for and it is why
+				// nothing here caps the FIRST six. But past capacity, the surplus used to pile onto
+				// a target with no place left for them: measured 2026-08-21 as "engaged 10/6 OVER
+				// ENGAGED" with four goblins parked on the outer ring watching six fight.
+				//
+				// Now the surplus falls through to the ambient path below, which already skips any
+				// candidate without engagement room and takes the nearest that has some. So the
+				// order reads "kill that one, and if there is no room left, kill what is next to
+				// you" - which is what a warband does.
+				//
+				// An agent ALREADY registered on the victim passes HasEngagementRoom (see
+				// UGSEngagementComponent::HasEngagementRoom), so incumbents are never displaced by
+				// this and there is no rotation on every scan.
+				UGSEngagementComponent* Engagement = Victim->FindComponentByClass<UGSEngagementComponent>();
+				if (!Engagement || Engagement->HasEngagementRoom(Goblin))
 				{
-					Engagement->RegisterEngaged(Goblin);
+					if (Engagement)
+					{
+						Engagement->RegisterEngaged(Goblin);
+					}
+					return Victim;
 				}
-				return Victim;
 			}
 		}
 	}

@@ -8,6 +8,8 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/Character.h"
 
 // GS.Combat.Separation and GS.Combat.FaceTarget moved to GSAISteeringComponent.cpp with the
 // behaviours they switch (#143). They are still registered, still named the same, and still mean the
@@ -61,6 +63,32 @@ AGSAIControllerBase::AGSAIControllerBase(const FObjectInitializer& ObjectInitial
 		AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 		SetPerceptionComponent(*AIPerceptionComponent);
 	}
+}
+
+bool AGSAIControllerBase::IsEntityAlive_Implementation() const
+{
+	// The CONTROLLER answers for its pawn - ACF asks the entity, and for an AI the entity that
+	// matters is the body, not the brain. An unpossessed controller is not alive by any useful
+	// reading, so a null pawn is false rather than true-by-default.
+	const AGSCharacterBase* Body = Cast<AGSCharacterBase>(GetPawn());
+	return Body && Body->IsAlive();
+}
+
+float AGSAIControllerBase::GetEntityExtentRadius_Implementation() const
+{
+	// The CAPSULE, deliberately, not the mesh bounds. #094 measured the goblin meshes at a fraction
+	// of their capsules - the player goblin's head sits +40 in a 240 capsule - so mesh bounds would
+	// hand ACF a radius that has nothing to do with what actually blocks, traces or collides.
+	// Everything else in this project already reasons about the capsule; this stays consistent with
+	// it rather than introducing a second notion of how big a goblin is.
+	if (const ACharacter* Body = Cast<ACharacter>(GetPawn()))
+	{
+		if (const UCapsuleComponent* Capsule = Body->GetCapsuleComponent())
+		{
+			return Capsule->GetScaledCapsuleRadius();
+		}
+	}
+	return 0.f;
 }
 
 void AGSAIControllerBase::OnPossess(APawn* InPawn)

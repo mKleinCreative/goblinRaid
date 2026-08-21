@@ -30,15 +30,25 @@ class GOBLINSIEGE_API AGSPlayerCharacter : public AGSCharacterBase
 	GENERATED_BODY()
 
 public:
-	AGSPlayerCharacter();
+	// AACFCharacter has NO default constructor - it takes an FObjectInitializer (ACFCharacter.h:54),
+	// so the whole chain must pass one down (#223).
+	AGSPlayerCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
 	UGSWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 
+	/**
+	 * Renamed from GetTargetingComponent in #223. AACFCharacter declares
+	 * `UFUNCTION(BlueprintPure) UATSBaseTargetComponent* GetTargetingComponent() const`, and after the
+	 * Phase 2a reparent ours became a same-named override with a DIFFERENT return type, which UHT
+	 * rejects. Renaming rather than dropping the UFUNCTION keeps this callable from Blueprint and
+	 * avoids hiding ACF's accessor in C++ - and it cost nothing: this had zero callers in Source and
+	 * zero references in any .uasset.
+	 */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Targeting")
-	UGSTargetingComponent* GetTargetingComponent() const { return TargetingComponent; }
+	UGSTargetingComponent* GetGSTargeting() const { return TargetingComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
 	UGSInteractionComponent* GetInteractionComponent() const { return InteractionComponent; }

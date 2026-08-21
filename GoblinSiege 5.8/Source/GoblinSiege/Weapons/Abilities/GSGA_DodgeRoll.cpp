@@ -1,5 +1,6 @@
 #include "Weapons/Abilities/GSGA_DodgeRoll.h"
 #include "Characters/GSPlayerCharacter.h"
+#include "Characters/GSStaminaComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -34,6 +35,32 @@ void UGSGA_DodgeRoll::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
+	// Stamina first, BEFORE CommitAbility: a refused dodge should cost nothing at all, and
+	// committing an ability we are about to cancel would burn any cost or cooldown attached to it.
+	// FindComponentByClass rather than reaching through AGSPlayerCharacter - the component is only
+	// on the player (AI melee is paced by its own BT cooldown), so a null here is a legitimate
+	// "this pawn has no stamina model" rather than an error, and it must not refuse the dodge.
+	if (DodgeStaminaCost > 0.f)
+	{
+		if (const ACharacter* StamAvatar = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+		{
+			if (UGSStaminaComponent* Stamina = StamAvatar->FindComponentByClass<UGSStaminaComponent>())
+			{
+				if (!Stamina->TryConsume(DodgeStaminaCost))
+				{
+					if (CVarLogDodge.GetValueOnAnyThread() != 0)
+					{
+						UE_LOG(LogTemp, Log,
+							TEXT("[GS.Dodge] refused - stamina %.1f of %.1f, needs %.1f"),
+							Stamina->GetStamina(), Stamina->GetMaxStamina(), DodgeStaminaCost);
+					}
+					EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+					return;
+				}
+			}
+		}
+	}
+
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);

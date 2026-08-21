@@ -487,7 +487,7 @@ bool UGSGA_SwordLight::BreakGuard(AActor* Target, UAbilitySystemComponent* Targe
 	{
 		TargetCharacter->PlayHitReact(GetAvatarActorFromActorInfo()
 			? GetAvatarActorFromActorInfo()->GetActorLocation() - Target->GetActorLocation()
-			: FVector::ZeroVector);
+			: FVector::ZeroVector, GetAvatarActorFromActorInfo());
 	}
 
 	return true;

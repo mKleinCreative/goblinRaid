@@ -29,6 +29,33 @@ old tickets at run start** — fold anything durable into BUILT / DECISIONS / FA
 next agent rediscovers it.
 
 ## BUILT
+- 2026-08-21 **ACF PHASE 2A: `AGSCharacterBase : AACFCharacter`, ONE ASC** (#223, watched). Our ASC is
+  gone; ACF's `ActionsComp` is the only one, cached under the old member name so ~20 call sites were
+  untouched. `UGSAttributeSetBase` stays a default subobject of the ACTOR, which is how the ASC adopts
+  it (`InitializeComponent` walks the owner's subobjects). `bAutoInit = false` keeps ACF's initialiser
+  off - no `UACFCharacterDataAsset` is authored, and with it on every character gets zero health.
+  `AscentSaveSystem` and `CharacterController` are now LINKED in `Build.cs` (deriving is not linking).
+  - **`UGSCharacterMovementComponent` exists to disarm ACF's locomotion state machine.** ACF's
+    movement component owns `MaxWalkSpeed` and rewrites it from `LocomotionStates`
+    (Idle 0 / Walk 250 / Jog 500 / Sprint 650, `DefaultState = EJog`) on every band transition, which
+    makes sprint STRUCTURALLY IMPOSSIBLE - the Sprint band needs velocity above 505 while the cap is
+    500. Our subclass empties the bands in `BeginPlay` and **restores the authored `MaxWalkSpeed`
+    afterwards**; that restore is load-bearing, because with no bands ACF's
+    `Internal_ApplyLocomotionState` resolves to `0.0f` and every character stands still. **Deleting
+    this class is part of Phase 2b** (ruling 27).
+  - **ACF's AI machinery is now awake.** `AACFAIController::OnPossess` used to early-return on our
+    pawns because they failed `Cast<AACFCharacter>`; they pass now, so its blackboard init runs and it
+    reaches the tree check - hence six `should be assigned with a behavior Tree` warnings. Its
+    `StartTree()` stays quiet ONLY because no ACF BehaviorTree is assigned, and our own
+    `RunBehaviorTree()` calls remain load-bearing. Consequence: ACF's attacker ticketing
+    (`MaxAttackersPerTarget = 1`) is now one asset assignment away from clamping the horde to one
+    attacker - ruling 33's insurance was never implemented and is a live debt.
+  - **NOT DONE, do not mistake it for done:** ACF's `StatisticsComp` is present and uninitialised, so
+    rulings 25/35 are unsatisfied; ACF's own `IsAlive()` answers "alive" for a corpse because it reads
+    a `UACFDamageHandlerComponent` nothing drives, so OURS is the truth until 2b routes death through
+    it; fourteen unconfigured ACF components now sit on every character.
+  - `ACFLog: Warning: Invalid Character - ActionsManager` is an **ACF logging bug** - it fires in the
+    `else` branch, when the statistics component IS found. Ignore it.
 - pre-seed: player character complete (third-person rig, soft-lock, crouch, sprint/stamina, dodge, block, guard-break, hit-reacts, ragdoll death), traversal (vault/mantle/climb) PIE-verified, sword combat vs target dummy (GSGA_SwordLight/Heavy, weapon component, DA_Weapon_Scout), fire system large (flammable, fire volumes, field-fire grid, mill dust-fuse, market, burn-mask/char materials village-wide), burn objective base with Required/Optional/Complete, alarm types, GA_GS_* ability BPs, adversary BPs placed (CastleGuard/Archer/Knight/Peasant), Tutorial_Island playable with BP_GSGameMode.
 - 2026-08-04 [mvp-001] STAGED Interact framework — hold-E channels + carry: 8 files at out/runs/mvp-001/staging/ — awaiting Michael's review, then an editor-closed full build (new UCLASS types; Live Coding cannot register them)
 - 2026-08-04 [live-003] STAGED Interact framework — hold-E channels + carry: 8 files at out/runs/live-003/staging/ — awaiting Michael's review, then an editor-closed full build (new UCLASS types; Live Coding cannot register them)
@@ -166,6 +193,64 @@ next agent rediscovers it.
     against knights - wants more goblins or fewer knights before it reads as a battle.
 
 ## DECISIONS
+
+- **2026-08-20 (#207–#210): THERE WERE TWO DODGE SYSTEMS, AND FOUR PASSES WERE SPENT DEBUGGING THE
+  ONE THAT WORKED.** Michael reported "the dodge plays the forward roll in every direction". The C++
+  `UGSGA_DodgeRoll` was correct the entire time. **`BP_GSPlayerCharacter` contained a SECOND, complete
+  dodge implementation** — `DodgeMontage_Fwd/Back/Left/Right`, `DodgeDistance`, `DodgeWarpLoc`, and
+  motion warping — reached by a different key. **All four of its montage variables pointed at the same
+  clip, `AM_GS_Dive_RM`**, so it could only ever play one dive whichever way you went.
+  - **He was pressing `E`, which was `IA_Traverse`, not dodge.** Dodge was on `LeftAlt` and had always
+    worked. Every "the dodge is broken" observation, mine included, was of the wrong system. **Check
+    which key the tester is actually pressing before believing a report about an ability.**
+  - **A Hold trigger does NOT stop the `Started` pin firing.** `E` was split Tap→`IA_Dodge`,
+    Hold→`IA_Traverse` (#207) and the bug survived, because Enhanced Input fires `Started` on the
+    initial press regardless of whether the hold completes. The Blueprint's traversal chain hangs off
+    `Started`, so a tap still ran both systems into `DefaultSlot`. Fixed in #208 by moving that chain
+    onto `Triggered` behind a `K2Node_ExecutionSequence` — **moved, not cut, because vault and mantle
+    live on it and nothing else calls them.**
+  - **`GS.Combat.LogDodge` is the dodge instrument** (#204), and it is what finally settled this: it
+    logs the direction, the actor frame, both dot products and the chosen montage. Correct picks in
+    the log beside a wrong animation on screen is a contradiction that can only mean two systems.
+    Before it existed, three separate theories — clip finishing early, a 1.5 play rate, swapped root
+    motion axes — all died on measurement. **Every one was reasoned from source and wrong.**
+  - **WATCHED AND SIGNED OFF by Michael, 2026-08-20: dodge, climb, vault and mantle all work.**
+  - `LeftAlt` is retired. Tap `E` dodges, hold `E` traverses and climbs — which is the first time the
+    input asset has actually matched the 2026-08-08 ruling that "Hold-E climbs".
+
+- **2026-08-20 (#209): A STAMINA COST BELOW THE REGEN-DURING-THE-MOVE IS FREE.** `DodgeStaminaCost`
+  is 30, and the number is sized against regen rather than against the other verbs. The pool is 100,
+  regen is 25/s with `RegenDelaySeconds` 0, and a dodge commits for its montage length (0.833s
+  fwd/back, 1.000s left/right) because `bCommitForFullMontage` is true — so **21–25 stamina comes back
+  during the roll itself**. The obvious first choice, something between vault's 8 and mantle's 18,
+  would have cost nothing at all. 30 nets about −8 per dodge. **It is a throttle, not a wall**; if it
+  must bite harder the sharper lever is `RegenDelaySeconds`, but that also hits sprint and climb.
+  Deliberately NOT using `SetRegenSuppressed`: it is last-writer-wins and climb already uses it
+  (#072/#076), so a dodge toggling it could hand the player free stamina on a wall.
+
+- **2026-08-20 (#210): AN ORDERED GOBLIN USED TO PUBLISH A FOLLOW TARGET, AND THE TREE OSCILLATED.**
+  `BT_HordeGoblin` has two branches that could both pass at once — `Follow Summoner` behind
+  `Has A Follow Target`, and `Chase Target` behind `Has A Target`. `AGSHordeAIController` wrote
+  **both** keys unconditionally, so a goblin under an Attack order had a live `TargetActor` AND a live
+  `FollowTarget`, and the Selector flip-flopped. On screen: a goblin that stares at you, breaks off,
+  stares again. Now `FollowTargetKey` is written as `bHasStandingOrder ? nullptr : FollowTarget`.
+  - **Fixed in the controller, not the tree, on purpose.** The controller is the only thing that knows
+    an order exists; a decorator cannot out-vote a key that should never have been set.
+  - **Not a cancel** — the subsystem still holds the summoner and slot, so the goblin rejoins the
+    scamper on the first refresh after the order clears.
+  - **THE SAME SHAPE EXISTS IN FRENZY AND IS UNFIXED.** A goblin auto-engaging a threat also holds
+    both keys. Left alone so the Attack-order fix could be attributed on its own. **If the staring
+    happens with no order issued, that is this, and it is a one-word change.**
+
+- **2026-08-20: WHAT THE UNOBSERVED CLOSES OF #204, #205, #207, #209 AND #210 LEAVE UNPROVEN.** Each
+  was closed written-but-never-run because an open ticket shuts the build gate, so a ticket cannot
+  watch its own change compile. Specifically:
+  - **#209's stamina cost has never been seen to refuse a dodge.** It compiled 2026-08-20 13:40 and
+    Michael has played dodging since, but "dodge works" is not "the cost bites" — the refusal path and
+    its log line are still unwitnessed.
+  - **#210 is written and compiled but nobody has watched an ordered goblin stop oscillating.**
+  - **#205's ACF swap** is proven only to the extent that builds now run; no ACF *behaviour* has been
+    checked against 4.4.2, and the migration's Phase 2 is still ahead of us.
 
 - **2026-08-19 (#198): THE GDD MOVED, AND IT IS NOW THE CANONICAL ONE. `docs/goblin-siege-gdd.md`.**
   What used to be a derived export under `Tools/CodeArchitect/docs/` is now **v1.0, LOCKED**, and the
@@ -629,6 +714,25 @@ below as priority; it is grouped by kind. The first item is the only one anyone 
 - ~~[EDITOR] **`BP_GS_Arrow` subclass**~~ — **RESOLVED 2026-08-09 (#096).** The arrow WAS seen flying wrong (head down, launched from its own middle). Cause found by measuring the asset: `GS_Arrow` is 59.5uu long, its long axis is **+Z**, and its pivot is at the **tail**, while the actor's +X follows velocity — so with the identity default the shaft rendered at 90° to its own flight path. Corrected in the C++ constructor (`Pitch -90`, `X -59.5`), verified live at 0.0° shaft-vs-travel with the head on the collision sphere. A Blueprint subclass is no longer needed to make arrows look right, only to make them look *different*.
 
 ## FAILED
+
+- 2026-08-21 **THE SAME TICK TRAP AS #135, FROM THE OTHER DIRECTION - THIS TIME THE BASE CLASS DID
+  IT** (#223, ACF Phase 2a). `AACFCharacter`'s constructor sets
+  `PrimaryActorTick.bStartWithTickEnabled = false` (`ACFCharacter.cpp:83`) and **nothing in ACF ever
+  turns it back on**. The engine default is `true`. `AGSPlayerCharacter` sets `bCanEverTick = true`,
+  which is a DIFFERENT FLAG and did not help - our constructor also runs second, after ACF's.
+  - **Symptom: sprint and stamina both stopped, and nothing else did.** Both live in
+    `BP_GSPlayerCharacter`'s Event Tick. Every event-driven system - attacks, dodge, interaction,
+    blocking, death, the whole horde - kept working perfectly, so it presented as "sprint is broken"
+    rather than "the actor is not ticking".
+  - **Cost: three wrong fixes.** Two of them were about `MaxWalkSpeed` and ACF's locomotion state
+    machine, which is a real hazard (see BUILT) but was not this. The first of those fixes was
+    **inert and the build was green** - `SetDefaultSubobjectClass<UCharacterMovementComponent>` is
+    REFUSED at runtime because an override must DERIVE from the class the parent chose; it logged
+    `is not a legal override for component CharMoveComp` once per character and used ACF's component
+    anyway. Read the log, not the diff.
+  - **What ended it was a question, not an investigation:** "does nothing happen, or does it happen
+    weakly?" The answer "nothing at all", plus the volunteered "stamina doesn't work either", named
+    the system in one step. Two symptoms sharing one mechanism beats any amount of tracing.
 
 - 2026-08-11 **A SUBCLASS CONSTRUCTOR SILENTLY DISABLED TWO SHIPPED FEATURES FOR A WHOLE CLASS OF
   AGENT** (#135). `AGSHordeAIController` set `PrimaryActorTick.bCanEverTick = false`;
