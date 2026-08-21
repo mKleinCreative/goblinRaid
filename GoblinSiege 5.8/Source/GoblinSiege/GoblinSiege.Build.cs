@@ -77,6 +77,11 @@ public class GoblinSiege : ModuleRules
 			// a derive - so it must be linked.
 			"AscentGASRuntime",
 
+			// AscentTeams and CollisionsManager (#229) - both CALLED into (component construction),
+			// not merely derived from.
+			"AscentTeams",
+			"CollisionsManager",
+
 			// Destruction & FX
 			"GeometryCollectionEngine",
 			"FieldSystemEngine",

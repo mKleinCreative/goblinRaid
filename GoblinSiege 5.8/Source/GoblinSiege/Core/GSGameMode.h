@@ -14,6 +14,18 @@ class GOBLINSIEGE_API AGSGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
+protected:
+	/**
+	 * ACF's collisions master (#229). UACMCollisionManagerComponent on each character looks for this
+	 * on the GAME MODE and logs `Add Collisions Master o your Game Mode!` (ACF's typo) when it is
+	 * absent - which every run did after the Phase 2a reparent gave every character a collision
+	 * manager. It drives ACF's swept melee traces; ours still uses its own sweep, so this is here to
+	 * satisfy the lookup and to be ready for 2b-2 rather than because anything reads it yet.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|ACF")
+	TObjectPtr<class UACMCollisionsMasterComponent> CollisionsMasterComponent;
+
+
 public:
 	AGSGameMode();
 

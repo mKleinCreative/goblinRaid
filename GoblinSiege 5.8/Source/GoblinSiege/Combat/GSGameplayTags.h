@@ -134,6 +134,20 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Race_Goblin);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Race_Human);
 
+	// ------------------------------------------------------------------ ACF teams (#229)
+	//
+	// ACF's team system keys on tags under "Teams", not on RaceTag. These exist so
+	// UACFTeamManagerComponent has something to look up; ruling 28 keeps RaceTag for everything
+	// that is NOT hostility (race data, animation sets, bark selection).
+	//
+	// The relationships live in DA_GSTeams and must be authored in BOTH directions - ACF's lookup
+	// finds TeamA's entry and reads Relationship.Find(TeamB) with nothing mirroring it
+	// (ACFTeamManagerSubsystem.cpp:183-193), so a missing reverse entry silently falls through to
+	// the default and A hunts B while B ignores A. Same-team friendliness must also be authored:
+	// `if (TeamA == TeamB) return GetDefaultAttitude();` and that default is Neutral.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Teams_Goblin);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Teams_Human);
+
 	// ------------------------------------------------------------------ SetByCaller data keys
 	/** Magnitude key for UGSGE_MoveSpeedScalar. Same convention as the Damage.* tags, which double
 	 *  as SetByCaller keys on the damage spec: one effect class, many callers, no GE per source. */

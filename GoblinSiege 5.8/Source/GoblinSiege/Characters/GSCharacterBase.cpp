@@ -3,6 +3,7 @@
 #include "Combat/GSEngagementComponent.h"
 #include "ACFStatisticsSet.h"
 #include "Components/ACFDamageHandlerComponent.h"
+#include "Components/ACFTeamComponent.h"
 #include "ACFAttributeSet.h"
 #include "ACFPrimaryAttributeSet.h"
 #include "Combat/GSGameplayTags.h"
@@ -247,6 +248,20 @@ void AGSCharacterBase::BeginPlay()
 			.AddUObject(this, &AGSCharacterBase::HandleMoveSpeedMultiplierChanged);
 	}
 
+	// ---- TELL ACF WHICH TEAM THIS IS (#229) ----------------------------------------------------
+	//
+	// Derived from RaceTag rather than authored twice. Ruling 28 keeps RaceTag as race data and
+	// makes ACF's team the hostility authority, so this is the one place the two meet - and it is a
+	// mapping, not a second source: change a character's race and its team follows.
+	//
+	// Anything that is not a goblin is a human here. That is honest for the current roster (goblins
+	// and the defenders of Groatsworth) and will need a real case when civilians arrive under
+	// rulings 13/14 - they are human by race but should not be hostile to anyone.
+	if (UACFTeamComponent* Team = FindComponentByClass<UACFTeamComponent>())
+	{
+		Team->SetTeam(RaceTag == GSTags::Race_Goblin ? GSTags::Teams_Goblin : GSTags::Teams_Human);
+	}
+
 	// DEATH IS ACF'S (#228, Michael's ruling: ACF owns death entirely). ARS health reaching zero
 	// fires UACFGASStatisticsComponent::HandleHealthReachesZero, which ends at
 	// AACFCharacter::HandleCharacterDeath - ragdoll or death montage, equipment drop, movement
@@ -296,6 +311,27 @@ bool AGSCharacterBase::IsHostileTo(const AActor* Other) const
 	if (!RaceTag.IsValid() || !OtherChar->RaceTag.IsValid())
 	{
 		return true;
+	}
+
+	// ---- ACF OWNS HOSTILITY NOW (ruling 28, #229) ----------------------------------------------
+	//
+	// Was `return RaceTag != OtherChar->RaceTag;`. RaceTag remains race DATA - animation sets, bark
+	// selection, race data assets - but who is an enemy is a team question, and teams can express
+	// things a race comparison cannot: civilians who flee goblins, are protected by guards, and are
+	// targets of neither.
+	//
+	// STILL EXACTLY ONE PREDICATE. BTService_AcquireTarget and the melee sweep both call this, which
+	// is the standing rule; only what it consults has changed.
+	//
+	// The RaceTag fallback below is NOT belt-and-braces, it is for actors ACF cannot answer for - a
+	// target dummy or a breakable with no team component. A character whose team IS valid gets ACF's
+	// answer even when that answer is "not hostile", because silently second-guessing the team config
+	// would make a misconfigured DA_GSTeams invisible instead of obvious.
+	const UACFTeamComponent* MyTeam = FindComponentByClass<UACFTeamComponent>();
+	const UACFTeamComponent* TheirTeam = OtherChar->FindComponentByClass<UACFTeamComponent>();
+	if (MyTeam && TheirTeam && MyTeam->GetTeam().IsValid() && TheirTeam->GetTeam().IsValid())
+	{
+		return MyTeam->IsHostileTowards(TheirTeam->GetTeam());
 	}
 
 	return RaceTag != OtherChar->RaceTag;

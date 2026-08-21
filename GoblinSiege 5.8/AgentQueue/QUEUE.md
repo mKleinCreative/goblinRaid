@@ -446,6 +446,7 @@ _Queue is empty. The build gate is OPEN._
 | 226 | done | claude-acf | ACF Phase 2b-1: author the ARS attribute DataTable for all six archetypes |
 | 227 | done | claude-acf | GS.Stats.Dump: read ARS and GS attributes side by side |
 | 228 | done | claude-acf | ACF Phase 2b-1b: health consumers move to ARS, death routed through ACF |
+| 229 | done | claude-acf | ACF config debts: team manager + teams config, collisions master, ability set |
 
 <!-- BOARD:END -->
 

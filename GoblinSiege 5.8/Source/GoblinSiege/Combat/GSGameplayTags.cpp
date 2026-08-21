@@ -35,6 +35,9 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Race_Goblin, "Race.Goblin", "Player, allied goblins and the horde - melee will not hit its own race.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Race_Human, "Race.Human", "Village defenders - militia, archers, knights, civilians.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Teams_Goblin, "Teams.Goblin", "ACF combat team for the player, the horde and allied goblins (#229).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Teams_Human, "Teams.Human", "ACF combat team for militia, archers, knights and every other defender (#229).");
+
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Data_MoveSpeedScalar, "Data.MoveSpeedScalar", "SetByCaller key: multiplier fed to UGSGE_MoveSpeedScalar.");
 
 	// Burn-objective types (burn-types spec §5, added 2026-07-31 for Q-37). The win needs one burn

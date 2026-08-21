@@ -22,6 +22,21 @@ class GOBLINSIEGE_API AGSGameState : public AGameStateBase
 {
 	GENERATED_BODY()
 
+protected:
+	/**
+	 * ACF's team manager (#229). Added as a COMPONENT rather than by reparenting this class onto
+	 * AACFGameState: the team subsystem only ever does
+	 * `GameState->FindComponentByClass<UACFTeamManagerComponent>()`
+	 * (ACFTeamManagerSubsystem.cpp:31), so it does not care what our GameState derives from - and
+	 * AACFGameState derives from AGameState rather than AGameStateBase, which would have dragged in
+	 * match-state machinery this project does not use.
+	 *
+	 * Without this, every run logged `Missing Team Config - UACFTeamManagerComponent` and every
+	 * team lookup fell through to the default attitude.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|ACF")
+	TObjectPtr<class UACFTeamManagerComponent> TeamManagerComponent;
+
 public:
 	AGSGameState();
 

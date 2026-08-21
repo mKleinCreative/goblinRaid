@@ -1,4 +1,5 @@
 #include "Core/GSGameMode.h"
+#include "ACMCollisionsMasterComponent.h"
 #include "Core/GSGameState.h"
 #include "Core/GSPlayerState.h"
 #include "Characters/GSCharacterBase.h"
@@ -29,6 +30,8 @@ namespace
 
 AGSGameMode::AGSGameMode()
 {
+	CollisionsMasterComponent = CreateDefaultSubobject<UACMCollisionsMasterComponent>(TEXT("ACF Collisions Master"));
+
 	GameStateClass = AGSGameState::StaticClass();
 	PlayerStateClass = AGSPlayerState::StaticClass();
 	// DefaultPawnClass and HUDClass are assigned in the BP_GSGameMode subclass so designers can

@@ -199,6 +199,7 @@ static FAutoConsoleCommandWithWorld GSHordeStatusCmd(
 #include "ACFStatisticsSet.h"
 #include "ACFAttributeSet.h"
 #include "Attributes/GSAttributeSetBase.h"
+#include "Components/ACFTeamComponent.h"
 #include "Horde/GSHordeOrderTypes.h"
 
 static FAutoConsoleCommandWithWorldAndArgs GSHordeOrderCmd(
@@ -1110,5 +1111,58 @@ static FAutoConsoleCommandWithWorld GSStatsDumpCmd(
 			if (GEngine)
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 8.f, Mismatches ? FColor::Red : FColor::Green, Summary);
+			}
+		}));
+
+
+// ------------------------------------------------------------------- GS.Teams.Check (#229)
+//
+// Editor Python cannot construct OR read an FGameplayTag in this build - every tag renders as `{}`,
+// including ones that are certainly set. So the only way to know whether DA_GSTeams is authored with
+// tags that match GSTags::Teams_* is to ask the running game and print the answer.
+static FAutoConsoleCommandWithWorld GSTeamsCheckCmd(
+	TEXT("GS.Teams.Check"),
+	TEXT("Print each character's ACF team and whether it is hostile to the others."),
+	FConsoleCommandWithWorldDelegate::CreateStatic(
+		[](UWorld* InWorld)
+		{
+			UWorld* World = GSHordeGameWorld(InWorld);
+			if (!World)
+			{
+				UE_LOG(LogGSAI, Warning, TEXT("[GS.Teams] no game world."));
+				return;
+			}
+
+			TArray<AGSCharacterBase*> Characters;
+			for (TActorIterator<AGSCharacterBase> It(World); It; ++It)
+			{
+				if (IsValid(*It)) { Characters.Add(*It); }
+			}
+
+			// One representative per team tag, so the output is a small matrix rather than 17 rows.
+			TMap<FName, AGSCharacterBase*> ByTeam;
+			for (AGSCharacterBase* Character : Characters)
+			{
+				const UACFTeamComponent* Team = Character->FindComponentByClass<UACFTeamComponent>();
+				const FName Key = Team ? Team->GetTeam().GetTagName() : FName("(no team component)");
+				if (!ByTeam.Contains(Key)) { ByTeam.Add(Key, Character); }
+			}
+
+			UE_LOG(LogGSAI, Warning, TEXT("[GS.Teams] %d character(s), %d distinct team(s):"),
+				Characters.Num(), ByTeam.Num());
+			for (const TPair<FName, AGSCharacterBase*>& Pair : ByTeam)
+			{
+				UE_LOG(LogGSAI, Warning, TEXT("[GS.Teams]   %-24s e.g. %s"),
+					*Pair.Key.ToString(), *GetNameSafe(Pair.Value));
+			}
+
+			for (const TPair<FName, AGSCharacterBase*>& A : ByTeam)
+			{
+				for (const TPair<FName, AGSCharacterBase*>& B : ByTeam)
+				{
+					UE_LOG(LogGSAI, Warning, TEXT("[GS.Teams]   %-20s -> %-20s hostile: %s"),
+						*A.Key.ToString(), *B.Key.ToString(),
+						A.Value->IsHostileTo(B.Value) ? TEXT("YES") : TEXT("no"));
+				}
 			}
 		}));

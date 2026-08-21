@@ -1,9 +1,36 @@
 #include "Core/GSGameState.h"
+#include "ACFTeamsConfigDataAsset.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/ACFTeamManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
 AGSGameState::AGSGameState()
 {
+	// ACF's team lookups find this by class on the GameState (#229). Without it every run logged
+	// "Missing Team Config" and every attitude query fell through to the default.
+	TeamManagerComponent = CreateDefaultSubobject<UACFTeamManagerComponent>(TEXT("ACF Team Manager"));
+
+	// The component alone is not enough - an unassigned config means GetTeamAttitudeTowards returns
+	// GetDefaultAttitude() for EVERY pair, and that default is Neutral. Authored by Michael in
+	// DA_GSTeams (Goblin and Human, hostile to each other and friendly to themselves, both
+	// directions); this is what hands it to the manager.
+	//
+	// Hardcoded path with a loud failure rather than a silent one: if the asset is renamed or moved,
+	// the log says so at startup instead of the world quietly becoming neutral.
+	static ConstructorHelpers::FObjectFinder<UACFTeamsConfigDataAsset> TeamsConfig(
+		TEXT("/Game/Data/DA_GSTeams.DA_GSTeams"));
+	if (TeamsConfig.Succeeded())
+	{
+		TeamManagerComponent->SetTeamConfigDataAsset(TeamsConfig.Object);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[GoblinSiege] DA_GSTeams NOT FOUND - every ACF team attitude will fall back to "
+				 "Neutral, which means nothing is hostile to anything."));
+	}
+
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = 0.1f; // alarm doesn't need per-frame precision
 }
