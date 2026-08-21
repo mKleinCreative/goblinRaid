@@ -85,14 +85,19 @@ public:
 	float GetDrainRate() const { return DrainRate; }
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Stamina")
-	float GetStamina() const { return Stamina; }
+	/**
+	 * ARS owns the value as of #231 (ruling 35). This reads UACFStatisticsSet::Stamina and falls
+	 * back to the local float only for an owner with no ability system - a target dummy, a
+	 * breakable. The fallback is not a second pool: nothing writes it once ARS is present.
+	 */
+	float GetStamina() const;
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Stamina")
-	float GetMaxStamina() const { return MaxStamina; }
+	float GetMaxStamina() const;
 
 	/** 0..1, for a progress bar. Guards MaxStamina <= 0 rather than returning a NaN into the HUD. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Stamina")
-	float GetStaminaNormalised() const { return MaxStamina > 0.f ? Stamina / MaxStamina : 0.f; }
+	float GetStaminaNormalised() const;
 
 	/**
 	 * True from the moment the pool empties until it refills past RecoverFraction.
@@ -117,7 +122,13 @@ public:
 protected:
 	/** Seeded from BP_GSPlayerCharacter's MaxStamina so feel does not change on the day this lands. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Stamina|Tuning", meta = (ClampMin = "1.0"))
+	/** Fallback ceiling only. The live value comes from UACFStatisticsSet::MaxStamina, authored per
+	 *  archetype in DT_GSAttributeInits (#231). */
 	float MaxStamina = 100.f;
+
+private:
+	/** The owner's ability system, or null. Stamina lives on it since #231. */
+	class UAbilitySystemComponent* GetOwnerASC() const;
 
 	/** Per second, while nothing is draining. BP value was 25/s ("4s recovery"). */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Stamina|Tuning", meta = (ClampMin = "0.0"))

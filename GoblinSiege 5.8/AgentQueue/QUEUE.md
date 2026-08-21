@@ -447,6 +447,10 @@ _Queue is empty. The build gate is OPEN._
 | 227 | done | claude-acf | GS.Stats.Dump: read ARS and GS attributes side by side |
 | 228 | done | claude-acf | ACF Phase 2b-1b: health consumers move to ARS, death routed through ACF |
 | 229 | done | claude-acf | ACF config debts: team manager + teams config, collisions master, ability set |
+| 230 | done **UNOBSERVED** | claude-acf | The Scout axe wears the old mesh offset: SM_WoodcutterAxe needs the sword convention |
+| 231 | done | claude-acf | ACF Phase 2b-3: stamina storage moves to ARS, GSStaminaComponent becomes policy |
+| 232 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-4: sprint and slows move to ACF locomotion states |
+| 233 | done | claude-acf | GE_GSStatModifier: the missing effect that made every ACF statistic write a no-op |
 
 <!-- BOARD:END -->
 

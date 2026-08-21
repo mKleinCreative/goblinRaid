@@ -1,5 +1,8 @@
 #include "Characters/GSStaminaComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "ACFStatisticsSet.h"
 
 UGSStaminaComponent::UGSStaminaComponent()
 {
@@ -31,7 +34,7 @@ void UGSStaminaComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (DrainRate > 0.f)
 	{
 		SecondsSinceSpend = 0.f;
-		SetStamina(Stamina - DrainRate * DeltaTime);
+		SetStamina(GetStamina() - DrainRate * DeltaTime);
 		return;
 	}
 
@@ -44,9 +47,9 @@ void UGSStaminaComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		return;
 	}
 
-	if (RegenRate > 0.f && SecondsSinceSpend >= RegenDelaySeconds && Stamina < MaxStamina)
+	if (RegenRate > 0.f && SecondsSinceSpend >= RegenDelaySeconds && GetStamina() < GetMaxStamina())
 	{
-		SetStamina(Stamina + RegenRate * DeltaTime);
+		SetStamina(GetStamina() + RegenRate * DeltaTime);
 	}
 }
 
@@ -65,13 +68,13 @@ bool UGSStaminaComponent::TryConsume(float Cost)
 
 	// Exhausted refuses everything. Otherwise the latch would only govern sustained drains and a
 	// player at zero could still vault, which reads as the meter not mattering.
-	if (bExhausted || Stamina < Cost)
+	if (bExhausted || GetStamina() < Cost)
 	{
 		return false;
 	}
 
 	SecondsSinceSpend = 0.f;
-	SetStamina(Stamina - Cost);
+	SetStamina(GetStamina() - Cost);
 	return true;
 }
 
@@ -95,7 +98,7 @@ void UGSStaminaComponent::ResetToFull()
 
 	const bool bWasExhausted = bExhausted;
 	bExhausted = false;
-	SetStamina(MaxStamina);
+	SetStamina(GetMaxStamina());
 
 	if (bWasExhausted)
 	{
@@ -103,35 +106,93 @@ void UGSStaminaComponent::ResetToFull()
 	}
 }
 
+UAbilitySystemComponent* UGSStaminaComponent::GetOwnerASC() const
+{
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner());
+}
+
+float UGSStaminaComponent::GetStamina() const
+{
+	if (const UAbilitySystemComponent* ASC = GetOwnerASC())
+	{
+		bool bFound = false;
+		const float Value = ASC->GetGameplayAttributeValue(
+			GetDefault<UACFStatisticsSet>()->StaminaAttribute(), bFound);
+		if (bFound)
+		{
+			return Value;
+		}
+	}
+	return Stamina;
+}
+
+float UGSStaminaComponent::GetMaxStamina() const
+{
+	if (const UAbilitySystemComponent* ASC = GetOwnerASC())
+	{
+		bool bFound = false;
+		const float Value = ASC->GetGameplayAttributeValue(
+			GetDefault<UACFStatisticsSet>()->MaxStaminaAttribute(), bFound);
+		// A zero max would make every ratio and clamp meaningless, so treat it as "not configured"
+		// and fall back rather than dividing the feel of the game by zero.
+		if (bFound && Value > 0.f)
+		{
+			return Value;
+		}
+	}
+	return MaxStamina;
+}
+
+float UGSStaminaComponent::GetStaminaNormalised() const
+{
+	const float Max = GetMaxStamina();
+	return Max > 0.f ? GetStamina() / Max : 0.f;
+}
+
 void UGSStaminaComponent::SetStamina(float NewValue)
 {
-	const float Clamped = FMath::Clamp(NewValue, 0.f, MaxStamina);
-	if (FMath::IsNearlyEqual(Clamped, Stamina))
+	const float Max = GetMaxStamina();
+	const float Clamped = FMath::Clamp(NewValue, 0.f, Max);
+	if (FMath::IsNearlyEqual(Clamped, GetStamina()))
 	{
 		return;
 	}
+
+	// ARS IS THE STORE (#231). The local float is written too so that an owner without an ability
+	// system still works and so the replicated member stays meaningful, but ARS is what everything
+	// reads back through GetStamina().
 	Stamina = Clamped;
+	if (UAbilitySystemComponent* ASC = GetOwnerASC())
+	{
+		const FGameplayAttribute StaminaAttr = GetDefault<UACFStatisticsSet>()->StaminaAttribute();
+		bool bFound = false;
+		ASC->GetGameplayAttributeValue(StaminaAttr, bFound);
+		if (bFound)
+		{
+			ASC->SetNumericAttributeBase(StaminaAttr, Clamped);
+		}
+	}
 
 	// Latch transitions AFTER the value is written, so a listener reading GetStamina() from inside
 	// OnExhausted sees 0 rather than the value from before this frame.
-	if (!bExhausted && Stamina <= 0.f)
+	if (!bExhausted && GetStamina() <= 0.f)
 	{
 		bExhausted = true;
 		DrainRate = 0.f;   // nothing left to drain; stops a caller holding the pool at 0 forever
-		OnStaminaChanged.Broadcast(Stamina, MaxStamina);
+		OnStaminaChanged.Broadcast(GetStamina(), GetMaxStamina());
 		OnExhausted.Broadcast();
 		return;
 	}
 
-	if (bExhausted && Stamina >= MaxStamina * RecoverFraction)
+	if (bExhausted && GetStamina() >= GetMaxStamina() * RecoverFraction)
 	{
 		bExhausted = false;
-		OnStaminaChanged.Broadcast(Stamina, MaxStamina);
+		OnStaminaChanged.Broadcast(GetStamina(), GetMaxStamina());
 		OnRecovered.Broadcast();
 		return;
 	}
 
-	OnStaminaChanged.Broadcast(Stamina, MaxStamina);
+	OnStaminaChanged.Broadcast(GetStamina(), GetMaxStamina());
 }
 
 void UGSStaminaComponent::OnRep_Stamina()
@@ -139,5 +200,5 @@ void UGSStaminaComponent::OnRep_Stamina()
 	// Clients get the number, not the transitions: OnExhausted drives gameplay (letting go of a wall,
 	// drowning) and that is a server decision. Firing it here too would double-handle it on a listen
 	// server and give autonomous clients an authority they do not have.
-	OnStaminaChanged.Broadcast(Stamina, MaxStamina);
+	OnStaminaChanged.Broadcast(GetStamina(), GetMaxStamina());
 }
