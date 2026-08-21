@@ -345,7 +345,16 @@ protected:
 	bool TryActivate(TSubclassOf<UGameplayAbility> AbilityClass);
 
 
-	/** Called once when Health first reaches 0. Notifies GSGameMode::HandleGoblinDeath. */
+	/**
+	 * The GAME consequences of dying: the dead latch, State.Dead, OnDied, and the game mode's pool
+	 * accounting. NOT the presentation - ragdoll, movement lock, capsule collision and corpse
+	 * lifespan are AACFCharacter::HandleCharacterDeath's since #228.
+	 *
+	 * UFUNCTION because it is bound to UACFDamageHandlerComponent::OnOwnerDeath, a dynamic
+	 * multicast delegate. It is no longer called from the health delegate: ARS health reaching zero
+	 * is what starts the chain now.
+	 */
+	UFUNCTION()
 	virtual void HandleDeath();
 
 	/**

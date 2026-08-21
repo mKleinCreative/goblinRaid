@@ -196,6 +196,9 @@ static FAutoConsoleCommandWithWorld GSHordeStatusCmd(
 // with this BEFORE touching R; if it works here and not on the key, the bug is in the input.
 
 #include "Horde/GSHordeCommandComponent.h"
+#include "ACFStatisticsSet.h"
+#include "ACFAttributeSet.h"
+#include "Attributes/GSAttributeSetBase.h"
 #include "Horde/GSHordeOrderTypes.h"
 
 static FAutoConsoleCommandWithWorldAndArgs GSHordeOrderCmd(
@@ -1018,4 +1021,94 @@ static FAutoConsoleCommandWithWorldAndArgs GSCombatCrowdWatchCmd(
 
 			UE_LOG(LogGSAI, Warning, TEXT("[GS.Watch] sampling %.0fs at %.0fHz (%d samples)..."),
 				Seconds, Hz, GSCrowdWatch::SamplesRemaining);
+		}));
+
+
+// ------------------------------------------------------------------- GS.Stats.Dump (#227)
+//
+// ACF Phase 2b runs with TWO attribute pools on purpose for one step: ARS is initialised from
+// DT_GSAttributeInits, while every consumer still reads UGSAttributeSetBase. "The two disagree" is
+// the exact failure ruling 25 exists to catch, and until this command there was NO WAY TO SEE IT -
+// ARS statistics have no runtime readout, and reading one from editor Python needs an FGameplayTag
+// that three attempts failed to construct (#226).
+//
+// Reads through the attribute-set static accessors rather than ACF's tag-keyed getters, so no tag
+// has to be built and a typo is a compile error instead of a silent zero.
+static FAutoConsoleCommandWithWorld GSStatsDumpCmd(
+	TEXT("GS.Stats.Dump"),
+	TEXT("Per character: ARS Health/Stamina/PhysicalDefense beside our Health/MaxHealth/Armor, with "
+		 "a MISMATCH marker when the two health pools disagree."),
+	FConsoleCommandWithWorldDelegate::CreateStatic(
+		[](UWorld* InWorld)
+		{
+			UWorld* World = GSHordeGameWorld(InWorld);
+			if (!World)
+			{
+				UE_LOG(LogGSAI, Warning, TEXT("[GS.Stats] no game world."));
+				return;
+			}
+
+			int32 Rows = 0;
+			int32 Mismatches = 0;
+
+			for (TActorIterator<AGSCharacterBase> It(World); It; ++It)
+			{
+				AGSCharacterBase* Character = *It;
+				if (!IsValid(Character))
+				{
+					continue;
+				}
+
+				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
+				if (!ASC)
+				{
+					UE_LOG(LogGSAI, Warning, TEXT("[GS.Stats] %-28s NO ASC"), *Character->GetName());
+					continue;
+				}
+
+				// ACF's ATTRIBUTE_ACCESSORS generates `HealthAttribute()` as a NON-STATIC const member,
+				// not Epic's static `GetHealthAttribute()` - hence GetDefault<>(). Our own set uses
+				// the Epic macro, so its accessors stay static. The two conventions sit side by side
+				// in the lines below on purpose; it is not a typo.
+				//
+				// bFound is deliberately checked: GetGameplayAttributeValue returns 0 for an attribute
+				// the ASC has never heard of, which is indistinguishable from a real zero. An
+				// unregistered set must read as "-" rather than as a character with no health.
+				bool bFound = false;
+				const float ArsHealth    = ASC->GetGameplayAttributeValue(GetDefault<UACFStatisticsSet>()->HealthAttribute(), bFound);
+				const bool  bArsPresent  = bFound;
+				const float ArsMaxHealth = ASC->GetGameplayAttributeValue(GetDefault<UACFStatisticsSet>()->MaxHealthAttribute(), bFound);
+				const float ArsStamina   = ASC->GetGameplayAttributeValue(GetDefault<UACFStatisticsSet>()->StaminaAttribute(), bFound);
+				const float ArsMaxStam   = ASC->GetGameplayAttributeValue(GetDefault<UACFStatisticsSet>()->MaxStaminaAttribute(), bFound);
+				const float ArsDefense   = ASC->GetGameplayAttributeValue(GetDefault<UACFAttributeSet>()->PhysicalDefenseAttribute(), bFound);
+
+				const float GsHealth     = ASC->GetGameplayAttributeValue(UGSAttributeSetBase::GetHealthAttribute(), bFound);
+				const bool  bGsPresent   = bFound;
+				const float GsMaxHealth  = ASC->GetGameplayAttributeValue(UGSAttributeSetBase::GetMaxHealthAttribute(), bFound);
+				const float GsArmor      = ASC->GetGameplayAttributeValue(UGSAttributeSetBase::GetArmorAttribute(), bFound);
+
+				// Compare MAX health, not current: two pools that start equal diverge the moment one
+				// takes damage, and current-health drift is expected during 2b. A MaxHealth
+				// disagreement means the DATA is wrong, which is what this command is for.
+				const bool bMismatch = bArsPresent && bGsPresent
+					&& !FMath::IsNearlyEqual(ArsMaxHealth, GsMaxHealth, 0.01f);
+				Mismatches += bMismatch ? 1 : 0;
+
+				UE_LOG(LogGSAI, Warning,
+					TEXT("[GS.Stats] %-28s ARS %s%.0f/%.0f hp  %.0f/%.0f stam  def %.0f  |  GS %s%.0f/%.0f hp  armor %.0f%s"),
+					*Character->GetName(),
+					bArsPresent ? TEXT("") : TEXT("(absent) "), ArsHealth, ArsMaxHealth, ArsStamina, ArsMaxStam, ArsDefense,
+					bGsPresent ? TEXT("") : TEXT("(absent) "), GsHealth, GsMaxHealth, GsArmor,
+					bMismatch ? TEXT("   <-- MaxHealth MISMATCH") : TEXT(""));
+				++Rows;
+			}
+
+			const FString Summary = (Rows == 0)
+				? FString(TEXT("GS.Stats.Dump: no characters."))
+				: FString::Printf(TEXT("GS.Stats.Dump: %d character(s), %d MaxHealth mismatch(es)."), Rows, Mismatches);
+			UE_LOG(LogGSAI, Warning, TEXT("[GS.Stats] %s"), *Summary);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 8.f, Mismatches ? FColor::Red : FColor::Green, Summary);
+			}
 		}));

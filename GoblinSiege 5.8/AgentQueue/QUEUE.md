@@ -443,6 +443,9 @@ _Queue is empty. The build gate is OPEN._
 | 223 | done | claude-acf | ACF Phase 2a: AGSCharacterBase reparents to AACFCharacter, one ASC |
 | 224 | abandoned | claude-warren | Horn: tap summons one, hold streams the squad out of the Warren (supplement to 222) |
 | 225 | done **UNOBSERVED** | claude-acf | ACF Phase 2c: audit the class-identity checks against the AACFCharacter reparent |
+| 226 | done | claude-acf | ACF Phase 2b-1: author the ARS attribute DataTable for all six archetypes |
+| 227 | done | claude-acf | GS.Stats.Dump: read ARS and GS attributes side by side |
+| 228 | done | claude-acf | ACF Phase 2b-1b: health consumers move to ARS, death routed through ACF |
 
 <!-- BOARD:END -->
 

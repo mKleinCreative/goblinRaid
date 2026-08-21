@@ -1,6 +1,10 @@
 #include "Characters/GSCharacterBase.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "Combat/GSEngagementComponent.h"
+#include "ACFStatisticsSet.h"
+#include "Components/ACFDamageHandlerComponent.h"
+#include "ACFAttributeSet.h"
+#include "ACFPrimaryAttributeSet.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
@@ -67,6 +71,18 @@ AGSCharacterBase::AGSCharacterBase(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
+	// ---- ACF'S DEATH PRESENTATION, SET TO MATCH WHAT WE ALREADY SHIPPED (#228) -----------------
+	//
+	// ACF defaults DeathType to EDeathAction, which calls ForceAction(GetDefaultDeathState()) - a
+	// death MONTAGE. We have never authored one, so the default would have produced a corpse that
+	// simply stands there: no ragdoll, no montage, nothing. EGoRagdoll reproduces the behaviour
+	// bRagdollOnDeath has always given.
+	//
+	// bDisableCapsuleOnDeath already defaults true, matching what our HandleDeath did by hand.
+	// bAutoDestroyOnDeath stays false to match CorpseLifespan = 0 (corpses persist); if that value
+	// ever changes, DestroyTimeOnDeath is the ACF-side equivalent to change with it.
+	DeathType = EDeathType::EGoRagdoll;
+
 	// NO ASC CREATED HERE ANY MORE (#223). AACFCharacter's constructor already builds ActionsComp,
 	// and GetAbilitySystemComponent() returns it. Creating a second one is the two-health-bars bug.
 	// AbilitySystemComponent is cached from it in PostInitializeComponents.
@@ -85,7 +101,19 @@ AGSCharacterBase::AGSCharacterBase(const FObjectInitializer& ObjectInitializer)
 	// health - CharacterRow is empty or points to a missing DataTable row." Turning this off keeps
 	// ACF's StatisticsComp dormant while OUR UGSAttributeSetBase remains the only live attribute
 	// source. Phase 2b authors the DataAssets and turns it back on.
-	SetAutoInit(false);
+	// ACF's initialiser is ON as of Phase 2b-1 (2026-08-21, #226). Every character Blueprint now has a
+	// UACFCharacterDataAsset whose CharacterRow points at DT_GSAttributeInits, so ARS initialises
+	// Health/MaxHealth/PhysicalDefense and the five RPG primaries from authored data instead of
+	// leaving every statistic at zero.
+	//
+	// Safe despite the DataAssets carrying an EMPTY MeshComponents array: ApplyAppearence iterates
+	// that array, so an empty one applies nothing rather than wiping the character's meshes
+	// (ACFCharacterInitializerComponent.cpp:286).
+	//
+	// NOTE THE INTERMEDIATE STATE THIS CREATES: ARS health is now real AND UGSAttributeSetBase health
+	// is still what every consumer reads. Two pools, knowingly, for one step - 2b-1's remaining half
+	// moves the consumers over and deletes ours. Do not leave it here.
+	SetAutoInit(true);
 
 	// On the base, so the player is rationed by exactly the same rules as everyone else. A crowd
 	// that visibly takes turns on a militiaman but mobs the player would be the first thing anyone
@@ -164,6 +192,38 @@ void AGSCharacterBase::PostInitializeComponents()
 	// One ASC, and it is ACF's. Cached here rather than in BeginPlay because PossessedBy can fire
 	// first on a server-spawned pawn, and that path dereferences this pointer immediately.
 	AbilitySystemComponent = Super::GetAbilitySystemComponent();
+
+	// ---- REGISTER ACF'S ATTRIBUTE SETS (#227, 2026-08-21) ---------------------------------------
+	//
+	// ACF never creates its own attribute sets in C++. It relies on GAS's DefaultStartingData, an
+	// EditAnywhere array on UAbilitySystemComponent that nobody had configured - so
+	// UACFStatisticsSet, UACFAttributeSet and UACFPrimaryAttributeSet were never registered, and
+	// UACFGASStatisticsComponent::InitAttributesFromDT skips every attribute whose set is missing:
+	//
+	//     if (!abilityComp->HasAttributeSetForAttribute(attribute.Attribute)) { continue; }
+	//     (ACFGASStatisticsComponent.cpp:120)
+	//
+	// So the whole DT_GSAttributeInits table was being read and silently discarded, row by row. It
+	// took GS.Stats.Dump printing "ARS (absent)" to see it; nothing logged, nothing failed.
+	//
+	// Done here in C++ rather than as data on six Blueprints so a new character cannot be authored
+	// without it - a missing entry is invisible until something reads a statistic and gets zero.
+	// Runs in PostInitializeComponents, which is before the statistics component's BeginPlay reads
+	// this array.
+	if (AbilitySystemComponent && AbilitySystemComponent->DefaultStartingData.IsEmpty())
+	{
+		for (const TSubclassOf<UAttributeSet>& SetClass :
+			{ TSubclassOf<UAttributeSet>(UACFStatisticsSet::StaticClass()),
+			  TSubclassOf<UAttributeSet>(UACFAttributeSet::StaticClass()),
+			  TSubclassOf<UAttributeSet>(UACFPrimaryAttributeSet::StaticClass()) })
+		{
+			FAttributeDefaults Defaults;
+			Defaults.Attributes = SetClass;
+			// No DefaultStartingTable: the VALUES come from DT_GSAttributeInits through ACF's own
+			// initialiser. This array exists here only to make the sets EXIST.
+			AbilitySystemComponent->DefaultStartingData.Add(Defaults);
+		}
+	}
 }
 
 void AGSCharacterBase::BeginPlay()
@@ -177,11 +237,27 @@ void AGSCharacterBase::BeginPlay()
 
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UGSAttributeSetBase::GetHealthAttribute())
+		// Watches ARS's Health now (#228), so hit reactions still fire on the attribute that
+		// actually moves.
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			GetDefault<UACFStatisticsSet>()->HealthAttribute())
 			.AddUObject(this, &AGSCharacterBase::HandleHealthChanged);
 
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute())
 			.AddUObject(this, &AGSCharacterBase::HandleMoveSpeedMultiplierChanged);
+	}
+
+	// DEATH IS ACF'S (#228, Michael's ruling: ACF owns death entirely). ARS health reaching zero
+	// fires UACFGASStatisticsComponent::HandleHealthReachesZero, which ends at
+	// AACFCharacter::HandleCharacterDeath - ragdoll or death montage, equipment drop, movement
+	// disabled, capsule collision off, lifespan. We hang only the GAME consequences off it: the
+	// dead latch, the State.Dead tag, OnDied, and the game mode's pool accounting.
+	if (UACFDamageHandlerComponent* DamageHandler = FindComponentByClass<UACFDamageHandlerComponent>())
+	{
+		if (!DamageHandler->OnOwnerDeath.IsAlreadyBound(this, &AGSCharacterBase::HandleDeath))
+		{
+			DamageHandler->OnOwnerDeath.AddDynamic(this, &AGSCharacterBase::HandleDeath);
+		}
 	}
 
 	ApplyMoveSpeed();
@@ -251,11 +327,33 @@ void AGSCharacterBase::InitializeAttributesFromEffect(TSubclassOf<UGameplayEffec
 
 float AGSCharacterBase::GetHealth() const
 {
+	// ARS IS THE SOURCE OF TRUTH (#228). Repointing these two accessors is what moved the HUD, the
+	// field-fire objective and the burn debug command in one edit - they all read through here.
+	if (AbilitySystemComponent)
+	{
+		bool bFound = false;
+		const float Value = AbilitySystemComponent->GetGameplayAttributeValue(
+			GetDefault<UACFStatisticsSet>()->HealthAttribute(), bFound);
+		if (bFound)
+		{
+			return Value;
+		}
+	}
 	return AttributeSetBase ? AttributeSetBase->GetHealth() : 0.f;
 }
 
 float AGSCharacterBase::GetMaxHealth() const
 {
+	if (AbilitySystemComponent)
+	{
+		bool bFound = false;
+		const float Value = AbilitySystemComponent->GetGameplayAttributeValue(
+			GetDefault<UACFStatisticsSet>()->MaxHealthAttribute(), bFound);
+		if (bFound)
+		{
+			return Value;
+		}
+	}
 	return AttributeSetBase ? AttributeSetBase->GetMaxHealth() : 0.f;
 }
 
@@ -485,6 +583,19 @@ void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 	// The dynamic mirror of GAS's non-dynamic attribute delegate. Everything Blueprint-side - the
 	// health bar above all - listens here, because the GAS delegate itself cannot be bound from
 	// Blueprint or UMG at all.
+	// MIRROR (#228). ARS owns health; this keeps UGSAttributeSetBase's copy truthful for anything
+	// still reading it - nine character Blueprints reference the set and a binary grep cannot tell
+	// which of them touch Health specifically. MaxHealth first: our PreAttributeChange clamps
+	// Health against it, so a stale max would clip the mirrored value.
+	//
+	// Deleting these two attributes is a follow-up once BP usage is confirmed clear. Until then
+	// GS.Stats.Dump comparing the two pools is a live check that this mirror is working.
+	if (AttributeSetBase)
+	{
+		AttributeSetBase->SetMaxHealth(MaxHealth);
+		AttributeSetBase->SetHealth(Data.NewValue);
+	}
+
 	OnHealthChanged.Broadcast(Data.NewValue, MaxHealth, Delta);
 
 	// Resolve the attacker BEFORE anything gates on damage size. This read used to live inside the
@@ -510,9 +621,14 @@ void AGSCharacterBase::HandleHealthChanged(const FOnAttributeChangeData& Data)
 		OnDamaged.Broadcast(Attacker, -Delta);
 	}
 
-	if (!bIsDead && Data.NewValue <= 0.f)
+	// DEATH IS NO LONGER DETECTED HERE (#228). ARS health reaching zero fires ACF's
+	// HandleHealthReachesZero -> death -> UACFDamageHandlerComponent::OnOwnerDeath, which
+	// HandleDeath is bound to in BeginPlay. Calling it here as well would run every consequence
+	// twice - two pool decrements, two OnDied broadcasts.
+	//
+	// The early return it used to do still matters though: a corpse should not flinch.
+	if (bIsDead || Data.NewValue <= 0.f)
 	{
-		HandleDeath();
 		return;
 	}
 
@@ -646,6 +762,30 @@ void AGSCharacterBase::HandleDeath()
 	//    corpse up in the air while the mesh flops underneath it, which is the classic "floating
 	//    dead body" bug. Mesh needs a PhysicsAsset - if one is missing the engine warns and the
 	//    body simply stays in its last pose, which is survivable rather than fatal.
+	// RAGDOLL, MOVEMENT LOCK, CAPSULE COLLISION AND CORPSE LIFESPAN ARE ACF'S NOW (#228).
+	// AACFCharacter::HandleCharacterDeath does all four off the same OnOwnerDeath this function is
+	// bound to (ACFCharacter.cpp:430-455): DeathType picks a montage or GoRagdollFromDamage,
+	// movement is disabled, the capsule stops blocking Pawn and Camera, and bAutoDestroyOnDeath /
+	// DestroyTimeOnDeath handle the corpse.
+	//
+	// RAGDOLL CAME BACK TO US (2026-08-21). Handing it to ACF was the ruling, and ACF cannot honour
+	// it yet:
+	//
+	//     void UACFRagdollComponent::GoRagdollFromDamage(const FACFDamageEvent& damageEvent, ...)
+	//     {
+	//         if (!damageEvent.DamageClass) { return; }        // ACFRagdollComponent.cpp:92
+	//
+	// That damage event is ACF's `LastDamageReceived`, populated ONLY by
+	// UACFDamageHandlerComponent::TakeDamage. Our damage does not flow through ACF's pipeline, so
+	// DamageClass is null, the ragdoll returns immediately, and the corpse keeps its idle pose -
+	// while bDisableCapsuleOnDeath has already turned the capsule off, so it sinks through the
+	// floor. Exactly what Michael watched: "feet through the floor and they are in their idle pose
+	// for death".
+	//
+	// So ACF STILL OWNS DEATH - the trigger, the movement lock, the capsule, the lifespan - and we
+	// own the ragdoll until Phase 2b-2 routes damage through ACF's damage handler. At that point
+	// LastDamageReceived becomes real, GoRagdollFromDamage starts working, and this block should be
+	// deleted rather than left as a second ragdoll authority.
 	if (bRagdollOnDeath)
 	{
 		if (UCapsuleComponent* Capsule = GetCapsuleComponent())
@@ -716,7 +856,9 @@ void AGSCharacterBase::KillOutright()
 	// non-combat death (a debug command, a drowning) with no instigator, no damage type and nothing
 	// for UGSDamageExecCalculation's armour or blocking rules to act on. Routing it through damage
 	// would invite a raised shield to survive a drowning.
-	AbilitySystemComponent->SetNumericAttributeBase(UGSAttributeSetBase::GetHealthAttribute(), 0.f);
+	// EXACTLY zero - ACF's death test is `NewValue == 0.f` (ACFGASStatisticsComponent.cpp:496).
+	AbilitySystemComponent->SetNumericAttributeBase(
+		GetDefault<UACFStatisticsSet>()->HealthAttribute(), 0.f);
 }
 
 void AGSCharacterBase::DebugKill()
@@ -741,7 +883,9 @@ void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float Invulnerabi
 
 	if (AttributeSetBase)
 	{
-		AttributeSetBase->SetHealth(AttributeSetBase->GetMaxHealth() * FMath::Clamp(HealthFraction, 0.f, 1.f));
+		AbilitySystemComponent->SetNumericAttributeBase(
+			GetDefault<UACFStatisticsSet>()->HealthAttribute(),
+			GetMaxHealth() * FMath::Clamp(HealthFraction, 0.f, 1.f));
 	}
 
 	// 2026-08-02: HandleDeath now ragdolls and locks input, so respawn has to put all of that back.

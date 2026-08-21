@@ -2,6 +2,8 @@
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 #include "Characters/GSCharacterBase.h"
+#include "ACFStatisticsSet.h"
+#include "AbilitySystemComponent.h"
 
 UGSAttributeSetBase::UGSAttributeSetBase()
 {
@@ -52,9 +54,31 @@ void UGSAttributeSetBase::PostGameplayEffectExecute(const FGameplayEffectModCall
 					const_cast<AActor*>(Data.EffectSpec.GetContext().GetInstigator()));
 			}
 
-			SetHealth(FMath::Clamp(GetHealth() - Damage, 0.f, GetMaxHealth()));
-			// Death detection lives in AGSCharacterBase::HandleHealthChanged via the Health
-			// attribute-changed delegate - not here - so AI and players share one code path.
+			// ARS OWNS HEALTH AS OF #228. The damage lands on UACFStatisticsSet::Health, not on this
+			// set's Health, which is now a read-only mirror kept in step by
+			// AGSCharacterBase::HandleHealthChanged.
+			//
+			// CLAMPED TO EXACTLY ZERO ON PURPOSE. ACF's death trigger is
+			// UACFGASStatisticsComponent::HandleHealthReachesZero, and it tests
+			// `Data.NewValue == 0.f` - an exact float comparison
+			// (ACFGASStatisticsComponent.cpp:496). A clamp that left 0.0001 health would leave the
+			// character alive at zero HP forever, with nothing in any log to say why.
+			if (UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent())
+			{
+				const FGameplayAttribute HealthAttr = GetDefault<UACFStatisticsSet>()->HealthAttribute();
+				const FGameplayAttribute MaxAttr = GetDefault<UACFStatisticsSet>()->MaxHealthAttribute();
+				bool bFound = false;
+				const float Current = ASC->GetGameplayAttributeValue(HealthAttr, bFound);
+				if (bFound)
+				{
+					const float Max = ASC->GetGameplayAttributeValue(MaxAttr, bFound);
+					ASC->SetNumericAttributeBase(HealthAttr, FMath::Clamp(Current - Damage, 0.f, Max));
+				}
+			}
+			// Death is ACF's now: draining the attribute above fires its health-reaches-zero
+			// delegate, which ends at AACFCharacter::HandleCharacterDeath. AGSCharacterBase binds
+			// its own consequences to UACFDamageHandlerComponent::OnOwnerDeath rather than watching
+			// health itself.
 		}
 	}
 }

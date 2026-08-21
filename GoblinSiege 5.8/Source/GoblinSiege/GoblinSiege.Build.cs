@@ -72,6 +72,11 @@ public class GoblinSiege : ModuleRules
 			// link fails.
 			"CharacterController",
 
+			// AscentGASRuntime (#227). GS.Stats.Dump reads UACFStatisticsSet / UACFAttributeSet
+			// through their ATTRIBUTE_ACCESSORS statics, which is a CALL into that module, not just
+			// a derive - so it must be linked.
+			"AscentGASRuntime",
+
 			// Destruction & FX
 			"GeometryCollectionEngine",
 			"FieldSystemEngine",

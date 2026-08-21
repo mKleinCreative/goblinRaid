@@ -1,6 +1,7 @@
 #include "Missions/GSObjective_KillLandlord.h"
 #include "Characters/GSCharacterBase.h"
 #include "Attributes/GSAttributeSetBase.h"
+#include "ACFStatisticsSet.h"
 #include "Core/GSGameState.h"
 #include "AbilitySystemComponent.h"
 #include "AIController.h"
@@ -23,7 +24,7 @@ void AGSObjective_KillLandlord::BeginObjective()
 	{
 		// AddUObject, not AddDynamic - see header note on the non-dynamic multicast.
 		LandlordPawn->GetAbilitySystemComponent()
-			->GetGameplayAttributeValueChangeDelegate(UGSAttributeSetBase::GetHealthAttribute())
+			->GetGameplayAttributeValueChangeDelegate(GetDefault<UACFStatisticsSet>()->HealthAttribute())   // ARS owns health (#228)
 			.AddUObject(this, &AGSObjective_KillLandlord::HandleLandlordHealthChanged);
 	}
 
