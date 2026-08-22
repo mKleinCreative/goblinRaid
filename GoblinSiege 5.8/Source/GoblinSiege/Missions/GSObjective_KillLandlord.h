@@ -1,7 +1,7 @@
 // "Kill the Landlord (designed): a named human authority figure... holds up somewhere in the
 // city, guarded. Assassination objective... He should react to the raid: flee toward a safehouse
 // or the far gate under escort once alarmed" (design doc §6). Reuses the same alarm/spawner/
-// extraction backbone as Burn the Granaries with a target-and-hunt flavor.
+// extraction backbone as Topple the Statue with a target-and-hunt flavor.
 //
 // Open question per design doc §11: "how aggressively should he flee - a slow retreat you can cut
 // off, or a real footrace with an escort?" - bFleeOnAlarmThreshold below is the tuning knob for
@@ -29,7 +29,7 @@ protected:
 	void HandleAlarmChanged(float NewAlarm01);
 
 	/** The specific landlord pawn placed in the level - assigned by the level (via a tagged actor
-	 *  lookup, matching AGSObjective_BurnGranaries' pattern) rather than a hard reference here. */
+	 *  lookup, matching AGSObjective_ToppleStatue's pattern) rather than a hard reference here. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Missions")
 	FName LandlordActorTag = TEXT("Objective.Landlord");
 

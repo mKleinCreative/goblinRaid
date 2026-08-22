@@ -65,8 +65,42 @@ class Building:
 @dataclass
 class Objective:
     id: str
-    kind: str                      # granary | field | windmill
+    kind: str                      # market | statue | windmill | field | house
     rect: Rect
+    # 2.8: the raid assigns three REQUIRED objectives (one market, one statue, one windmill)
+    # and gates extraction on those. Wheat fields and houses are optional — worth points,
+    # never gating. Only the required three are counted by check_objective_mix.
+    required: bool = True
+    # 2.8: "The statue is the one target that doesn't burn: it has to be brought down, stone
+    # on stone." Every other objective is a burn. The evaluator enforces this.
+    destruction: str = "fire"      # fire | topple
+
+
+# GDD 2.8, revised 2026-08-14 (queue #156). The raid assigns three required objectives; the
+# hand-authored tutorial hamlet carries one of each, and a generated hamlet may roll two of
+# a kind but never three (1: "a randomized mix across many hamlets, never more than two of
+# a kind, is the post-slice generator's job"). This generator IS that post-slice job.
+REQUIRED_KINDS = ("market", "statue", "windmill")
+OPTIONAL_KINDS = ("field", "house")
+
+# Aisle between market stalls, and the border between the outermost stall and the edge of
+# the market objective's footprint. One goblin-width of walking room.
+STALL_GAP = 200.0
+
+# Walking room the generator leaves between a placed anchor and the next thing it sites.
+# Matches the evaluator's BUILDING_MARGIN with room to spare, so a plan does not generate
+# overlaps the refiner then has to spend its three passes undoing.
+BUILDING_CLEARANCE = 600.0
+
+# 2.8: "The statue is the one target that doesn't burn: it has to be brought down, stone on
+# stone." Everything else on the roster is a burn.
+DESTRUCTION = {
+    "market": "fire",
+    "statue": "topple",
+    "windmill": "fire",
+    "field": "fire",
+    "house": "fire",
+}
 
 
 @dataclass
@@ -432,36 +466,94 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
     # dimensions arrived.
     def free_spot(rect_w: float, rect_h: float, r_lo: float, r_hi: float,
                   tries: int = 60) -> tuple[float, float] | None:
+        # Rejects against objectives as well as buildings. Objectives are anchors — the
+        # statue stands where the guards are thickest and cannot be shoved (2.8) — so a
+        # house placed on top of one is a house the refiner has to move later, and with
+        # three required objectives plus the optional fields there is no longer slack for
+        # that. Generating the overlap and then repairing it is not cheaper than not
+        # generating it: the same arithmetic, run once instead of three times.
         for _ in range(tries):
             a = rng.uniform(0, 2 * math.pi)
             r = rng.uniform(r_lo, r_hi)
             cx, cy = center[0] + r * math.cos(a), center[1] + r * math.sin(a)
             cand = Rect(cx - rect_w / 2, cy - rect_h / 2, rect_w, rect_h)
-            if not any(cand.overlaps(b.rect, 250.0) for b in plan.buildings):
-                return (cand.x, cand.y)
+            if any(cand.overlaps(b.rect, 250.0) for b in plan.buildings):
+                continue
+            if any(cand.overlaps(o.rect, 250.0) for o in plan.objectives):
+                continue
+            return (cand.x, cand.y)
         return None
 
-    # --- objectives: exactly three, max two of a kind ---------------------------------
-    kinds = ["granary", "field", "windmill"]
+    # --- objectives: exactly three required, max two of a kind ------------------------
+    # The roster is Market / Statue / Windmill (2.8, revised 2026-08-14). The granary this
+    # generator used to roll was removed from the GDD entirely — it never had a mesh, a
+    # Blueprint or a placed instance — and the wheat field was demoted to optional in the
+    # same ruling. See PRE_BUILD_DECLARATION.md's addendum.
+    kinds = ["market", "statue", "windmill"]
     if rng.random() < 0.35:                       # sometimes roll a duplicate, still legal
-        kinds = rng.sample(["granary", "field", "windmill"], 2) + [rng.choice(["granary", "field"])]
+        kinds = rng.sample(REQUIRED_KINDS, 2) + [rng.choice(REQUIRED_KINDS)]
         rng.shuffle(kinds)
+
+    def free_angle(used: list[float]) -> float:
+        for _ in range(200):
+            a = rng.uniform(0, 2 * math.pi)
+            if all(abs(((a - u + math.pi) % (2 * math.pi)) - math.pi) > 0.9 for u in used):
+                return a
+        return rng.uniform(0, 2 * math.pi)   # crowded ring; take what we can get
+
+    def anchor_spot(a: float, r_lo: float, r_hi: float,
+                    size: tuple[float, float]) -> tuple[float, float]:
+        """
+        Objectives are anchors — placed first, never moved by the refiner (2.8). So they must
+        not be generated on top of each other or on the well. Walk out along the bearing
+        until the footprint is clear rather than trusting an angular gap: a 0.9 rad
+        separation means nothing when one footprint is a 500cm plinth and the next is a
+        windmill whose sails sweep 5354.
+        """
+        for _ in range(40):
+            r = rng.uniform(r_lo, r_hi)
+            for step in range(12):
+                rr = r + step * 600.0
+                cand = Rect(center[0] + rr * math.cos(a) - size[0] / 2,
+                            center[1] + rr * math.sin(a) - size[1] / 2, size[0], size[1])
+                clash = (any(cand.overlaps(b.rect, 250.0) for b in plan.buildings)
+                         or any(cand.overlaps(o.rect, 250.0) for o in plan.objectives))
+                if not clash:
+                    return (cand.x, cand.y)
+        rr = r_hi
+        return (center[0] + rr * math.cos(a) - size[0] / 2,
+                center[1] + rr * math.sin(a) - size[1] / 2)
 
     used_angles: list[float] = []
     for i, kind in enumerate(kinds):
-        while True:
-            a = rng.uniform(0, 2 * math.pi)
-            if all(abs(((a - u + math.pi) % (2 * math.pi)) - math.pi) > 0.9 for u in used_angles):
-                break
+        a = free_angle(used_angles)
         used_angles.append(a)
-        if kind == "granary":
-            r = rng.uniform(900, 1800)            # 2.8: granary sits where guards are thickest
-            size = (mw * 2, mh * 2)
-        elif kind == "field":
-            r = rng.uniform(4200, 6200)           # fields sprawl at the hamlet's edges
-            size = (mw * 6, mh * 6)
+        if kind == "statue":
+            # 2.8: the king's statue stands in the village square, "sitting where the guards
+            # are thickest". Same central band the granary used to occupy, for the same
+            # reason — it is an anchor the refiner may not shove.
+            r_lo, r_hi = 900.0, 1800.0
+            size = (mw, mh)                       # a plinth, not a building
+        elif kind == "market":
+            # 2.8: the market is the other objective in the village core — "two of your three
+            # targets in the one place you least want to linger".
+            #
+            # The market IS its stalls ("burn the stalls and you burn the hamlet's
+            # livelihood"), so the footprint is measured from the stall cluster rather than
+            # chosen, the same way the windmill takes its footprint from the measured prefab.
+            # This also mirrors the runtime class: GSMarketObjective carries a Stalls array
+            # and auto-adopts the cluster around it.
+            r_lo, r_hi = 1200.0, 2400.0
+            n_stalls = rng.randint(2, 4)
+            if kit.role("market"):
+                sw, sh = kit.one("market").footprint
+                span = n_stalls * sw + (n_stalls - 1) * STALL_GAP
+                size = (span + STALL_GAP * 2, sh + STALL_GAP * 2)
+            else:
+                n_stalls = 0
+                size = (mw * 2, mh * 2)
         else:
-            r = rng.uniform(3400, 5200)           # the windmill is the landmark
+            r_lo, r_hi = 3400.0, 5200.0           # the windmill is the landmark
             # Sized from the MEASURED prefab, not from the module grid. The base is
             # 1709 x 1607 and the sail sweeps 5354 — a 2-module box would have let the
             # overlap check pass a windmill whose sails scythe through a farmhouse.
@@ -472,10 +564,11 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
                 size = (fw, fh)
             else:
                 size = (mw * 2, mh * 2)
-        ox = center[0] + r * math.cos(a) - size[0] / 2
-        oy = center[1] + r * math.sin(a) - size[1] / 2
+        ox, oy = anchor_spot(a, r_lo, r_hi, size)
         plan.objectives.append(Objective(id=f"obj_{i}_{kind}", kind=kind,
-                                         rect=Rect(ox, oy, size[0], size[1])))
+                                         rect=Rect(ox, oy, size[0], size[1]),
+                                         required=True,
+                                         destruction=DESTRUCTION[kind]))
         if kind == "windmill":
             wm = place_prefab(kit, "windmill", ox + size[0] / 2, oy + size[1] / 2,
                               f"windmill_{i}", "windmill")
@@ -483,10 +576,47 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
                 wm.rect = plan.objectives[-1].rect   # the objective owns the footprint
                 wm.objective_id = plan.objectives[-1].id
                 plan.buildings.append(wm)
+        elif kind == "market" and n_stalls:
+            # Stalls sit INSIDE the objective footprint and carry its objective_id, so the
+            # overlap check does not report the market colliding with itself — the same
+            # linkage the windmill needed.
+            sw, sh = kit.one("market").footprint
+            for s in range(n_stalls):
+                sx = ox + STALL_GAP + s * (sw + STALL_GAP) + sw / 2
+                sy = oy + size[1] / 2
+                st = place_prefab(kit, "market", sx, sy, f"stall_{i}_{s}", "market")
+                if st:
+                    st.objective_id = plan.objectives[-1].id
+                    plan.buildings.append(st)
 
+    # --- optional objectives: wheat fields ---------------------------------------------
+    # 2.8: fields and houses are "worth points but not gating extraction". They sprawl at
+    # the hamlet's edges, and the cover guarantee applies to them too — 2.8 says broken
+    # sightlines between the treeline and EVERY objective, not every required one.
+    for i in range(rng.randint(1, 2)):
+        a = free_angle(used_angles)
+        used_angles.append(a)
+        size = (mw * 6, mh * 6)
+        ox, oy = anchor_spot(a, 4200.0, 6200.0, size)   # fields sprawl at the edges
+        plan.objectives.append(Objective(id=f"opt_{i}_field", kind="field",
+                                         rect=Rect(ox, oy, size[0], size[1]),
+                                         required=False,
+                                         destruction=DESTRUCTION["field"]))
 
     n_houses = rng.randint(5, 8)
-    house_ring = (mw * 3.0, mw * 7.0)
+    # The house ring starts OUTSIDE the core objectives, derived from where they actually
+    # landed rather than typed. The statue and the market stand in the village square (2.8);
+    # a ring that starts inside them wraps houses around the square and walls the statue in,
+    # which the reachability check correctly calls an unwinnable raid. Measuring the ring off
+    # the placed anchors is the same discipline kit.json applies to mesh footprints.
+    core_reach = 0.0
+    for o in plan.objectives:
+        if o.kind in ("statue", "market"):
+            for cx, cy in ((o.rect.x, o.rect.y), (o.rect.x2, o.rect.y),
+                           (o.rect.x, o.rect.y2), (o.rect.x2, o.rect.y2)):
+                core_reach = max(core_reach, math.dist((cx, cy), center))
+    ring_lo = max(mw * 3.0, core_reach + BUILDING_CLEARANCE)
+    house_ring = (ring_lo, ring_lo + mw * 4.0)
     for i in range(n_houses):
         # ONE module wide, deliberately. The measured roof set spans 766 cm from eave to
         # eave, which roofs a 500 cm module with proper overhang and cannot reach across
@@ -509,16 +639,8 @@ def generate_settlement(kit: Kit, seed: int) -> Plan:
             pc.bb = (pc.bb[0] + dx, pc.bb[1] + dy, pc.bb[2] + dx, pc.bb[3] + dy)
         plan.buildings.append(probe)
 
-    if kit.role("market"):
-        sw, sh = kit.one("market").footprint
-        for i in range(rng.randint(2, 4)):
-            spot = free_spot(sw, sh, mw * 1.2, mw * 2.6)
-            if spot is None:
-                continue
-            st = place_prefab(kit, "market", spot[0] + sw / 2, spot[1] + sh / 2,
-                              f"stall_{i}", "market")
-            if st:
-                plan.buildings.append(st)
+    # Market stalls are no longer scattered here — they belong to the market objective and
+    # are placed inside its footprint above (2.8: the market IS the stalls).
 
     # --- farmstead: barn + coop out past the houses -----------------------------------
     for role, kind in (("barn", "barn"), ("coop", "coop")):

@@ -49,10 +49,12 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_GuardPost, "Marker.GuardPost", "Where a defender stands watch. Facing is load-bearing - the arrow is the post's look direction.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_PatrolNode, "Marker.PatrolNode", "One node of a patrol loop. GroupId names the loop, OrderIndex is walking order.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_CivilianAnchor, "Marker.CivilianAnchor", "A civilian's daily-routine anchor - the well, a stall, a pen.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_CoverProp, "Marker.CoverProp", "A prop placed to break a sightline, per the cover-guarantee rule (GDD §2.8).");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_CoverProp, "Marker.CoverProp", "A prop placed to break a sightline, per the cover-guarantee rule (GDD 2.4, restated 3.1).");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_HordeArrival, "Marker.HordeArrival", "Treeline edge the horde walks in from when the horn is blown.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Field, "Marker.ObjectiveAnchor.Field", "Where a wheat field belongs.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Mill, "Marker.ObjectiveAnchor.Mill", "Where a windmill belongs - wants a flat, visible rise.");
+	// Required trio (2.8, revised 2026-08-14). Granary retired with that ruling.
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Market, "Marker.ObjectiveAnchor.Market", "Where the market square belongs - the village heart.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Granary, "Marker.ObjectiveAnchor.Granary", "Where a granary belongs - where the guards are thickest.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Statue, "Marker.ObjectiveAnchor.Statue", "Where the king's statue belongs - the village square, where the guards are thickest. Toppled, never burned.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Mill, "Marker.ObjectiveAnchor.Mill", "Where a windmill belongs - wants a flat, visible rise.");
+	// Optional (2.8).
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Field, "Marker.ObjectiveAnchor.Field", "Where a wheat field belongs.");
 }

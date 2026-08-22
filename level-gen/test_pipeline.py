@@ -6,8 +6,11 @@ Fixture tests for the GER loop. No pytest, no editor, no API key:
 
 The important one is test_planted_cover_failure. Assignment #6 asks whether the pipeline
 caught something you would have missed — a claim only worth as much as the demonstration
-behind it. So the fixture plants the exact failure from the Pre-Build Declaration (a granary
-in open sight of the treeline), proves the evaluator fails it, and proves the refiner clears it.
+behind it. So the fixture plants the exact failure from the Pre-Build Declaration — an
+objective in open sight of the treeline, standing in the village square where the guards are
+thickest — proves the evaluator fails it, and proves the refiner clears it. The declaration
+named that objective the granary; the granary left the GDD on 2026-08-14 and the statue took
+its place and its position, so the fixture now plants a statue. Same failure, current roster.
 """
 
 from __future__ import annotations
@@ -41,15 +44,25 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 
 def bare_plan() -> Plan:
-    """A hamlet with one objective and NOTHING to hide it. The planted failure."""
+    """A hamlet with the required trio and NOTHING to hide them. The planted failure."""
     p = Plan(seed=999, synthetic_kit=True, site=Rect(-12000, -12000, 24000, 24000),
              center=(0.0, 0.0), treeline_radius=9000.0, runic_site=(9500.0, 0.0))
-    p.objectives.append(Objective(id="obj_0_granary", kind="granary",
-                                  rect=Rect(-500, -400, 1000, 800)))
-    p.objectives.append(Objective(id="obj_1_field", kind="field",
-                                  rect=Rect(3000, 3000, 3000, 3000)))
+    # The statue stands in the village square, in the open — the declaration's failure,
+    # staged deliberately. (Written against the granary in August; the granary left the GDD
+    # on 2026-08-14 and the statue took its place and its position. Same failure.)
+    p.objectives.append(Objective(id="obj_0_statue", kind="statue",
+                                  rect=Rect(-500, -400, 1000, 800),
+                                  required=True, destruction="topple"))
+    p.objectives.append(Objective(id="obj_1_market", kind="market",
+                                  rect=Rect(2500, -400, 1400, 800),
+                                  required=True, destruction="fire"))
     p.objectives.append(Objective(id="obj_2_windmill", kind="windmill",
-                                  rect=Rect(-4600, 1200, 1000, 1000)))
+                                  rect=Rect(-4600, 1200, 1000, 1000),
+                                  required=True, destruction="fire"))
+    # Optional, and therefore outside the count of three (2.8).
+    p.objectives.append(Objective(id="opt_0_field", kind="field",
+                                  rect=Rect(3000, 3000, 3000, 3000),
+                                  required=False, destruction="fire"))
     p.roads.append((9000.0, 0.0, 0.0, 0.0))
     p.signposts.append((3000.0, 0.0))
     return p
@@ -60,11 +73,12 @@ def test_planted_cover_failure() -> None:
     p = bare_plan()
     ev = evaluate(p)
     cover = [f for f in ev["findings"] if f["check"] == "cover_guarantee"]
-    check("evaluator FAILS a granary standing in the open", len(cover) >= 1,
+    check("evaluator FAILS a statue standing in the open", len(cover) >= 1,
           f"{len(cover)} arc finding(s)")
     check("the failure is attributed to the right objective",
-          any(f["fix"]["objective"] == "obj_0_granary" for f in cover))
-    check("the finding cites GDD 2.8", all(f["gdd"] == "2.8" for f in cover))
+          any(f["fix"]["objective"] == "obj_0_statue" for f in cover))
+    check("the finding cites GDD 2.4, where the rule is written",
+          all(f["gdd"] == "2.4" for f in cover))
 
     # Now let the refiner close it, the same way the pipeline would.
     for pass_no in (1, 2, 3):
@@ -96,15 +110,49 @@ def test_evaluator_is_not_vacuous() -> None:
 def test_objective_mix_rule() -> None:
     print("\ntest_objective_mix_rule — GDD 2.8: three, never more than two of a kind")
     p = bare_plan()
-    p.objectives.append(Objective(id="obj_3", kind="granary", rect=Rect(6000, 0, 800, 800)))
+    p.objectives.append(Objective(id="obj_3_market", kind="market",
+                                  rect=Rect(6000, 0, 800, 800), required=True))
     ev = evaluate(p)
-    check("four objectives is a failure",
+    check("four required objectives is a failure",
           any(f["fix"].get("kind") == "objective_count" for f in ev["findings"]))
-    p.objectives = [Objective(id=f"o{i}", kind="granary", rect=Rect(2000 * i, 0, 800, 800))
-                    for i in range(3)]
+
+    p = bare_plan()
+    p.objectives = [Objective(id=f"o{i}", kind="statue", rect=Rect(2000 * i, 0, 800, 800),
+                              required=True, destruction="topple") for i in range(3)]
     ev = evaluate(p)
     check("three of a kind is a failure",
           any(f["fix"].get("kind") == "objective_dupes" for f in ev["findings"]))
+
+    # Optional objectives must not be counted toward the three (2.8: fields and houses are
+    # "worth points but not gating extraction"). Six fields plus the trio is still legal.
+    p = bare_plan()
+    for i in range(6):
+        p.objectives.append(Objective(id=f"opt_x{i}_field", kind="field",
+                                      rect=Rect(-9000, 2000 * i - 5000, 900, 900),
+                                      required=False))
+    ev = evaluate(p)
+    check("optional objectives do not count toward the three",
+          not any(f["fix"].get("kind") in ("objective_count", "objective_dupes")
+                  for f in ev["findings"]))
+
+
+def test_statue_does_not_burn() -> None:
+    print("\ntest_statue_does_not_burn — GDD 2.8: brought down, stone on stone")
+    p = bare_plan()
+    check("a correctly toppled statue raises nothing",
+          not any(f["check"] == "statue_not_burned" for f in evaluate(p)["findings"]))
+
+    for o in p.objectives:
+        if o.kind == "statue":
+            o.destruction = "fire"
+    ev = evaluate(p)
+    burned = [f for f in ev["findings"] if f["check"] == "statue_not_burned"]
+    check("a statue marked to burn is a failure", len(burned) == 1,
+          f"{len(burned)} finding(s)")
+    check("the finding cites GDD 2.8", all(f["gdd"] == "2.8" for f in burned))
+    p, _ = refine(p, burned, 1)
+    check("the refiner sets it back to topple",
+          all(o.destruction == "topple" for o in p.objectives if o.kind == "statue"))
 
 
 def test_circuit_breaker_fires() -> None:
@@ -283,7 +331,8 @@ def main() -> None:
     print("GER level-generation fixtures — no editor, no API key")
     print("=" * 68)
     for fn in (test_planted_cover_failure, test_evaluator_is_not_vacuous,
-               test_objective_mix_rule, test_circuit_breaker_fires,
+               test_objective_mix_rule, test_statue_does_not_burn,
+               test_circuit_breaker_fires,
                test_determinism, test_house_composer,
                test_roof_coverage_sees_what_counting_missed,
                test_stamp_carries_the_full_transform):
