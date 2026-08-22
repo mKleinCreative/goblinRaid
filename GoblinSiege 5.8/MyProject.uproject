@@ -95,10 +95,6 @@
 		{
 			"Name": "MetaRoad",
 			"Enabled": false
-		},
-		{
-			"Name": "AscentCombatFramework",
-			"Enabled": true
 		}
 	]
 }
