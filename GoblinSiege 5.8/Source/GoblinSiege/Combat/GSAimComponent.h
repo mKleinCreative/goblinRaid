@@ -259,6 +259,9 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_AimMode)
 	EGSAimMode AimMode = EGSAimMode::None;
 
+	/** Hides the holstered melee weapon for the duration of an aim - see UGSWeaponComponent. */
+	void NotifyWeaponsOfAim(bool bAiming) const;
+
 	UFUNCTION()
 	void OnRep_AimMode();
 

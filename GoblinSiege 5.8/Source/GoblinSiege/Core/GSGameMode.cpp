@@ -5,6 +5,7 @@
 #include "Characters/GSCharacterBase.h"
 #include "Raid/GSRaidDirector.h"
 #include "Raid/GSRunicSite.h"
+#include "Raid/GSWarren.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
@@ -86,6 +87,19 @@ void AGSGameMode::HandleGoblinDeath(AGSCharacterBase* DeadCharacter, AController
 
 AActor* AGSGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
+	// A RESPAWN comes back through the Warren (GDD 9); the FIRST spawn of the raid never does.
+	// GDD 2 opens on materializing at the runic site, and arriving by portal but coming back up
+	// through the hole is the whole picture. See bRespawning for why this is a flag.
+	if (bRespawning)
+	{
+		const APawn* Pawn = Player ? Player->GetPawn() : nullptr;
+		const FVector From = Pawn ? Pawn->GetActorLocation() : FVector::ZeroVector;
+		if (AGSWarren* Warren = AGSWarren::FindNearestRespawnPoint(this, From))
+		{
+			return Warren;
+		}
+	}
+
 	if (AGSRunicSite* Site = FindRunicSite(GetWorld()))
 	{
 		return Site;
@@ -111,6 +125,14 @@ void AGSGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* Sta
 
 	// See the header: the site's transform is the portal, so standing on it is standing in the
 	// extraction circle. GetSpawnTransform() is the offset one, clamped outside the sphere.
+	// The Warren has no extraction sphere to stand clear of - banking consumes cargo rather than
+	// ending the raid - so its spawn transform is the mouth itself, ground-traced.
+	if (const AGSWarren* Warren = Cast<AGSWarren>(StartSpot))
+	{
+		RestartPlayerAtTransform(NewPlayer, Warren->GetSpawnTransform());
+		return;
+	}
+
 	if (const AGSRunicSite* Site = Cast<AGSRunicSite>(StartSpot))
 	{
 		RestartPlayerAtTransform(NewPlayer, Site->GetSpawnTransform());
@@ -145,7 +167,12 @@ void AGSGameMode::RespawnPlayer(AController* Controller)
 	// ChoosePlayerStart -> RestartPlayerAtPlayerStart, and THAT is where the site's spawn offset is
 	// applied, for every spawn path at once. Duplicating the offset here as well was how the
 	// initial spawn ended up missing it.
-	RestartPlayer(Controller);
+	// Scoped so an exception or an early return inside RestartPlayer cannot leave the flag raised -
+	// a stuck bRespawning would send the NEXT raid's opening spawn to the Warren.
+	{
+		TGuardValue<bool> RespawnScope(bRespawning, true);
+		RestartPlayer(Controller);
+	}
 
 	if (AGSCharacterBase* NewCharacter = Controller->GetPawn<AGSCharacterBase>())
 	{

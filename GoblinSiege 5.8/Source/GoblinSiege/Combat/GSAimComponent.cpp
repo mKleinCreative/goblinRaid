@@ -1,4 +1,6 @@
 #include "Combat/GSAimComponent.h"
+#include "Weapons/GSBowTimingComponent.h"
+#include "Weapons/GSWeaponComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -83,8 +85,22 @@ bool UGSAimComponent::IsLocallyControlledPawn() const
 	return Pawn && Pawn->IsLocallyControlled();
 }
 
+void UGSAimComponent::NotifyWeaponsOfAim(bool bAiming) const
+{
+	// Told from HERE rather than from the character's input handlers, so every route into an aim -
+	// bow, torch, and anything added later - gets the same behaviour without remembering to.
+	if (const AActor* Owner = GetOwner())
+	{
+		if (UGSWeaponComponent* Weapons = Owner->FindComponentByClass<UGSWeaponComponent>())
+		{
+			Weapons->SetAimActive(bAiming);
+		}
+	}
+}
+
 void UGSAimComponent::BeginAim(EGSAimMode Mode, TSubclassOf<AActor> ProjectileClass)
 {
+	NotifyWeaponsOfAim(true);
 	if (Mode == EGSAimMode::None)
 	{
 		EndAim();
@@ -107,6 +123,7 @@ void UGSAimComponent::BeginAim(EGSAimMode Mode, TSubclassOf<AActor> ProjectileCl
 
 void UGSAimComponent::EndAim()
 {
+	NotifyWeaponsOfAim(false);
 	if (AimMode == EGSAimMode::None)
 	{
 		return; // release with no matching press - Enhanced Input fires Canceled as well as Completed
@@ -135,11 +152,30 @@ FRotator UGSAimComponent::GetAimRotation() const
 		return ReplicatedAimRotation;
 	}
 
+	// ---- BOW SWAY (#243) -----------------------------------------------------------------------
+	//
+	// Added HERE, and only here, because every consumer of the aim already goes through this
+	// function: the muzzle transform, the predicted arc ribbon and the landing decal. That makes the
+	// sway VISIBLE - the arc wanders and the decal slides - rather than an invisible accuracy
+	// penalty the player cannot read or shoot around.
+	//
+	// It does NOT move the camera or the reticle. The player's aim stays where they put it; what
+	// drifts is where the arrow will actually go, which is the thing they need to watch.
+	//
+	// Zero unless a bow draw has bounced off an end of the timing bar, and AI has no
+	// UGSBowTimingComponent at all, so defender archers are untouched.
+	FRotator Sway = FRotator::ZeroRotator;
+	if (const UGSBowTimingComponent* Timing = GetOwner()
+			? GetOwner()->FindComponentByClass<UGSBowTimingComponent>() : nullptr)
+	{
+		Sway = Timing->GetSwayOffset();
+	}
+
 	if (const APawn* Pawn = Cast<APawn>(GetOwner()))
 	{
-		return Pawn->GetControlRotation();
+		return Pawn->GetControlRotation() + Sway;
 	}
-	return GetOwner() ? GetOwner()->GetActorRotation() : FRotator::ZeroRotator;
+	return GetOwner() ? GetOwner()->GetActorRotation() + Sway : FRotator::ZeroRotator;
 }
 
 void UGSAimComponent::PushAimRotationToServer()
@@ -241,6 +277,22 @@ void UGSAimComponent::UpdatePrediction()
 			{
 				Speed = Move->InitialSpeed > 0.f ? Move->InitialSpeed : Speed;
 				GravityScale = Move->ProjectileGravityScale;
+			}
+		}
+	}
+
+	// ---- THE DRAW BENDS THE ARC, LIVE -----------------------------------------------------------
+	// Bow only, and only while a draw is actually in flight - GetCurrentSpeedScale returns 1.0
+	// otherwise, so the torch arc is untouched by this existing. Applying it HERE rather than at
+	// release is the whole point: the player watches the trajectory straighten as the indicator
+	// climbs toward red, so the mechanic teaches itself without a number on screen.
+	if (AimMode == EGSAimMode::Bow)
+	{
+		if (const AActor* AimOwner = GetOwner())
+		{
+			if (const UGSBowTimingComponent* Timing = AimOwner->FindComponentByClass<UGSBowTimingComponent>())
+			{
+				Speed *= Timing->GetCurrentSpeedScale();
 			}
 		}
 	}

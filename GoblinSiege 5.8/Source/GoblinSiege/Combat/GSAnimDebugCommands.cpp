@@ -33,6 +33,7 @@
 #include "Animation/AnimMontage.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Containers/Ticker.h"
 #include "Engine/Engine.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
@@ -246,5 +247,366 @@ static FAutoConsoleCommandWithWorldAndArgs GSAnimSnapshotCmd(
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 10.f,
 					Collapsed > 0 ? FColor::Red : FColor::Green, Summary);
+			}
+		}));
+
+// =================================================================================================
+// GS.AI.LogLocomotion - is the velocity a SQUARE WAVE, or is it smooth with a jittering heading?
+//
+// ---- why this exists (#246) ---------------------------------------------------------------------
+// Michael watched Erika "take a step forward with one foot" while stuttering, and said the castle
+// guards have always done it too. Two investigations then agreed on a mechanism: the archer's
+// MoveTo re-executes continuously against a hold point that slides with its target, producing ~0.15s
+// dashes, and ABP_Human turns each dash into a fragment of a walk cycle because Idle->Walk and
+// Walk->Idle BOTH pivot on HU_Speed = 10.0 with no hysteresis between them.
+//
+// That is a diagnosis, not a measurement, and this project has a costly history of shipping
+// diagnoses. So this command exists to try to REFUTE it before anything is changed.
+//
+// ---- the two hypotheses, and how this tells them apart ------------------------------------------
+//   A (the diagnosis): speed is a SQUARE WAVE - short pulses separated by flat zeros. The pawn is
+//       repeatedly told to travel ~80uu and brakes before it reaches walk speed.
+//   B (the alternative): speed is CONTINUOUS and non-zero, and it is the HEADING that jitters. That
+//       would mean the RVO/separation stack is the cause and the behaviour tree is innocent.
+// Both are measured here, side by side, from the same capture. A high crossing rate with a large
+// share of frames at rest is A; near-zero time at rest with a high heading-change rate is B.
+//
+// ---- why it also SIMULATES the proposed fix ------------------------------------------------------
+// The last column replays the captured speed through the PROPOSED Idle<->Walk rule (enter above 60,
+// leave below 25) and counts how many state changes survive. That turns "these two numbers should
+// fix it" from a claim into a prediction made against real data, before anyone edits an AnimBP -
+// and if the proposed rule does not collapse the crossing count, it is the wrong fix and this says
+// so while it is still cheap to find out.
+// =================================================================================================
+
+namespace
+{
+	/** The live Idle<->Walk boundary in ABP_Human. Both directions use this same value today, which
+	 *  is the defect: the Walk<->Run pair in the same state machine correctly uses 500/450. */
+	constexpr float GSLocoCurrentThreshold = 10.f;
+
+	/** The proposed replacement, mirroring the shape Walk<->Run already uses. */
+	constexpr float GSLocoProposedEnter = 60.f;
+	constexpr float GSLocoProposedLeave = 25.f;
+
+	struct FGSLocoTrack
+	{
+		TWeakObjectPtr<APawn> Pawn;
+		FString Name;
+		bool bPlayerControlled = false;
+
+		TArray<float> Speeds;          // uu/s, XY only - the same quantity HU_Speed receives
+		TArray<float> Times;           // seconds since capture start
+		TArray<float> HeadingsDeg;     // yaw of the velocity vector; only meaningful while moving
+
+		int32 CurrentCrossings = 0;    // Idle<->Walk changes under the LIVE rule
+		int32 ProposedCrossings = 0;   // ...and under the proposed hysteresis rule
+		bool bCurrentWalking = false;
+		bool bProposedWalking = false;
+	};
+
+	static TArray<FGSLocoTrack> GSLocoTracks;
+	static FTSTicker::FDelegateHandle GSLocoTickHandle;
+	static TWeakObjectPtr<UWorld> GSLocoWorld;
+	static float GSLocoElapsed = 0.f;
+	static float GSLocoDuration = 0.f;
+	static float GSLocoRadius = 0.f;
+
+	static FGSLocoTrack& GSLocoTrackFor(APawn* Pawn)
+	{
+		for (FGSLocoTrack& T : GSLocoTracks)
+		{
+			if (T.Pawn.Get() == Pawn)
+			{
+				return T;
+			}
+		}
+		FGSLocoTrack New;
+		New.Pawn = Pawn;
+		New.Name = Pawn->GetName();
+		New.bPlayerControlled = Pawn->IsPlayerControlled();
+		return GSLocoTracks[GSLocoTracks.Add(MoveTemp(New))];
+	}
+
+	/** A speed trace drawn in text, because the shape IS the evidence. A square wave and a smooth
+	 *  ramp are instantly distinguishable by eye and tedious to distinguish from summary statistics
+	 *  alone - and if the shape does not match the prediction, that has to be impossible to miss. */
+	static FString GSLocoSparkline(const TArray<float>& Speeds, float MaxSpeed, int32 Columns)
+	{
+		static const TCHAR* Ramp = TEXT(" .:-=+*#");
+		if (Speeds.Num() == 0 || MaxSpeed <= KINDA_SMALL_NUMBER)
+		{
+			return FString();
+		}
+
+		FString Out;
+		Out.Reserve(Columns);
+		for (int32 c = 0; c < Columns; ++c)
+		{
+			// Peak-hold rather than average across the bucket: averaging a 0.15s pulse into a wider
+			// bucket is exactly how a square wave gets smoothed into the ramp we are testing for.
+			const int32 Begin = (c * Speeds.Num()) / Columns;
+			const int32 End = FMath::Max(Begin + 1, ((c + 1) * Speeds.Num()) / Columns);
+			float Peak = 0.f;
+			for (int32 i = Begin; i < End && i < Speeds.Num(); ++i)
+			{
+				Peak = FMath::Max(Peak, Speeds[i]);
+			}
+			const int32 Level = FMath::Clamp(FMath::RoundToInt((Peak / MaxSpeed) * 7.f), 0, 7);
+			Out.AppendChar(Ramp[Level]);
+		}
+		return Out;
+	}
+
+	static void GSLocoReport();
+
+	static bool GSLocoTick(float DeltaTime)
+	{
+		UWorld* World = GSLocoWorld.Get();
+		if (!World)
+		{
+			GSLocoReport();
+			return false;
+		}
+
+		GSLocoElapsed += DeltaTime;
+
+		FVector Origin = FVector::ZeroVector;
+		if (const APlayerController* PC = World->GetFirstPlayerController())
+		{
+			if (const APawn* PlayerPawn = PC->GetPawn())
+			{
+				Origin = PlayerPawn->GetActorLocation();
+			}
+		}
+
+		for (TActorIterator<APawn> It(World); It; ++It)
+		{
+			APawn* Pawn = *It;
+			if (!IsValid(Pawn))
+			{
+				continue;
+			}
+			if (GSLocoRadius > 0.f && !Origin.IsZero()
+				&& FVector::Dist(Pawn->GetActorLocation(), Origin) > GSLocoRadius)
+			{
+				continue;
+			}
+
+			const FVector V = Pawn->GetVelocity();
+			const FVector Flat(V.X, V.Y, 0.f);
+			const float Speed = Flat.Size();
+
+			FGSLocoTrack& T = GSLocoTrackFor(Pawn);
+			T.Speeds.Add(Speed);
+			T.Times.Add(GSLocoElapsed);
+			T.HeadingsDeg.Add(Speed > GSLocoCurrentThreshold
+				? FMath::RadiansToDegrees(FMath::Atan2(Flat.Y, Flat.X))
+				: TNumericLimits<float>::Max());   // sentinel: heading is undefined at rest
+
+			// The live rule: one threshold, both directions.
+			const bool bNowWalking = Speed > GSLocoCurrentThreshold;
+			if (bNowWalking != T.bCurrentWalking)
+			{
+				T.bCurrentWalking = bNowWalking;
+				++T.CurrentCrossings;
+			}
+
+			// The proposed rule: enter high, leave low.
+			if (T.bProposedWalking ? (Speed < GSLocoProposedLeave) : (Speed > GSLocoProposedEnter))
+			{
+				T.bProposedWalking = !T.bProposedWalking;
+				++T.ProposedCrossings;
+			}
+		}
+
+		if (GSLocoElapsed >= GSLocoDuration)
+		{
+			GSLocoReport();
+			return false;   // unregister
+		}
+		return true;
+	}
+
+	static void GSLocoReport()
+	{
+		GSLocoTickHandle.Reset();
+
+		UE_LOG(LogGSAnim, Warning,
+			TEXT("[GS.Loco] --- %.1fs capture, %d pawn(s). Idle<->Walk today = %.0f both ways; ")
+			TEXT("proposed = enter %.0f / leave %.0f ---"),
+			GSLocoElapsed, GSLocoTracks.Num(),
+			GSLocoCurrentThreshold, GSLocoProposedEnter, GSLocoProposedLeave);
+		UE_LOG(LogGSAnim, Warning,
+			TEXT("[GS.Loco] %-28s | %5s | %6s | %6s | %7s | %7s | %8s | %8s"),
+			TEXT("pawn"), TEXT("smpls"), TEXT("%rest"), TEXT("maxspd"),
+			TEXT("flick/s"), TEXT("prop/s"), TEXT("turn d/s"), TEXT("verdict"));
+
+		int32 SquareWavePawns = 0;
+		int32 SmoothJitterPawns = 0;
+		const FGSLocoTrack* Worst = nullptr;
+
+		for (const FGSLocoTrack& T : GSLocoTracks)
+		{
+			if (T.Speeds.Num() < 2 || GSLocoElapsed <= KINDA_SMALL_NUMBER)
+			{
+				continue;
+			}
+
+			int32 AtRest = 0;
+			float MaxSpeed = 0.f;
+			for (const float S : T.Speeds)
+			{
+				if (S <= GSLocoCurrentThreshold) { ++AtRest; }
+				MaxSpeed = FMath::Max(MaxSpeed, S);
+			}
+			const float RestFraction = static_cast<float>(AtRest) / static_cast<float>(T.Speeds.Num());
+
+			// Heading change per second, measured ONLY across consecutive moving samples. Sampling
+			// across a stop would report the heading before and after a pause as a "turn", which is
+			// the one thing that could make hypothesis B look true when it is not.
+			float TotalTurn = 0.f;
+			float TurnSeconds = 0.f;
+			for (int32 i = 1; i < T.HeadingsDeg.Num(); ++i)
+			{
+				if (T.HeadingsDeg[i] == TNumericLimits<float>::Max()
+					|| T.HeadingsDeg[i - 1] == TNumericLimits<float>::Max())
+				{
+					continue;
+				}
+				TotalTurn += FMath::Abs(FMath::FindDeltaAngleDegrees(T.HeadingsDeg[i - 1], T.HeadingsDeg[i]));
+				TurnSeconds += (T.Times[i] - T.Times[i - 1]);
+			}
+			const float TurnRate = (TurnSeconds > KINDA_SMALL_NUMBER) ? (TotalTurn / TurnSeconds) : 0.f;
+
+			const float FlickerPerSec = static_cast<float>(T.CurrentCrossings) / GSLocoElapsed;
+			const float ProposedPerSec = static_cast<float>(T.ProposedCrossings) / GSLocoElapsed;
+
+			// A pawn that never moved is not evidence either way, and saying so keeps a still
+			// bystander out of the verdict count.
+			FString Verdict = TEXT("still");
+			if (MaxSpeed > GSLocoCurrentThreshold)
+			{
+				if (FlickerPerSec >= 1.f && RestFraction > 0.2f)
+				{
+					Verdict = TEXT("SQUARE");
+					++SquareWavePawns;
+					if (!Worst || T.CurrentCrossings > Worst->CurrentCrossings) { Worst = &T; }
+				}
+				else if (RestFraction < 0.1f && TurnRate > 90.f)
+				{
+					Verdict = TEXT("turnjit");
+					++SmoothJitterPawns;
+				}
+				else
+				{
+					Verdict = TEXT("smooth");
+				}
+			}
+
+			UE_LOG(LogGSAnim, Warning,
+				TEXT("[GS.Loco] %-28s | %5d | %5.0f%% | %6.0f | %7.1f | %7.1f | %8.0f | %8s%s"),
+				*T.Name, T.Speeds.Num(), RestFraction * 100.f, MaxSpeed,
+				FlickerPerSec, ProposedPerSec, TurnRate, *Verdict,
+				T.bPlayerControlled ? TEXT("  <- PLAYER") : TEXT(""));
+		}
+
+		if (Worst && Worst->Speeds.Num() > 0)
+		{
+			float PeakSpeed = 0.f;
+			for (const float S : Worst->Speeds) { PeakSpeed = FMath::Max(PeakSpeed, S); }
+			UE_LOG(LogGSAnim, Warning, TEXT("[GS.Loco] speed trace, %s (0 to %.0f uu/s over %.1fs):"),
+				*Worst->Name, PeakSpeed, GSLocoElapsed);
+			UE_LOG(LogGSAnim, Warning, TEXT("[GS.Loco] [%s]"),
+				*GSLocoSparkline(Worst->Speeds, PeakSpeed, 100));
+		}
+
+		// ---- DO NOT LET ONE POPULATION OUTVOTE ANOTHER (fixed after the first real capture) ------
+		//
+		// The first version picked a single winner by comparing the two counts, and on 2026-08-21 it
+		// printed "THE BEHAVIOUR-TREE DIAGNOSIS IS WRONG" off the back of 7 horde goblins - which run
+		// a different skeleton and a different AnimBP entirely - outvoting the 3 humans that were the
+		// actual subject. A majority vote across unrelated animation setups is not evidence about
+		// either of them.
+		//
+		// So: any SQUARE pawn at all means start/stop is real for SOMETHING, and the row that matters
+		// is the one whose name you came here to read. The counts are reported side by side and the
+		// reader picks the population; only a capture with ZERO square-wave pawns refutes it.
+		FString Summary;
+		if (SquareWavePawns > 0)
+		{
+			Summary = FString::Printf(
+				TEXT("GS.AI.LogLocomotion: %d SQUARE (start/stop), %d turnjit (continuous, heading ")
+				TEXT("jitter). READ THE ROW FOR THE PAWN YOU CARE ABOUT - different skeletons run ")
+				TEXT("different AnimBPs and do not vote on each other. Where flick/s equals prop/s, ")
+				TEXT("the proposed hysteresis would change nothing for that pawn."),
+				SquareWavePawns, SmoothJitterPawns);
+		}
+		else if (SmoothJitterPawns > 0)
+		{
+			Summary = FString::Printf(
+				TEXT("GS.AI.LogLocomotion: %d pawn(s) move CONTINUOUSLY with a jittering heading. ")
+				TEXT("THE BEHAVIOUR-TREE DIAGNOSIS IS WRONG - look at RVO avoidance and the separation ")
+				TEXT("steer instead."),
+				SmoothJitterPawns);
+		}
+		else
+		{
+			Summary = TEXT("GS.AI.LogLocomotion: nothing moved enough to judge. Capture during a fight, ")
+					  TEXT("with an archer in range.");
+		}
+
+		UE_LOG(LogGSAnim, Warning, TEXT("[GS.Loco] %s"), *Summary);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.f,
+				SquareWavePawns > 0 ? FColor::Yellow : FColor::Green, Summary);
+		}
+
+		GSLocoTracks.Empty();
+		GSLocoWorld.Reset();
+	}
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GSAILogLocomotionCmd(
+	TEXT("GS.AI.LogLocomotion"),
+	TEXT("GS.AI.LogLocomotion [seconds=5] [radius=3000] - sample every pawn's ground speed each "
+		 "frame, then report whether the motion is a start/stop square wave or continuous travel "
+		 "with a jittering heading. Also counts how many Idle<->Walk animation flickers the current "
+		 "threshold produces, and how many would survive the proposed hysteresis."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* InWorld)
+		{
+			UWorld* World = GSAnimGameWorld(InWorld);
+			if (!World)
+			{
+				UE_LOG(LogGSAnim, Warning, TEXT("[GS.Loco] GS.AI.LogLocomotion: no game world."));
+				return;
+			}
+
+			if (GSLocoTickHandle.IsValid())
+			{
+				UE_LOG(LogGSAnim, Warning,
+					TEXT("[GS.Loco] A capture is already running (%.1fs of %.1fs). Ignoring."),
+					GSLocoElapsed, GSLocoDuration);
+				return;
+			}
+
+			GSLocoDuration = (Args.Num() > 0) ? FMath::Max(0.5f, FCString::Atof(*Args[0])) : 5.f;
+			GSLocoRadius = (Args.Num() > 1) ? FCString::Atof(*Args[1]) : 3000.f;
+			GSLocoElapsed = 0.f;
+			GSLocoTracks.Empty();
+			GSLocoWorld = World;
+
+			GSLocoTickHandle = FTSTicker::GetCoreTicker().AddTicker(
+				FTickerDelegate::CreateStatic(&GSLocoTick));
+
+			UE_LOG(LogGSAnim, Warning,
+				TEXT("[GS.Loco] capturing %.1fs within %.0fuu of the player - keep the fight going."),
+				GSLocoDuration, GSLocoRadius);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, GSLocoDuration, FColor::Cyan,
+					FString::Printf(TEXT("GS.AI.LogLocomotion: capturing %.0fs..."), GSLocoDuration));
 			}
 		}));

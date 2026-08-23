@@ -52,6 +52,14 @@ Content/*
 !Content/Python/
 !Content/Data/
 
+# 2026-08-21 (#249): the SAME class of bug a third time. Content/Audio/ held the
+# three hand-authored horn SoundWaves - the only project-authored audio in the
+# project - and was untracked, so a clean checkout lost them silently. It now
+# also holds the whole mixer spine (sound classes, submixes, attenuation,
+# concurrency, the base mix and the surface physical materials), which is
+# authored configuration, not imported art. None of it is re-downloadable.
+!Content/Audio/
+
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.
 _MixamoStaging/

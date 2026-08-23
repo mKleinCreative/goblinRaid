@@ -8,6 +8,7 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
+#include "HAL/IConsoleManager.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 
@@ -89,6 +90,45 @@ float AGSAIControllerBase::GetEntityExtentRadius_Implementation() const
 		}
 	}
 	return 0.f;
+}
+
+// How long an AI takes to act on a target it has just noticed. 0 restores the old instant behaviour.
+//
+// A cvar because this is a FEEL number and the person who can judge it is the one watching the
+// fight, not the one who wrote it. 0.35 is a starting guess, not a tuned value.
+static float GSAIReactionSeconds = 0.35f;
+static FAutoConsoleVariableRef CVarGSAIReactionSeconds(
+	TEXT("GS.AI.ReactionSeconds"),
+	GSAIReactionSeconds,
+	TEXT("Seconds between an AI acquiring a target and being allowed to swing at it. 0 = instant."),
+	ECVF_Default);
+
+bool AGSAIControllerBase::HasReactedTo(AActor* Target)
+{
+	if (!Target || GSAIReactionSeconds <= 0.f)
+	{
+		return true;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return true;
+	}
+
+	const float Now = World->GetTimeSeconds();
+
+	// A NEW target restarts the beat. Switching mid-fight should cost the same moment of
+	// re-orientation as noticing someone for the first time - otherwise an AI that flicks between
+	// two enemies swings instantly at the second one, which is the twitch wearing a different hat.
+	if (ReactionTarget.Get() != Target)
+	{
+		ReactionTarget = Target;
+		ReactionStartedTime = Now;
+		return false;
+	}
+
+	return (Now - ReactionStartedTime) >= GSAIReactionSeconds;
 }
 
 void AGSAIControllerBase::OnPossess(APawn* InPawn)

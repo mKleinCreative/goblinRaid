@@ -45,6 +45,7 @@ cost no code change and took the design document out of a tool's private folder.
 | Version | Date | Ticket | What changed |
 |---|---|---|---|
 | v1.0 | 2026-08-19 | #198 | This file becomes canonical and moves to `docs/`. Reconciled against the live tree: grapple written in as a core verb, audio un-cut for world SFX, climb re-graded as Blueprint-driven, the `L_CombatArena` / `L_Tutorial_Island` divergence stated, §12.1 re-graded, §12.4 scope freeze added, §13 pointed at a real ledger. 23 rulings taken — see `docs/decisions-ledger.md`. |
+| v1.1 | 2026-08-21 | #252 | **World corruption added** — the land visibly turns as you raid. One global monotonic 0..1 scalar drives sky, fog, sun, grade, world materials, VFX and ambience. Added to the §12.4 IN column; §1 pillar reworded; the wayfinding consequence amended, since corruption is now what "the environment does the leading" actually means. Rulings 40–45. |
 | — | 2026-08-14 | #158 | Re-exported 168 → 272 lines; four-rung grading replaced "Scaffolded"; control map corrected; five live defects recorded |
 | — | 2026-08-04 | — | First export, describing what was *designed* rather than what was built |
 
@@ -68,7 +69,7 @@ of the tutorial set by Q-29 in July and never existed in content; the Statue rep
 field moves to optional. The code was already built to a Field/Windmill/Market roster, so this
 change is smaller in code than it looks in prose — it swaps one type, not three.*
 
-Design pillars: weighty readable combat · fire and destruction as a language · quiet in, loud out ·
+Design pillars: weighty readable combat · fire and destruction as a language, written on the land itself (40) · quiet in, loud out ·
 one place learned by heart · a horde at your back (ground-bound, vault-only per 41-a; the player
 out-traverses his own horde by design) · pressure, not safety (30-minute raids, banking loop) ·
 satire, always.
@@ -131,6 +132,13 @@ Follow & frenzy plus a point-command wheel (Attack / Hold / Loot / Follow, #141)
 ~40 HP, no lives, no dodge; steer around ambient fire giggling (40); ground-bound but **can vault**
 (41-a) — never climb or mantle; unreachable goblins idle → re-horn free → trudge home to the
 reserve. `Stranded` BT state; Panic-Stranded when fire blocks every exit including vault points.
+
+**The horn is tap-or-hold — settled 2026-08-21 (ruling 37).** A tap summons **exactly one** goblin;
+holding middle mouse streams them out of the Warren **one at a time** until the squad is full, the
+button comes up, or the reserve is dry. This **supersedes decision 9** (`SummonsPerBlast` a fixed 4):
+the "a player counting his pool should not have to guess" objection is answered better by the new
+shape than by the old number, because you get one per press and holding shows you each arrival.
+`SummonsPerBlast` survives only as the batch size for `GS.Horde.SpawnTest`.
 
 **Pool size is 20 — settled 2026-08-19 (ruling 23).** The flag this section used to carry is deleted:
 there was never a real disagreement. `UGSHordeSubsystem` has `ActiveCap = 10` and
@@ -201,14 +209,18 @@ The runic site (spawn/respawn/extraction; portal opens on objective completion; 
 circle entry; 90s collapse at 0:00) sits in the mountains per Q-28. Dense forest frame; woodland is
 green and unburnable ("it's magic").
 
-**The Warren — IN, and it has a mesh (ruling 18, 2026-08-19).** `N_ChaosRune2` is the Warren mouth,
-and it does **two** jobs: it is where summoned goblins **arrive from** (satisfying the settled
-no-pop-in mandate — they emerge from a hole, they do not fade in, and the treeline arrival of the
-old canonical §2.5 stays superseded), and it is the **turn-in point** for cargo — livestock and
-whatever comes out of crates, chests and barrels. Today the only code is
-`UGSHordeSubsystem::NotifyGoblinSpentOnWarren()`, a pool-accounting hook that spends a goblin without
-counting a casualty; the actor, the planting channel, the respawn point and the banking are all
-unbuilt. Banking rules in §9.
+**The Warren — BUILT (ruling 18, 2026-08-19; placed-not-planted, ruling 36, 2026-08-21).**
+`N_ChaosRune2` is the Warren mouth, and it does **three** jobs: it is where summoned goblins
+**arrive from** (satisfying the settled no-pop-in mandate — they emerge from a hole, they do not fade
+in, and the treeline arrival of the old canonical §2.5 stays superseded), it is the **respawn point**
+once a level has one, and it is the **turn-in point** for cargo — livestock and whatever comes out of
+crates, chests and barrels. `AGSWarren` + `BP_GS_Warren` implement all three.
+
+**There is no planting channel and no digger (ruling 36).** The Warren is placed by a designer and
+open from `BeginPlay` — Michael: *"just a magic spot where they can summon goblins and drop off
+loot"*. `UGSHordeSubsystem::NotifyGoblinSpentOnWarren()` survives that cut **uncalled and must not be
+deleted**: it is the fourth pool exit (spent, but not dead — no death path, no credit back), and the
+accounting is correct the day a digger ever lands. Banking rules in §9.
 
 **Objective structure.** Required: one Market, one Statue, one Windmill. Optional: wheat fields,
 houses. Siblings demote Required → Optional on first same-type completion. Burn/destroy behaviour by
@@ -323,7 +335,7 @@ portal toss-in). Courier command sends the nearest horde goblin home with cargo.
 on the hoof; chickens weightless (carry two, fight one-handed). Pouch drops on death as a
 recoverable sack.
 
-**The Warren banks loot, never deeds (IN, ruling 18).** Once planted it becomes the respawn point and
+**The Warren banks loot, never deeds (ruling 18).** Once placed it is the respawn point and
 a second permanent banking point for loot and cargo — so a raid that ends in a wipe still keeps what
 reached it. **Deeds bank only through the real portal**, on purpose: loot gets forgiving because a
 struggling raid should walk away with what it actually gathered, but a second place to bank deeds
@@ -417,7 +429,7 @@ three-column shape are pinned by `features.json` — see the parser contract at 
 | 10 | Wood economy | **DEFERRED — tier-2** |
 | 11 | Civilians + livestock | **MISSING** — downgraded from SKELETON on evidence: there is **no civilian actor, class or component**, only the `Marker.CivilianAnchor` tag. Livestock art is complete (Chicken/Pig/Sheep rigs, 34 clips incl. Hurt and Death) with no gameplay actor. Civilians and patrols are **IN** (rulings 13/14) via ACF's routine and patrol components; **bind stays cut** |
 | 12 | Score system — deeds/loot tally, banking, end screen | **WIRED, two holes** — end panel watched (#050/#051). `AddLoot` has **zero callers**, and the **×1.5 extraction multiplier does not exist anywhere in Source**. One line is wired and it is the wrong one: any burn objective pays deeds, so ~30 houses swamp the tally |
-| 13 | Runic site — portal, toss-in, 90s collapse | **BUILT** — a full raid completed to `Extracted (3/3 objective types burned)`. The Warren is a second banking point and is unbuilt beyond one pool hook |
+| 13 | Runic site — portal, toss-in, 90s collapse | **BUILT** — a full raid completed to `Extracted (3/3 objective types burned)`. The Warren (`AGSWarren`) now ships beside it as arrival mouth, respawn point and the loot bank that gave `AddLoot` its first caller |
 | 14 | Lives / respawn | **BUILT** — 5 lives and the OutOfLives loss both driven and watched |
 | 15 | Barks + Overlord whispers | **MISSING** — 9 validated prompt rows in `content-pipeline/out/prompts.csv`; the project contains **zero DataTable assets** and no first-encounter tracker. **The banked text still names the granary and must be regenerated** — `gsstyle.py` already does this and was proven on those rows (#191) |
 | 16 | Gore / gib system | **CUT (ruling 15)** — ragdoll death covers it; not built, not scheduled |
@@ -471,13 +483,16 @@ used to describe all of them as though they were built.*
 | The Warren, on `N_ChaosRune2` (18) | Per-raid map generation | Breach set · wood economy (tier-2) |
 | The finite 15-defender pool + Highpurse Keep (19) | Livestock beyond one species | The Brute and both Shamans |
 | The grapple as a core verb (12) | | |
+| World corruption — the land turns as you raid (40) | | |
 | Windmill Stage 1 Ablaze (7) | | |
 
 **Two consequences that follow from the deferrals rather than being chosen.** Deferring the
 watchtower, bell and well **removes three scoring lines** from §10 and the bucket-brigade counterplay
 with them. Deferring wayfinding leaves **objective names as the player's only guidance**, because
 decision 11 bans HUD arrows and waypoints — the generator already emits roads and signposts per plan,
-so reversing this is placement and a mesh, not a system.
+so reversing this is placement and a mesh, not a system. **Ruling 40 is the answer to this**: world
+corruption is the first thing built that makes decision 11's *"the environment does the leading"*
+mean something, by giving the player a readout of their own progress that is the world itself.
 
 ## 13. Decisions ledger
 

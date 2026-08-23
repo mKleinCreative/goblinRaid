@@ -8,6 +8,11 @@
 #include "GameplayTagsManager.h"
 #include "Engine/Engine.h"   // GEngine->GetWorldFromContextObject in FindStandableSpotNear
 #include "Engine/World.h"    // LineTraceSingleByChannel / OverlapBlockingTestByChannel
+// FOverlapResult is only FORWARD-DECLARED by Engine/World.h in UE 5.8, so a translation unit that
+// iterates the results of an overlap query - rather than just calling one - has to include this
+// itself. Omitting it fails as "use of undefined type", which reads like a missing module
+// dependency rather than a missing header.
+#include "Engine/OverlapResult.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSRaidScripting, Log, All);
 

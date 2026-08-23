@@ -9,6 +9,7 @@
 #include "Raid/GSRaidMarker.h"
 #include "Raid/GSRaidLibrary.h"
 #include "Raid/GSRunicSite.h"
+#include "Raid/GSWarren.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
@@ -251,6 +252,57 @@ bool UGSHordeSubsystem::FindArrivalTransform(AController* Summoner, FTransform& 
 		return false;
 	}
 
+	// THE WARREN FIRST (ledger ruling 18). Goblins climb out of the hole; the bare marker is what
+	// they used before there was a hole to climb out of.
+	//
+	// The marker path below is NOT dead code and must not be deleted. Every map predating this
+	// ticket - L_CombatArena included - answers the horn through it, and AGSHordeSpawnMarker was
+	// ruled never to be built precisely so Marker.HordeArrival stays the general answer.
+	const FVector SummonerLocation = (Summoner && Summoner->GetPawn())
+		? Summoner->GetPawn()->GetActorLocation()
+		: FVector::ZeroVector;
+
+	if (const AGSWarren* Warren = AGSWarren::FindNearestArrivalMouth(this, SummonerLocation))
+	{
+		OutTransform = Warren->GetArrivalTransform();
+		UE_LOG(LogGSHorde, Verbose, TEXT("Arrival: the Warren '%s'."), *Warren->GetName());
+		return true;
+	}
+
+	// THEN THE GATE. Michael's ruling, 2026-08-21: "horn blasts working from the gate until a warren
+	// is down on the map." Before a Warren is planted the horde comes out of the portal the raid
+	// arrived through, which is somewhere the player has actually been and can find again - rather
+	// than a treeline marker they have never seen.
+	//
+	// GetSpawnTransform() and not the actor transform: the runic site already solves "a standable
+	// spot outside the extraction sphere, traced against the world", which is the same question
+	// asked here and was got wrong once already (spawning inside a building, 2026-08-05).
+	{
+		const AGSRunicSite* Nearest = nullptr;
+		float BestDistSq = TNumericLimits<float>::Max();
+		for (TActorIterator<AGSRunicSite> It(World); It; ++It)
+		{
+			const AGSRunicSite* Site = *It;
+			if (!IsValid(Site))
+			{
+				continue;
+			}
+			const float DistSq = FVector::DistSquared(Site->GetActorLocation(), SummonerLocation);
+			if (DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				Nearest = Site;
+			}
+		}
+		if (Nearest)
+		{
+			OutTransform = Nearest->GetSpawnTransform();
+			UE_LOG(LogGSHorde, Verbose, TEXT("Arrival: the gate '%s' - no Warren planted yet."),
+				*Nearest->GetName());
+			return true;
+		}
+	}
+
 	TArray<AGSRaidMarker*> Markers;
 	AGSRaidMarker::GatherByType(this, GSTags::Marker_HordeArrival, Markers);
 
@@ -266,6 +318,10 @@ bool UGSHordeSubsystem::FindArrivalTransform(AController* Summoner, FTransform& 
 		return false;
 	}
 
+	// Logged for the same reason as the two branches above: until now nothing said WHICH source the
+	// horde came out of, and "the goblins arrived from the wrong place" was unanswerable from a log.
+	// Verbose, so it costs nothing until someone asks.
+	//
 	// Prefer a marker the summoner is not staring at, so goblins do not blink into existence in the
 	// middle of frame. GDD §2.5: "never popping into existence - watching them arrive is the joke".
 	AGSRaidMarker* Chosen = Markers[0];
@@ -298,6 +354,9 @@ bool UGSHordeSubsystem::FindArrivalTransform(AController* Summoner, FTransform& 
 		return false;
 	}
 
+	UE_LOG(LogGSHorde, Verbose, TEXT("Arrival: the marker '%s' - no Warren and no gate."),
+		*Chosen->GetName());
+
 	FVector Spot = Chosen->GetActorLocation();
 
 	// Two checks, not one. FindStandableSpotNear is explicitly NOT navmesh projection (see its
@@ -314,7 +373,13 @@ bool UGSHordeSubsystem::FindArrivalTransform(AController* Summoner, FTransform& 
 	return true;
 }
 
-int32 UGSHordeSubsystem::SummonWave(AController* Summoner)
+int32 UGSHordeSubsystem::GetSummonableNow() const
+{
+	const int32 Headroom = FMath::Max(0, ActiveCap - GetActiveCount());
+	return FMath::Min(ReserveRemaining, Headroom);
+}
+
+int32 UGSHordeSubsystem::SummonOne(AController* Summoner)
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -330,15 +395,12 @@ int32 UGSHordeSubsystem::SummonWave(AController* Summoner)
 			bDryAnnounced = true;
 			OnPoolDry.Broadcast();
 		}
-		UE_LOG(LogGSHorde, Log, TEXT("Horn blown with a dry pool - nothing answers."));
 		return 0;
 	}
 
-	const int32 Headroom = FMath::Max(0, ActiveCap - GetActiveCount());
-	const int32 Wanted = FMath::Min3(SummonsPerBlast, ReserveRemaining, Headroom);
-	if (Wanted <= 0)
+	if (GetSummonableNow() <= 0)
 	{
-		UE_LOG(LogGSHorde, Log, TEXT("Horn blown at the active cap (%d/%d) - nothing spawned."),
+		UE_LOG(LogGSHorde, Verbose, TEXT("Horn held at the active cap (%d/%d) - nothing more climbs out."),
 			GetActiveCount(), ActiveCap);
 		return 0;
 	}
@@ -355,45 +417,88 @@ int32 UGSHordeSubsystem::SummonWave(AController* Summoner)
 		return 0;
 	}
 
-	TArray<TWeakObjectPtr<AGSHordeGoblin>>& Roster = ActiveGoblins.FindOrAdd(Summoner);
+	// Rotate the sideways offset through a five-wide line at the mouth. Goblins now emerge ONE AT A
+	// TIME rather than as a fanned blast, so the old centre-the-line-on-the-marker maths no longer
+	// has a line to centre - but two climbing out on the same tick still need somewhere to put their
+	// capsules. Deterministic on purpose: a random bearing makes an arrival that cannot be reproduced.
+	const float Lateral = (static_cast<float>(SpawnOrdinal % 5) - 2.f) * 140.f;
+	FTransform Spawn = ArrivalTransform;
+	Spawn.AddToTranslation(ArrivalTransform.GetRotation().GetRightVector() * Lateral);
 
-	int32 Spawned = 0;
-	for (int32 Index = 0; Index < Wanted; ++Index)
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	Params.Owner = Summoner;
+
+	AGSHordeGoblin* Goblin = World->SpawnActor<AGSHordeGoblin>(GoblinClass, Spawn, Params);
+	if (!Goblin)
 	{
-		// Fan the arrivals sideways so a blast reads as a line coming in rather than a stack of
-		// goblins in one spot fighting their own capsules apart.
-		const float Lateral = (static_cast<float>(Index) - (Wanted - 1) * 0.5f) * 140.f;
-		FTransform Spawn = ArrivalTransform;
-		Spawn.AddToTranslation(ArrivalTransform.GetRotation().GetRightVector() * Lateral);
+		return 0;
+	}
 
-		FActorSpawnParameters Params;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		Params.Owner = Summoner;
+	++SpawnOrdinal;
 
-		AGSHordeGoblin* Goblin = World->SpawnActor<AGSHordeGoblin>(GoblinClass, Spawn, Params);
-		if (!Goblin)
+	// ---- THE FOLLOW SLOT IS ASSIGNED HERE, ONCE, AND NEVER RECOMPUTED (#239) ------------------
+	// Lowest slot no living sibling already holds, so a casualty leaves a gap that the next summon
+	// fills rather than the whole horde shuffling forward. See AGSHordeGoblin::GetFollowSlot.
+	{
+		TArray<TWeakObjectPtr<AGSHordeGoblin>>& Roster = ActiveGoblins.FindOrAdd(Summoner);
+
+		TSet<int32> Taken;
+		for (const TWeakObjectPtr<AGSHordeGoblin>& Entry : Roster)
 		{
-			continue;
+			if (Entry.IsValid() && Entry->GetFollowSlot() != INDEX_NONE)
+			{
+				Taken.Add(Entry->GetFollowSlot());
+			}
 		}
 
+		int32 Slot = 0;
+		while (Taken.Contains(Slot))
+		{
+			++Slot;
+		}
+		Goblin->SetFollowSlot(Slot);
+
 		Roster.Add(Goblin);
+	}
+
+	// THE ONLY DEBIT IN THIS CLASS (decision 40). Death does not debit again - the goblin was
+	// already paid for here - and a delivery credits back against this same counter.
+	ReserveRemaining = FMath::Max(0, ReserveRemaining - 1);
+
+	UE_LOG(LogGSHorde, Log, TEXT("A goblin answers. Reserve %d, active %d/%d."),
+		ReserveRemaining, GetActiveCount(), ActiveCap);
+
+	if (IsPoolDry() && !bDryAnnounced)
+	{
+		bDryAnnounced = true;
+		OnPoolDry.Broadcast();
+	}
+	BroadcastPoolChanged();
+
+	return 1;
+}
+
+int32 UGSHordeSubsystem::SummonWave(AController* Summoner)
+{
+	// Kept as the batch entry point for GS.Horde.SpawnTest and for anything that wants a whole
+	// blast at once. The player's horn no longer comes through here - it streams SummonOne on a
+	// timer while the button is held (UGSGA_Horn) - so this is no longer the summon path a designer
+	// tuning feel should reach for.
+	int32 Spawned = 0;
+	for (int32 Index = 0; Index < SummonsPerBlast; ++Index)
+	{
+		if (SummonOne(Summoner) == 0)
+		{
+			break;
+		}
 		++Spawned;
 	}
 
-	if (Spawned > 0)
+	if (Spawned == 0)
 	{
-		// THE ONLY DEBIT IN THIS CLASS (decision 40). Death does not debit again - the goblin was
-		// already paid for here - and a delivery credits back against this same counter.
-		ReserveRemaining = FMath::Max(0, ReserveRemaining - Spawned);
-		UE_LOG(LogGSHorde, Log, TEXT("Horn: %d answered. Reserve %d, active %d/%d."),
-			Spawned, ReserveRemaining, GetActiveCount(), ActiveCap);
-
-		if (IsPoolDry() && !bDryAnnounced)
-		{
-			bDryAnnounced = true;
-			OnPoolDry.Broadcast();
-		}
-		BroadcastPoolChanged();
+		UE_LOG(LogGSHorde, Log, TEXT("Horn blown and nothing answered - reserve %d, active %d/%d."),
+			ReserveRemaining, GetActiveCount(), ActiveCap);
 	}
 
 	return Spawned;
@@ -570,14 +675,94 @@ AActor* UGSHordeSubsystem::GetAssignedTargetFor(AGSHordeGoblin* Goblin) const
 				// An agent ALREADY registered on the victim passes HasEngagementRoom (see
 				// UGSEngagementComponent::HasEngagementRoom), so incumbents are never displaced by
 				// this and there is no rotation on every scan.
-				UGSEngagementComponent* Engagement = Victim->FindComponentByClass<UGSEngagementComponent>();
-				if (!Engagement || Engagement->HasEngagementRoom(Goblin))
+				// ---- THE ORDER IS A PLACE, NOT A PERSON (#264) ---------------------------------
+				//
+				// Michael: "have them move to the location, then sample in front of them if there's
+				// anything to attack, then attack what's around them rather than a specific item."
+				//
+				// The warband still converges where you pointed, because the anchor below is the
+				// ORDER LOCATION and that is where the named victim was standing. What changes is
+				// what each goblin does once it gets there: it takes whatever is nearest to IT with
+				// room, instead of queueing for a place on one body while a guard stands beside it
+				// unhit.
+				//
+				// Swept DIRECTLY off the world rather than through the Threats registry, and that is
+				// the point. The registry only knows a guard once a goblin or the summoner has been
+				// within AutoThreatRadius of him during a 0.5s scan, so the bystanders around the
+				// marked victim are learned about strictly after the warband arrives - which is
+				// exactly the "takes them a bit to realise there's people to engage" that Michael
+				// described. A local sweep has no such lag.
+				const FVector Anchor = Order->Location;
+				const FVector From = Goblin->GetActorLocation();
+				const float AnchorRadiusSq = OrderEngageRadius * OrderEngageRadius;
+
+				AActor* BestWithRoom = nullptr;
+				float BestWithRoomSq = TNumericLimits<float>::Max();
+				AActor* BestAny = nullptr;
+				float BestAnySq = TNumericLimits<float>::Max();
+
+				if (UWorld* World = GetWorld())
 				{
-					if (Engagement)
+					for (TActorIterator<AGSCharacterBase> It(World); It; ++It)
 					{
-						Engagement->RegisterEngaged(Goblin);
+						AGSCharacterBase* Candidate = *It;
+						if (!IsValid(Candidate) || !Candidate->IsAlive())
+						{
+							continue;
+						}
+
+						// Same race test the threat sweep uses, and for the same reason: an unset
+						// RaceTag reads as hostile to IsHostileTo, which would make a target dummy
+						// a valid order victim.
+						const FGameplayTag Race = Candidate->GetRaceTag();
+						if (!Race.IsValid() || Race == GSTags::Race_Goblin)
+						{
+							continue;
+						}
+
+						// Bounded to the ordered area so a warband cannot wander into a different
+						// fight it happens to be able to see.
+						if (FVector::DistSquared(Anchor, Candidate->GetActorLocation()) > AnchorRadiusSq)
+						{
+							continue;
+						}
+
+						// Nearest to the GOBLIN, not to the anchor: while it is still walking in,
+						// everything in the area is roughly equidistant and it heads for the group;
+						// once it arrives, this is literally "what is next to me".
+						const float DistSq = FVector::DistSquared(From, Candidate->GetActorLocation());
+						if (DistSq < BestAnySq)
+						{
+							BestAnySq = DistSq;
+							BestAny = Candidate;
+						}
+
+						const UGSEngagementComponent* Engagement =
+							Candidate->FindComponentByClass<UGSEngagementComponent>();
+						if (!Engagement || Engagement->HasEngagementRoom(Goblin))
+						{
+							if (DistSq < BestWithRoomSq)
+							{
+								BestWithRoomSq = DistSq;
+								BestWithRoom = Candidate;
+							}
+						}
 					}
-					return Victim;
+				}
+
+				// Prefer somewhere there is room; fall back to the nearest regardless, then to the
+				// named victim. The last fallback matters: if the sweep finds nothing - the order
+				// was placed on empty ground, or everyone in the area is already dead - the goblin
+				// keeps the victim the player actually named rather than going idle.
+				AActor* Chosen = BestWithRoom ? BestWithRoom : (BestAny ? BestAny : Victim);
+				if (IsValid(Chosen))
+				{
+					if (UGSEngagementComponent* ChosenEngagement =
+							Chosen->FindComponentByClass<UGSEngagementComponent>())
+					{
+						ChosenEngagement->RegisterEngaged(Goblin);
+					}
+					return Chosen;
 				}
 			}
 		}
@@ -677,24 +862,49 @@ AActor* UGSHordeSubsystem::GetFollowTargetFor(AGSHordeGoblin* Goblin) const
 	return UGameplayStatics::GetPlayerPawn(this, 0);
 }
 
+FVector UGSHordeSubsystem::GetFollowPostFor(AGSHordeGoblin* Goblin) const
+{
+	AActor* Leader = GetFollowTargetFor(Goblin);
+	if (!Leader || !IsValid(Goblin))
+	{
+		return Goblin ? Goblin->GetActorLocation() : FVector::ZeroVector;
+	}
+
+	const int32 Slot = FMath::Max(0, GetFollowSlotFor(Goblin));
+	const int32 PerRank = FMath::Max(1, FollowPostPerRank);
+	const int32 Rank = Slot / PerRank;
+	const int32 File = Slot % PerRank;
+
+	// Centre the rank on the summoner's spine: with three per rank the files sit at -1, 0, +1.
+	const float FileOffset = (static_cast<float>(File) - (PerRank - 1) * 0.5f) * FollowPostFileSpacing;
+	const float Depth = FollowPostDepth + Rank * FollowPostRankSpacing;
+
+	FVector Forward = Leader->GetActorForwardVector();
+	Forward.Z = 0.f;
+	if (Forward.IsNearlyZero())
+	{
+		Forward = FVector::ForwardVector;
+	}
+	Forward.Normalize();
+	const FVector Right = FVector::CrossProduct(FVector::UpVector, Forward).GetSafeNormal();
+
+	// BEHIND the leader - minus forward. The whole point is that the band reads as following him.
+	return Leader->GetActorLocation() - Forward * Depth + Right * FileOffset;
+}
+
 int32 UGSHordeSubsystem::GetFollowSlotFor(AGSHordeGoblin* Goblin) const
 {
-	for (const TPair<TWeakObjectPtr<AController>, TArray<TWeakObjectPtr<AGSHordeGoblin>>>& Pair : ActiveGoblins)
+	// Was: the goblin's INDEX in the roster array, counted fresh on every call and skipping dead
+	// entries. RemoveFromActive compacts that array, so one death renumbered every goblin behind the
+	// casualty and the whole formation jostled forward together. The slot now lives on the goblin.
+	if (IsValid(Goblin) && Goblin->GetFollowSlot() != INDEX_NONE)
 	{
-		int32 Slot = 0;
-		for (const TWeakObjectPtr<AGSHordeGoblin>& Entry : Pair.Value)
-		{
-			if (!Entry.IsValid())
-			{
-				continue;
-			}
-			if (Entry.Get() == Goblin)
-			{
-				return Slot;
-			}
-			++Slot;
-		}
+		return Goblin->GetFollowSlot();
 	}
+
+	// Slot 0 for a goblin the roster has never seen. Same fallback as before, and it means an
+	// unregistered goblin stacks on the summoner rather than vanishing to a formation position that
+	// does not exist.
 	return 0;
 }
 
@@ -769,6 +979,14 @@ UClass* UGSHordeSubsystem::ResolveOrderMarkerClass() const
 FVector UGSHordeSubsystem::ResolveDeliveryLocation(AController* Summoner, const FVector& From) const
 {
 	UWorld* World = GetWorld();
+
+	// 0. The Warren, if the level has one (ruling 18: it is "the turn-in point for cargo").
+	//    Above the stones deliberately - the Warren is the forgiving bank, and a courier walking
+	//    past an open hole to reach a portal on the far side of the map is the wrong picture.
+	if (const AGSWarren* Warren = AGSWarren::FindNearest(this, From))
+	{
+		return Warren->GetActorLocation();
+	}
 
 	// 1. The stones. This is what §2.7 means by "banks permanently the instant it reaches the runic
 	//    site", and NotifyCourierDelivered's own comment names it.

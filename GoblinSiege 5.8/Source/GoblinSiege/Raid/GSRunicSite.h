@@ -19,6 +19,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class UNiagaraComponent;
+class UGSLootBankComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnPortalOpenChanged, bool, bIsOpen);
 
@@ -124,6 +125,18 @@ protected:
 	 *  blazing when the raid starts tells the player the exit is open when it is not. */
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Runic Site")
 	TObjectPtr<UNiagaraComponent> PortalFX;
+
+	/**
+	 * The gate takes loot too (Michael, 2026-08-21: "loot is brought to either the closest warren
+	 * portal, or the beginning portal").
+	 *
+	 * Shares its implementation with the Warren rather than growing a second copy - GDD 9 asked for
+	 * exactly that: "build it once and give it both consumers". Note this banks whether the portal
+	 * is OPEN or CLOSED: running loot back to the gate is a mid-raid errand, and the portal only
+	 * opens at the end.
+	 */
+	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Runic Site")
+	TObjectPtr<UGSLootBankComponent> LootBank;
 
 	// ------------------------------------------------------------------ tuning
 

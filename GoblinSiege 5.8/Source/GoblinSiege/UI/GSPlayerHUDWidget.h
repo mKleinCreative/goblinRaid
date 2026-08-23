@@ -171,6 +171,74 @@ protected:
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
 	TObjectPtr<class UImage> InteractRing;
 
+	// ---- the bow timing bar (#244) ------------------------------------------------------------
+	//
+	// An Image across the bottom of the canvas wearing M_GS_BowTimingBar: the material owns the
+	// gradient (yellow -> orange -> RED -> orange -> yellow) and C++ owns only where the indicator
+	// sits and whether the whole thing is on screen. Same division of labour as the channel ring
+	// above, and for the same reason - a designer should be able to restyle the bar without a
+	// recompile.
+	//
+	// A UProgressBar was the obvious alternative and cannot express this: a gradient background and
+	// an independently-moving indicator are two visuals, and SetPercent only carries one.
+	//
+	// BlueprintReadOnly is MANDATORY here, not decoration - see the note above on why an unmarked
+	// BindWidgetOptional breaks the whole WBP's compile.
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<class UImage> BowTimingBar;
+
+	/**
+	 * The sliding pointer, as its own Image rather than something the bar's material draws.
+	 *
+	 * Michael supplied the bar and the pointer as two sprites, so the honest implementation is two
+	 * widgets: the bar is a plain texture brush and this is moved across it by a render transform.
+	 * That removes the need for M_GS_BowTimingBar entirely. The material path below still works if a
+	 * material brush is used instead, so neither approach breaks the other.
+	 *
+	 * ANCHOR THIS TO THE CENTRE OF THE BAR. The translation applied to it is measured from the bar's
+	 * midpoint, so an indicator anchored left will start half a bar-width off.
+	 */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> BowTimingIndicator;
+
+	/**
+	 * Where the coloured fill starts and ends inside T_GS_BowTimingBar, as a fraction of its width.
+	 * Measured from the texture: the fill spans x 60..901 of 977, because the wooden frame and the
+	 * steel end caps take up the rest. Without this the pointer would run to the very edges of the
+	 * image and sit on the caps at either extreme.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Bow", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float BowFillUMin = 0.061f;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Bow", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float BowFillUMax = 0.922f;
+
+	/** Vertical nudge for the pointer, so it can straddle the bar rather than sit centred in it. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Bow")
+	float BowIndicatorOffsetY = 0.f;
+
+	/** Scalar on the bar material carrying the indicator's 0..1 position. Must match
+	 *  M_GS_BowTimingBar. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Bow")
+	FName BowIndicatorParameter = FName("IndicatorPos");
+
+	/**
+	 * Scalars carrying the band layout to the material, so the gradient stops and the damage bands
+	 * cannot drift apart.
+	 *
+	 * The alternative - authoring the gradient by eye in the material - guarantees that the red the
+	 * player aims at eventually stops being the red that pays. The numbers live in
+	 * UGSBowTimingComponent and are pushed here on every draw.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Bow")
+	FName BowRedCentreParameter = FName("RedCentre");
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Bow")
+	FName BowRedHalfWidthParameter = FName("RedHalfWidth");
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Bow")
+	FName BowOrangeHalfWidthParameter = FName("OrangeHalfWidth");
+
 	/** Scalar parameter on the ring material that carries 0..1 fill. Must match M_GS_ChannelRing. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Channel")
 	FName ChannelPercentParameter = FName("Percent");
@@ -203,9 +271,26 @@ protected:
 
 	void ShowChannelRing(bool bVisible);
 
+	/** Bound to UGSBowTimingComponent's delegate triple. See BindToCharacter. */
+	UFUNCTION()
+	void HandleBowDrawStarted(float TraverseSeconds);
+
+	UFUNCTION()
+	void HandleBowDrawProgress(float Position01, int32 Bounces);
+
+	UFUNCTION()
+	void HandleBowDrawEnded(bool bLoosed);
+
+	void ShowBowTimingBar(bool bVisible);
+
 	/** Cached so the fill is not a material lookup per frame. Created lazily from the Image's brush. */
 	UPROPERTY(Transient)
 	TObjectPtr<class UMaterialInstanceDynamic> ChannelRingMID;
+
+	/** Cached like ChannelRingMID and for the same reason: GetDynamicMaterial is not free enough to
+	 *  call every frame of a draw. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UMaterialInstanceDynamic> BowTimingBarMID;
 
 	/** Weak for the same reason BoundCommandComponent is: the pawn routinely outlives this widget. */
 	TWeakObjectPtr<class UGSInteractionComponent> BoundInteractionComponent;

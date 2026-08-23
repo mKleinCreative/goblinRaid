@@ -138,6 +138,27 @@ void AGSHordeAIController::RefreshStimulus()
 	// the BT's move task; all the controller owes it is a stable index.
 	BB->SetValueAsInt(FollowSlotKey, Horde->GetFollowSlotFor(Goblin));
 
+	// ---- AND NOW SOMETHING ACTUALLY READS IT (#263) --------------------------------------------
+	//
+	// The slot above has been published since the horde was written and consumed by nothing:
+	// `Follow Summoner` is a stock BTTask_MoveTo pointed at the FollowTarget OBJECT, so every goblin
+	// pathed to the same point - the player - and the band crowded him. The comment above says the
+	// ring maths "belongs in the BT's move task"; no such task was ever written, so it lives in
+	// UGSHordeSubsystem::GetFollowPostFor and the tree moves to a VECTOR instead.
+	//
+	// Publishing the goblin's own location while it is already in place is what keeps the band
+	// still. A BTTask_MoveTo snapshots its goal at ExecuteTask and ignores later writes -
+	// bObserveBlackboardValue is hard-false in UE 5.8 - and it re-executes constantly, so writing a
+	// live post every tick would have them all micro-stepping forever. Same fix, same reason, as the
+	// archers in #247.
+	if (!bHasStandingOrder && FollowTarget)
+	{
+		const FVector Post = Horde->GetFollowPostFor(Goblin);
+		const FVector Here = Goblin->GetActorLocation();
+		const bool bInPlace = FVector::Dist2D(Here, Post) <= FollowPostTolerance;
+		BB->SetValueAsVector(FollowLocationKey, bInPlace ? Here : Post);
+	}
+
 	// ---- the standing order (#141) ---------------------------------------------------------
 	const EGSHordeOrder Verb = OrderVerb;   // read once, above - two reads could disagree mid-frame
 	BB->SetValueAsEnum(OrderVerbKey, static_cast<uint8>(Verb));

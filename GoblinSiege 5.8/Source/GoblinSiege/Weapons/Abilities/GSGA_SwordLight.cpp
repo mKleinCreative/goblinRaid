@@ -12,11 +12,36 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/OverlapResult.h"
+#include "Components/ACFDamageHandlerComponent.h"
+#include "Combat/GSDamageTypes.h"
+#include "Engine/DamageEvents.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 #include "HAL/IConsoleManager.h"
+
+// ---- THE TRANSPORT SWITCH (#237) -------------------------------------------------------------
+//
+// 1 routes the swing through UACFDamageHandlerComponent::TakeDamage, which is what makes ACF's
+// ragdoll, hit-response actions and defense stance work - all three read a damage EVENT that only
+// ACF's own pipeline produces. 0 restores the gameplay-effect path this project has always used.
+//
+// A cvar rather than a straight replacement because this changes how every hit resolves and the
+// person who can see it is not the person who wrote it: if damage misbehaves mid-playtest, this
+// flips back without a rebuild. DELETE IT once the ACF path has been watched and trusted - a
+// permanent branch through the damage path is two combat systems to keep in step.
+// DEFAULT 0 as of the first watched attempt. The ACF path computed damage correctly and applied
+// none of it, so combat ran on the old path anyway once Michael flipped this. It stays off until the
+// out-array fix above has been watched - working combat is the baseline, not the experiment.
+static int32 GSUseACFDamage = 0;
+static FAutoConsoleVariableRef CVarGSUseACFDamage(
+	TEXT("GS.Combat.ACFDamage"),
+	GSUseACFDamage,
+	TEXT("1 = the axe swing delivers via ACF's damage handler (ragdoll, hit responses, defense "
+		 "stance). 0 = the original gameplay-effect path."),
+	ECVF_Default);
+
 
 // Master switch for combat debug drawing. The per-ability bDrawDebugSweep stays as the "does this
 // ability draw at all" opt-in; this is the global override, so a playtest can be made clean from
@@ -395,11 +420,44 @@ void UGSGA_SwordLight::DoSweep()
 		// SPEC - the same tag sitting in a Blueprint effect's asset tags is invisible to
 		// UGSDamageExecCalculation and silently deals zero. The sword rides Damage.Dagger because
 		// no Damage.Sword tag exists yet; logged in the decision queue.
-		SpecHandle.Data->AddDynamicAssetTag(GSTags::Damage_Dagger);
-		SpecHandle.Data->SetSetByCallerMagnitude(GSTags::Damage_Dagger,
-			bBrokeGuard ? S.Damage * S.GuardBreakDamageScale : S.Damage);
+		const float SwingDamage = bBrokeGuard ? S.Damage * S.GuardBreakDamageScale : S.Damage;
 
-		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data, TargetASC);
+		if (GSUseACFDamage > 0)
+		{
+			if (UACFDamageHandlerComponent* Handler =
+					Target->FindComponentByClass<UACFDamageHandlerComponent>())
+			{
+				// The sweep is an overlap, so there is no real impact point to hand over. Synthesise
+				// one: the target's location, with the normal pointing back at the attacker. ACF
+				// reads hitDirection for the ragdoll impulse and for which hit reaction to play, so
+				// a zero vector here would make every corpse fall the same way.
+				const FVector ShotDirection =
+					(Target->GetActorLocation() - Avatar->GetActorLocation()).GetSafeNormal();
+
+				FHitResult Hit;
+				Hit.ImpactPoint = Target->GetActorLocation();
+				Hit.Location = Hit.ImpactPoint;
+				Hit.ImpactNormal = -ShotDirection;
+				Hit.Normal = Hit.ImpactNormal;
+				Hit.HitObjectHandle = FActorInstanceHandle(Target);
+
+				const FPointDamageEvent DamageEvent(SwingDamage, Hit, ShotDirection,
+					UGSDamageType_Axe::StaticClass());
+
+				Handler->TakeDamage(Target, SwingDamage, DamageEvent,
+					Avatar->GetInstigatorController(), Avatar);
+			}
+		}
+		else
+		{
+			// The Damage.* tag is BOTH the type marker and the SetByCaller key, and it must go on the
+			// SPEC - the same tag sitting in a Blueprint effect's asset tags is invisible to
+			// UGSDamageExecCalculation and silently deals zero.
+			SpecHandle.Data->AddDynamicAssetTag(GSTags::Damage_Dagger);
+			SpecHandle.Data->SetSetByCallerMagnitude(GSTags::Damage_Dagger, SwingDamage);
+
+			SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data, TargetASC);
+		}
 
 		// Frenzy, "anything you attack" (GDD §2.5). Announced from the swing rather than from the
 		// attribute path, because only the swing knows both ends of the hit - the victim's
@@ -439,6 +497,7 @@ void UGSGA_SwordLight::DoSweep()
 		}
 	}
 }
+
 
 bool UGSGA_SwordLight::BreakGuard(AActor* Target, UAbilitySystemComponent* TargetASC,
 	const FGSSwingStage& S)

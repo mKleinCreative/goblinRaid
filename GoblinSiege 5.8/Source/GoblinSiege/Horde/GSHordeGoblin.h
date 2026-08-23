@@ -35,6 +35,20 @@ public:
 	const UGSRaceDataAsset* GetRaceData() const { return RaceData; }
 	FName GetArchetypeRowName() const { return ArchetypeRowName; }
 
+	/**
+	 * THIS GOBLIN'S PLACE IN THE FOLLOW FORMATION, AND IT NEVER MOVES (#239).
+	 *
+	 * The slot used to be the goblin's INDEX in the summoner's roster array, recomputed on every
+	 * query. UGSHordeSubsystem::RemoveFromActive compacts that array with RemoveAll, so the moment
+	 * one goblin died every goblin behind it inherited the slot in front - and the whole horde
+	 * shuffled forward one place at once. A death is supposed to leave a gap, not reorder the band.
+	 *
+	 * Assigned once, when the goblin joins the roster, as the lowest slot no living sibling holds.
+	 * So a casualty frees its slot, everyone else keeps theirs, and the next summon fills the hole.
+	 */
+	int32 GetFollowSlot() const { return FollowSlot; }
+	void SetFollowSlot(int32 InSlot) { FollowSlot = InSlot; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void HandleDeath() override;
@@ -82,6 +96,9 @@ protected:
 	TObjectPtr<UGSCarryComponent> CarryComponent;
 
 private:
+	/** See GetFollowSlot. INDEX_NONE until the subsystem assigns one. */
+	int32 FollowSlot = INDEX_NONE;
+
 	/** Applies the archetype row's stats. A near-copy of AGSEnemyCharacter's version rather than a
 	 *  shared one, because that class's copy also carries defender-only concerns; if a third caller
 	 *  appears this belongs on AGSCharacterBase. */

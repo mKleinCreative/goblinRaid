@@ -186,7 +186,20 @@ void UGSAISteeringComponent::TickFacing()
 	// sets the MOVE focus to its own goal (AAIController::SetMoveFocus), so a combat focus parked
 	// there would be overwritten by every MoveTo - the bug being fixed, reintroduced one layer down.
 	// Gameplay is above Move, so this survives pathing.
-	if (FocusedTarget.Get() != Target)
+	// ---- ASK THE CONTROLLER, DO NOT TRUST THE CACHE (#246) ---------------------------------------
+	//
+	// This used to read `FocusedTarget.Get() != Target`, i.e. "have I already focused this target?".
+	// That is wrong because something else clears the focus behind this component's back:
+	// UBTTask_RangedAttack::OnTaskFinished calls ClearFocus(Gameplay) on EVERY exit, deliberately and
+	// correctly, but without telling anyone. FocusedTarget still points at the same actor, so the
+	// cache says "already focused", and the focus is never re-applied for as long as the archer keeps
+	// the same target.
+	//
+	// The visible result is that after her FIRST shot the archer's control rotation falls back to
+	// path following's move focus, so she yaws toward wherever she is being sent instead of at the
+	// person she is shooting. Reading the Gameplay slot itself is what makes the two sides agree
+	// without either having to know about the other.
+	if (OwningController->GetFocusActorForPriority(EAIFocusPriority::Gameplay) != Target)
 	{
 		OwningController->SetFocus(Target, EAIFocusPriority::Gameplay);
 		FocusedTarget = Target;

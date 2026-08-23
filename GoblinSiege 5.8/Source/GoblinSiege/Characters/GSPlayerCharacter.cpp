@@ -1,4 +1,6 @@
 #include "Characters/GSPlayerCharacter.h"
+
+#include "Raid/GSWarrenPlacementComponent.h"
 #include "Characters/GSTargetingComponent.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameplayEffectExtension.h"
@@ -16,6 +18,7 @@
 #include "Weapons/Abilities/GSGA_TorchToss.h"
 #include "Destruction/GSTorchProjectile.h"
 #include "Combat/GSAimComponent.h"
+#include "Weapons/GSBowTimingComponent.h"
 #include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "AbilitySystemComponent.h"
@@ -39,7 +42,9 @@ AGSPlayerCharacter::AGSPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	TargetingComponent = CreateDefaultSubobject<UGSTargetingComponent>(TEXT("TargetingComponent"));
 	InteractionComponent = CreateDefaultSubobject<UGSInteractionComponent>(TEXT("InteractionComponent"));
 	CarryComponent = CreateDefaultSubobject<UGSCarryComponent>(TEXT("CarryComponent"));
+	WarrenPlacementComponent = CreateDefaultSubobject<UGSWarrenPlacementComponent>(TEXT("WarrenPlacementComponent"));
 	AimComponent = CreateDefaultSubobject<UGSAimComponent>(TEXT("AimComponent"));
+	BowTimingComponent = CreateDefaultSubobject<UGSBowTimingComponent>(TEXT("BowTimingComponent"));
 	HordeCommandComponent = CreateDefaultSubobject<UGSHordeCommandComponent>(TEXT("HordeCommandComponent"));
 
 	// The player is a goblin, so allied goblins and the horde cannot cut him down by standing too
@@ -500,6 +505,24 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		if (HornAction)
 		{
 			EIC->BindAction(HornAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_Horn);
+			// Completed, NOT a Hold trigger on IA_Horn. #207/#208 cost a session to the fact that a Hold
+			// trigger does not stop the Started pin firing; press-and-release as two bindings is the
+			// shape that actually behaves, and it needs no change to IMC_Default.
+			EIC->BindAction(HornAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_HornReleased);
+		}
+
+		// Planting the Warren (#245). Same press-and-release shape as the horn, and guarded with an
+		// else-branch for the same reason: BindAction does not assert on a null action in 5.8.
+		if (PlaceWarrenAction)
+		{
+			EIC->BindAction(PlaceWarrenAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_PlaceWarren);
+			EIC->BindAction(PlaceWarrenAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_PlaceWarrenReleased);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] %s has no PlaceWarrenAction assigned - holding T will do NOTHING. "
+					 "Assign IA_PlaceWarren on the Blueprint CDO."), *GetName());
 		}
 
 		// The order wheel (#141). Guarded and with an else-branch, for the reason spelled out on
@@ -806,6 +829,13 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 		GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
 		OnHeavyChargeChanged.Broadcast(0.f);
 
+		// A raised hook ends the draw. CancelDraw rather than a sample: the player did not choose to
+		// loose, so nothing should be scored and no arrow should carry a quality from it.
+		if (BowTimingComponent)
+		{
+			BowTimingComponent->CancelDraw();
+		}
+
 		if (AbilitySystemComponent)
 		{
 			AbilitySystemComponent->TryActivateAbilityByClass(GrappleThrowAbilityClass);
@@ -827,6 +857,11 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 		// Delegates to the existing torch press so there is ONE torch aim path, not a second copy
 		// that drifts. It handles the bTorchAimEnabled fallback and reads the projectile class off
 		// the ability CDO.
+		if (BowTimingComponent)
+		{
+			BowTimingComponent->CancelDraw();
+		}
+
 		Input_ThrowTorchStart(Value);
 		return;
 	}
@@ -853,7 +888,33 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 			}
 			AimComponent->BeginAim(EGSAimMode::Bow, ProjectileClass);
 		}
+
+		// ---- THE DRAW ALWAYS STARTS ----------------------------------------------------------
+		//
+		// This was gated on UGSGA_BowShot::GetFireCooldownRemaining, to stop the bar running a full
+		// sweep for a shot the ability would then silently refuse. Michael found what that actually
+		// felt like: press again straight after a release and NOTHING appears, which reads as the
+		// bow being broken rather than as a weapon still recovering.
+		//
+		// The gate was also solving a problem that barely exists. RangedAttackCooldownSeconds is 1.5s
+		// on every weapon and red sits at 2.7s into the sweep, so the interval has long expired by
+		// the time any deliberate shot is loosed. Only a near-instant tap could still be refused, and
+		// that shot would have been a minimum-damage yellow anyway.
+		//
+		// So: the sweep always runs, and the fire interval keeps being enforced where it always was,
+		// inside the ability.
+		if (BowTimingComponent)
+		{
+			BowTimingComponent->BeginDraw();
+		}
 		return;
+	}
+
+	// Reached only when none of the branches above claimed the press, i.e. this is a melee swing.
+	// A draw still in flight belongs to a bow that is no longer in hand.
+	if (BowTimingComponent)
+	{
+		BowTimingComponent->CancelDraw();
 	}
 
 	bAttackHeld = true;
@@ -886,6 +947,21 @@ void AGSPlayerCharacter::Input_AttackReleased(const FInputActionValue& Value)
 		// Push the exact aim BEFORE activating - see Input_ThrowTorchRelease for why.
 		AimComponent->PushAimRotationToServer();
 		AimComponent->EndAim();
+
+		// SAMPLED HERE, BEFORE THE ABILITY RUNS, AND DELIBERATELY.
+		//
+		// Two reasons. The honest moment is the one the player judged - UGSGA_BowShot puts
+		// ReleaseDelaySeconds between this and the arrow spawning, and charging them for 80ms of
+		// release they cannot see would make a perfect shot feel stolen. And FireArrow reads the
+		// verdict through GetLastReleaseQuality, which only holds a value once this has run.
+		//
+		// The return value is discarded on purpose: the component keeps it, and a shot the ability
+		// REFUSES resets it rather than leaving a perfect score lying around for the next arrow.
+		if (BowTimingComponent)
+		{
+			BowTimingComponent->ConsumeReleaseQuality();
+		}
+
 		if (AbilitySystemComponent && BowShotAbilityClass)
 		{
 			AbilitySystemComponent->TryActivateAbilityByClass(BowShotAbilityClass);
@@ -971,6 +1047,44 @@ void AGSPlayerCharacter::Input_Horn(const FInputActionValue& Value)
 	// tag so a held button cannot summon a wave per frame, and it blocks on State.Carrying because a
 	// goblin with a pig over its shoulder has no free hand for a horn.
 	AbilitySystemComponent->TryActivateAbilityByClass(HornAbilityClass);
+}
+
+void AGSPlayerCharacter::Input_PlaceWarren(const FInputActionValue& Value)
+{
+	if (WarrenPlacementComponent)
+	{
+		WarrenPlacementComponent->BeginPlacement();
+	}
+}
+
+void AGSPlayerCharacter::Input_PlaceWarrenReleased(const FInputActionValue& Value)
+{
+	if (WarrenPlacementComponent)
+	{
+		WarrenPlacementComponent->ConfirmPlacement();
+	}
+}
+
+void AGSPlayerCharacter::Input_HornReleased(const FInputActionValue& Value)
+{
+	if (!AbilitySystemComponent || !HornAbilityClass)
+	{
+		return;
+	}
+
+	// Reach the LIVE instance, not the CDO. UGSGA_Horn is InstancedPerActor, so the spec's primary
+	// instance is the object actually running the blast; writing the flag on the CDO would set it on
+	// a template nobody is executing and the stream would never stop.
+	const FGameplayAbilitySpec* Spec = AbilitySystemComponent->FindAbilitySpecFromClass(HornAbilityClass);
+	if (!Spec)
+	{
+		return;
+	}
+
+	if (UGSGA_Horn* Horn = Cast<UGSGA_Horn>(Spec->GetPrimaryInstance()))
+	{
+		Horn->NotifyHornReleased();
+	}
 }
 
 void AGSPlayerCharacter::Input_BlockStart(const FInputActionValue& Value)
@@ -1170,6 +1284,14 @@ void AGSPlayerCharacter::HandleWeaponModeChanged(bool bRangedMode)
 	if (!bRangedMode && AimComponent && AimComponent->GetAimMode() == EGSAimMode::Bow)
 	{
 		AimComponent->EndAim();
+
+		// The bar goes with the arc, for the same reason. Note this does NOT cancel the shot - the
+		// release handler still resolves it, as the comment above intends - but it resolves as an
+		// ordinary arrow: the player put the bow away, so there is no draw left to score.
+		if (BowTimingComponent)
+		{
+			BowTimingComponent->CancelDraw();
+		}
 	}
 
 	UpdateRotationMode();

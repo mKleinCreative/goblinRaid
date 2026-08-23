@@ -348,14 +348,79 @@ void UBTService_AcquireTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8
 	{
 		Engagement->RegisterEngaged(Self);
 
+		// ---- RANGED AGENTS DO NOT TAKE A MELEE RING SLOT (#240) --------------------------------
+		//
+		// They used to: claim a slot, then stand at StandoffRadiusOverride along its direction. That
+		// is unstable by construction - the slot sits at RingRadius and the archer stands far beyond
+		// it, so it is never "arrived" and never "closing", and the ring watchdog evicts the claim on
+		// a timer. Re-claiming picks a slot from the agent's CURRENT bearing, which by then has
+		// drifted, so the archer lurches to a new angle and starts again.
+		//
+		// Instead: latch a bearing the first time this agent sees this target, and hold it. The
+		// archer then only ever corrects DISTANCE, which is what "hold bow range" should mean. It
+		// also stops archers competing with swordsmen for the six melee places.
+		if (StandoffRadiusOverride > 0.f)
+		{
+			const uint32 TargetIdForBearing = Target->GetUniqueID();
+			if (!Memory || Memory->LatchedTargetId != TargetIdForBearing
+				|| Memory->LatchedBearingDegrees < -1000.f)
+			{
+				FVector Away = Self->GetActorLocation() - TargetLoc;
+				Away.Z = 0.f;
+				if (Away.IsNearlyZero())
+				{
+					Away = -Target->GetActorForwardVector();
+				}
+				if (Memory)
+				{
+					Memory->LatchedBearingDegrees =
+						FMath::RadiansToDegrees(FMath::Atan2(Away.Y, Away.X));
+				}
+			}
+
+			if (Memory)
+			{
+				// ---- IN BAND: PUBLISH THE ARCHER'S OWN POSITION, NOT A DESTINATION (#246) -------
+				//
+				// The MoveTo that consumes this key snapshots its goal at ExecuteTask and ignores
+				// every later write - bObserveBlackboardValue is a UPROPERTY() with no EditAnywhere
+				// and is never assigned anywhere in UE 5.8, so it is permanently false. It also
+				// SUCCEEDS on arrival, which succeeds its Selector, which restarts the root, so it
+				// re-executes continuously and re-snapshots a hold point that has slid with the
+				// target in the meantime.
+				//
+				// Writing the agent's own location makes that harmless: the task executes, reports
+				// AlreadyAtGoal, and produces no velocity. Trying to fix this by widening the
+				// AcceptableRadius or by rewriting the key less often cannot work, because the task
+				// is not listening either way.
+				const FVector SelfLoc = Self->GetActorLocation();
+				const float Range = FVector::Dist2D(SelfLoc, TargetLoc);
+				if (Range >= HoldBandInner && Range <= HoldBandOuter)
+				{
+					BB->SetValueAsVector(TargetLocationKey.SelectedKeyName, SelfLoc);
+					return;
+				}
+
+				// ---- OUT OF BAND: go back to the MIDDLE of it -----------------------------------
+				// StandoffRadiusOverride (700) sits between HoldBandInner and HoldBandOuter by
+				// design. Returning to the middle is what buys the deadband; returning to the edge
+				// would re-trigger on the target's next step.
+				const float Rad = FMath::DegreesToRadians(Memory->LatchedBearingDegrees);
+				const FVector Hold = TargetLoc
+					+ FVector(FMath::Cos(Rad), FMath::Sin(Rad), 0.f) * StandoffRadiusOverride;
+				BB->SetValueAsVector(TargetLocationKey.SelectedKeyName, Hold);
+				return;
+			}
+		}
+
 		const int32 SlotIndex = Engagement->ClaimRingSlot(Self);
 		if (SlotIndex != INDEX_NONE)
 		{
 			FVector SlotLoc = Engagement->GetRingSlotLocation(SlotIndex);
 
-			// The slot chose the DIRECTION; this agent's own tree chooses the DISTANCE along it.
-			// An archer keeps its exclusive place in the ring - and its seat against capacity - but
-			// stands at bow range rather than sword range. See StandoffRadiusOverride.
+			// DEAD FOR RANGED AGENTS since #240 - they return above with a latched bearing and never
+			// reach here. Kept for a melee agent that sets an override for some other reason; if
+			// nothing ever does, this branch and StandoffRadiusOverride's use here can go.
 			if (StandoffRadiusOverride > 0.f)
 			{
 				const FVector SlotDir = (SlotLoc - TargetLoc).GetSafeNormal2D();

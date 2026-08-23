@@ -4,6 +4,7 @@
 #include "ACFStatisticsSet.h"
 #include "Components/ACFDamageHandlerComponent.h"
 #include "Components/ACFTeamComponent.h"
+#include "Combat/GSACFDamageCalculation.h"
 #include "ACFAttributeSet.h"
 #include "ACFPrimaryAttributeSet.h"
 #include "Combat/GSGameplayTags.h"
@@ -257,6 +258,14 @@ void AGSCharacterBase::BeginPlay()
 	// Anything that is not a goblin is a human here. That is honest for the current roster (goblins
 	// and the defenders of Groatsworth) and will need a real case when civilians arrive under
 	// rulings 13/14 - they are human by race but should not be hostile to anyone.
+	// ACF's handler defaults to UACFGASDamageCalculator, which knows nothing about the directional
+	// plate, the minimum-damage floor or the NPC-vs-NPC scalar. Point it at ours (#237); without
+	// this the ACF transport would deliver ACF's numbers, not this game's.
+	if (UACFDamageHandlerComponent* Handler = FindComponentByClass<UACFDamageHandlerComponent>())
+	{
+		Handler->SetDamageCalculatorClass(UGSACFDamageCalculation::StaticClass());
+	}
+
 	if (UACFTeamComponent* Team = FindComponentByClass<UACFTeamComponent>())
 	{
 		Team->SetTeam(RaceTag == GSTags::Race_Goblin ? GSTags::Teams_Goblin : GSTags::Teams_Human);

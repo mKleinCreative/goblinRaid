@@ -72,6 +72,18 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "GoblinSiege|Weapon")
 	void RefreshWeaponVisuals();
 
+	/**
+	 * Suppress the HOLSTERED melee weapon while the player is aiming.
+	 *
+	 * `back_sword` sits on Spine02 at (12, 6, 30) and the axe wears a 1.6 scale, so a large mesh is
+	 * parked high on the back - which is exactly where an over-the-shoulder aim camera is pointing.
+	 * Nothing is misconfigured; the holster and the aim camera simply want the same space.
+	 *
+	 * Only the holstered half is affected. A weapon actually IN HAND is never hidden by this, so
+	 * aiming the torch still shows the torch.
+	 */
+	void SetAimActive(bool bInAimActive);
+
 	/** Scout sword⇄bow toggle. Brief input lock so the swap can't be used as a frame-perfect
 	 *  combat cancel (race-design-goblins.md weapon-swap rule).
 	 *
@@ -198,6 +210,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
 	bool IsTorchReadied() const { return bTorchReadied; }
 
+	/**
+	 * Raise or lower the war-horn prop. Driven by UGSGA_Horn for the length of a blast.
+	 *
+	 * NOT a weapon slot, and deliberately not routed through SetSlot: the horn is universal kit that
+	 * every class carries, it is never "equipped", and it does not displace whatever is in hand. It
+	 * is a prop that appears while an ability is running, which is exactly what the readied torch
+	 * was before the torch became a slot.
+	 */
+	void SetHornRaised(bool bNewRaised);
+
+	bool IsHornRaised() const { return bHornRaised; }
+
 	// --- Blood Staff orb economy (design doc §5: melee hits bank orbs, Blood Nova spends them) ---
 
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon|BloodOrbs")
@@ -229,6 +253,9 @@ public:
 	FGSOnWheelHighlightChanged OnWheelHighlightChanged;
 
 protected:
+	/** See SetAimActive. */
+	bool bAimActive = false;
+
 	virtual void BeginPlay() override;
 
 	/** Destroys every mesh component this class created and clears the swap-lock timer. Nothing
@@ -307,6 +334,11 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> HeldTorchMeshComponent;
 
+	/** The war-horn. Built lazily on the first blast and kept, like the torch - a goblin that never
+	 *  blows one never pays for it. */
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> HornMeshComponent;
+
 	/** Sword by default: a goblin starts a raid with the blade out. */
 	EGSWeaponSlot CurrentSlot = EGSWeaponSlot::Sword;
 
@@ -330,6 +362,7 @@ protected:
 
 	bool bSwapLocked = false;
 	bool bTorchReadied = false;
+	bool bHornRaised = false;
 	int32 BloodOrbs = 0;
 	FTimerHandle SwapLockTimerHandle;
 
@@ -348,6 +381,7 @@ protected:
 	bool bRangedMeshResolveFailed = false;
 	bool bQuiverMeshResolveFailed = false;
 	bool bHeldTorchMeshResolveFailed = false;
+	bool bHornMeshResolveFailed = false;
 
 	/**
 	 * Sockets already complained about, so the "hand_r_weapon does not exist" line appears once and

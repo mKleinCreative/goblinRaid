@@ -243,4 +243,38 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
 	FTransform HeldTorchMeshOffset;
+
+	/**
+	 * The war-horn prop (GDD 2.3 "universal kit, every class").
+	 *
+	 * Same shape as HeldTorchMesh above and the same accepted redundancy: the horn is universal, so
+	 * this ends up set to the same mesh on every kit's asset. That buys one attachment code path and
+	 * leaves the door open for a kit-specific horn without new code.
+	 *
+	 * Shown only while the horn is RAISED (UGSWeaponComponent::SetHornRaised), which UGSGA_Horn
+	 * drives for the length of the blast. It is not a slot and it is not equippable - the horn is
+	 * something a goblin has, not something it swaps to.
+	 *
+	 * LIVES HERE UNDER PROTEST, and the protest is worth writing down. ACF's Inventory System owns
+	 * equipment slots and attach sockets, and Phase 2 will reach equipment; when it does, this trio
+	 * is expected to be deleted and re-expressed in ACF's terms. Michael ruled on 2026-08-21 to
+	 * attach it our way now rather than wait, with the rework understood and accepted. Do not
+	 * "discover" this later and treat it as an oversight.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
+	TSoftObjectPtr<UStaticMesh> HornMesh;
+
+	/**
+	 * Left hand, on its own socket - hand_l_horn, authored on GOB_Scout_v2 on 2026-08-21.
+	 *
+	 * Every one of the six pre-existing sockets was already spoken for: hand_r_weapon is the melee
+	 * blade, hand_l_weapon is the drawn bow, hand_l_torch is the readied torch, and the three back_*
+	 * sockets are holsters. Reusing any of them would have put two props in one hand the first time
+	 * a player blew the horn with a torch up.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
+	FName HornSocket = FName("hand_l_horn");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
+	FTransform HornMeshOffset;
 };

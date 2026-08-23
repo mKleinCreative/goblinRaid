@@ -1,4 +1,6 @@
 #include "Raid/GSRunicSite.h"
+
+#include "Raid/GSLootBankComponent.h"
 #include "Raid/GSRaidDirector.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -28,7 +30,17 @@ AGSRunicSite::AGSRunicSite()
 	ExtractionSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	ExtractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ExtractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	// WorldDynamic and PhysicsBody added 2026-08-22 so the circle also notices a sack somebody
+	// THREW in rather than carried. Pawn-only was correct while this sphere existed purely to
+	// extract, and it is why loot dropped at the gate would previously have been ignored forever.
+	// Extraction is unaffected: TryExtractOverlappingPawns already filters to APawn, and the
+	// begin-overlap path below now guards the same way.
+	ExtractionSphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+	ExtractionSphere->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
 	ExtractionSphere->SetGenerateOverlapEvents(true);
+
+	LootBank = CreateDefaultSubobject<UGSLootBankComponent>(TEXT("LootBank"));
+	LootBank->BankLabel = TEXT("portal");
 
 	PortalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalMesh"));
 	PortalMesh->SetupAttachment(SiteRoot);
@@ -165,7 +177,22 @@ bool AGSRunicSite::IsExtractablePawn(const AActor* Actor)
 void AGSRunicSite::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
-	TryExtract(OtherActor);
+
+	// BANK FIRST, EXTRACT SECOND, and the order is the whole point. Once the portal is open,
+	// TryExtract ends the raid on contact - a goblin that walks in carrying a pig must have the pig
+	// counted before the raid is over, or the last armful of the run is silently lost.
+	if (LootBank)
+	{
+		LootBank->BankFromOverlap(OtherActor);
+	}
+
+	// Guarded to pawns now that the sphere also overlaps world-dynamic and physics bodies. Before
+	// 2026-08-22 only pawns could reach here, so this cast was implicit; with loose cargo arriving
+	// it has to be written down.
+	if (Cast<APawn>(OtherActor))
+	{
+		TryExtract(OtherActor);
+	}
 }
 
 void AGSRunicSite::NotifyActorEndOverlap(AActor* OtherActor)

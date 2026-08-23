@@ -21,6 +21,9 @@
 #include "Core/GSPlayerState.h"
 #include "Characters/GSCharacterBase.h"
 #include "Raid/GSRaidDirector.h"
+#include "Raid/GSWarren.h"
+#include "Raid/GSScoreSubsystem.h"
+#include "Horde/GSHordeSubsystem.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Engine/Engine.h"
@@ -75,6 +78,59 @@ namespace GSRaidDebug
 		return PC ? PC->GetPlayerState<AGSPlayerState>() : nullptr;
 	}
 }
+
+// --------------------------------------------------------------------------------- GS.Warren.Status
+//
+// The readout the Warren ships with, per the project's own rule that a system without a runtime
+// instrument gets debugged blind. Three questions it answers that look identical in play and have
+// completely different causes: is there a Warren at all, is the horde using it, and has anything
+// ever banked through it.
+
+static FAutoConsoleCommandWithWorld GSWarrenStatusCmd(
+	TEXT("GS.Warren.Status"),
+	TEXT("List every Warren, what each is serving, and what has banked through it."),
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
+	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
+		if (!World)
+		{
+			return;
+		}
+
+		int32 Count = 0;
+		for (TActorIterator<AGSWarren> It(World); It; ++It)
+		{
+			if (const AGSWarren* Warren = *It)
+			{
+				GSRaidDebug::Log(Warren->DescribeStatus());
+				++Count;
+			}
+		}
+
+		if (Count == 0)
+		{
+			// The single most likely reason a correctly built Warren appears to do nothing, and it is
+			// indistinguishable in play from a broken one. Same warning shape FindArrivalTransform
+			// gives for a level with no arrival markers.
+			GSRaidDebug::Log(TEXT("No AGSWarren in this level. The horde falls back to ")
+				TEXT("Marker.HordeArrival, respawn falls back to the runic site, and nothing banks loot."));
+		}
+
+		// The authoritative total, which is NOT the sum of the per-Warren tallies once the runic site
+		// becomes the second banking consumer.
+		if (const UGSScoreSubsystem* Score = World->GetSubsystem<UGSScoreSubsystem>())
+		{
+			GSRaidDebug::Log(FString::Printf(TEXT("score: loot=%d (source seen: %s)  deeds=%d"),
+				Score->GetLoot(), Score->HasLootSource() ? TEXT("yes") : TEXT("no"), Score->GetDeeds()));
+		}
+
+		if (const UGSHordeSubsystem* Horde = UGSHordeSubsystem::Get(World))
+		{
+			GSRaidDebug::Log(FString::Printf(TEXT("horde: reserve=%d  active=%d/%d  summonable now=%d"),
+				Horde->GetReserveRemaining(), Horde->GetActiveCount(), Horde->GetActiveCap(),
+				Horde->GetSummonableNow()));
+		}
+	}));
 
 // ---------------------------------------------------------------------------------- GS.Raid.Status
 

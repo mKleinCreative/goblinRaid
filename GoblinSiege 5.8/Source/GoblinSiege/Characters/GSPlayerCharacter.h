@@ -15,10 +15,12 @@ class UGSTargetingComponent;
 class UGSInteractionComponent;
 class UGSCarryComponent;
 class UGSAimComponent;
+class UGSBowTimingComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UGSWarrenPlacementComponent;
 class UGameplayAbility;
 
 /** 0..1, reaching 1 at HeavyHoldSeconds. Broadcast every frame while the attack button is held. */
@@ -39,6 +41,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
 	UGSWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Warren")
+	UGSWarrenPlacementComponent* GetWarrenPlacementComponent() const { return WarrenPlacementComponent; }
+
 	/**
 	 * Renamed from GetTargetingComponent in #223. AACFCharacter declares
 	 * `UFUNCTION(BlueprintPure) UATSBaseTargetComponent* GetTargetingComponent() const`, and after the
@@ -58,6 +63,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Aim")
 	UGSAimComponent* GetAimComponent() const { return AimComponent; }
+
+	/** The bow's timing minigame. PLAYER ONLY, and that is the whole AI safety story - UGSGA_BowShot
+	 *  is shared with BP_ErikaArcher, so anything added inside the ability would change every
+	 *  defender archer too. FireArrow asks the avatar for this component and falls back to a
+	 *  multiplier of 1.0 when it is absent, which it always is on AI. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Bow")
+	UGSBowTimingComponent* GetBowTimingComponent() const { return BowTimingComponent; }
 
 	/** World-space direction the dodge roll should launch toward: the last held movement input
 	 *  resolved against camera yaw, or forward if the player dodges from a standstill. Used by
@@ -148,6 +160,16 @@ protected:
 	 *  this only presses the button. */
 	void Input_Horn(const FInputActionValue& Value);
 
+	/** Middle mouse came up. Tells the live UGSGA_Horn instance to stop streaming goblins; a tap
+	 *  that lands here before the wind-up finishes still delivers exactly one. */
+	void Input_HornReleased(const FInputActionValue& Value);
+
+	/** T down / T up. Two bindings rather than a Hold trigger, for the reason spelled out on the
+	 *  horn: a Hold trigger does not stop the Started pin firing (#207/#208). */
+	void Input_PlaceWarren(const FInputActionValue& Value);
+	void Input_PlaceWarrenReleased(const FInputActionValue& Value);
+
+
 	/** Hold E to channel, release to abort. Release is routed straight at the interaction component
 	 *  because the ability is activated by class rather than through an ASC input ID, so GAS's own
 	 *  InputReleased never fires for it. */
@@ -217,9 +239,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
 	TObjectPtr<UGSCarryComponent> CarryComponent;
 
+	/** Plants the Warren on a held T (#245). A C++ default subobject rather than a Blueprint-added
+	 *  component, so every player has one without anyone remembering to add it. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Warren")
+	TObjectPtr<UGSWarrenPlacementComponent> WarrenPlacementComponent;
+
 	/** Owns the aim state, the predicted trajectory and the arc ribbon for every ranged verb. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Aim")
 	TObjectPtr<UGSAimComponent> AimComponent;
+
+	/** See GetBowTimingComponent. Ticks only while a draw is in flight. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Bow")
+	TObjectPtr<UGSBowTimingComponent> BowTimingComponent;
 
 	/** The order wheel and its one Server RPC (#141). On the pawn rather than on
 	 *  UGSHordeSubsystem because a UWorldSubsystem has no NetRole and cannot host an RPC - see the
@@ -330,6 +361,16 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> HornAction;
+
+	/**
+	 * Hold T to plant the Warren. MUST BE ASSIGNED ON THE BLUEPRINT CDO, same as HornAction - an
+	 * unset TObjectPtr<UInputAction> does not assert in 5.8, it registers a binding that never
+	 * fires, and this project has shipped that exact bug three times.
+	 *
+	 * T, not X: X is IA_GuardBreak and always was.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> PlaceWarrenAction;
 
 	/**
 	 * Jump - SpaceBar. STRICTLY a jump: never a vault, never a mantle, never a climb (Michael,

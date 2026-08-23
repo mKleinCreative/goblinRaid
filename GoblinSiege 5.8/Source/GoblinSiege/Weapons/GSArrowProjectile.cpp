@@ -89,6 +89,29 @@ AGSArrowProjectile::AGSArrowProjectile()
 	DamageEffectClass = UGSGE_WeaponDamage::StaticClass();
 }
 
+void AGSArrowProjectile::SetLaunchSpeedScale(float InScale)
+{
+	if (!ProjectileMovement)
+	{
+		return;
+	}
+
+	// Clamped low but not to zero: an arrow with no speed never moves, never overlaps anything and
+	// never despawns on impact, so it would hang in the air until its lifespan ran out.
+	const float Scale = FMath::Clamp(InScale, 0.05f, 4.f);
+
+	ProjectileMovement->InitialSpeed *= Scale;
+	ProjectileMovement->MaxSpeed *= Scale;
+
+	// The component launched itself during SpawnActor, so InitialSpeed alone is already history -
+	// the live velocity is what actually flies and it has to be rewritten too. Falling back to the
+	// actor's forward vector covers a spawn where velocity has not been set yet.
+	const FVector Direction = ProjectileMovement->Velocity.IsNearlyZero()
+		? GetActorForwardVector()
+		: ProjectileMovement->Velocity.GetSafeNormal();
+	ProjectileMovement->Velocity = Direction * ProjectileMovement->InitialSpeed;
+}
+
 void AGSArrowProjectile::BeginPlay()
 {
 	Super::BeginPlay();
@@ -303,7 +326,10 @@ void AGSArrowProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 				// histories, and a hard-coded "head" would silently do nothing on whichever one
 				// spells it differently - a headshot bonus that quietly never fires is worse than
 				// none, because nobody would think to check.
-				float FinalDamage = Damage;
+				// DrawQualityMultiplier is the bow minigame's verdict on when the string was
+				// released - 1.0 for an AI archer, which has no timing component and never sets it.
+				// It multiplies WITH the headshot bonus rather than replacing it.
+				float FinalDamage = Damage * DrawQualityMultiplier;
 				const bool bHeadshot = IsHeadshot(OtherActor, Hit);
 				if (bHeadshot)
 				{

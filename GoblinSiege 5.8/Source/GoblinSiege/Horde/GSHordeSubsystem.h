@@ -93,6 +93,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Horde")
 	int32 SummonWave(AController* Summoner);
 
+	/**
+	 * ONE goblin climbs out. Returns 1, or 0 if the reserve is dry or the active cap is full.
+	 *
+	 * THIS IS NOW THE ONLY DEBIT IN THE CLASS (decision 40 unchanged in substance, moved in
+	 * location). SummonWave used to hold it and is now a loop over this - which matters, because
+	 * the horn no longer summons in blasts. Michael, 2026-08-20: "if click, one goblin appears, if
+	 * you hold down MMB, they pop out of the warren one at a time until you get the full squad."
+	 * A held horn calls THIS on a timer, so a debit that still lived in SummonWave would either be
+	 * skipped entirely or charged in fours.
+	 *
+	 * Death still does not debit again, and a delivery still credits back against this same counter.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Horde")
+	int32 SummonOne(AController* Summoner);
+
+	/** Room left under the active cap, bounded by what the reserve can actually pay for. What a
+	 *  held horn asks before deciding it is done. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde")
+	int32 GetSummonableNow() const;
+
 	/** Permanent. The goblin was debited at spawn, so this credits nothing back - it only stops
 	 *  counting against the active cap. */
 	void NotifyGoblinDied(AGSHordeGoblin* Goblin);
@@ -205,6 +225,40 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Horde")
 	int32 GetFollowSlotFor(AGSHordeGoblin* Goblin) const;
 
+	/**
+	 * WHERE THIS GOBLIN SHOULD STAND WHILE FOLLOWING - a post behind the summoner, not the summoner.
+	 *
+	 * `FollowSlot` has been computed and published to the blackboard since the horde was written, and
+	 * NOTHING has ever consumed it: `Follow Summoner` is a stock BTTask_MoveTo pointed at the
+	 * `FollowTarget` OBJECT, so every goblin in the band paths to the same point - the player. That
+	 * is the crowding. The controller's own comment says "the ring maths belongs in the BT's move
+	 * task"; no such task was ever written.
+	 *
+	 * Rows of three, filling backwards from the summoner's heel: slot 0-2 across the first rank,
+	 * 3-5 the second, and so on. Deterministic on purpose - an earlier version rolled FMath::FRand()
+	 * on every repath, so a goblin standing still kept changing its mind about where to stand, which
+	 * reads as a pathing bug rather than as scatter.
+	 *
+	 * Measured from the summoner's ACTOR forward rather than its control rotation, so the formation
+	 * does not swing around the player every time they look sideways.
+	 */
+	FVector GetFollowPostFor(AGSHordeGoblin* Goblin) const;
+
+	// Plain members, not UPROPERTYs: a UWorldSubsystem has no details panel to edit them in, so
+	// EditDefaultsOnly would advertise a knob that does not exist. Retune here.
+
+	/** First rank's distance behind the summoner. */
+	float FollowPostDepth = 220.f;
+
+	/** Added per rank behind the first. */
+	float FollowPostRankSpacing = 140.f;
+
+	/** Left-right spacing within a rank. */
+	float FollowPostFileSpacing = 115.f;
+
+	/** Goblins per rank. */
+	int32 FollowPostPerRank = 3;
+
 protected:
 	// ---- tuning (Config = Game; a subsystem has no CDO, so Config is its EditDefaultsOnly) ----
 
@@ -259,6 +313,20 @@ protected:
 	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Horde", meta = (ClampMin = "0.0"))
 	float AutoThreatRadius = 1200.f;
 
+	/**
+	 * How far from the ORDER LOCATION a goblin will look for something to hit (#264).
+	 *
+	 * Michael: *"have them move to the location, then sample in front of them if there's anything to
+	 * attack, then attack what's around them rather than a specific item."* An Attack order is now a
+	 * PLACE, not a person: the named victim still decides where the warband goes, because the order
+	 * location is where he was standing, but on arrival each goblin engages whatever is nearest to
+	 * IT rather than queueing for a place on one body.
+	 *
+	 * Bounded rather than unlimited so an ordered warband cannot drift into a different fight it can
+	 * see from where it was sent.
+	 */
+	float OrderEngageRadius = 1500.f;
+
 private:
 	struct FGSHordeThreat
 	{
@@ -299,6 +367,11 @@ private:
 	UClass* ResolveOrderMarkerClass() const;
 
 	int32 ReserveRemaining = 0;
+
+	/** Increments on every successful spawn, forever. Only used to rotate the sideways offset at
+	 *  the mouth so goblins climbing out one after another do not stack inside one capsule. Never
+	 *  reset - it is an ordinal, not a count, and GetActiveCount() is the count. */
+	int32 SpawnOrdinal = 0;
 
 	/** Fired once per dry spell, not once per failed horn blast. */
 	bool bDryAnnounced = false;

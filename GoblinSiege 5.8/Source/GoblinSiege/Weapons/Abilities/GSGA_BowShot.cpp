@@ -1,15 +1,23 @@
 #include "Weapons/Abilities/GSGA_BowShot.h"
+
+#include "Animation/AnimMontage.h"
 #include "Combat/GSAimComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "Weapons/GSArrowProjectile.h"
+#include "Weapons/GSBowTimingComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSWeaponDataAsset.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "GameFramework/Character.h"
 #include "Engine/World.h"
 
 UGSGA_BowShot::UGSGA_BowShot()
 {
+	AIReleaseMontage = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
+		TEXT("/Game/Characters/Humans/Montages/AM_Bow_Release_Hum.AM_Bow_Release_Hum")));
+
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 
@@ -108,6 +116,19 @@ void UGSGA_BowShot::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		LastFireTimeSeconds = World->GetTimeSeconds();
 	}
 
+	// Erika's recoil. Gated on the component's ABSENCE so the player, whose animation the timing
+	// component already drives, is never double-driven into a second montage on top of its own.
+	if (ACharacter* Avatar = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+	{
+		if (!Avatar->FindComponentByClass<UGSBowTimingComponent>())
+		{
+			if (UAnimMontage* Recoil = AIReleaseMontage.LoadSynchronous())
+			{
+				Avatar->PlayAnimMontage(Recoil);
+			}
+		}
+	}
+
 	if (ReleaseDelaySeconds > 0.f)
 	{
 		if (UAbilityTask_WaitDelay* ReleaseTask = UAbilityTask_WaitDelay::WaitDelay(this, ReleaseDelaySeconds))
@@ -159,6 +180,25 @@ void UGSGA_BowShot::FireArrow()
 	SpawnParams.Instigator = Avatar;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	Avatar->GetWorld()->SpawnActor<AGSArrowProjectile>(
+	AGSArrowProjectile* Arrow = Avatar->GetWorld()->SpawnActor<AGSArrowProjectile>(
 		ArrowProjectileClass, Muzzle.GetLocation(), Muzzle.GetRotation().Rotator(), SpawnParams);
+
+	// THE ONE LINE THAT MAKES THE MINIGAME PLAYER-ONLY.
+	//
+	// This ability is shared - BP_ErikaArcher's RangedAttackAbilityClass and the player's
+	// BowShotAbilityClass are both this class, with no Blueprint child between them. Asking the
+	// AVATAR for a timing component rather than branching on IsPlayerControlled() means an AI archer
+	// simply has nothing to ask, and its arrow keeps the default multiplier of 1.0. There is no
+	// condition here to get wrong later.
+	//
+	// ConsumeReleaseQuality was already called at input release, so this reads a value the player
+	// judged rather than sampling 80ms of release recoil later; see the component's header.
+	if (Arrow)
+	{
+		if (const UGSBowTimingComponent* Timing = Avatar->FindComponentByClass<UGSBowTimingComponent>())
+		{
+			Arrow->SetDrawQualityMultiplier(Timing->GetLastReleaseQuality());
+			Arrow->SetLaunchSpeedScale(Timing->GetLastReleaseSpeedScale());
+		}
+	}
 }

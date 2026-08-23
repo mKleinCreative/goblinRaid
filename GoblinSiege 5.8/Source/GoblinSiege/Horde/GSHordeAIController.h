@@ -86,6 +86,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
 	FName FollowTargetKey = TEXT("FollowTarget");
 
+	/** WHERE to stand while following, as opposed to WHETHER to follow, which is FollowTarget's job.
+	 *  `Follow Summoner` moves to this; the decorator still gates on FollowTarget. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde")
+	FName FollowLocationKey = TEXT("FollowLocation");
+
+	/** How far a goblin may sit from its post before it bothers to correct. Below this the post is
+	 *  published as the goblin's OWN location, so the MoveTo is a no-op and the band stands still
+	 *  instead of shuffling - the same deadband that stopped the archers sprint-stopping (#247). */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde")
+	float FollowPostTolerance = 130.f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horde|Blackboard")
 	FName FollowSlotKey = TEXT("FollowSlot");
 

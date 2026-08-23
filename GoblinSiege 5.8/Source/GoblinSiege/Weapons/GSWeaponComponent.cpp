@@ -58,6 +58,19 @@ void UGSWeaponComponent::BeginPlay()
 	}
 }
 
+void UGSWeaponComponent::SetAimActive(bool bInAimActive)
+{
+	if (bAimActive == bInAimActive)
+	{
+		return;
+	}
+
+	bAimActive = bInAimActive;
+
+	// Placement only - RebuildWeaponMeshes would tear down and recreate the components mid-aim.
+	RefreshWeaponMeshPlacement();
+}
+
 void UGSWeaponComponent::RefreshWeaponVisuals()
 {
 	// 2026-08-02. The header has long promised that weapon offsets can be tuned by re-equipping,
@@ -413,6 +426,35 @@ void UGSWeaponComponent::SetTorchReadied(bool bNewReadied)
 	}
 }
 
+void UGSWeaponComponent::SetHornRaised(bool bNewRaised)
+{
+	// No slot guard, unlike SetTorchReadied. The torch needed one because the Torch SLOT owns its
+	// prop and an ability must not take it away; the horn is owned by nothing and belongs to the
+	// blast that raised it, so the caller is always right.
+	if (bHornRaised == bNewRaised)
+	{
+		return;
+	}
+	bHornRaised = bNewRaised;
+
+	if (bHornRaised && EquippedWeapon)
+	{
+		EnsureWeaponMeshComponent(HornMeshComponent, EquippedWeapon->HornMesh,
+			bHornMeshResolveFailed, TEXT("war horn"));
+	}
+
+	if (HornMeshComponent)
+	{
+		// Hidden rather than destroyed, same reasoning as the torch: this prop is coming back.
+		HornMeshComponent->SetVisibility(bHornRaised, true);
+		if (bHornRaised && EquippedWeapon)
+		{
+			AttachWeaponMeshToSocket(HornMeshComponent, EquippedWeapon->HornSocket,
+				EquippedWeapon->HornMeshOffset);
+		}
+	}
+}
+
 void UGSWeaponComponent::RebuildWeaponMeshes()
 {
 	if (!EquippedWeapon)
@@ -439,6 +481,15 @@ void UGSWeaponComponent::RebuildWeaponMeshes()
 			bHeldTorchMeshResolveFailed, TEXT("held torch"));
 	}
 
+	// Same for a horn that is up when the weapon changes. Rarer than the torch case - you cannot
+	// open the weapon wheel mid-blast today - but "rarer" is not "impossible", and the failure mode
+	// is a goblin holding the previous kit's horn for the rest of the raid.
+	if (bHornRaised)
+	{
+		EnsureWeaponMeshComponent(HornMeshComponent, EquippedWeapon->HornMesh,
+			bHornMeshResolveFailed, TEXT("war horn"));
+	}
+
 	RefreshWeaponMeshPlacement();
 }
 
@@ -463,7 +514,23 @@ void UGSWeaponComponent::RefreshWeaponMeshPlacement()
 		// Attached-then-hidden rather than detached: the holstered half keeps riding the skeleton
 		// so that turning bShowHolsteredWeapon back on in the details panel mid-PIE shows it in the
 		// right place immediately, with no re-attach.
-		MeleeMeshComponent->SetVisibility(bActive || EquippedWeapon->bShowHolsteredWeapon, true);
+		// THE HOLSTERED MELEE WEAPON IS HIDDEN FOR THE WHOLE TIME THE BOW IS OUT, not merely while
+		// an aim is up. Hiding it on aim alone was the first attempt and Michael rejected it for a
+		// reason worth keeping written down: the axe reappeared the instant the shot was loosed,
+		// "so you can't see what you hit" - the pop lands exactly on the moment the player is trying
+		// to read. `back_sword` is on Spine02 at (12, 6, 30) with the axe at 1.6 scale, which is
+		// where the over-the-shoulder camera looks.
+		//
+		// `!bAimActive` is kept as well, so aiming the TORCH also clears the axe off the back - the
+		// same camera, the same problem, and the torch is not covered by bRangedActive.
+		//
+		// Michael asked for this "for now": the honest fix is a holster position that clears the
+		// camera, at which point both of these conditions can go.
+		//
+		// bActive is still ORed in front, so a weapon actually IN HAND is never hidden by either.
+		const bool bShowHolstered =
+			EquippedWeapon->bShowHolsteredWeapon && !bAimActive && !bRangedActive;
+		MeleeMeshComponent->SetVisibility(bActive || bShowHolstered, true);
 	}
 
 	if (RangedMeshComponent)
@@ -619,8 +686,10 @@ void UGSWeaponComponent::DestroyWeaponMeshes()
 	if (RangedMeshComponent)    { RangedMeshComponent->DestroyComponent();    RangedMeshComponent = nullptr; }
 	if (QuiverMeshComponent)    { QuiverMeshComponent->DestroyComponent();    QuiverMeshComponent = nullptr; }
 	if (HeldTorchMeshComponent) { HeldTorchMeshComponent->DestroyComponent(); HeldTorchMeshComponent = nullptr; }
+	if (HornMeshComponent)      { HornMeshComponent->DestroyComponent();      HornMeshComponent = nullptr; }
 
 	bTorchReadied = false;
+	bHornRaised = false;
 }
 
 void UGSWeaponComponent::AddBloodOrb()

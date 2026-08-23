@@ -100,6 +100,22 @@ protected:
 	float FallbackFireIntervalSeconds = 1.5f;
 
 	/**
+	 * ERIKA'S RECOIL, and only Erika's.
+	 *
+	 * Played when the avatar has NO UGSBowTimingComponent - i.e. an AI archer. The player's bow
+	 * animation is driven by that component instead, because the player's draw is indefinite and
+	 * only the component knows when it starts and ends. Asking for the component's absence is the
+	 * same structural gate the damage multiplier uses; there is no IsPlayerControlled() here either.
+	 *
+	 * The human DRAW montage is deliberately not played from here. An AI archer's draw window lives
+	 * in UBTTask_RangedAttack::DrawSeconds (0.8s), which is where a draw animation has to start to
+	 * line up with it - by the time this ability activates the shot is already leaving. That belongs
+	 * in the BT task and is not done yet.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Bow|Animation")
+	TSoftObjectPtr<UAnimMontage> AIReleaseMontage;
+
+	/**
 	 * World time of the last activation allowed through, or negative if this avatar has not shot yet.
 	 *
 	 * A plain member works because the ability is InstancedPerActor - one instance per archer, living

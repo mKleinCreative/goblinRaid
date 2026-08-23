@@ -65,6 +65,27 @@ public:
 	virtual bool IsEntityAlive_Implementation() const override;
 	virtual float GetEntityExtentRadius_Implementation() const override;
 
+	/**
+	 * Has this AI had time to REACT to Target yet? (#238)
+	 *
+	 * Michael, watching a fight: "there's no buffer with the AI decisions, they twitch, because they
+	 * do decisions right away instead of having to take some time. It doesn't look natural."
+	 *
+	 * He was right and it was structural: target SWITCHING was already damped
+	 * (TargetSwitchHysteresis, ReacquireIntervalSeconds) and turning already interpolates, but
+	 * nothing anywhere put a delay between a decision becoming true and the AI acting on it. A
+	 * goblin that noticed you swung in the same frame.
+	 *
+	 * Lazy on purpose - the first call for a given target stamps the clock, later calls report
+	 * whether the beat has elapsed. No tick, no bookkeeping in the behaviour tree, and an AI that
+	 * never looks at a target never pays for one.
+	 *
+	 * Gates SWINGING, not moving or turning: the beat should read as "it sees you and gathers
+	 * itself", not as a freeze.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|AI")
+	bool HasReactedTo(AActor* Target);
+
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 
@@ -110,6 +131,13 @@ protected:
 	// the owning actor's flag.
 
 	/** Created in the constructor for every AI controller, defender and horde alike. */
+	/** The target HasReactedTo is currently timing, and when it was first seen. Transient: a
+	 *  reaction is a moment, not a saved property. */
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> ReactionTarget;
+
+	float ReactionStartedTime = 0.f;
+
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|AI")
 	TObjectPtr<UGSAISteeringComponent> SteeringComponent;
 

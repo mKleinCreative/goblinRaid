@@ -1166,3 +1166,154 @@ static FAutoConsoleCommandWithWorld GSTeamsCheckCmd(
 				}
 			}
 		}));
+
+// =================================================================================================
+// GS.Horde.Slots / GS.Horde.KillSlot - make the follow formation testable (#262)
+//
+// Michael, on the follow-slot fix: "239 isn't easy to test without a command." He is right - the
+// symptom it fixes is "everyone shuffles forward one place when someone dies", which needs you to
+// know who held which place BEFORE the death, and there was no way to see that.
+// =================================================================================================
+
+#include "Horde/GSHordeGoblin.h"
+
+static FAutoConsoleCommandWithWorldAndArgs GSHordeSlotsCmd(
+	TEXT("GS.Horde.Slots"),
+	TEXT("GS.Horde.Slots - one row per live goblin: follow slot, distance from its post, and "
+		 "distance from the player. Flags any two goblins sharing a slot."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* InWorld)
+		{
+			UWorld* World = GSHordeGameWorld(InWorld);
+			UGSHordeSubsystem* Horde = World ? World->GetSubsystem<UGSHordeSubsystem>() : nullptr;
+			if (!Horde)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.Slots: no UGSHordeSubsystem - are you in PIE?"));
+				return;
+			}
+
+			const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+			const FVector PlayerLoc = PlayerPawn ? PlayerPawn->GetActorLocation() : FVector::ZeroVector;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] --- GS.Horde.Slots: goblin | slot | from post | from player ---"));
+
+			TMap<int32, int32> SlotCounts;
+			int32 Rows = 0;
+			for (TActorIterator<AGSHordeGoblin> It(World); It; ++It)
+			{
+				AGSHordeGoblin* Goblin = *It;
+				if (!IsValid(Goblin) || !Goblin->IsAlive())
+				{
+					continue;
+				}
+
+				const int32 Slot = Goblin->GetFollowSlot();
+				SlotCounts.FindOrAdd(Slot)++;
+
+				const FVector Post = Horde->GetFollowPostFor(Goblin);
+				const float FromPost = FVector::Dist2D(Goblin->GetActorLocation(), Post);
+				const float FromPlayer = FVector::Dist2D(Goblin->GetActorLocation(), PlayerLoc);
+
+				UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %-26s | %4d | %8.0f | %8.0f"),
+					*Goblin->GetName(), Slot, FromPost, FromPlayer);
+				++Rows;
+			}
+
+			// A duplicate slot is the actual defect #239 fixed, and it is invisible on screen: two
+			// goblins quietly standing in one place looks like one goblin.
+			int32 Duplicates = 0;
+			for (const TPair<int32, int32>& Pair : SlotCounts)
+			{
+				if (Pair.Value > 1)
+				{
+					Duplicates += Pair.Value - 1;
+					UE_LOG(LogTemp, Warning,
+						TEXT("[GoblinSiege] *** slot %d claimed by %d goblins ***"), Pair.Key, Pair.Value);
+				}
+			}
+
+			const FString Summary = (Rows == 0)
+				? FString(TEXT("GS.Horde.Slots: no live goblins. Blow the horn first."))
+				: FString::Printf(TEXT("GS.Horde.Slots: %d goblin(s), %d duplicate slot claim(s)."),
+					Rows, Duplicates);
+			UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %s"), *Summary);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 10.f,
+					Duplicates > 0 ? FColor::Red : FColor::Green, Summary);
+			}
+		}));
+
+static FAutoConsoleCommandWithWorldAndArgs GSHordeKillSlotCmd(
+	TEXT("GS.Horde.KillSlot"),
+	TEXT("GS.Horde.KillSlot [slot] - kill the goblin holding that follow slot. With no argument, "
+		 "kills one from the MIDDLE of the formation, which is the case worth watching: the "
+		 "survivors should hold their places rather than all shuffling forward one."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(
+		[](const TArray<FString>& Args, UWorld* InWorld)
+		{
+			UWorld* World = GSHordeGameWorld(InWorld);
+			if (!World)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] GS.Horde.KillSlot: no game world."));
+				return;
+			}
+
+			TArray<AGSHordeGoblin*> Live;
+			for (TActorIterator<AGSHordeGoblin> It(World); It; ++It)
+			{
+				if (IsValid(*It) && It->IsAlive())
+				{
+					Live.Add(*It);
+				}
+			}
+			if (Live.Num() == 0)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.KillSlot: no live goblins. Blow the horn first."));
+				return;
+			}
+
+			Live.Sort([](const AGSHordeGoblin& A, const AGSHordeGoblin& B)
+				{ return A.GetFollowSlot() < B.GetFollowSlot(); });
+
+			// Default to the middle of the band rather than slot 0. Killing the LAST goblin proves
+			// nothing - nobody is behind it to be renumbered - and killing the first is the easiest
+			// case to pass by accident.
+			const int32 WantedSlot = (Args.Num() > 0)
+				? FCString::Atoi(*Args[0])
+				: Live[Live.Num() / 2]->GetFollowSlot();
+
+			AGSHordeGoblin* Victim = nullptr;
+			for (AGSHordeGoblin* G : Live)
+			{
+				if (G->GetFollowSlot() == WantedSlot)
+				{
+					Victim = G;
+					break;
+				}
+			}
+
+			if (!Victim)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] GS.Horde.KillSlot: nobody holds slot %d. Run GS.Horde.Slots."),
+					WantedSlot);
+				return;
+			}
+
+			const FString Message = FString::Printf(
+				TEXT("GS.Horde.KillSlot: killed %s in slot %d of %d. Run GS.Horde.Slots again - every "
+					 "survivor should still hold the slot it had."),
+				*Victim->GetName(), WantedSlot, Live.Num());
+
+			Victim->KillOutright();
+
+			UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] %s"), *Message);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Yellow, Message);
+			}
+		}));

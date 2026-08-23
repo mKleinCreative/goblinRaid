@@ -18,6 +18,49 @@ dated, citable list.
 
 ---
 
+## 2026-08-21 — the land turns as you raid (world corruption)
+
+Michael, asked for *"a system where the environment as a whole will start to look more sinister, as if
+we're converting the land to Mordor as we burn objectives and kill humans in the area"*. The four
+shape decisions were taken in the same session: global rather than zoned or radial; all four visual
+layers; all four drivers; and monotonic. Ticket #252.
+
+This is the first system the GDD acquires that exists to be *looked at* rather than played, and it
+lands against §12.4's scope freeze — hence a ruling before a line of code.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 40 | **World corruption joins the slice.** One **global** 0..1 scalar, driven by objectives burned, humans killed, structures destroyed and raid clock / horde presence, driving sky, fog, sun, a post-process grade, world materials, ash-and-ember VFX and ambience | It also gives **decision 11** its missing half. *"No HUD arrows, no waypoints — the environment does the leading"* has had nothing behind it since wayfinding was deferred (ruling 17), leaving objective **names** as the only progress readout the player gets. A world that visibly darkens as it burns is the first thing that actually does the leading |
+| 41 | **Corruption is monotonic. It never recedes.** A doused field does not give the sky back | Follows GDD §8's *"No alarm reducers — goblins don't de-escalate; they leave"*, and it is also a **correctness constraint, not a taste call**: `UGSBurnMaskSubsystem`'s R channel is monotonic *by construction*, so a freely-falling global scalar would render a clean blue sky over permanently black ground. The horde-presence and clock terms may fall individually; a high-water ratchet holds the total |
+| 42 | **Corruption is NOT the alarm meter, and is not derived from deeds** | Both obvious shortcuts are wrong and wrong silently. `AGSGameState::TriggerHordeWave` resets `Alarm` to `MaxAlarm * 0.4` on every wave (`GSGameState.cpp:82`) — reusing it gives a world that **un-Mordors itself when reinforcements arrive**, a bug that first appears on the *second* wave. And `GetDeeds()` is polluted (GDD §12.1 row 12: any burn objective pays deeds, so ~30 houses swamp the tally), which would make burning houses darken the sky faster than detonating the mill. The objective term reads `GetCompletion01()` off the roster instead |
+| 43 | **The output stage is hand-lerped C++, not Epic's DaySequence** — for now | `UDaySequenceModifierComponent::SetUserBlendWeight(float)` blends a whole Sequencer-authored environment override on one 0..1 weight and is *exactly* this feature's output stage, artist-authorable. It is rejected for the slice because it needs an Experimental plugin enabled and an `ADaySequenceActor` **in every level** — which `L_CombatArena` (the default startup map, and the only map anything since 2026-08-07 has been watched in) and the PCG hamlets do not have. **Revisit when a hand-authored level exists.** Recorded so it is not re-investigated from scratch |
+| 44 | **ACF contributes nothing here, and no ACF module joins `GoblinSiege.Build.cs`** | Swept all 48 modules: zero hits for `MaterialParameterCollection`, `SkyAtmosphere`, `ExponentialHeightFog`, `Weather`, `WorldState`, `Karma`. `UACFMoralityComponent` is a 70-line per-**player** unnormalised tag→float bag with no bands (and a live `INT32_MIN`-vs-float bug in `GetMoralityAlignment`); `UACFMusicComponent` is hardcoded to `EBattleState` and would log `Missing ACFGameState!` here because `AGSGameState` does not derive `AACFGameState`; `AACFAssaultPoint` has no progress float at all. Only `AscentSaveSystem` stays in view, and only if cross-raid persistence is ever wanted — see the note under ruling 45 |
+| 45 | **Corruption is per-raid. It does not persist between raids** | Keeps the canonical float on the subsystem, which is the clean home. Recorded because the constraint is not obvious: `IALSSavableInterface` is actor/component-shaped, so a `UWorldSubsystem` **cannot be saved by ALS** at all. If persistence is ever wanted, the canonical `UPROPERTY(SaveGame) float` has to move onto the director actor with the subsystem demoted to a query face — a refactor, not an addition |
+
+**Left open, deliberately — a question for Michael, not a ruling.** The race test is the one already
+in the tree (`GSCharacterBase.cpp`: *"Anything that is not a goblin is a human here"*). With civilians
+now IN (rulings 13/14), that means **a slaughtered peasant corrupts the world exactly as much as a
+knight**. That may well be right for a goblin raid — but nobody has decided it, and it is much better
+settled here than discovered the day civilians land.
+
+---
+
+## 2026-08-21 — the Warren is built, and the horn changes shape
+
+Michael, on how the Warren comes into existence: *"No digger, just a magic spot where they can summon
+goblins and drop off loot"*. On the horn: *"if click, one goblin appears, if you hold down MMB, they
+pop out of the warren one at a time until you get the full squad"*, then *"a full squad of 10
+eventually, but it summons them as you blast the horn"*. Ticket #236.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 36 | **The Warren is PLACED, not planted.** No planting channel, no digger goblin, open from `BeginPlay`. Supersedes the planting language in GDD §6 and the digger in §2.6 | `UGSHordeSubsystem::NotifyGoblinSpentOnWarren()` is now a pool exit with **no caller**. It stays — deleting it would have to be re-derived the day a digger lands, and its absence is what makes the fourth pool state (spent, not dead) correct in advance |
+| 37 | **The horn is tap-or-hold.** A tap summons exactly one goblin; a hold streams them one at a time up to the active cap of 10. **Supersedes decision 9** (`SummonsPerBlast` is a fixed 4) | The debit moves from `SummonWave` to the new `SummonOne` — decision 40 ("the summon is the only debit") is unchanged in substance and changed in location. `SummonsPerBlast` survives only as the batch size for `GS.Horde.SpawnTest`. Input is press+release as **two bindings**, never a Hold trigger: #207/#208 established that a Hold trigger does not stop the `Started` pin firing |
+| 38 | **The Warren banks loot on overlap, and that is the seam for both banking points** | Gives `UGSScoreSubsystem::AddLoot` its **first caller project-wide** — the loot half of the two-kind score had never run. Loot value is one `int32` on the existing `UGSInteractableComponent`, not a new component, because every bankable actor already owns one and a new `UCLASS` costs a six-minute editor-closed build here. The runic site becomes the second consumer when mid-raid banking lands |
+| 39 | **Deeds still never bank at the Warren** — reaffirmed, not re-decided | Stated here because the implementation makes it tempting: the banking path is generic and adding `AddDeeds` beside `AddLoot` is one line. GDD §9: *"a second place to bank deeds would erase the reason to ever risk the run home."* `GSWarren.h` carries the same warning |
+
+---
+
 ## 2026-08-20 — the ACF migration resumes, and the attribute question is settled
 
 Michael: *"let's go ahead and finish the ACF migration"*, then *"let's pick the ACF system because we

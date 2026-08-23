@@ -5,6 +5,7 @@
 #include "Raid/GSRaidDirector.h"
 #include "Raid/GSScoreSubsystem.h"
 #include "Characters/GSStaminaComponent.h"
+#include "Weapons/GSBowTimingComponent.h"
 #include "Horde/GSHordeCommandComponent.h"
 #include "Interaction/GSInteractionComponent.h"
 #include "Interaction/GSInteractableComponent.h"
@@ -156,6 +157,19 @@ void UGSPlayerHUDWidget::NativeDestruct()
 		Interaction->OnInteractRefused.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleInteractRefused);
 	}
 	BoundInteractionComponent.Reset();
+
+	// The bow timing component is found off the character rather than cached in its own weak
+	// pointer, because unlike the interaction component it never moves between actors - it is on the
+	// player pawn or it does not exist. Unbinding through the old character is enough.
+	if (const AGSCharacterBase* Old = BoundCharacter.Get())
+	{
+		if (UGSBowTimingComponent* Bow = Old->FindComponentByClass<UGSBowTimingComponent>())
+		{
+			Bow->OnBowDrawStarted.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawStarted);
+			Bow->OnBowDrawProgress.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawProgress);
+			Bow->OnBowDrawEnded.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawEnded);
+		}
+	}
 
 	if (UGSGrappleHaulComponent* Haul = BoundHaulComponent.Get())
 	{
@@ -428,6 +442,117 @@ void UGSPlayerHUDWidget::BindToCharacter(AGSCharacterBase* Character)
 	{
 		Stam->OnStaminaChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleStaminaChanged);
 		HandleStaminaChanged(Stam->GetStamina(), Stam->GetMaxStamina());
+	}
+
+	// The bow timing bar, same shape again. Only the player pawn carries a timing component, so on
+	// any other character this simply finds nothing and the bar never appears - which is the same
+	// structural guarantee the gameplay side relies on, rather than a second check to keep in sync.
+	if (UGSBowTimingComponent* Bow = Character->FindComponentByClass<UGSBowTimingComponent>())
+	{
+		Bow->OnBowDrawStarted.AddDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawStarted);
+		Bow->OnBowDrawProgress.AddDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawProgress);
+		Bow->OnBowDrawEnded.AddDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawEnded);
+	}
+
+	// Hidden until a draw starts, whatever the asset was saved with. Deliberately outside the block
+	// above: a character with no timing component must also get a hidden bar, or swapping to one
+	// mid-draw would leave the previous pawn's bar on screen.
+	ShowBowTimingBar(false);
+}
+
+void UGSPlayerHUDWidget::HandleBowDrawStarted(float TraverseSeconds)
+{
+	ShowBowTimingBar(true);
+	HandleBowDrawProgress(0.f, 0);
+}
+
+void UGSPlayerHUDWidget::HandleBowDrawProgress(float Position01, int32 Bounces)
+{
+	if (!BowTimingBar)
+	{
+		return;
+	}
+
+	const float Pos = FMath::Clamp(Position01, 0.f, 1.f);
+
+	// ---- THE POINTER SPRITE, IF THERE IS ONE ----------------------------------------------------
+	// Michael's art is a bar and a separate pointer, so the pointer is a widget that slides rather
+	// than something a material draws. Measured from the BAR's live width, not from a stored number,
+	// so the pointer stays aligned at any HUD scale or resolution.
+	if (BowTimingIndicator)
+	{
+		const float BarWidth = BowTimingBar->GetCachedGeometry().GetLocalSize().X;
+		if (BarWidth > KINDA_SMALL_NUMBER)
+		{
+			// Fill fraction, not 0..1 across the whole image: the wooden frame and steel caps own
+			// the outer ~14% and the pointer must not wander onto them.
+			const float U = FMath::Lerp(BowFillUMin, BowFillUMax, Pos);
+			BowTimingIndicator->SetRenderTranslation(
+				FVector2D((U - 0.5f) * BarWidth, BowIndicatorOffsetY));
+		}
+	}
+
+	// ---- THE MATERIAL PATH, still supported ------------------------------------------------------
+	// Only taken when the bar's brush is a material. With the two-sprite setup above there is no
+	// material and GetDynamicMaterial returns null every frame, so this must not log in that case -
+	// which is why the warning now depends on there being no indicator widget either.
+	if (!BowTimingBarMID)
+	{
+		BowTimingBarMID = BowTimingBar->GetDynamicMaterial();
+
+		if (!BowTimingBarMID)
+		{
+			// A plain texture brush AND no pointer widget means nothing on screen can move, which
+			// reads as a broken mechanic rather than as missing setup. With a pointer widget present
+			// this is the normal, intended configuration and must stay silent.
+			if (!BowTimingIndicator)
+			{
+				UE_LOG(LogGSHUD, Warning,
+					TEXT("[GoblinSiege] BowTimingBar has no material brush and there is no ")
+					TEXT("BowTimingIndicator widget, so nothing can move. Add an Image named ")
+					TEXT("BowTimingIndicator, or give the bar a material with a '%s' scalar."),
+					*BowIndicatorParameter.ToString());
+			}
+			return;
+		}
+
+		// Push the band layout ONCE per draw, when the MID is first made. The material draws the
+		// gradient from these, so the red the player aims at is the same red
+		// UGSBowTimingComponent pays out on - they cannot drift apart by being authored twice.
+		if (const AGSCharacterBase* Character = BoundCharacter.Get())
+		{
+			if (const UGSBowTimingComponent* Bow =
+					Character->FindComponentByClass<UGSBowTimingComponent>())
+			{
+				BowTimingBarMID->SetScalarParameterValue(BowRedCentreParameter, Bow->GetRedCentre());
+				BowTimingBarMID->SetScalarParameterValue(BowRedHalfWidthParameter, Bow->GetRedHalfWidth());
+				BowTimingBarMID->SetScalarParameterValue(BowOrangeHalfWidthParameter, Bow->GetOrangeHalfWidth());
+			}
+		}
+	}
+
+	BowTimingBarMID->SetScalarParameterValue(BowIndicatorParameter, Pos);
+}
+
+void UGSPlayerHUDWidget::HandleBowDrawEnded(bool bLoosed)
+{
+	ShowBowTimingBar(false);
+}
+
+void UGSPlayerHUDWidget::ShowBowTimingBar(bool bVisible)
+{
+	if (!BowTimingBar)
+	{
+		return;
+	}
+
+	const ESlateVisibility Vis =
+		bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
+
+	BowTimingBar->SetVisibility(Vis);
+	if (BowTimingIndicator)
+	{
+		BowTimingIndicator->SetVisibility(Vis);
 	}
 }
 

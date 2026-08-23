@@ -33,6 +33,20 @@ class GOBLINSIEGE_API AGSArrowProjectile : public AActor
 	GENERATED_BODY()
 
 public:
+	/** Called by UGSGA_BowShot immediately after spawn. See DrawQualityMultiplier. */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Arrow")
+	void SetDrawQualityMultiplier(float InMultiplier) { DrawQualityMultiplier = FMath::Max(0.f, InMultiplier); }
+
+	/**
+	 * Scale the launch speed by how hard the bow was drawn. A slower arrow falls further over the
+	 * same distance, so this is what turns a mistimed release into a visible lob rather than an
+	 * invisible damage penalty.
+	 *
+	 * Must be called immediately after spawn: it rewrites the live velocity as well as InitialSpeed,
+	 * because ProjectileMovement has already launched by the time the spawn call returns.
+	 */
+	void SetLaunchSpeedScale(float InScale);
+
 	AGSArrowProjectile();
 
 protected:
@@ -105,6 +119,19 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Arrow", meta = (ClampMin = "1.0"))
 	float HeadshotMultiplier = 2.5f;
+
+	/**
+	 * How well the shot was TIMED, from the bow minigame. 1.0 is an ordinary arrow.
+	 *
+	 * Set by UGSGA_BowShot::FireArrow from UGSBowTimingComponent, which only the PLAYER has - an AI
+	 * archer's arrow keeps the default and is completely unaffected. That is the whole separation
+	 * between player and AI on the bow, because both fire the same ability class.
+	 *
+	 * Multiplies with HeadshotMultiplier rather than replacing it: a perfect draw AND a headshot is
+	 * the best shot in the game, and should be.
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "GoblinSiege|Arrow")
+	float DrawQualityMultiplier = 1.f;
 
 	/**
 	 * Bone-name fragments that count as a head, matched case-insensitively as SUBSTRINGS.

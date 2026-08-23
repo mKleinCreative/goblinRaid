@@ -78,6 +78,18 @@ EBTNodeResult::Type UBTTask_MeleeAttack::ExecuteTask(UBehaviorTreeComponent& Own
 		return EBTNodeResult::Failed;
 	}
 
+	// THE BEAT (#238). In range and permitted to swing is not the same as ready to swing: an AI that
+	// has only just noticed this target spends GS.AI.ReactionSeconds gathering itself first. Failing
+	// rather than waiting keeps the tree free to keep closing, circling or facing during the beat -
+	// a task that blocked here would read as a freeze instead of a reaction.
+	if (AGSAIControllerBase* GSController = Cast<AGSAIControllerBase>(Controller))
+	{
+		if (!GSController->HasReactedTo(Target))
+		{
+			return EBTNodeResult::Failed;
+		}
+	}
+
 	// The victim's veto, checked here as well as in the decorator. The decorator reserved a token
 	// possibly several ticks ago; between then and now the target may have started flinching or had
 	// its guard broken. Swinging into either is the stunlock this whole system exists to prevent,

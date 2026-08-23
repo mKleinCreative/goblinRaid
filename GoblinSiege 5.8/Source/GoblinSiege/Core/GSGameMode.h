@@ -81,4 +81,19 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Respawn|Tuning")
 	float RespawnInvulnerabilitySeconds = 2.f;
+
+private:
+	/**
+	 * True only for the duration of a RespawnPlayer call, and read by ChoosePlayerStart.
+	 *
+	 * WHY A FLAG AND NOT A SECOND SPAWN PATH: the Warren takes over respawns (GDD 9) but must NOT
+	 * take over the FIRST spawn - GDD 2 opens the raid by materializing at the runic site, and a
+	 * player who begins the raid standing in his own Warren has skipped the arrival the whole
+	 * fiction rests on. The two cases differ by nothing observable at the spawn point itself, so
+	 * something has to carry the distinction, and the alternative - RespawnPlayer computing its own
+	 * transform and calling RestartPlayerAtTransform directly - reintroduces the exact bug
+	 * RestartPlayerAtPlayerStart's comment records: two paths applying the spawn offset, one of them
+	 * eventually forgetting to.
+	 */
+	bool bRespawning = false;
 };

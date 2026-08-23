@@ -64,6 +64,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
 	bool IsCarryable() const { return bIsCarryable; }
 
+	/** What this is worth if it reaches a banking point. 0 means "not loot". See LootValue. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
+	int32 GetLootValue() const { return LootValue; }
+
 	/** The point range and facing are measured against - the mouth of a chest, not its pivot. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Interaction")
 	FVector GetInteractionLocation() const;
@@ -131,6 +135,25 @@ protected:
 	/** Completing hands the owning actor to the interactor's UGSCarryComponent. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction")
 	bool bIsCarryable = false;
+
+	/**
+	 * What this is worth when it reaches a banking point, in LOOT points (GDD 10: loot 5-25, market
+	 * gold 5-15 per stall, strongbox 75, livestock 40/25/10 for pig/sheep/chicken).
+	 *
+	 * Zero by default, and zero means "not loot" - a well, a downed guard and a door all carry this
+	 * component and none of them should vanish into a Warren.
+	 *
+	 * WHY IT LIVES HERE rather than on a UGSLootValueComponent of its own: every actor that can be
+	 * banked already owns one of these to be picked up in the first place, and on this machine a new
+	 * UCLASS costs a six-minute editor-closed build. It is one int on the component that already
+	 * answers "what am I and what can be done to me".
+	 *
+	 * NOTHING IN THE INTERACTION FRAMEWORK BRANCHES ON IT. This component advertises the value and
+	 * stops there; AGSWarren::GetLootValueOf is the only reader, and the runic site becomes the
+	 * second when mid-raid banking lands there (GDD 9 "build it once and give it both consumers").
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction", meta = (ClampMin = "0"))
+	int32 LootValue = 0;
 
 	/**
 	 * On completion, drop the owner's root primitive into physics so a looted container visibly

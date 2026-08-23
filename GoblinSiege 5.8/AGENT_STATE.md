@@ -1069,3 +1069,26 @@ below as priority; it is grouped by kind. The first item is the only one anyone 
 - 2026-08-04 **live-002** — picked 'Interact framework — hold-E channels + carry' (u=10.0); FAILED
 - 2026-08-04 **live-002** — picked 'Interact framework — hold-E channels + carry' (u=10.0); FAILED
 - 2026-08-04 **live-003** — picked 'Interact framework — hold-E channels + carry' (u=10.0); ok
+
+---
+
+## Rulings, 2026-08-23 — three animation debts closed by Michael, not by fixing them
+
+Raised as outstanding work at the end of the bow session; he accepted all three as they stand. Do
+not re-open these as defects.
+
+- **Erika has a bow recoil but no draw animation.** Her draw window is
+  `UBTTask_RangedAttack::DrawSeconds` (0.8s) and the ability only activates at the shot, so a draw
+  clip would have to be started from the BT task. Michael: *"looks good for now."* ACCEPTED.
+
+- **The human locomotion bands do not match their clips.** `Walk -> Run` enters at `HU_Speed > 500`
+  while `A_HU_Std_RunF` is authored at 406.9 uu/s, so anything in the Run state slides by at least
+  1.23x; `BS_GS_Locomotion_Hu` is still an ORPHAN node, so `HU_Direction` is computed every frame and
+  consumed by nothing and every direction of travel plays forward clips. Bands were retuned under
+  #251 (Idle<->Walk 60/25, Walk<->Run 290/250, guards 450, archers 200) and the measured flicker fell
+  from 1.5-2.4/s to 0.4-0.6/s. Michael: *"looks good."* ACCEPTED at that level - the orphaned
+  blendspace is a known, deliberate gap, not an unnoticed bug.
+
+- **The bow timing bar art.** I flagged it as watermarked stock and a licensing risk. Michael: *"I
+  created it."* NO LICENSING ISSUE - the flag was wrong. The watermark-shaped artefact keyed out of
+  the source was not a third party's mark.

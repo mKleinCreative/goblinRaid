@@ -210,9 +210,16 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 249 | review **STALE 48.4h** | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types | Config/DefaultEngine.ini<br>Content/Audio<br>.gitignore | none |
+| 252 | review (waiting on: Docs only, no build. Rulings 40-45 in the ledger + four GDD edits; check_gdd.py CLEAN 10/10. Needs Michael on one open question: do civilian kills corrupt the world as much as knights? features.json and the 12.1 row deliberately deferred to stage 6.) **STALE 45.0h** | claude-corruption | Ruling: world corruption joins the slice (scope freeze amendment) | docs/decisions-ledger.md<br>docs/goblin-siege-gdd.md<br>Tools/CodeArchitect/features.json | none |
+| 263 | review (waiting on: BUILT. Blow the horn and stand still - the band should settle into ranks of three behind you instead of crowding. Judge whether 220uu reads as the right distance.) | claude-acf | The horde crowds you because FollowSlot drives nothing: give each goblin a formation post behind the summoner | Source/GoblinSiege/Horde/GSHordeAIController.h<br>Source/GoblinSiege/Horde/GSHordeAIController.cpp<br>Content/AI/BB_HordeGoblin.uasset<br>Content/AI/BT_HordeGoblin.uasset | done |
 
-**BUILD GATE: OPEN - and 71 finished ticket(s) asked for a build.**
+**STALE - #249, #252 open longer than 2h.** Ask Michael whether each is
+still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
+
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -451,6 +458,36 @@ _Queue is empty. The build gate is OPEN._
 | 231 | done | claude-acf | ACF Phase 2b-3: stamina storage moves to ARS, GSStaminaComponent becomes policy |
 | 232 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-4: sprint and slows move to ACF locomotion states |
 | 233 | done | claude-acf | GE_GSStatModifier: the missing effect that made every ACF statistic write a no-op |
+| 234 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-2a: port our damage rules into a UACFDamageCalculation subclass |
+| 235 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-2b: GS damage types carrying our damage tags |
+| 236 | done | claude-warren | The Warren on N_ChaosRune2, and the horn that fills it: arrival mouth, respawn, loot bank, tap-or-hold summon to a squad of 10 |
+| 237 | done | claude-acf | ACF Phase 2b-2c: the axe swing delivers damage through ACF |
+| 238 | done **UNOBSERVED** | claude-acf | AI reaction delay: a beat between noticing and swinging |
+| 239 | done | claude-acf | Follow slots renumber when a goblin dies, so the whole horde jostles |
+| 240 | done | claude-acf | Archers hold a latched bearing instead of re-racing for a melee ring slot |
+| 241 | done | claude-acf | Bow gets draw, hold and shoot: retarget the archery set to human and goblin |
+| 242 | done | claude-warren | The horn becomes a visible prop: SM_HuntingHorn attaches to the hand, and the goblin blows it instead of shouting |
+| 243 | done | claude-acf | Bow timing minigame: sweep, bands, damage multiplier and aim sway |
+| 244 | done | claude-acf | Bow timing bar on the HUD: gradient material, widget binds, show and hide |
+| 245 | done | claude-warren | The player plants the Warren: hold X, green-or-red ghost, one per player, 3 minute cooldown; horn summons from the gate until one is down |
+| 246 | done | claude-acf | Instrument: GS.AI.LogLocomotion, per-frame AI speed, to prove or refute the one-foot-step diagnosis |
+| 247 | done | claude-acf | Archer stutter: hold a range band instead of chasing a sliding point, and restore combat focus the shot task clears |
+| 248 | done | claude-acf | Erika reposition speed 1023 to 520 so she reaches the run clip instead of sliding 2.5x |
+| 250 | done | claude-acf | Archer step 1: reposition speed to 200 and widen the hold band to 300-1400 |
+| 251 | done | claude-acf | Guards to 500 and the Idle-Walk deadband the guard data finally justifies |
+| 253 | done | claude-acf | Bow timing hookup: the component on the pawn, draw on press, quality on release, cancel everywhere else |
+| 254 | done **UNOBSERVED** | claude-acf | GSRaidLibrary misses Engine/OverlapResult.h so FOverlapResult is undefined |
+| 255 | done | claude-warren | Loot banks at the beginning portal too: one banking component, given to the runic site |
+| 256 | done | claude-acf | Draw strength flattens the shot: a weak release lobs, a perfect one flies straight, and the arc shows it live |
+| 257 | done | claude-warren | Wire T to the Warren placement component: component on the pawn, Started and Completed bindings |
+| 258 | done | claude-acf | The fire-interval gate suppresses the whole draw, so a quick second shot shows no bar at all |
+| 259 | done | claude-acf | Bow montages: draw, hold loop and release on both skeletons, fired from the timing component |
+| 260 | done | claude-acf | The holstered axe sits in the aim sightline: hide it while aiming |
+| 261 | done **UNOBSERVED** | claude-acf | Delete GetFireCooldownRemaining - its only caller was the draw gate removed in 258 |
+| 262 | done | claude-acf | GS.Horde.Slots and GS.Horde.KillSlot: make the follow-slot fix testable |
+| 264 | done | claude-acf | An attack order becomes a place, not a person: arrive, sweep locally, engage whatever is nearest |
+| 265 | done | claude-warren | Horn summons from the gate until a Warren is down: arrival falls back to the runic site, not the treeline markers |
+| 266 | done | claude-warren | AGSWarren moves onto the shared loot bank component, so there is one banking implementation not two |
 
 <!-- BOARD:END -->
 

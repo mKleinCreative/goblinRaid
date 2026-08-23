@@ -44,6 +44,22 @@ struct FGSAcquireTargetMemory
 	 *  memory is raw bytes - a TWeakObjectPtr here would never be constructed or destroyed. Exists
 	 *  only so switching targets drops a latch that belonged to the previous one. */
 	uint32 LatchedTargetId = 0;
+
+	/**
+	 * A RANGED agent's standoff bearing, in world degrees, held for as long as it keeps the same
+	 * target (#240). NaN-free sentinel: < -1000 means "not latched yet".
+	 *
+	 * Why this exists: an archer used to derive its position from a melee RING SLOT and then stand
+	 * at StandoffRadiusOverride along that slot's direction. The slot is at RingRadius (200) and the
+	 * archer stands at 700, so it was never within SlotArrivedRadius of the thing it had claimed and
+	 * never "closing" on it either - which is exactly what UGSEngagementComponent's watchdog evicts.
+	 * Every SlotClaimTimeoutSeconds the archer lost its slot, re-raced for one, and got a bearing up
+	 * to a full slot-width away: a sideways sprint at 700 units, over and over.
+	 *
+	 * Michael, watching it: "twitching was the same for the archers movement. they also don't keep
+	 * track of who they're running away from."
+	 */
+	float LatchedBearingDegrees = -9999.f;
 };
 
 UCLASS()
@@ -228,6 +244,35 @@ protected:
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege", meta = (ClampMin = "0.0"))
 	float StandoffRadiusOverride = 0.f;
+
+	/**
+	 * THE RANGE BAND A RANGED AGENT WILL TOLERATE WITHOUT MOVING AT ALL (#246).
+	 *
+	 * #240 latched the bearing so the archer only corrected DISTANCE. It was still correcting it
+	 * every single tick, against a hold point recomputed from the target's CURRENT location - so a
+	 * moving target dragged the destination along with it and the archer chased a point that never
+	 * stopped moving.
+	 *
+	 * GS.AI.LogLocomotion measured what that actually looked like on BP_ErikaArcher, and it was far
+	 * worse than the 80uu twitch the MoveTo's AcceptableRadius suggested: bursts to 1023 uu/s - her
+	 * literal MaxWalkSpeed - roughly once a second, 61% of the capture spent at a standstill, with a
+	 * heading change of only 22 deg/s. She was not drifting or jostling. She was sprinting flat out,
+	 * stopping dead, and doing it again.
+	 *
+	 * A bow does not care about 300 units. So the archer now moves ONLY when the range leaves
+	 * [HoldBandInner, HoldBandOuter], and when it does it returns to StandoffRadiusOverride - the
+	 * MIDDLE of the band, not its edge. That is what makes this stable: arriving at 700 when the band
+	 * runs 400..1000 buys 300 units of drift before anything moves again, where returning to the edge
+	 * would re-trigger on the very next step the target took.
+	 *
+	 * Keep both inside UBTTask_RangedAttack's MinRange/MaxRange (350/1100). Sitting flush against the
+	 * firing gate means the drift that ends the hold also ends the ability to shoot.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Ranged", meta = (ClampMin = "0.0"))
+	float HoldBandInner = 400.f;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Ranged", meta = (ClampMin = "0.0"))
+	float HoldBandOuter = 1000.f;
 
 private:
 	/** Nearest live hostile within AcquireRadius, or null. Hostility is IsHostileTo on RaceTag.
