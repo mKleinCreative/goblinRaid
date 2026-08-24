@@ -12,6 +12,7 @@ scenario: PIE on L_CombatArena with all six defenders spawned - two Erikas, two 
 files: 
   - Source/GoblinSiege/Characters/GSEnemyCharacter.cpp
   - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp
+  - docs/decisions-ledger.md
 ---
 
 ## Goal

@@ -18,6 +18,44 @@ dated, citable list.
 
 ---
 
+## 2026-08-23 — who wears plate (the defender roster, settled)
+
+Michael, asked directly while closing #272, which had surfaced that every defender in the game reads
+`armor 0` and therefore that the whole directional-plate system from #091 was doing nothing at any
+angle.
+
+**Decided.**
+
+1. **The castle guards are Militia, and that is correct.** *"The CastleGuards are militia, there's
+   just a decent amount of them."* They are a numbers problem, not a durability problem — 30 HP,
+   armour 0, and the plate system is deliberately not in play against them. `BP_CastleGuard01` and
+   `BP_CastleGuard02` are already authored this way; **nothing needed changing.** This supersedes the
+   suspicion raised in #272 that they might have been mis-rowed, and the historical `armor 6.0` line
+   for `BP_CastleGuard01_C_0` in #087 is stale, not evidence of intent.
+
+2. **Knights are a named person, not a class of mook.** *"We already have a character model for
+   Knights, it's a named person. KnightDPelegrini."* `BP_KnightDPelegrini` is archetype `Knight`,
+   75 HP / armour 6, and is wired correctly today. Armoured plate is a *character*, not a difficulty
+   tier — so the plate system having exactly one live consumer is the design working, not a gap.
+
+3. **Uriel A Plotexia should be armoured too — FUTURE, not done.** Michael, same session: *"Uriel A
+   Plotexia should be armored as well, make a note for that in the future."* `BP_UrielAPlotexia` is
+   currently archetype `Militia` with `DA_Weapon_ArmingSword` (30 HP, armour 0). **This is recorded
+   as intent and has NOT been actioned** — no ticket has been opened and no asset has been touched.
+   Whoever picks it up: the change is the archetype row on the Blueprint, and it should be a
+   deliberate choice whether Uriel is `Knight` (75/6, i.e. Pelegrini's equal) or wants a new row.
+
+**Verified at runtime the same session** (`GS.Stats.Dump`, PIE on `L_CombatArena`): Erika 20/20, both
+castle guards 30/30, ARS agreeing with the GS attribute set on all seven characters, zero mismatches.
+`DA_Race_Human` carries Militia 30/0, Archer 20/0, Knight 75/6 — the GDD §8 roster exactly.
+
+**Left open, not decided.** `BP_PeasantMan` is also archetype `Militia` and carries an arming sword,
+i.e. a peasant with 30 HP who fights. GDD §8 says *"civilians 10 HP with disbelief → panic"*, and
+`DA_Race_Human` has **no civilian row at all**. Either civilians are simply not built yet or the
+peasant is mis-authored; nobody has ruled, and this ledger will not guess.
+
+---
+
 ## 2026-08-21 — the land turns as you raid (world corruption)
 
 Michael, asked for *"a system where the environment as a whole will start to look more sinister, as if
