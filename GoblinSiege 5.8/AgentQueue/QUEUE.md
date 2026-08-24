@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 83 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 84 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -501,6 +501,7 @@ _Queue is empty. The build gate is OPEN._
 | 281 | done | claude-warren | Finite arrows stage 4 - the arrow count on the HUD |
 | 282 | done | claude-warren | Empty quiver must not draw the bow, and the starting quiver drops to 15 |
 | 283 | done **UNOBSERVED** | claude-warren | "RULING: the weapon wheel migrates onto ACF equipment; Uriel is demo scope, not prototype" |
+| 284 | done | claude-warren | The wheel slot is Primary, not Sword - the goblin holds an axe |
 
 <!-- BOARD:END -->
 

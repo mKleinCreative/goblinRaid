@@ -36,11 +36,11 @@ UGSWeaponComponent::UGSWeaponComponent()
 	// SECTOR ORDER, not declaration order - index 0 is the top of the wheel and it runs
 	// anticlockwise. This reproduces exactly what SlotForDirection's four hard-coded returns used
 	// to do, so the wheel a player has learned does not move under them.
-	WheelSlots = { GSTags::WeaponSlot_Torch, GSTags::WeaponSlot_Sword,
+	WheelSlots = { GSTags::WeaponSlot_Torch, GSTags::WeaponSlot_Primary,
 				   GSTags::WeaponSlot_Grapple, GSTags::WeaponSlot_Bow };
 
-	CurrentSlot = GSTags::WeaponSlot_Sword;
-	WheelHighlight = GSTags::WeaponSlot_Sword;
+	CurrentSlot = GSTags::WeaponSlot_Primary;
+	WheelHighlight = GSTags::WeaponSlot_Primary;
 }
 
 bool UGSWeaponComponent::IsInRangedMode() const
@@ -153,7 +153,7 @@ void UGSWeaponComponent::EquipWeapon(UGSWeaponDataAsset* NewWeapon)
 	// Straight assignment, not SetSlot: this is an equip, not a swap. SetSlot would refuse under the
 	// anti-cancel lock, broadcast a slot change nobody is listening for yet, and ready a torch prop
 	// before the meshes below have been built.
-	CurrentSlot = GSTags::WeaponSlot_Sword;
+	CurrentSlot = GSTags::WeaponSlot_Primary;
 
 	// A new weapon gets a clean slate on both warn latches - it names its own asset paths and its
 	// own sockets, and the previous kit's failures say nothing about this one. See the header.
@@ -253,7 +253,7 @@ void UGSWeaponComponent::ToggleRangedMode()
 	// The legacy two-way swap, now expressed as a slot change. Torch is deliberately NOT in this
 	// cycle: this is the sword<->bow key, and a player who has never opened the wheel should not
 	// find a torch in their hand because they tapped swap twice.
-	SetSlot(IsInRangedMode() ? GSTags::WeaponSlot_Sword : GSTags::WeaponSlot_Bow);
+	SetSlot(IsInRangedMode() ? GSTags::WeaponSlot_Primary : GSTags::WeaponSlot_Bow);
 }
 
 bool UGSWeaponComponent::SetSlot(FGameplayTag NewSlot)

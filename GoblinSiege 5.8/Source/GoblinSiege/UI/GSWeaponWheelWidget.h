@@ -51,7 +51,7 @@ protected:
 	TObjectPtr<UTextBlock> Label_Bow;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> Label_Sword;
+	TObjectPtr<UTextBlock> Label_Primary;
 
 	/** The fourth slot (2026-08-17). BindWidgetOptional like the others, so a WBP that has not been
 	 *  re-authored yet still compiles and simply shows no grapple label. */

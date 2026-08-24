@@ -1219,7 +1219,7 @@ bool AGSPlayerCharacter::IsSwordEquipped() const
 	// No weapon component at all means the sword is the sensible assumption - it is CurrentSlot's
 	// own default, and a character that cannot answer the question should not silently lose its
 	// guard.
-	return !WeaponComponent || WeaponComponent->GetCurrentSlot() == GSTags::WeaponSlot_Sword;
+	return !WeaponComponent || WeaponComponent->GetCurrentSlot() == GSTags::WeaponSlot_Primary;
 }
 
 void AGSPlayerCharacter::Input_AimStart(const FInputActionValue& Value)

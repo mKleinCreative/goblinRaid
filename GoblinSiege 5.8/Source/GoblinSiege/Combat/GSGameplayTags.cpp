@@ -69,6 +69,6 @@ namespace GSTags
 	// Weapon wheel slots (#274) - what the player has CHOSEN, not where it hangs. See the header.
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Torch, "WeaponSlot.Torch", "Top of the wheel. The torch is a held weapon, not a loan during an ability.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Bow, "WeaponSlot.Bow", "Right of the wheel. The only slot that puts the character in ranged mode.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Sword, "WeaponSlot.Sword", "Left of the wheel, and the slot every character starts a raid in.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Primary, "WeaponSlot.Primary", "Left of the wheel, and the slot every character starts a raid in. Whatever their main melee weapon is - a sword for the player, an axe for the horde.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Grapple, "WeaponSlot.Grapple", "Bottom of the wheel.");
 }

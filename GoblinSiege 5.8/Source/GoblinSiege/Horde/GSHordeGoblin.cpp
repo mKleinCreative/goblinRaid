@@ -65,7 +65,7 @@ void AGSHordeGoblin::BeginPlay()
 		if (WeaponComponent && DefaultWeapon)
 		{
 			WeaponComponent->EquipWeapon(DefaultWeapon);
-			WeaponComponent->SetSlot(GSTags::WeaponSlot_Sword);
+			WeaponComponent->SetSlot(GSTags::WeaponSlot_Primary);
 		}
 	}
 

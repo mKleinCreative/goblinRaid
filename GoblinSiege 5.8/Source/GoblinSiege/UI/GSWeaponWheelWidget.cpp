@@ -31,10 +31,10 @@ void UGSWeaponWheelWidget::NativeConstruct()
 	// Missing labels are survivable, but silence about them is not: a renamed widget in
 	// WBP_WeaponWheel produces a wheel that opens and highlights nothing, which looks like the input
 	// is broken rather than the binding.
-	if (!Label_Torch || !Label_Bow || !Label_Sword)
+	if (!Label_Torch || !Label_Bow || !Label_Primary)
 	{
 		UE_LOG(LogTemp, Warning,
-			TEXT("[GoblinSiege] %s is missing one or more of Label_Torch / Label_Bow / Label_Sword. "
+			TEXT("[GoblinSiege] %s is missing one or more of Label_Torch / Label_Bow / Label_Primary. "
 				 "Those exact names are the BindWidgetOptional contract; a renamed label simply will "
 				 "not light up."),
 			*GetName());
@@ -99,7 +99,7 @@ UTextBlock* UGSWeaponWheelWidget::LabelFor(FGameplayTag WhichSlot) const
 	// lighting the wrong label would be a worse lie than lighting none.
 	if (WhichSlot == GSTags::WeaponSlot_Torch)   { return Label_Torch; }
 	if (WhichSlot == GSTags::WeaponSlot_Bow)     { return Label_Bow; }
-	if (WhichSlot == GSTags::WeaponSlot_Sword)   { return Label_Sword; }
+	if (WhichSlot == GSTags::WeaponSlot_Primary)   { return Label_Primary; }
 	if (WhichSlot == GSTags::WeaponSlot_Grapple) { return Label_Grapple; }
 	return nullptr;
 }
@@ -110,7 +110,7 @@ void UGSWeaponWheelWidget::Repaint(FGameplayTag Highlighted, bool bCommitted)
 	// adding a slot cannot leave one label stuck on the previous frame's colour - which is exactly
 	// what this array being kept in step bought when Grapple landed (2026-08-17).
 	const FGameplayTag All[] = { GSTags::WeaponSlot_Torch, GSTags::WeaponSlot_Bow,
-								 GSTags::WeaponSlot_Sword, GSTags::WeaponSlot_Grapple };
+								 GSTags::WeaponSlot_Primary, GSTags::WeaponSlot_Grapple };
 	for (const FGameplayTag& WhichSlot : All)
 	{
 		if (UTextBlock* Label = LabelFor(WhichSlot))

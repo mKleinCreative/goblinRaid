@@ -248,8 +248,11 @@ namespace GSTags
 	// The enum they replace carried an APPEND ONLY warning because its integer values were
 	// serialised into character CDOs. Tags are stored by name, so that hazard is gone and the
 	// wheel's contents are now data (see UGSWeaponComponent::WheelSlots).
+	// PRIMARY, not "Sword" (#284). The slot holds whatever this character's main melee weapon is,
+	// and for the horde that is an AXE - the old name described the player's kit rather than the
+	// slot's job, and read as a bug every time a goblin "held a sword".
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Torch);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Bow);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Sword);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Primary);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Grapple);
 }

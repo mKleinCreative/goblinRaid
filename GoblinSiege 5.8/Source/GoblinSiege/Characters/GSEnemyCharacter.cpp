@@ -47,7 +47,7 @@ AGSEnemyCharacter::AGSEnemyCharacter(const FObjectInitializer& ObjectInitializer
 	// Was an inline `= EGSWeaponSlot::Sword` on the header until #274. A native gameplay tag is not
 	// a constant expression, so the default moves here. BP_ErikaArcher overrides it to Bow; every
 	// other adversary rides this default.
-	DefaultSlot = GSTags::WeaponSlot_Sword;
+	DefaultSlot = GSTags::WeaponSlot_Primary;
 }
 
 void AGSEnemyCharacter::BeginPlay()
