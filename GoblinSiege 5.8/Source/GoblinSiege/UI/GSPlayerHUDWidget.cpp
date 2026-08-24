@@ -6,6 +6,10 @@
 #include "Raid/GSScoreSubsystem.h"
 #include "Characters/GSStaminaComponent.h"
 #include "Weapons/GSBowTimingComponent.h"
+#include "Weapons/GSWeaponComponent.h"
+#include "Weapons/GSWeaponDataAsset.h"
+#include "Components/ACFInventoryComponent.h"
+#include "Items/ACFItem.h"
 #include "Horde/GSHordeCommandComponent.h"
 #include "Interaction/GSInteractionComponent.h"
 #include "Interaction/GSInteractableComponent.h"
@@ -419,6 +423,13 @@ void UGSPlayerHUDWidget::BindToCharacter(AGSCharacterBase* Character)
 		{
 			OldStam->OnStaminaChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleStaminaChanged);
 		}
+
+		// The quiver, same reason. Five respawns without this and five dead pawns' inventories are
+		// all writing to one text block.
+		if (UACFInventoryComponent* OldInv = BoundCharacter->FindComponentByClass<UACFInventoryComponent>())
+		{
+			OldInv->OnInventoryChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleInventoryChanged);
+		}
 	}
 
 	BoundCharacter = Character;
@@ -454,10 +465,57 @@ void UGSPlayerHUDWidget::BindToCharacter(AGSCharacterBase* Character)
 		Bow->OnBowDrawEnded.AddDynamic(this, &UGSPlayerHUDWidget::HandleBowDrawEnded);
 	}
 
+	// The arrow count, same shape a fourth time. OnInventoryChanged rather than OnItemAdded /
+	// OnItemRemoved: it is parameterless, fires on every mutation including OnRep_Inventory on
+	// clients, and we re-read the total anyway - so the delta the other two carry is not wanted.
+	if (UACFInventoryComponent* Inv = Character->FindComponentByClass<UACFInventoryComponent>())
+	{
+		Inv->OnInventoryChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleInventoryChanged);
+	}
+
+	// Paint immediately, and OUTSIDE the block above so a character with no inventory still gets the
+	// text collapsed rather than inheriting the previous pawn's number.
+	RefreshArrowCount();
+
 	// Hidden until a draw starts, whatever the asset was saved with. Deliberately outside the block
 	// above: a character with no timing component must also get a hidden bar, or swapping to one
 	// mid-draw would leave the previous pawn's bar on screen.
 	ShowBowTimingBar(false);
+}
+
+void UGSPlayerHUDWidget::HandleInventoryChanged()
+{
+	RefreshArrowCount();
+}
+
+void UGSPlayerHUDWidget::RefreshArrowCount()
+{
+	if (!ArrowCountText)
+	{
+		return;
+	}
+
+	// Which item counts as "arrows" is a property of the equipped bow, exactly as the gameplay side
+	// reads it in UGSGA_BowShot::GetAmmoItemClass. Asking the same place means the HUD cannot show a
+	// number the bow does not spend.
+	const AGSCharacterBase* Character = BoundCharacter.Get();
+	const UGSWeaponComponent* WeaponComp =
+		Character ? Character->FindComponentByClass<UGSWeaponComponent>() : nullptr;
+	const UGSWeaponDataAsset* Weapon = WeaponComp ? WeaponComp->GetEquippedWeapon() : nullptr;
+	const UACFInventoryComponent* Inventory =
+		Character ? Character->FindComponentByClass<UACFInventoryComponent>() : nullptr;
+
+	// No ammo concept on this character - an AI archer, or a bow that names no ArrowItemClass.
+	// Collapse rather than show a zero: an unlimited bow reading "0" is worse than no readout at all.
+	if (!Weapon || !Weapon->ArrowItemClass || !Inventory)
+	{
+		ArrowCountText->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	ArrowCountText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	ArrowCountText->SetText(FText::AsNumber(
+		Inventory->GetTotalCountOfItemsByClass(Weapon->ArrowItemClass)));
 }
 
 void UGSPlayerHUDWidget::HandleBowDrawStarted(float TraverseSeconds)

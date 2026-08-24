@@ -210,9 +210,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 281 | review (waiting on: "Michael: 20 seconds of looking. Press play and confirm the arrow count reads 30, drops as you shoot and jumps when you walk over a bundle. I could not reach the live widget object to read it programmatically - see Evaluate. Also: its position is a guess and wants moving by eye.") **STALE 7.3h** | claude-warren | Finite arrows stage 4 - the arrow count on the HUD | Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Content/UI/WBP_GSPlayerHUD.uasset | required |
 
-**BUILD GATE: OPEN - and 81 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 

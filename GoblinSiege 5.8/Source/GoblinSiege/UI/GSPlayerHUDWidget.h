@@ -188,6 +188,18 @@ protected:
 	TObjectPtr<class UImage> BowTimingBar;
 
 	/**
+	 * Arrows left (ruling 46). Collapsed on any character with no ammo concept - an AI archer, or a
+	 * bow whose data asset names no ArrowItemClass - by the same structural rule the bow timing bar
+	 * uses: nothing to ask means nothing to show, rather than a second condition to keep in sync.
+	 *
+	 * BlueprintReadOnly is MANDATORY here, not house style. #064: a BindWidgetOptional that a
+	 * designer graph touches without it fails the WHOLE WBP_GSPlayerHUD compile, and it surfaces as a
+	 * red widget in the editor rather than as a C++ error, so it can survive a clean build.
+	 */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<UTextBlock> ArrowCountText;
+
+	/**
 	 * The sliding pointer, as its own Image rather than something the bar's material draws.
 	 *
 	 * Michael supplied the bar and the pointer as two sprites, so the honest implementation is two
@@ -282,6 +294,16 @@ protected:
 	void HandleBowDrawEnded(bool bLoosed);
 
 	void ShowBowTimingBar(bool bVisible);
+
+	/** The quiver changed (ruling 46, #281). Bound to UACFInventoryComponent::OnInventoryChanged,
+	 *  which is parameterless and fires on every mutation including OnRep_Inventory on clients - so
+	 *  the count needs no tick and no polling. */
+	UFUNCTION()
+	void HandleInventoryChanged();
+
+	/** Re-reads the arrow total and repaints, or collapses the text when this character has no ammo
+	 *  concept at all. Split out so BindToCharacter can paint immediately without duplicating it. */
+	void RefreshArrowCount();
 
 	/** Cached so the fill is not a material lookup per frame. Created lazily from the Image's brush. */
 	UPROPERTY(Transient)
