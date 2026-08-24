@@ -18,6 +18,60 @@ dated, citable list.
 
 ---
 
+## 2026-08-24 — the quiver empties (finite arrows)
+
+Michael, asked whether picking up torches and arrows as consumables would be part of moving the
+weapon wheel onto ACF. He first asked for full scarcity on both, then narrowed it on being shown the
+standing objections below. Ticket #277.
+
+This lands against §12.4's scope freeze — items, inventory and consumable resources appear in **no
+column**, not IN, not CUT, not DEFERRED — so it needs a ruling before a line of code, exactly as
+world corruption did (ruling 40).
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 46 | **Arrows become finite, for the player.** A starting quiver, spent per shot. The bow becomes a resource verb | The counting backend **already exists and is empty**: `AGSCharacterBase` derives `AACFCharacter`, whose constructor creates a `UACFEquipmentComponent` extending `UACFInventoryComponent`, so every character already carries a replicated, stacking, weight-aware inventory that nothing reads. This is authoring one item and reading a count, not integrating an inventory system |
+| 47 | **Torches stay infinite and untouched** | Torch-spam already has its answer in score weighting - a house is priced at 10 *precisely* so the tally is not "decided by whoever had spare torches" (ruling 21). `UGSGA_TorchToss` and `AGSTorchProjectile` are out of scope entirely, and the spawn seam at `GSGA_TorchToss.cpp:159` is **not** a gate. Recorded so nobody adds torch scarcity later thinking it was merely deferred |
+| 48 | **AI archers do not run out** | The gate keys on the presence of `UGSBowTimingComponent` **and** a non-null `ArrowItemClass` on the equipped weapon - both off for Erika. Deliberately NOT `IsPlayerControlled()`: the moment anyone possesses an archer for a debug session that test flips and the archer stops shooting. Component presence is a fact about how the pawn was built. No behaviour-tree work, no empty-quiver AI state |
+| 49 | **Spent arrows are litter and are not recovered** | `SetLifeSpan(5.f)` at `GSArrowProjectile.cpp:365` stands, and its comment ("an arrow is just litter") is **promoted from a code comment to a ruling** - reversing it now needs a new row rather than an edit. This is also what removes the main argument for ACF's shooting component; see 51 |
+| 50 | **Resupply is walk-over pickup, from the ground and from corpses** | Never through `UGSCarryComponent` (one-object-in-hands, applies `State.Carrying`, blocks bow and torch - a quiver you cannot fight while holding is not a quiver), and never through `UGSInteractionComponent`'s hold-to-channel, which **aborts on damage** and is therefore exactly wrong for restocking mid-fight |
+| 51 | **ACF supplies the inventory store only. `UACFShootingComponent` is REJECTED** | Same shape as ruling 44. With spent-arrow recovery (49), reload and magazine all out of scope, its one remaining free win - replicated ammo state for the HUD - is **already emitted** by `UACFInventoryComponent`'s FastArray callbacks. Adopting it would replace `AGSArrowProjectile` and delete the derived arrow-mesh offset (`GSArrowProjectile.cpp:76-84`), the distance-to-head-bone headshot (`:183-218`), the bow timing minigame's draw-quality read (`GSGA_BowShot.cpp:186-195`) and Erika's `BTTask_RangedAttack` aim path. The whole tuned ranged stack, for nothing this scope wants |
+| 52 | **An arrow that sticks in an ally is still a wasted shot** - the 2026-08-06 ruling is NOT re-opened | But finite arrows make it materially harsher, and that is recorded rather than discovered. See below |
+
+**Two findings recorded so they are not re-investigated from scratch** (precedent: ruling 43):
+
+- **The equipment component already exists on every character, and is empty.** Nothing had to be added to any character class to get an inventory.
+- **`AACFPickup` does NOT work standalone.** Its `PickUpCapsule` is created in the constructor and never attached to the root and never bound to an overlap delegate; `bPickOnOverlap` is read only inside `OnInteractableRegisteredByPawn`, whose sole caller in the plugin is **ACF's own** `UACFInteractionComponent`, which we do not have. A `BP_ACFPickup` dropped in a level does nothing and **logs nothing**. This is why ruling 50 is served by a small actor of ours rather than by inheriting ACF's.
+
+**Three objections were put to Michael before he answered, and they are why the scope narrowed.**
+Recorded so nobody re-discovers them and re-opens this:
+
+- **Torch-spam already has a settled answer, and it is scoring, not scarcity.** §10 prices a house at
+  10 *precisely* so the tally is not *"decided by whoever had spare torches"* (ruling 21). Finite
+  torches would re-solve a solved problem, so **torches were dropped from the scope entirely.**
+- **Bow-spam already has a settled answer too** — fire rate, #034, `RangedAttackCooldownSeconds`.
+  Finite arrows therefore have to earn their place as *their own feature* — running dry as a real
+  state you play around — and not as a second fix for a problem that is already fixed.
+- **The wood economy, this project's only resource-economy precedent, is DEFERRED to tier-2**
+  (§12.1 rows 9-10). An arrow supply is structurally the same kind of system. Michael took it anyway,
+  which is his call; it is recorded here so the inconsistency is deliberate rather than unnoticed.
+
+**The design interaction that matters, and it is not a new ruling.** The 2026-08-06 ranged ruling
+stands untouched: *an arrow STICKS in an ally, deals nothing, and the shot is wasted.* With unlimited
+arrows that cost a player a miss. **With a finite quiver it costs a consumable**, so a horde goblin
+wandering into your line stops being an annoyance and becomes a material loss. That ruling was taken
+with the horde case explicitly on the table and is **not** re-opened here — but it is now sharper than
+when it was decided, and it should be watched in play rather than discovered.
+
+**Deliberately not decided.** Whether the weapon wheel migrates onto ACF equipment at all (#274's open
+question) is untouched by this. Arrows use ACF purely as a count store; `UGSWeaponComponent` keeps the
+weapon meshes, sockets, offsets and the wheel, and `AGSArrowProjectile` keeps the shooting. ACF's
+`UACFShootingComponent` was examined and **rejected** — adopting its ammo loop would replace our
+arrow projectile and delete the tuned mesh offset, the distance-to-head-bone headshot and the bow
+timing minigame, to buy free features this scope does not want.
+
+---
+
 ## 2026-08-23 — who wears plate (the defender roster, settled)
 
 Michael, asked directly while closing #272, which had surfaced that every defender in the game reads

@@ -46,6 +46,7 @@ cost no code change and took the design document out of a tool's private folder.
 |---|---|---|---|
 | v1.0 | 2026-08-19 | #198 | This file becomes canonical and moves to `docs/`. Reconciled against the live tree: grapple written in as a core verb, audio un-cut for world SFX, climb re-graded as Blueprint-driven, the `L_CombatArena` / `L_Tutorial_Island` divergence stated, §12.1 re-graded, §12.4 scope freeze added, §13 pointed at a real ledger. 23 rulings taken — see `docs/decisions-ledger.md`. |
 | v1.1 | 2026-08-21 | #252 | **World corruption added** — the land visibly turns as you raid. One global monotonic 0..1 scalar drives sky, fog, sun, grade, world materials, VFX and ambience. Added to the §12.4 IN column; §1 pillar reworded; the wayfinding consequence amended, since corruption is now what "the environment does the leading" actually means. Rulings 40–45. |
+| v1.2 | 2026-08-24 | #277 | **Finite arrows added** — the player carries a quiver that empties, refilled by walking over a bundle or a dead archer. Torches stay infinite and AI archers never run dry; weapons are not lootable. Added to the §12.4 IN column. Rulings 46-52. |
 | — | 2026-08-14 | #158 | Re-exported 168 → 272 lines; four-rung grading replaced "Scaffolded"; control map corrected; five live defects recorded |
 | — | 2026-08-04 | — | First export, describing what was *designed* rather than what was built |
 
@@ -485,6 +486,7 @@ used to describe all of them as though they were built.*
 | The grapple as a core verb (12) | | |
 | World corruption — the land turns as you raid (40) | | |
 | Windmill Stage 1 Ablaze (7) | | |
+| Finite arrows — a player-only quiver (46) | | |
 
 **Two consequences that follow from the deferrals rather than being chosen.** Deferring the
 watchtower, bell and well **removes three scoring lines** from §10 and the bucket-brigade counterplay

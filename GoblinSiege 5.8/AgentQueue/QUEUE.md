@@ -494,6 +494,7 @@ _Queue is empty. The build gate is OPEN._
 | 274 | done | claude-warren | "Stage 3 - EGSWeaponSlot retired: the weapon wheel is four gameplay tags and its contents are data" |
 | 275 | done | claude-warren | Peasants become civilians - no sword, 10 HP, and an ACF data asset they never had |
 | 276 | done | claude-warren | Five null input triggers, and why filling them would have broken blocking and the heavy charge |
+| 277 | done **UNOBSERVED** | claude-warren | "RULING: finite arrows join the slice - a player-only quiver, against the 12.4 scope freeze" |
 
 <!-- BOARD:END -->
 

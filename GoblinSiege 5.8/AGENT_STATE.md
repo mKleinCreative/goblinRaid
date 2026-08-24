@@ -1115,3 +1115,22 @@ nothing runnable was produced — it is a written argument. Its conclusions were
 which *was* observed (10 of 10 summoned goblins equipping the axe through ACF). If #269 reasoned
 wrongly, the symptom appears in #270's behaviour, not in anything #269 shipped. Both components still
 coexist on purpose; #270 changed nothing in `UGSWeaponComponent`.
+
+## #277 closed UNOBSERVED, 2026-08-24 — the finite-arrows ruling
+
+Rulings 46-52: arrows become finite for the player, torches stay infinite, AI archers never run dry,
+spent arrows stay litter, resupply is walk-over, and ACF supplies the inventory store only.
+GDD v1.2, §12.4 IN column.
+
+**What is unproven:** whether finite arrows are any good to play. A ruling ticket cannot settle that.
+The mechanical claim underneath it *was* checked at runtime before anything was written - arrows are
+genuinely unlimited today, with `CostGameplayEffectClass` and `CooldownGameplayEffectClass` reading
+None on both ability CDOs and on the `GA_GS_TorchToss` Blueprint - so the premise is sound even if
+the design turns out wrong.
+
+**The specific thing to judge it on**, and the reason ruling 52 exists: an arrow that sticks in an
+allied goblin is a wasted shot (2026-08-06, not re-opened). That cost a miss when arrows were free.
+With a quiver it costs a consumable, in a game that deliberately puts your own horde between you and
+your target. If finite arrows feel unfair, this is almost certainly why - and the levers to fix it
+are the starting count, bundle density and drop rate, all data. **Changing what happens when an arrow
+hits an ally would be a new ruling, not a quiet edit inside an ammo ticket.**
