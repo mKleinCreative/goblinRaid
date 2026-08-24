@@ -2,13 +2,13 @@
 id: 269
 title: ACF Phase 3 scoping: we have carried an unused UACFEquipmentComponent since Phase 2a while UGSWeaponComponent does the same job
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T00:05Z
 build: none
 waiting_on:
 evaluated: 2026-08-24T00:20:34Z
-observed:
-scenario:
+observed: UNOBSERVED 2026-08-24T02:16:13Z - Scoping document only - a written analysis of why the project carries an unused UACFEquipmentComponent. It produced no runnable change, so there is nothing to watch. Its conclusions were acted on in #270.
+scenario: none - never run
 files: 
   - AgentQueue/tickets/SCOPING-ONLY
 ---

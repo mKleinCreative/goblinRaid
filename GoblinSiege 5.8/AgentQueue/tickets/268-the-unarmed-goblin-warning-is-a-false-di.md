@@ -2,13 +2,13 @@
 id: 268
 title: The unarmed-goblin warning is a false diagnostic: it fires before AGSHordeGoblin equips itself, and has now caused two misdiagnoses
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-23T23:55Z
 build: none
 waiting_on:
 evaluated: 2026-08-23T23:56:54Z
-observed:
-scenario:
+observed: 2026-08-24T02:15:57Z | Across three PIE runs tonight not one BP_HordeGoblin produced the no-EquippedWeapon warning, while BP_CastleGuard01/02 and BP_ErikaArcher still do - the false positive on horde goblins is gone and the true positive on characters that genuinely lack weapon data is retained.
+scenario: Fresh PIE on L_CombatArena with goblins summoned by GS.Horde.SpawnTest alongside the level defenders, reading Saved/Logs/MyProject.log across three separate runs.
 files: 
   - Source/GoblinSiege/Weapons/GSWeaponComponent.h
   - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp

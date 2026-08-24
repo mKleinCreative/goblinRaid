@@ -2,7 +2,7 @@
 id: 252
 title: Ruling: world corruption joins the slice (scope freeze amendment)
 agent: claude-corruption
-status: review
+status: abandoned
 claimed: 2026-08-22T02:14Z
 build: none
 waiting_on: Docs only, no build. Rulings 40-45 in the ledger + four GDD edits; check_gdd.py CLEAN 10/10. Needs Michael on one open question: do civilian kills corrupt the world as much as knights? features.json and the 12.1 row deliberately deferred to stage 6.
@@ -115,3 +115,5 @@ It is now the flagged open question at the foot of the block, which is the hones
 - **The civilian question** — Michael's to answer, surfaced to him rather than assumed.
 - **Everything else in the plan.** This ticket is stage 0 of 6 and authorises the rest; it builds
   none of it. Stage 1 needs an editor-closed build, which the closed gate forbids today.
+
+> 2026-08-24T02:18Z ICEBOXED by Michael 2026-08-23, not reverted - docs work is committed in main. Blocked on one question for Michael: do civilian kills corrupt as much as knight kills? See AgentQueue/ICEBOX.md.

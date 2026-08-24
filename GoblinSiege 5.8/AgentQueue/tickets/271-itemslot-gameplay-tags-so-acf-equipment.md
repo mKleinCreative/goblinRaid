@@ -2,13 +2,13 @@
 id: 271
 title: ItemSlot gameplay tags so ACF equipment has slots to equip into
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T00:27Z
 build: required
 waiting_on:
 evaluated: 2026-08-24T00:28:54Z
-observed:
-scenario:
+observed: 2026-08-24T02:16:09Z | Ten summoned goblins each equipped the axe into the ItemSlot.RightHand slot and ACF spawned and attached a weapon actor onto every one of them. Drawing that slot on a live goblin moved the same actor into its main weapon hand. Before these tags existed the slot list was empty and no goblin could equip anything.
+scenario: Fresh PIE on L_CombatArena, ten goblins summoned by GS.Horde.SpawnTest 4, watching what each pawn ended up holding.
 files: 
   - Source/GoblinSiege/Combat/GSGameplayTags.h
   - Source/GoblinSiege/Combat/GSGameplayTags.cpp

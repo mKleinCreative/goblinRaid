@@ -2,7 +2,7 @@
 id: 249
 title: Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types
 agent: claude-audio
-status: review
+status: abandoned
 claimed: 2026-08-21T22:55Z
 build: none
 waiting_on:
@@ -186,3 +186,5 @@ rather than tidiness:
 **Not fixed, and not mine:** `Content/GoblinSiege/Test/` is also untracked. It looks like scratch,
 but it is somebody else's, so I left it. Worth a glance - if it holds anything real, it is the
 fourth instance of the same bug.
+
+> 2026-08-24T02:18Z ICEBOXED by Michael 2026-08-23, not reverted - all work is committed in main. Handover with what is done and what is left: AgentQueue/ICEBOX.md. Status is abandoned only so it stops holding the build gate shut.
