@@ -11,6 +11,7 @@
 #include "TimerManager.h"
 #include "Combat/GSGameplayTags.h"
 #include "Components/ACFEquipmentComponent.h"
+#include "ItemActors/ACFWeaponActor.h"
 
 namespace
 {
@@ -55,10 +56,11 @@ UGSWeaponComponent::UGSWeaponComponent()
 
 void UGSWeaponComponent::SyncACFEquippedSlot()
 {
-	if (!bUseACFEquipment)
+	if (!bUseACFEquipment || bSyncingACF)
 	{
 		return;
 	}
+	TGuardValue<bool> Reentry(bSyncingACF, true);
 
 	AActor* Owner = GetOwner();
 	UACFEquipmentComponent* Equipment = Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
@@ -78,9 +80,104 @@ void UGSWeaponComponent::SyncACFEquippedSlot()
 		return;
 	}
 
+	// MAPPED BUT EMPTY is the same case, and stage 2 is where it bites. The Bow slot has been mapped
+	// since stage 1, but no bow is equipped through ACF until stage 3 - and UseEquippedItemBySlot on
+	// a slot holding nothing does NOTHING AT ALL: no sheathe, no broadcast, no log. Without this the
+	// player swaps to the bow and the ACF sword stays in his hand, silently.
+	FEquippedItem Unused;
+	if (!Equipment->GetEquippedItemSlot(*ItemSlot, Unused))
+	{
+		Equipment->SheathCurrentWeapon();
+		return;
+	}
+
 	// Safe to call: SetSlot has already refused a same-slot change above, and a same-slot call here
 	// would be read by ACF as "sheathe everything" rather than as a no-op.
 	Equipment->UseEquippedItemBySlot(*ItemSlot);
+}
+
+bool UGSWeaponComponent::IsSlotOwnedByACF(FGameplayTag Slot) const
+{
+	if (!bUseACFEquipment)
+	{
+		return false;
+	}
+	const FGameplayTag* ItemSlot = WeaponSlotToItemSlot.Find(Slot);
+	if (!ItemSlot || !ItemSlot->IsValid())
+	{
+		return false;
+	}
+
+	const AActor* Owner = GetOwner();
+	const UACFEquipmentComponent* Equipment =
+		Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
+	if (!Equipment)
+	{
+		return false;
+	}
+
+	// The third condition is what makes the migration stageable: a slot can be MAPPED without ACF
+	// yet holding anything for it. Until an item is actually equipped there, our mesh path is still
+	// the owner and must keep building the weapon.
+	FEquippedItem Equipped;
+	return Equipment->GetEquippedItemSlot(*ItemSlot, Equipped);
+}
+
+void UGSWeaponComponent::RefreshACFWeaponVisibility()
+{
+	if (!bUseACFEquipment || !EquippedWeapon)
+	{
+		return;
+	}
+	AActor* Owner = GetOwner();
+	UACFEquipmentComponent* Equipment = Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
+	if (!Equipment)
+	{
+		return;
+	}
+
+	const FGameplayTag* PrimaryItemSlot = WeaponSlotToItemSlot.Find(GSTags::WeaponSlot_Primary);
+	FEquippedItem Primary;
+	if (!PrimaryItemSlot || !Equipment->GetEquippedItemSlot(*PrimaryItemSlot, Primary) || !Primary.ItemActor)
+	{
+		return;
+	}
+
+	// THE SAME EXPRESSION our own melee mesh uses in RefreshWeaponMeshPlacement, deliberately - two
+	// copies of this rule would drift, and the rule is Michael's, not plumbing: the holstered melee
+	// weapon is hidden for the WHOLE time the bow is out, not merely while an aim is up, because the
+	// axe reappearing the instant a shot is loosed lands on the moment the player is reading the hit.
+	const bool bRangedActive = IsInRangedMode() && EquippedWeapon->bHasRangedMode;
+	const bool bActive = !bRangedActive;
+	const bool bShowHolstered =
+		EquippedWeapon->bShowHolsteredWeapon && !bAimActive && !bRangedActive;
+
+	Primary.ItemActor->SetActorHiddenInGame(!(bActive || bShowHolstered));
+}
+
+void UGSWeaponComponent::HandleACFEquipmentChanged(const FEquipment& /*NewEquipment*/)
+{
+	// RefreshEquipment re-attaches every non-drawn weapon on every equipment change, and
+	// AttachWeaponOnBody SHOWS the actor. So our hide is undone by ACF on each of the nine places
+	// that broadcast this - which would read as the axe intermittently popping back onto the back
+	// mid-bow, i.e. as a rendering glitch rather than as a logic bug. Re-apply it here.
+	RefreshACFWeaponVisibility();
+
+	// THE INITIAL DRAW. Equipped is not drawn (#270): ACF's initializer equips the starting item
+	// SHEATHED, and nothing draws it, so the player would spawn with his axe on his back and empty
+	// hands. Our own startup path sets CurrentSlot directly rather than through SetSlot, so the sync
+	// never ran either.
+	//
+	// Reacting to the broadcast rather than calling from BeginPlay is deliberate: ACF equips its
+	// starting items during the character's own init, and whether that lands before or after this
+	// component's BeginPlay is exactly the ordering #270 spent a session on. This fires whenever the
+	// equipment settles, in either order.
+	AActor* Owner = GetOwner();
+	UACFEquipmentComponent* Equipment = Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
+	if (bUseACFEquipment && Equipment && !Equipment->GetCurrentMainWeapon() && IsSlotOwnedByACF(CurrentSlot))
+	{
+		SyncACFEquippedSlot();
+	}
 }
 
 bool UGSWeaponComponent::IsInRangedMode() const
@@ -91,6 +188,37 @@ bool UGSWeaponComponent::IsInRangedMode() const
 void UGSWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Re-apply our holster rule after anything ACF does to equipment - RefreshEquipment shows every
+	// non-drawn weapon it re-attaches, and it runs on all nine of the paths that broadcast this.
+	if (AActor* Owner = GetOwner())
+	{
+		if (UACFEquipmentComponent* Equipment = Owner->FindComponentByClass<UACFEquipmentComponent>())
+		{
+			Equipment->OnEquipmentChanged.AddDynamic(this, &UGSWeaponComponent::HandleACFEquipmentChanged);
+		}
+	}
+
+	// AND draw once after the whole init chain has settled.
+	//
+	// Binding above catches equipment that changes LATER; this catches equipment that was already
+	// settled EARLIER. Both are needed, because UACFCharacterInitializerComponent equips the starting
+	// items in its own BeginPlay and component BeginPlay order is not guaranteed - if it ran before
+	// ours, its broadcast is already gone by the time we subscribe and the player stands there with
+	// the axe on his back.
+	//
+	// A zero-delay timer rather than a direct call: our own EquipWeapon has not run yet at this point
+	// in BeginPlay, so CurrentSlot and EquippedWeapon are not settled either. This fires after the
+	// whole chain, whatever order it ran in - which is the only version that does not depend on
+	// guessing that order correctly.
+	if (bUseACFEquipment)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimerForNextTick(
+				FTimerDelegate::CreateWeakLambda(this, [this]() { SyncACFEquippedSlot(); }));
+		}
+	}
 
 	// Apply the Blueprint-assigned starting kit through the same path as a runtime swap.
 	if (EquippedWeapon)
@@ -553,8 +681,24 @@ void UGSWeaponComponent::RebuildWeaponMeshes()
 
 	// Each of these is independently allowed to end up null - unset field, missing asset, or a
 	// weapon that simply has no ranged half. Nothing below depends on any of them existing.
-	EnsureWeaponMeshComponent(MeleeMeshComponent, EquippedWeapon->MeleeMesh,
-		bMeleeMeshResolveFailed, TEXT("melee weapon"));
+	// TWO SWORDS is the failure this guards. Once ACF holds the primary weapon it spawns and attaches
+	// its own actor, and building ours as well would put a second, identical sword on the same
+	// socket - which reads as a rendering bug rather than as a migration mistake. Destroy any we
+	// already made rather than merely skipping, so turning the flag on mid-PIE cleans up after
+	// itself.
+	if (IsSlotOwnedByACF(GSTags::WeaponSlot_Primary))
+	{
+		if (MeleeMeshComponent)
+		{
+			MeleeMeshComponent->DestroyComponent();
+			MeleeMeshComponent = nullptr;
+		}
+	}
+	else
+	{
+		EnsureWeaponMeshComponent(MeleeMeshComponent, EquippedWeapon->MeleeMesh,
+			bMeleeMeshResolveFailed, TEXT("melee weapon"));
+	}
 	EnsureWeaponMeshComponent(RangedMeshComponent, EquippedWeapon->RangedMesh,
 		bRangedMeshResolveFailed, TEXT("ranged weapon"));
 	EnsureWeaponMeshComponent(QuiverMeshComponent, EquippedWeapon->QuiverMesh,
@@ -620,6 +764,9 @@ void UGSWeaponComponent::RefreshWeaponMeshPlacement()
 			EquippedWeapon->bShowHolsteredWeapon && !bAimActive && !bRangedActive;
 		MeleeMeshComponent->SetVisibility(bActive || bShowHolstered, true);
 	}
+
+	// ACF's actor obeys the same rule, from the same place. See RefreshACFWeaponVisibility.
+	RefreshACFWeaponVisibility();
 
 	if (RangedMeshComponent)
 	{

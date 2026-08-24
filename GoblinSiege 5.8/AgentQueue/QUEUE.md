@@ -210,9 +210,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 287 | review (waiting on: "Michael: LOOK AT THE AXE. Every measurement matches the stage-1 baseline, but placement regressions are invisible to a measurement that only checks the socket. PIE is left running in the Primary slot. See Evaluate for the four things to look at.") | claude-warren | "ACF wheel migration stage 2: the player's primary weapon moves onto ACF" | Source/GoblinSiege/Weapons/GSWeaponComponent.h<br>Source/GoblinSiege/Weapons/GSWeaponComponent.cpp<br>Content/Items/BP_Item_ScoutPrimary.uasset<br>Content/Items/BP_ACFWeapon_ScoutPrimary.uasset<br>Content/Data/Characters/DA_Char_Player.uasset<br>Content/Blueprints/BP_GSPlayerCharacter.uasset | required |
 
-**BUILD GATE: OPEN - and 85 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 

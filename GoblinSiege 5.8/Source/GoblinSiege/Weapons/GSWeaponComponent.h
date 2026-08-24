@@ -204,6 +204,36 @@ public:
 	 */
 	void SyncACFEquippedSlot();
 
+	/**
+	 * True when ACF is holding the weapon for this slot, so our own mesh path must stay out of it.
+	 *
+	 * Requires all three: the migration flag, a mapping for the slot, AND an item actually equipped
+	 * in that item slot. The third is what makes the migration stageable - the bow is mapped from
+	 * stage 1 but nothing is equipped in the off hand until stage 3, so ACF does not own it yet and
+	 * our mesh path still does.
+	 */
+	bool IsSlotOwnedByACF(FGameplayTag Slot) const;
+
+	/**
+	 * Push the holstered-melee visibility rule onto ACF's weapon actor.
+	 *
+	 * ACF has NO equivalent of bShowHolsteredWeapon - its only way to express "invisible while
+	 * holstered" is clearing the on-body socket, which hides the weapon always. So the rule stays
+	 * ours and is applied to ACF's actor from here.
+	 *
+	 * MUST be re-applied after OnEquipmentChanged. RefreshEquipment calls AttachWeaponOnBody for
+	 * every non-drawn weapon on every equipment change, and that SHOWS the actor - so a hide applied
+	 * once is undone by the next replication tick, and the axe pops back mid-bow.
+	 */
+	void RefreshACFWeaponVisibility();
+
+	/** Re-entrancy guard. UseEquippedItemBySlot broadcasts OnEquipmentChanged, which we listen to -
+	 *  so drawing from inside that handler would call straight back into itself. */
+	bool bSyncingACF = false;
+
+	UFUNCTION()
+	void HandleACFEquipmentChanged(const FEquipment& NewEquipment);
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
 	bool IsTorchReadied() const { return bTorchReadied; }
 
