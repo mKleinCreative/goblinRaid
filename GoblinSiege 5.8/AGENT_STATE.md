@@ -1092,3 +1092,26 @@ not re-open these as defects.
 - **The bow timing bar art.** I flagged it as watermarked stock and a licensing risk. Michael: *"I
   created it."* NO LICENSING ISSUE - the flag was wrong. The watermark-shaped artefact keyed out of
   the source was not a third party's mark.
+
+## Iceboxed, 2026-08-23 — #249 (audio spine) and #252 (world corruption)
+
+Michael's ruling: park both, do not work them. Their board status is `abandoned` **only so they stop
+holding the build gate shut** — nothing was reverted and all of their work is committed in `main`.
+The handover, including what each deliberately left undone, is **`AgentQueue/ICEBOX.md`**. Read that
+before treating either as dead or as finished.
+
+The one thing that unblocks #252 is a question for Michael, not a task: *do civilian kills corrupt
+the world as much as knight kills do?* The agent drafted it as ruling 46 and then cut it rather than
+record a decision Michael had not made.
+
+#249's spine has **never been listened to**. It is configuration that loads; whether the mix sounds
+right is unproven.
+
+## #269 closed UNOBSERVED, 2026-08-23
+
+ACF Phase 3 scoping — the analysis of why an unused `UACFEquipmentComponent` rode along since Phase
+2a while `UGSWeaponComponent` did the same job. **What is unproven:** nothing, in the sense that
+nothing runnable was produced — it is a written argument. Its conclusions were acted on in #270,
+which *was* observed (10 of 10 summoned goblins equipping the axe through ACF). If #269 reasoned
+wrongly, the symptom appears in #270's behaviour, not in anything #269 shipped. Both components still
+coexist on purpose; #270 changed nothing in `UGSWeaponComponent`.
