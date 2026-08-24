@@ -10,6 +10,7 @@
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
 #include "Combat/GSGameplayTags.h"
+#include "Components/ACFEquipmentComponent.h"
 
 namespace
 {
@@ -41,6 +42,45 @@ UGSWeaponComponent::UGSWeaponComponent()
 
 	CurrentSlot = GSTags::WeaponSlot_Primary;
 	WheelHighlight = GSTags::WeaponSlot_Primary;
+
+	// The two slots ACF can know about. Primary hangs in the weapon hand, Bow in the off hand -
+	// matching MeleeSocket (hand_r_weapon) and RangedSocket (hand_l_weapon) on the data asset.
+	//
+	// Torch and Grapple are deliberately ABSENT rather than mapped to something harmless. The torch
+	// is a held prop driven by SetTorchReadied and must NOT be modelled as a UACFConsumable - ACF's
+	// consumable path USES and DESTROYS the item. The grapple is a verb with no weapon at all.
+	WeaponSlotToItemSlot.Add(GSTags::WeaponSlot_Primary, GSTags::ItemSlot_RightHand);
+	WeaponSlotToItemSlot.Add(GSTags::WeaponSlot_Bow,     GSTags::ItemSlot_LeftHand);
+}
+
+void UGSWeaponComponent::SyncACFEquippedSlot()
+{
+	if (!bUseACFEquipment)
+	{
+		return;
+	}
+
+	AActor* Owner = GetOwner();
+	UACFEquipmentComponent* Equipment = Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
+	if (!Equipment)
+	{
+		return;
+	}
+
+	// An unmapped slot - Torch, Grapple - means "ACF has nothing to draw". Sheathe EXPLICITLY rather
+	// than calling UseEquippedItemBySlot with a slot ACF does not know: that call finds no equipped
+	// item and returns having done nothing, leaving the previous weapon still in hand while the
+	// player is holding a torch. No log, no broadcast, nothing to notice.
+	const FGameplayTag* ItemSlot = WeaponSlotToItemSlot.Find(CurrentSlot);
+	if (!ItemSlot || !ItemSlot->IsValid())
+	{
+		Equipment->SheathCurrentWeapon();
+		return;
+	}
+
+	// Safe to call: SetSlot has already refused a same-slot change above, and a same-slot call here
+	// would be read by ACF as "sheathe everything" rather than as a no-op.
+	Equipment->UseEquippedItemBySlot(*ItemSlot);
 }
 
 bool UGSWeaponComponent::IsInRangedMode() const
@@ -303,6 +343,11 @@ bool UGSWeaponComponent::SetSlot(FGameplayTag NewSlot)
 	// UGSGA_TorchToss still readies and un-readies around its own throw; making the slot own the
 	// prop is what stops the torch vanishing from the hand the instant the projectile spawns.
 	SetTorchReadied(CurrentSlot == GSTags::WeaponSlot_Torch);
+
+	// ACF hears about the change in the same place, and only here - see SyncACFEquippedSlot. Before
+	// the broadcasts, for the same reason RefreshWeaponMeshPlacement is: anything listening should
+	// see hands that already agree with the state it is being told about.
+	SyncACFEquippedSlot();
 
 	OnWeaponSlotChanged.Broadcast(CurrentSlot);
 	OnWeaponModeChanged.Broadcast(IsInRangedMode());

@@ -194,6 +194,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon|Torch")
 	void SetTorchReadied(bool bNewReadied);
 
+	/**
+	 * Tell ACF what is now in hand, if the migration flag is on and this slot maps to an item slot.
+	 *
+	 * Called from SetSlot and ONLY from SetSlot. UseEquippedItemBySlot must never be reachable from
+	 * input directly: it has no anti-cancel lock of its own, and re-selecting the slot you already
+	 * hold makes it SHEATHE everything rather than no-op. SetSlot's own same-slot early return is
+	 * what stops that second case ever reaching ACF.
+	 */
+	void SyncACFEquippedSlot();
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
 	bool IsTorchReadied() const { return bTorchReadied; }
 
@@ -342,6 +352,33 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Weapon|Wheel", meta = (Categories = "WeaponSlot"))
 	TArray<FGameplayTag> WheelSlots;
+
+	// --- ACF equipment migration (ruling 53, #286) ------------------------------------------------
+
+	/**
+	 * OFF until a weapon has actually been moved onto ACF. While false, nothing here talks to
+	 * UACFEquipmentComponent and the game behaves exactly as before the migration started - which is
+	 * what makes each stage independently closeable and independently revertable.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Weapon|ACF")
+	bool bUseACFEquipment = false;
+
+	/**
+	 * WeaponSlot (what the player CHOSE) -> ItemSlot (where the thing HANGS). Two different axes, and
+	 * #274 records that conflating them would be a real mistake.
+	 *
+	 * A slot with NO entry is one ACF knows nothing about - the Torch and the Grapple, a held prop and
+	 * a verb rather than equipped weapons. That is deliberate: ACF has no notion of a selectable slot
+	 * holding no weapon, and UseEquippedItemBySlot on an empty slot does **nothing at all, silently**
+	 * - no sheathe, no broadcast, no log. An unmapped slot is therefore handled by sheathing
+	 * explicitly rather than by asking ACF and hoping.
+	 *
+	 * NEVER put a WeaponSlot tag in the VALUE column. ACF validates item slots against the `Itemslot`
+	 * tag root; a WeaponSlot tag fails it, after which UseEquippedItemBySlot, IsSlotAvailable and
+	 * UnequipItemBySlot all early-return at **Log** verbosity - invisible at default log levels.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Weapon|ACF")
+	TMap<FGameplayTag, FGameplayTag> WeaponSlotToItemSlot;
 
 	/** Sword by default: a goblin starts a raid with the blade out. Set in the constructor. */
 	FGameplayTag CurrentSlot;

@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 84 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 85 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -503,6 +503,7 @@ _Queue is empty. The build gate is OPEN._
 | 283 | done **UNOBSERVED** | claude-warren | "RULING: the weapon wheel migrates onto ACF equipment; Uriel is demo scope, not prototype" |
 | 284 | done | claude-warren | The wheel slot is Primary, not Sword - the goblin holds an axe |
 | 285 | done **UNOBSERVED** | claude-warren | "RULING: sneaking is cut from the demo, and the bucket brigade stays deferred" |
+| 286 | done | claude-warren | "ACF wheel migration stage 1: the WeaponSlot to ItemSlot mapping and the choke point, flag off" |
 
 <!-- BOARD:END -->
 
