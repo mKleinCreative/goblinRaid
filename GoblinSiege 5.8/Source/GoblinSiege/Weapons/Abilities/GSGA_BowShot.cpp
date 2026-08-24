@@ -71,16 +71,16 @@ float UGSGA_BowShot::GetFireIntervalSeconds(const FGameplayAbilityActorInfo* Act
 	return FallbackFireIntervalSeconds;
 }
 
-TSubclassOf<UACFItem> UGSGA_BowShot::GetAmmoItemClass(const FGameplayAbilityActorInfo* ActorInfo) const
+TSubclassOf<UACFItem> UGSGA_BowShot::GetAmmoItemClassFor(const AActor* Avatar)
 {
-	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid())
+	if (!Avatar)
 	{
 		return nullptr;
 	}
-	const AActor* Avatar = ActorInfo->AvatarActor.Get();
 
-	// Test 1 - the player half. See the header for why this is component presence and not
-	// IsPlayerControlled(). An AI archer has nothing to ask and pays nothing.
+	// Test 1 - the player half. Component presence, deliberately not IsPlayerControlled(): an AI
+	// archer simply has nothing to ask, and possessing one for a debug session must not hand it a
+	// quiver it cannot refill.
 	if (!Avatar->FindComponentByClass<UGSBowTimingComponent>())
 	{
 		return nullptr;
@@ -97,7 +97,6 @@ TSubclassOf<UACFItem> UGSGA_BowShot::GetAmmoItemClass(const FGameplayAbilityActo
 	// Both tests passed, so this pawn pays for its arrows. If it is ALSO not player-controlled,
 	// somebody has given an AI archer a timing component and just handed it a quiver it has no way
 	// to refill - it will stop shooting and no behaviour tree will report why. Say so, once.
-	// Latch pattern copied from UGSGA_TorchToss's montage-resolve warning.
 	if (!Cast<APlayerController>(Avatar->GetInstigatorController()))
 	{
 		static bool bWarnedAIWithQuiver = false;
@@ -114,6 +113,26 @@ TSubclassOf<UACFItem> UGSGA_BowShot::GetAmmoItemClass(const FGameplayAbilityActo
 	}
 
 	return Weapon->ArrowItemClass;
+}
+
+bool UGSGA_BowShot::HasAmmoFor(const AActor* Avatar)
+{
+	const TSubclassOf<UACFItem> AmmoClass = GetAmmoItemClassFor(Avatar);
+	if (!AmmoClass)
+	{
+		// This bow spends nothing. A free shot is never blocked for want of ammo.
+		return true;
+	}
+
+	const UACFInventoryComponent* Inventory = Avatar->FindComponentByClass<UACFInventoryComponent>();
+	return Inventory && Inventory->GetTotalCountOfItemsByClass(AmmoClass) > 0;
+}
+
+TSubclassOf<UACFItem> UGSGA_BowShot::GetAmmoItemClass(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	return ActorInfo && ActorInfo->AvatarActor.IsValid()
+		? GetAmmoItemClassFor(ActorInfo->AvatarActor.Get())
+		: nullptr;
 }
 
 bool UGSGA_BowShot::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -145,17 +164,11 @@ bool UGSGA_BowShot::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	// Out of arrows (ruling 46). Here rather than in ActivateAbility for the same reason the rate
 	// limit is: the press simply is not a shot. No CommitAbility, no ability instance, no wind-up
 	// task started and immediately cancelled, and held-fire stops firing instead of stuttering.
-	if (const TSubclassOf<UACFItem> AmmoClass = GetAmmoItemClass(ActorInfo))
+	if (ActorInfo && ActorInfo->AvatarActor.IsValid() && !HasAmmoFor(ActorInfo->AvatarActor.Get()))
 	{
-		const UACFInventoryComponent* Inventory =
-			ActorInfo->AvatarActor->FindComponentByClass<UACFInventoryComponent>();
-		if (!Inventory || Inventory->GetTotalCountOfItemsByClass(AmmoClass) <= 0)
-		{
-			UE_LOG(LogTemp, Verbose,
-				TEXT("[GoblinSiege] %s cannot shoot - no arrows left."),
-				*GetNameSafe(ActorInfo->AvatarActor.Get()));
-			return false;
-		}
+		UE_LOG(LogTemp, Verbose, TEXT("[GoblinSiege] %s cannot shoot - no arrows left."),
+			*GetNameSafe(ActorInfo->AvatarActor.Get()));
+		return false;
 	}
 
 	return true;

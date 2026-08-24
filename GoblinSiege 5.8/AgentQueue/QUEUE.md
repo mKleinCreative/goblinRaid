@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 281 | review (waiting on: "Michael: 20 seconds of looking. Press play and confirm the arrow count reads 30, drops as you shoot and jumps when you walk over a bundle. I could not reach the live widget object to read it programmatically - see Evaluate. Also: its position is a guess and wants moving by eye.") **STALE 7.3h** | claude-warren | Finite arrows stage 4 - the arrow count on the HUD | Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Content/UI/WBP_GSPlayerHUD.uasset | required |
+| 282 | review (waiting on: "Michael: five seconds. With the bow out and the count at 0, press fire - no draw, no aim arc, nothing. I have no way to inject a button press from here, so the press itself is unwatched; everything it depends on is verified.") | claude-warren | Empty quiver must not draw the bow, and the starting quiver drops to 15 | Source/GoblinSiege/Weapons/Abilities/GSGA_BowShot.h<br>Source/GoblinSiege/Weapons/Abilities/GSGA_BowShot.cpp<br>Source/GoblinSiege/Characters/GSPlayerCharacter.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Content/Data/Characters/DA_Char_Player.uasset | required |
 
 **BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
@@ -500,6 +500,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 278 | done | claude-warren | Finite arrows stage 1 - the arrow item and the player quiver |
 | 279 | done | claude-warren | Finite arrows stage 2 - walk-over resupply, AGSAmmoPickup |
 | 280 | done | claude-warren | Finite arrows stage 3 - the gate and the decrement |
+| 281 | done | claude-warren | Finite arrows stage 4 - the arrow count on the HUD |
 
 <!-- BOARD:END -->
 

@@ -876,6 +876,31 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 		GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
 		OnHeavyChargeChanged.Broadcast(0.f);
 
+		// ---- AN EMPTY QUIVER DOES NOT DRAW ---------------------------------------------------
+		//
+		// Michael, 2026-08-24: "you shouldn't be able to engage firing an arrow when you have 0
+		// arrows." Before this the draw ran a full sweep and the aim arc came up for a shot the
+		// ability would then refuse, so an empty bow behaved exactly like a BROKEN one.
+		//
+		// This is NOT the cooldown gate that was removed below, and it must not grow into one. That
+		// gate was wrong because a 1.5s recovery is transient - nothing appearing for a moment reads
+		// as the bow being broken. An empty quiver is the opposite: a persistent state the player can
+		// see on the HUD, so refusing to draw reads as "I have no arrows" rather than as a fault.
+		// Checked here rather than inside the ability because the draw and the aim arc start on the
+		// PRESS, and the ability does not activate until the release.
+		if (!UGSGA_BowShot::HasAmmoFor(this))
+		{
+			// Cancel any draw already running - the last arrow can be spent mid-sweep.
+			if (BowTimingComponent)
+			{
+				BowTimingComponent->CancelDraw();
+			}
+			UE_LOG(LogTemp, Log,
+				TEXT("[GoblinSiege] %s pressed attack with the bow out and no arrows - not drawing."),
+				*GetName());
+			return;
+		}
+
 		if (AimComponent)
 		{
 			TSubclassOf<AActor> ProjectileClass = AGSArrowProjectile::StaticClass();

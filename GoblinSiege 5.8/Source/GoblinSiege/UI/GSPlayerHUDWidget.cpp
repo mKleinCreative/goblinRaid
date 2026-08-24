@@ -8,6 +8,7 @@
 #include "Weapons/GSBowTimingComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSWeaponDataAsset.h"
+#include "Weapons/Abilities/GSGA_BowShot.h"
 #include "Components/ACFInventoryComponent.h"
 #include "Items/ACFItem.h"
 #include "Horde/GSHordeCommandComponent.h"
@@ -495,27 +496,24 @@ void UGSPlayerHUDWidget::RefreshArrowCount()
 		return;
 	}
 
-	// Which item counts as "arrows" is a property of the equipped bow, exactly as the gameplay side
-	// reads it in UGSGA_BowShot::GetAmmoItemClass. Asking the same place means the HUD cannot show a
-	// number the bow does not spend.
+	// THE SAME helper the gameplay side uses - UGSGA_BowShot::GetAmmoItemClassFor - rather than a
+	// second copy of "which item is ammo". A HUD that answers that question independently is a HUD
+	// that can show a number the bow does not actually spend.
 	const AGSCharacterBase* Character = BoundCharacter.Get();
-	const UGSWeaponComponent* WeaponComp =
-		Character ? Character->FindComponentByClass<UGSWeaponComponent>() : nullptr;
-	const UGSWeaponDataAsset* Weapon = WeaponComp ? WeaponComp->GetEquippedWeapon() : nullptr;
+	const TSubclassOf<UACFItem> AmmoClass = UGSGA_BowShot::GetAmmoItemClassFor(Character);
 	const UACFInventoryComponent* Inventory =
 		Character ? Character->FindComponentByClass<UACFInventoryComponent>() : nullptr;
 
 	// No ammo concept on this character - an AI archer, or a bow that names no ArrowItemClass.
 	// Collapse rather than show a zero: an unlimited bow reading "0" is worse than no readout at all.
-	if (!Weapon || !Weapon->ArrowItemClass || !Inventory)
+	if (!AmmoClass || !Inventory)
 	{
 		ArrowCountText->SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
 
 	ArrowCountText->SetVisibility(ESlateVisibility::HitTestInvisible);
-	ArrowCountText->SetText(FText::AsNumber(
-		Inventory->GetTotalCountOfItemsByClass(Weapon->ArrowItemClass)));
+	ArrowCountText->SetText(FText::AsNumber(Inventory->GetTotalCountOfItemsByClass(AmmoClass)));
 }
 
 void UGSPlayerHUDWidget::HandleBowDrawStarted(float TraverseSeconds)

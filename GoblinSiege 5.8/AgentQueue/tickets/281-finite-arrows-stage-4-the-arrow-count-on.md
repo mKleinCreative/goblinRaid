@@ -2,13 +2,13 @@
 id: 281
 title: Finite arrows stage 4 - the arrow count on the HUD
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T09:05Z
 build: required
 waiting_on: "Michael: 20 seconds of looking. Press play and confirm the arrow count reads 30, drops as you shoot and jumps when you walk over a bundle. I could not reach the live widget object to read it programmatically - see Evaluate. Also: its position is a guess and wants moving by eye."
 evaluated: 2026-08-24T16:25:15Z
-observed:
-scenario:
+observed: 2026-08-24T17:19:18Z | Michael played it and the arrow count reads and updates on screen. He also found what the count made obvious: with zero arrows the bow still draws and aims, and only the loose is refused, so the bow reads as broken rather than empty.
+scenario: Michael playing in PIE.
 files: 
   - Source/GoblinSiege/UI/GSPlayerHUDWidget.h
   - Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp

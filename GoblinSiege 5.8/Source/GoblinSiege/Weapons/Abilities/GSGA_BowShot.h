@@ -32,6 +32,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Bow")
 	TSubclassOf<AGSArrowProjectile> GetArrowProjectileClass() const { return ArrowProjectileClass; }
 
+public:
+	/**
+	 * Which item a shot from THIS avatar's bow spends, or null if its shots are free (ruling 46).
+	 *
+	 * STATIC AND PUBLIC because three callers need the same answer and a second copy of "which item
+	 * is ammo" would drift: the ability itself (refusal + consume), AGSPlayerCharacter (whether to
+	 * start the draw at all), and UGSPlayerHUDWidget (what number to show). One rule, one place.
+	 *
+	 * Non-null only when BOTH: the avatar has a UGSBowTimingComponent, and its equipped
+	 * UGSWeaponDataAsset names an ArrowItemClass. See GetAmmoItemClass for the full reasoning on why
+	 * that pair is what keeps quivers player-only and why both halves fail OPEN.
+	 */
+	static TSubclassOf<class UACFItem> GetAmmoItemClassFor(const AActor* Avatar);
+
+	/**
+	 * True if this avatar could loose an arrow right now as far as AMMO is concerned.
+	 *
+	 * A bow that spends nothing always returns true - free shots are never blocked. Says nothing
+	 * about the fire interval, which stays enforced inside the ability where it always was.
+	 */
+	static bool HasAmmoFor(const AActor* Avatar);
+
 protected:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,
