@@ -210,9 +210,12 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 274 | review (waiting on: "Michael: one design decision - mirror the enum as WeaponSlot.* tags (stage 3A), or go straight to modelling wheel slots as ACF equipment slots (stage 3B). See The decision.") | claude-warren | "PLAN ONLY: ACF Phase 3 stage 3 - retire EGSWeaponSlot in favour of gameplay tags" | AgentQueue/tickets/SCOPING-ONLY-274 | none |
+| 275 | review (waiting on: "Michael: the project has NO bucket mesh. Pick a stand-in (SM_Pot / SM_Basket / SM_Jug) or say a bucket should be sourced. The bucket brigade behaviour is a separate piece of work - see Refine.") | claude-warren | Peasants become civilians - no sword, 10 HP, and an ACF data asset they never had | Content/AI/DA_Race_Human.uasset<br>Content/Blueprints/Adversaries/BP_PeasantMan.uasset<br>Content/Data/DT_GSAttributeInits.uasset<br>Content/Data/Characters/DA_Char_Civilian.uasset | none |
 
-**BUILD GATE: OPEN - and 79 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
