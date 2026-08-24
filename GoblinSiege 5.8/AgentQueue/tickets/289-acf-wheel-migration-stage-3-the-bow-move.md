@@ -2,13 +2,13 @@
 id: 289
 title: "ACF wheel migration stage 3: the bow moves, the quiver does not"
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T21:50Z
 build: required
 waiting_on: "Michael: LOOK AT THE BOW. Every measurement matches, but placement is invisible to a socket check. PIE is running with the bow drawn. Four things in Evaluate."
 evaluated: 2026-08-24T21:35:16Z
-observed:
-scenario:
+observed: 2026-08-24T21:43:21Z | Michael played it: the bow comes to hand when he swaps and goes back to his shoulder when he swaps away, the quiver stays put through all of it, and the axe still hides while the bow is out. All of that is now ACF holding the weapons instead of our mesh path, and nothing about it changed under him.
+scenario: Michael playing in PIE, swapping between the bow, the primary and the torch.
 files: 
   - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp
   - Content/Items/BP_Item_ScoutBow.uasset

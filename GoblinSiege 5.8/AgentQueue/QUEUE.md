@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 289 | review (waiting on: "Michael: LOOK AT THE BOW. Every measurement matches, but placement is invisible to a socket check. PIE is running with the bow drawn. Four things in Evaluate.") | claude-warren | "ACF wheel migration stage 3: the bow moves, the quiver does not" | Source/GoblinSiege/Weapons/GSWeaponComponent.cpp<br>Content/Items/BP_Item_ScoutBow.uasset<br>Content/Items/BP_ACFWeapon_ScoutBow.uasset<br>Content/Data/Characters/DA_Char_Player.uasset<br>Content/Blueprints/BP_GSPlayerCharacter.uasset<br>Config/DefaultGameplayTags.ini | required |
+| 291 | review (waiting on: "Michael: look at a summoned goblin. Ten of them now hold an ACF axe instead of ours, at the same 1.45 scale - but scale is the one thing a socket check cannot see.") | claude-warren | "ACF wheel migration stage 4: the horde goblins move onto ACF" | Content/Items/BP_ACFWeapon_GoblinAxe.uasset<br>Content/Blueprints/BP_HordeGoblin.uasset | none |
 
 **BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
@@ -508,6 +508,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 286 | done | claude-warren | "ACF wheel migration stage 1: the WeaponSlot to ItemSlot mapping and the choke point, flag off" |
 | 287 | done | claude-warren | "ACF wheel migration stage 2: the player's primary weapon moves onto ACF" |
 | 288 | done **UNOBSERVED** | claude-warren | "RULING: the primary player experience is the bar" |
+| 289 | done | claude-warren | "ACF wheel migration stage 3: the bow moves, the quiver does not" |
 | 290 | done | claude-warren | The torch goes in the main hand - the throw animation uses the right |
 
 <!-- BOARD:END -->
