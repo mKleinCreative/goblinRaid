@@ -493,6 +493,7 @@ _Queue is empty. The build gate is OPEN._
 | 273 | done | claude-warren | 48 ACF errors and warnings a run, of which only one kind was ours - the character data assets had no DefaultAbilitySet |
 | 274 | done | claude-warren | "Stage 3 - EGSWeaponSlot retired: the weapon wheel is four gameplay tags and its contents are data" |
 | 275 | done | claude-warren | Peasants become civilians - no sword, 10 HP, and an ACF data asset they never had |
+| 276 | done | claude-warren | Five null input triggers, and why filling them would have broken blocking and the heavy charge |
 
 <!-- BOARD:END -->
 
