@@ -210,9 +210,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 289 | review (waiting on: "Michael: LOOK AT THE BOW. Every measurement matches, but placement is invisible to a socket check. PIE is running with the bow drawn. Four things in Evaluate.") | claude-warren | "ACF wheel migration stage 3: the bow moves, the quiver does not" | Source/GoblinSiege/Weapons/GSWeaponComponent.cpp<br>Content/Items/BP_Item_ScoutBow.uasset<br>Content/Items/BP_ACFWeapon_ScoutBow.uasset<br>Content/Data/Characters/DA_Char_Player.uasset<br>Content/Blueprints/BP_GSPlayerCharacter.uasset<br>Config/DefaultGameplayTags.ini | required |
 
-**BUILD GATE: OPEN - and 86 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 

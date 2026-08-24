@@ -136,23 +136,36 @@ void UGSWeaponComponent::RefreshACFWeaponVisibility()
 		return;
 	}
 
-	const FGameplayTag* PrimaryItemSlot = WeaponSlotToItemSlot.Find(GSTags::WeaponSlot_Primary);
-	FEquippedItem Primary;
-	if (!PrimaryItemSlot || !Equipment->GetEquippedItemSlot(*PrimaryItemSlot, Primary) || !Primary.ItemActor)
-	{
-		return;
-	}
+	const bool bRangedActive = IsInRangedMode() && EquippedWeapon->bHasRangedMode;
 
-	// THE SAME EXPRESSION our own melee mesh uses in RefreshWeaponMeshPlacement, deliberately - two
-	// copies of this rule would drift, and the rule is Michael's, not plumbing: the holstered melee
+	// PRIMARY. The same expression our own melee mesh uses in RefreshWeaponMeshPlacement - two copies
+	// of this rule would drift, and it is Michael's rule rather than plumbing: the holstered melee
 	// weapon is hidden for the WHOLE time the bow is out, not merely while an aim is up, because the
 	// axe reappearing the instant a shot is loosed lands on the moment the player is reading the hit.
-	const bool bRangedActive = IsInRangedMode() && EquippedWeapon->bHasRangedMode;
-	const bool bActive = !bRangedActive;
-	const bool bShowHolstered =
-		EquippedWeapon->bShowHolsteredWeapon && !bAimActive && !bRangedActive;
+	if (const FGameplayTag* PrimarySlot = WeaponSlotToItemSlot.Find(GSTags::WeaponSlot_Primary))
+	{
+		FEquippedItem Primary;
+		if (Equipment->GetEquippedItemSlot(*PrimarySlot, Primary) && Primary.ItemActor)
+		{
+			const bool bActive = !bRangedActive;
+			const bool bShowHolstered =
+				EquippedWeapon->bShowHolsteredWeapon && !bAimActive && !bRangedActive;
+			Primary.ItemActor->SetActorHiddenInGame(!(bActive || bShowHolstered));
+		}
+	}
 
-	Primary.ItemActor->SetActorHiddenInGame(!(bActive || bShowHolstered));
+	// BOW. A deliberately DIFFERENT rule, mirroring the ranged branch of RefreshWeaponMeshPlacement:
+	// no !bAimActive and no !bRangedActive term. The bow is shown whenever it is in hand, and when
+	// holstered it is shown if the weapon says so - it hangs on back_bow behind the shoulder rather
+	// than across the camera line, so it never had the problem the axe has.
+	if (const FGameplayTag* BowSlot = WeaponSlotToItemSlot.Find(GSTags::WeaponSlot_Bow))
+	{
+		FEquippedItem Bow;
+		if (Equipment->GetEquippedItemSlot(*BowSlot, Bow) && Bow.ItemActor)
+		{
+			Bow.ItemActor->SetActorHiddenInGame(!(bRangedActive || EquippedWeapon->bShowHolsteredWeapon));
+		}
+	}
 }
 
 void UGSWeaponComponent::HandleACFEquipmentChanged(const FEquipment& /*NewEquipment*/)
@@ -699,8 +712,23 @@ void UGSWeaponComponent::RebuildWeaponMeshes()
 		EnsureWeaponMeshComponent(MeleeMeshComponent, EquippedWeapon->MeleeMesh,
 			bMeleeMeshResolveFailed, TEXT("melee weapon"));
 	}
-	EnsureWeaponMeshComponent(RangedMeshComponent, EquippedWeapon->RangedMesh,
-		bRangedMeshResolveFailed, TEXT("ranged weapon"));
+	// Same rule as the primary above: once ACF holds the bow, building ours as well puts two bows on
+	// one socket. THE QUIVER IS NOT INCLUDED and must never be - it stays ours, because ACF's
+	// RefreshEquipment re-attaches and re-shows every equipped item on each equipment change, which
+	// would break "the quiver never moves and is never hidden".
+	if (IsSlotOwnedByACF(GSTags::WeaponSlot_Bow))
+	{
+		if (RangedMeshComponent)
+		{
+			RangedMeshComponent->DestroyComponent();
+			RangedMeshComponent = nullptr;
+		}
+	}
+	else
+	{
+		EnsureWeaponMeshComponent(RangedMeshComponent, EquippedWeapon->RangedMesh,
+			bRangedMeshResolveFailed, TEXT("ranged weapon"));
+	}
 	EnsureWeaponMeshComponent(QuiverMeshComponent, EquippedWeapon->QuiverMesh,
 		bQuiverMeshResolveFailed, TEXT("quiver"));
 
