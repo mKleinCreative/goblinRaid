@@ -2,13 +2,13 @@
 id: 282
 title: Empty quiver must not draw the bow, and the starting quiver drops to 15
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T16:35Z
 build: required
 waiting_on: "Michael: five seconds. With the bow out and the count at 0, press fire - no draw, no aim arc, nothing. I have no way to inject a button press from here, so the press itself is unwatched; everything it depends on is verified."
 evaluated: 2026-08-24T17:25:24Z
-observed:
-scenario:
+observed: 2026-08-24T18:31:28Z | Michael played it: with the bow out and no arrows the press does nothing at all - no draw, no aim arc - and it draws again once he picks a bundle up. Before this the empty bow drew and swept the whole timing bar for a shot that could never happen.
+scenario: Michael playing in PIE with the bow out, at zero arrows and after resupplying.
 files: 
   - Source/GoblinSiege/Weapons/Abilities/GSGA_BowShot.h
   - Source/GoblinSiege/Weapons/Abilities/GSGA_BowShot.cpp

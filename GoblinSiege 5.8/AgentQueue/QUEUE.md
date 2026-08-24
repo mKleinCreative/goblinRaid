@@ -210,11 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 282 | review (waiting on: "Michael: five seconds. With the bow out and the count at 0, press fire - no draw, no aim arc, nothing. I have no way to inject a button press from here, so the press itself is unwatched; everything it depends on is verified.") | claude-warren | Empty quiver must not draw the bow, and the starting quiver drops to 15 | Source/GoblinSiege/Weapons/Abilities/GSGA_BowShot.h<br>Source/GoblinSiege/Weapons/Abilities/GSGA_BowShot.cpp<br>Source/GoblinSiege/Characters/GSPlayerCharacter.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Content/Data/Characters/DA_Char_Player.uasset | required |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 83 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -501,6 +499,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 279 | done | claude-warren | Finite arrows stage 2 - walk-over resupply, AGSAmmoPickup |
 | 280 | done | claude-warren | Finite arrows stage 3 - the gate and the decrement |
 | 281 | done | claude-warren | Finite arrows stage 4 - the arrow count on the HUD |
+| 282 | done | claude-warren | Empty quiver must not draw the bow, and the starting quiver drops to 15 |
 
 <!-- BOARD:END -->
 
