@@ -2,13 +2,13 @@
 id: 290
 title: The torch goes in the main hand - the throw animation uses the right
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T22:05Z
 build: none
-waiting_on: "Michael: look at the torch grip. It is in the right hand now, but its ROTATION now comes from the axe's socket rather than the old torch socket - see Evaluate for both numbers and which field to nudge."
+waiting_on:
 evaluated: 2026-08-24T21:37:30Z
-observed:
-scenario:
+observed: 2026-08-24T21:40:54Z | Michael selected the torch and it came up in his right hand - the hand the throw animation actually swings, where before it sat in the left while the right mimed the throw. He judged the grip angle slightly off but fine for now, and attributed it to how the character hand is rotated rather than to the socket.
+scenario: Michael playing in PIE with the torch slot selected.
 files: 
   - Content/Data/Weapons/DA_Weapon_Scout.uasset
 ---
@@ -76,3 +76,30 @@ rotations like these - it would have been a guess wearing the costume of a measu
 **Deliberately not changed:** `TorchWindupSeconds` and its coupling to `AM_GS_ThrowTorch`'s release
 moment. The hand changed, not the timing, and the spawn is still driven by the wind-up timer rather
 than an AnimNotify - a coupling `UGSGA_TorchToss` already documents as owed work.
+
+
+---
+
+### Accepted slightly off, 2026-08-24 - and his diagnosis is the useful part
+
+Michael, having looked: *"it's off by a little bit, but that's ok for now, it's more based off how
+the characters hand is rotated."*
+
+**Accepted below the line under ruling 59.** It is in the right hand, the throw reads, and the
+residual is a grip angle - it does not stop the primary player doing anything.
+
+**His diagnosis is worth more than the observation, and it points somewhere I would not have looked
+first.** The natural assumption is that `hand_r_weapon`'s socket rotation is wrong for a torch and
+that `HeldTorchMeshOffset` can counter it. He is saying the **hand's animated pose** is the source -
+the socket rides `R_Hand`, and that bone is posed by whatever animation is playing, which for this
+character is a grip shaped around an axe haft rather than a torch shaft.
+
+If that is right, and it fits what is on screen, then **a fixed offset cannot fully fix it**: a
+constant rotation added to a bone whose own rotation changes per animation will look right in one
+pose and wrong in the next. The honest fixes are a torch-specific grip pose or an anim-layer overlay,
+which is animation work rather than a number on a data asset.
+
+**Recorded so the next person does not spend an afternoon tuning `HeldTorchMeshOffset`** and
+concluding the number is simply hard to find. It is not hard to find; it may not exist.
+
+**Not investigated further**, deliberately - ruling 59, and Michael said "ok for now".

@@ -1189,3 +1189,16 @@ his back while the primary weapon is drawn (#287). The cause was deliberately no
 rule that is right while cutting toward a demo can be wrong for a shipping game, where an outliner
 full of stray actors becomes a performance problem rather than a cosmetic one. Revisiting 59 is
 allowed; revisiting it quietly is not.
+
+## Accepted below the line under ruling 59 — running list
+
+Ruling 59 says below-the-line items are **recorded, not ignored**. This is that record. None of these
+should be "fixed in passing"; each becomes work only if it reaches the primary player.
+
+- **The scout carries a second axe on his back while the primary is drawn** (#287). Cause not
+  investigated.
+- **The torch's grip angle is slightly off in the right hand** (#290). Michael's diagnosis, and it is
+  the useful part: it comes from **how the hand is posed by the animation**, not from the socket. If
+  so, `HeldTorchMeshOffset` cannot fully fix it — a constant rotation on a bone whose own rotation
+  changes per animation is right in one pose and wrong in the next. The real fix is a torch grip pose
+  or an anim overlay. **Recorded so nobody spends an afternoon hunting a number that may not exist.**
