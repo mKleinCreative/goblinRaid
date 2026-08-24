@@ -95,6 +95,26 @@ public:
 		meta = (EditCondition = "bHasRangedMode"))
 	float RangedAttackRange = 900.f;
 
+	/**
+	 * The item a shot from this bow SPENDS. Null means this bow's shots are free (ruling 46, #280).
+	 *
+	 * NULL MEANS INFINITE, NOT BROKEN, and that direction is deliberate: a mis-authored asset costs
+	 * unlimited arrows, never a dead bow. The opposite default has bitten this project twice, where a
+	 * null class silently disabled a verb instead of loosening it.
+	 *
+	 * It lives HERE rather than on UGSGA_BowShot because there is no GA_GS_BowShot Blueprint - a
+	 * property on the ability would only ever hold its C++ default, and reaching it would need either
+	 * a ConstructorHelpers path into content or a new Blueprint plus a change to the ability grant.
+	 * The ability already reads this asset for RangedAttackCooldownSeconds, and "which ammo" is a
+	 * property of the bow rather than of the act of shooting.
+	 *
+	 * SET ON THE PLAYER'S BOW ONLY. DA_Weapon_Erika deliberately leaves it null - see
+	 * UGSGA_BowShot::GetAmmoItemClass for the other half of what keeps AI archers free.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|RangedMode",
+		meta = (EditCondition = "bHasRangedMode"))
+	TSubclassOf<class UACFItem> ArrowItemClass;
+
 	// ------------------------------------------------------------------- visuals (2026-08-01)
 	/**
 	 * WHY STATIC MESHES, DELIBERATELY.

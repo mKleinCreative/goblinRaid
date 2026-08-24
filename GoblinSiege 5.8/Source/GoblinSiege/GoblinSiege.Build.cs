@@ -56,6 +56,16 @@ public class GoblinSiege : ModuleRules
 			// FACFDamageEvent. Add the next ACF module here the moment you CALL into it.
 			"AscentCombatFramework",
 
+			// InventorySystem (#280, ruling 46). The paragraph above applies verbatim: this module
+			// already arrives transitively through AIFramework, so the includes have always
+			// compiled - and the link would fail with LNK2019 the moment we CALLED into it. #280 is
+			// the first time we do.
+			//
+			// Reached for directly: UACFInventoryComponent::GetTotalCountOfItemsByClass and
+			// ::ConsumeItems (the arrow count in UGSGA_BowShot), and ::AddItemToInventoryByClass
+			// (AGSAmmoPickup).
+			"InventorySystem",
+
 			// AscentSaveSystem (#223, Phase 2a). Reparenting onto AACFCharacter drags in
 			// IALSSavableInterface, which AACFCharacter declares - and the moment WE derive from it,
 			// UHT emits our class's interface thunks into OUR module and the linker needs the

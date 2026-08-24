@@ -49,6 +49,29 @@ protected:
 	 *  falling back to FallbackFireIntervalSeconds when there is no weapon to ask. */
 	float GetFireIntervalSeconds(const FGameplayAbilityActorInfo* ActorInfo) const;
 
+	/**
+	 * The item class this shot must SPEND, or null if this shot is free (ruling 46, #280).
+	 *
+	 * ONE HELPER, TWO CALL SITES - the refusal in CanActivateAbility and the consume in FireArrow -
+	 * so "who pays for arrows" is answered in exactly one place and cannot drift between them.
+	 *
+	 * Non-null only when BOTH hold:
+	 *   1. the avatar has a UGSBowTimingComponent, and
+	 *   2. the equipped UGSWeaponDataAsset has a non-null ArrowItemClass.
+	 *
+	 * THIS IS WHAT KEEPS THE QUIVER PLAYER-ONLY. This ability is shared: BP_ErikaArcher's
+	 * RangedAttackAbilityClass and the player's BowShotAbilityClass are both this class with no
+	 * Blueprint child between them, so a naive count check would leave an AI archer in a permanent
+	 * draw the moment she ran out. Test 1 is the discriminator this file already uses twice (see
+	 * FireArrow's "THE ONE LINE" comment) - an AI archer simply has nothing to ask. It is
+	 * deliberately NOT IsPlayerControlled(), which flips the first time anyone possesses an archer
+	 * for a debug session and silently stops her shooting.
+	 *
+	 * IT FAILS OPEN. Both tests default to "free": a missing component or an unset ArrowItemClass
+	 * costs infinite arrows, never a dead bow.
+	 */
+	TSubclassOf<class UACFItem> GetAmmoItemClass(const FGameplayAbilityActorInfo* ActorInfo) const;
+
 	/** Spawns the arrow at the aim component's muzzle. Split out of ActivateAbility so the release
 	 *  delay has something to call, exactly as UGSGA_TorchToss::ThrowTorch is. */
 	void FireArrow();

@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 79 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 81 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -496,6 +496,8 @@ _Queue is empty. The build gate is OPEN._
 | 276 | done | claude-warren | Five null input triggers, and why filling them would have broken blocking and the heavy charge |
 | 277 | done **UNOBSERVED** | claude-warren | "RULING: finite arrows join the slice - a player-only quiver, against the 12.4 scope freeze" |
 | 278 | done | claude-warren | Finite arrows stage 1 - the arrow item and the player quiver |
+| 279 | done | claude-warren | Finite arrows stage 2 - walk-over resupply, AGSAmmoPickup |
+| 280 | done | claude-warren | Finite arrows stage 3 - the gate and the decrement |
 
 <!-- BOARD:END -->
 

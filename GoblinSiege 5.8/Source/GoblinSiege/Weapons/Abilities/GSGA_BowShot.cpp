@@ -7,6 +7,9 @@
 #include "Weapons/GSBowTimingComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSWeaponDataAsset.h"
+#include "Components/ACFInventoryComponent.h"
+#include "Items/ACFItem.h"
+#include "GameFramework/PlayerController.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -68,6 +71,51 @@ float UGSGA_BowShot::GetFireIntervalSeconds(const FGameplayAbilityActorInfo* Act
 	return FallbackFireIntervalSeconds;
 }
 
+TSubclassOf<UACFItem> UGSGA_BowShot::GetAmmoItemClass(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid())
+	{
+		return nullptr;
+	}
+	const AActor* Avatar = ActorInfo->AvatarActor.Get();
+
+	// Test 1 - the player half. See the header for why this is component presence and not
+	// IsPlayerControlled(). An AI archer has nothing to ask and pays nothing.
+	if (!Avatar->FindComponentByClass<UGSBowTimingComponent>())
+	{
+		return nullptr;
+	}
+
+	// Test 2 - the bow half. A bow that names no ammo shoots for free.
+	const UGSWeaponComponent* WeaponComp = Avatar->FindComponentByClass<UGSWeaponComponent>();
+	const UGSWeaponDataAsset* Weapon = WeaponComp ? WeaponComp->GetEquippedWeapon() : nullptr;
+	if (!Weapon || !Weapon->ArrowItemClass)
+	{
+		return nullptr;
+	}
+
+	// Both tests passed, so this pawn pays for its arrows. If it is ALSO not player-controlled,
+	// somebody has given an AI archer a timing component and just handed it a quiver it has no way
+	// to refill - it will stop shooting and no behaviour tree will report why. Say so, once.
+	// Latch pattern copied from UGSGA_TorchToss's montage-resolve warning.
+	if (!Cast<APlayerController>(Avatar->GetInstigatorController()))
+	{
+		static bool bWarnedAIWithQuiver = false;
+		if (!bWarnedAIWithQuiver)
+		{
+			bWarnedAIWithQuiver = true;
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] '%s' is not player-controlled but has a UGSBowTimingComponent and "
+					 "a bow with ArrowItemClass set, so it now SPENDS arrows it cannot pick up and "
+					 "will stop shooting when they run out. Ruling 48 says AI archers do not run dry: "
+					 "clear ArrowItemClass on its weapon, or take the timing component off it."),
+				*GetNameSafe(Avatar));
+		}
+	}
+
+	return Weapon->ArrowItemClass;
+}
+
 bool UGSGA_BowShot::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayTagContainer* SourceTags,
@@ -91,6 +139,22 @@ bool UGSGA_BowShot::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
 			{
 				return false;
 			}
+		}
+	}
+
+	// Out of arrows (ruling 46). Here rather than in ActivateAbility for the same reason the rate
+	// limit is: the press simply is not a shot. No CommitAbility, no ability instance, no wind-up
+	// task started and immediately cancelled, and held-fire stops firing instead of stuttering.
+	if (const TSubclassOf<UACFItem> AmmoClass = GetAmmoItemClass(ActorInfo))
+	{
+		const UACFInventoryComponent* Inventory =
+			ActorInfo->AvatarActor->FindComponentByClass<UACFInventoryComponent>();
+		if (!Inventory || Inventory->GetTotalCountOfItemsByClass(AmmoClass) <= 0)
+		{
+			UE_LOG(LogTemp, Verbose,
+				TEXT("[GoblinSiege] %s cannot shoot - no arrows left."),
+				*GetNameSafe(ActorInfo->AvatarActor.Get()));
+			return false;
 		}
 	}
 
@@ -199,6 +263,25 @@ void UGSGA_BowShot::FireArrow()
 		{
 			Arrow->SetDrawQualityMultiplier(Timing->GetLastReleaseQuality());
 			Arrow->SetLaunchSpeedScale(Timing->GetLastReleaseSpeedScale());
+		}
+
+		// SPEND THE ARROW LAST, AND THAT ORDER IS NOT COSMETIC (ruling 46).
+		//
+		// After the spawn, so a spawn that failed cannot eat an arrow. And after the draw-quality
+		// read above, because a consume placed earlier with an early return on failure would skip
+		// that block and silently give EVERY player arrow the default 1.0 multiplier - the timing
+		// minigame would become decoration and nothing would report it.
+		//
+		// Inside FireArrow's existing HasAuthority() guard: ConsumeItems is a Server RPC, so from a
+		// client it would marshal and do nothing locally. The client's CanActivateAbility reads a
+		// replicated count that can be one shot stale; the server is the real gate, and closing
+		// that window by consuming client-side would break authority.
+		if (const TSubclassOf<UACFItem> AmmoClass = GetAmmoItemClass(CurrentActorInfo))
+		{
+			if (UACFInventoryComponent* Inventory = Avatar->FindComponentByClass<UACFInventoryComponent>())
+			{
+				Inventory->ConsumeItems({ FBaseItem(AmmoClass, 1) });
+			}
 		}
 	}
 }
