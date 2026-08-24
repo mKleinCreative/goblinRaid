@@ -52,6 +52,12 @@ Content/*
 !Content/Python/
 !Content/Data/
 
+# 2026-08-23: SM_MERGED_House_N - one merged static mesh per generated house (L_LevelGen_Scratch_2),
+# built from the DreamscapeFarmlands kit so each house can be exported to FBX as a single asset.
+# Project-authored (a merge of placed instances, not imported art), goes through the repo's
+# blanket *.uasset LFS rule like everything else under Content/.
+!Content/Meshes/
+
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.
 _MixamoStaging/

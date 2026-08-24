@@ -210,9 +210,16 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 179 | review **STALE 121.6h** | claude-anchortags | Marker.ObjectiveAnchor.Statue added, .Granary retired (GDD 156 roster) - WRITTEN, staged for the next build window | Source/GoblinSiege/Combat/GSGameplayTags.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp | required |
+| 189 | review **STALE 100.9h** | claude-statuerename | Rename the granary objective: AGSObjective_BurnGranaries -> AGSObjective_ToppleStatue, Objective.Granary -> Objective.Statue, with CoreRedirects - WRITTEN, needs build | Source/GoblinSiege/Missions/GSObjective_BurnGranaries.h<br>Source/GoblinSiege/Missions/GSObjective_BurnGranaries.cpp<br>Source/GoblinSiege/Destruction/GSDestructibleObjective.h<br>Source/GoblinSiege/Destruction/GSDestructibleObjective.cpp<br>Config/DefaultEngine.ini | required |
+| 190 | review **STALE 100.8h** | claude-statuerename | Supplement to 189 - comment-only cross-references to the renamed class in three files missed by that claim | Source/GoblinSiege/Missions/GSObjective_KillLandlord.h<br>Source/GoblinSiege/Missions/GSObjective_KillLandlord.cpp<br>Source/GoblinSiege/AI/GSSpawnerActor.cpp | none |
 
-**BUILD GATE: OPEN - and 62 finished ticket(s) asked for a build.**
+**STALE - #179, #189, #190 open longer than 2h.** Ask Michael whether each is
+still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
+
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -368,6 +375,18 @@ _Queue is empty. The build gate is OPEN._
 | 148 | done **UNOBSERVED** | claude-crosshair | "No crosshair: the player aims orders, the bow and the torch with nothing on screen to aim with" |
 | 149 | done | claude-reticle2 | Reticle turns gold when the crosshair is on a valid order target |
 | 150 | done | claude-acfskills | Register ACF's 40 author-written Claude skills so sessions can see them |
+| 170 | done | claude-rosterdrift | Assignment 6: level-gen objective roster follows GDD 156 (granary out, Market/Statue/Windmill in); submission docs |
+| 188 | done | claude-roadpush | level-gen: _move_building_clear rotates a house back onto the road it was escaping, burning all 3 passes and opening a sightline |
+| 192 | done | claude-fracture | Stage 0: the statue actually shatters - Dataflow fracture pipeline and the first real GeometryCollection |
+| 193 | done | claude-idol | Tear down the false idol: grapple the statue and haul it over by walking away |
+| 195 | done | claude-idol | Supplement to 193 - the same kinematic trap in GSBreakableComponent::Break(): SetSimulatePhysics does not make a collection dynamic |
+| 196 | done | claude-idol | A toppled idol scores: OnToppled feeds UGSScoreSubsystem deeds |
+| 197 | done | claude-housevariant | Import House_1.fbx, assess modularity, generate variant houses in L_LevelGen_Scratch |
+| 198 | done | claude-housevariant | House_3: synthesized 1-story house with wraparound balcony, front/back doors, in L_LevelGen_Scratch |
+| 199 | done | claude-housevariant | Restore House_1 outliner folder (lost between #197 and #198), keep all three houses in separate folders |
+| 200 | done | claude-housevariant | Move selected House_4 actors into their own outliner folder |
+| 201 | done | claude-housevariant | Re-sync house outliner folders to current actor positions after user edits |
+| 202 | done | claude-housevariant | Merge each house into one static mesh asset for manual FBX export |
 
 <!-- BOARD:END -->
 
