@@ -5,7 +5,7 @@ agent: claude-warren
 status: review
 claimed: 2026-08-24T21:00Z
 build: required
-waiting_on: "Michael: LOOK AT THE AXE. Every measurement matches the stage-1 baseline, but placement regressions are invisible to a measurement that only checks the socket. PIE is left running in the Primary slot. See Evaluate for the four things to look at."
+waiting_on: "Michael: re-check after the camera fix. Attack and watch the camera - it should no longer pull in mid-swing. Then the four visual checks in Evaluate."
 evaluated: 2026-08-24T21:07:48Z
 observed:
 scenario:
@@ -14,6 +14,7 @@ files:
   - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp
   - Content/Items/BP_Item_ScoutPrimary.uasset
   - Content/Items/BP_ACFWeapon_ScoutPrimary.uasset
+  - Content/Items/BP_ACFWeapon_GoblinAxe.uasset
   - Content/Data/Characters/DA_Char_Player.uasset
   - Content/Blueprints/BP_GSPlayerCharacter.uasset
 ---
@@ -124,3 +125,37 @@ which we now listen to and which can draw - a direct route back into itself.
 **Deliberately not done:** the bow, the quiver, the horn and the torch all stay on our mesh path. The
 quiver especially must never become an ACF item - `RefreshEquipment` would re-attach and re-show it on
 every equipment change, breaking "the quiver never moves and is never hidden".
+
+
+---
+
+### The camera lurch Michael found, and it was not the camera
+
+**Reported:** *"something strange is happening as I attack, either the camera is briefly zooming in,
+or I'm scaling really large and then small at the end of every animation sequence."*
+
+**It was the first of the two, and stage 2 caused it.** The ACF weapon actor's static mesh was
+`QUERY_AND_PHYSICS` on the `BlockAllDynamic` profile, so it **blocked `ECC_Camera`**. Swinging the axe
+put a camera-blocking body through the line between the spring arm and the player, and
+`bDoCollisionTest` yanked the camera in for the length of the swing.
+
+This is #145 exactly - *"camera lurches in and out during a crowd fight: every character blocks the
+spring arm's camera probe"* - returning through a new door. #145's fix was to make
+`AGSCharacterBase` set its capsule and mesh to ignore `ECC_Camera`; every weapon mesh **our** path
+creates is `NoCollision` for the same reason. **The ACF actor is a new actor nobody had told.**
+
+**Both axes were fixed, not just the player's.** `BP_ACFWeapon_ScoutPrimary` was duplicated from
+`BP_ACFWeapon_GoblinAxe`, which carried the same blocking mesh - so **since #270 every summoned goblin
+has been carrying a camera-blocking axe**, and with ten of them around the player that is #145's
+crowd lurch from a source nobody had connected to it. It was never noticed because #270 verified that
+the axe equipped, never how it behaved.
+
+Verified at runtime after the fix, with the horde summoned: **no primitive on either weapon actor
+blocks the camera**, and the axe still draws into `hand_r_weapon` at scale 1.6.
+
+**A near-miss worth recording.** The first fix attempt printed "saved both" and had changed **nothing**
+- `EditorAssetSubsystem::load_asset` returns None immediately after `StopPIE`, so the loop iterated an
+empty handle list and the success message was a lie. It was caught by re-reading the asset rather than
+trusting the print, and the retry asserts on both the load and the component count so it cannot pass
+silently again. Also: the property is not `collision_enabled` on the component but
+`body_instance.collision_enabled`, with the profile set alongside it.
