@@ -820,7 +820,7 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 	// below byte-identical to what it was. Same shape as the torch throughout - suppress the heavy
 	// charge (a melee verb whose 1.5s timer would otherwise fire a sword swing out of a raised
 	// hook), then activate by class.
-	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Grapple
+	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == GSTags::WeaponSlot_Grapple
 		&& GrappleThrowAbilityClass)
 	{
 		bAttackHeld = false;
@@ -843,7 +843,7 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 		return;
 	}
 
-	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Torch
+	if (WeaponComponent && WeaponComponent->GetCurrentSlot() == GSTags::WeaponSlot_Torch
 		&& TorchTossAbilityClass)
 	{
 		// Same heavy-charge suppression the bow needs, and for the same reason: the heavy is a melee
@@ -1194,7 +1194,7 @@ bool AGSPlayerCharacter::IsSwordEquipped() const
 	// No weapon component at all means the sword is the sensible assumption - it is CurrentSlot's
 	// own default, and a character that cannot answer the question should not silently lose its
 	// guard.
-	return !WeaponComponent || WeaponComponent->GetCurrentSlot() == EGSWeaponSlot::Sword;
+	return !WeaponComponent || WeaponComponent->GetCurrentSlot() == GSTags::WeaponSlot_Sword;
 }
 
 void AGSPlayerCharacter::Input_AimStart(const FInputActionValue& Value)

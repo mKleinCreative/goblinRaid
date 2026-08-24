@@ -3,6 +3,7 @@
 #include "AI/GSAIControllerBase.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSWeaponDataAsset.h"
+#include "Combat/GSGameplayTags.h"
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -42,6 +43,11 @@ AGSEnemyCharacter::AGSEnemyCharacter(const FObjectInitializer& ObjectInitializer
 	// after the check it exists to suppress. AGSHordeGoblin learned the same thing in #268
 	// (GSHordeGoblin.cpp:47); this class simply never got the line.
 	WeaponComponent->bExpectsExternalEquip = true;
+
+	// Was an inline `= EGSWeaponSlot::Sword` on the header until #274. A native gameplay tag is not
+	// a constant expression, so the default moves here. BP_ErikaArcher overrides it to Bow; every
+	// other adversary rides this default.
+	DefaultSlot = GSTags::WeaponSlot_Sword;
 }
 
 void AGSEnemyCharacter::BeginPlay()

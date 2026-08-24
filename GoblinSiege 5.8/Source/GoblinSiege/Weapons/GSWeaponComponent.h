@@ -18,42 +18,29 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
 #include "GSWeaponComponent.generated.h"
 
 class UGSWeaponDataAsset;
 class UStaticMesh;
 class UStaticMeshComponent;
 
-/**
- * What the goblin is holding. Replaces the `bRangedMode` bool (2026-08-06, Michael's radial-wheel
- * design): three slots is not a bigger toggle, it is a different type, and the bool could not name
- * the torch at all - the torch was a one-shot ability that borrowed the hand for 0.25s.
- *
- * Order is the wheel's own, clockwise from the top, so a UMG widget can iterate the enum and get
- * the same arrangement the input maths produces. Do not reorder to "group the melee ones".
- */
-UENUM(BlueprintType)
-enum class EGSWeaponSlot : uint8
-{
-	/** Top of the wheel. */
-	Torch	UMETA(DisplayName = "Torch"),
-	/** Right of the wheel. Was bottom-right while there were three slots. */
-	Bow		UMETA(DisplayName = "Bow"),
-	/** Left of the wheel, and the default a goblin starts a raid in. Was bottom-left at three. */
-	Sword	UMETA(DisplayName = "Sword"),
-	/**
-	 * Bottom of the wheel. APPEND ONLY - this enum's integer values are written to the
-	 * BP_GSPlayerCharacter CDO and to any saved widget binding, so inserting Grapple ahead of
-	 * Sword would silently repoint every one of them. Same rule EGSHordeOrder carries.
-	 */
-	Grapple	UMETA(DisplayName = "Grapple")
-};
+// EGSWeaponSlot LIVED HERE until #274. It is now four gameplay tags - GSTags::WeaponSlot_Torch /
+// _Bow / _Sword / _Grapple, declared in Combat/GSGameplayTags.h.
+//
+// The enum carried an APPEND ONLY warning because its integer values were serialised into every
+// adversary CDO, so inserting a slot silently repointed them. Tags serialise by NAME, so that whole
+// class of hazard is gone and the wheel's contents became data (see WheelSlots below).
+//
+// A WeaponSlot is NOT an ItemSlot. The ItemSlot.* tags added in #271 are where an item physically
+// hangs (hand_r_weapon, back_sword); a WeaponSlot is which loadout the player has chosen. A torch
+// and a sword both hang in ItemSlot.RightHand and are different WeaponSlots.
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnOrbCountChanged, int32, NewCount);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWeaponModeChanged, bool, bRangedMode);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWeaponSlotChanged, EGSWeaponSlot, NewSlot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWeaponSlotChanged, FGameplayTag, NewSlot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWheelOpenChanged, bool, bOpen);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWheelHighlightChanged, EGSWeaponSlot, Highlighted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnWheelHighlightChanged, FGameplayTag, Highlighted);
 
 UCLASS(ClassGroup = (GoblinSiege), meta = (BlueprintSpawnableComponent))
 class GOBLINSIEGE_API UGSWeaponComponent : public UActorComponent
@@ -99,10 +86,10 @@ public:
 	 *  Kept rather than replaced because a dozen callers and any Blueprint asking "am I holding the
 	 *  bow" still want exactly this question. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
-	bool IsInRangedMode() const { return CurrentSlot == EGSWeaponSlot::Bow; }
+	bool IsInRangedMode() const;
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
-	EGSWeaponSlot GetCurrentSlot() const { return CurrentSlot; }
+	FGameplayTag GetCurrentSlot() const { return CurrentSlot; }
 
 	/**
 	 * Put a specific slot in hand. The single choke point every path goes through - the wheel, the
@@ -114,7 +101,7 @@ public:
 	 * Returns false if the slot did not change, for any reason.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Weapon")
-	bool SetSlot(EGSWeaponSlot NewSlot);
+	bool SetSlot(FGameplayTag NewSlot);
 
 	// --- Radial wheel (2026-08-06) ---------------------------------------------------------------
 	//
@@ -145,7 +132,7 @@ public:
 	/** The slot that would be committed right now. Equals the current slot while inside the dead
 	 *  zone, which is what makes "drag back to centre" read as a cancel. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
-	EGSWeaponSlot GetWheelHighlight() const { return WheelHighlight; }
+	FGameplayTag GetWheelHighlight() const { return WheelHighlight; }
 
 	/** Accumulated drag, for a widget that wants to draw the stick. Not normalised. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
@@ -166,7 +153,7 @@ public:
 	 * reaches for rather than reshuffling the whole thing.
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Wheel")
-	EGSWeaponSlot SlotForDirection(FVector2D Direction, EGSWeaponSlot FallbackSlot) const;
+	FGameplayTag SlotForDirection(FVector2D Direction, FGameplayTag FallbackSlot) const;
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon")
 	UGSWeaponDataAsset* GetEquippedWeapon() const { return EquippedWeapon; }
@@ -339,14 +326,31 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> HornMeshComponent;
 
-	/** Sword by default: a goblin starts a raid with the blade out. */
-	EGSWeaponSlot CurrentSlot = EGSWeaponSlot::Sword;
+	/**
+	 * The wheel's contents, in SECTOR ORDER starting at the top and going anticlockwise:
+	 * index 0 = top, 1 = left, 2 = bottom, 3 = right.
+	 *
+	 * This is the thing #274 was really for. While slots were an enum, the wheel's arrangement was
+	 * four hard-coded returns inside SlotForDirection and adding a fifth slot meant editing C++ in
+	 * three files. Now the sector maths finds an index and this array says what lives there, so a
+	 * character with a different loadout is a data change.
+	 *
+	 * Defaults are set in the constructor rather than here, because a native gameplay tag is not a
+	 * constant expression. Order matches what the enum produced, deliberately: top Torch, left
+	 * Sword, bottom Grapple, right Bow. Do not "tidy" it into declaration order - the index IS the
+	 * sector.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Weapon|Wheel", meta = (Categories = "WeaponSlot"))
+	TArray<FGameplayTag> WheelSlots;
+
+	/** Sword by default: a goblin starts a raid with the blade out. Set in the constructor. */
+	FGameplayTag CurrentSlot;
 
 	// --- Wheel state. Purely local and input-driven; nothing here replicates. The SLOT is what
 	// matters to anyone else, and it changes through SetSlot like any other path.
 	bool bWheelOpen = false;
 	FVector2D WheelAccum = FVector2D::ZeroVector;
-	EGSWeaponSlot WheelHighlight = EGSWeaponSlot::Sword;
+	FGameplayTag WheelHighlight;
 
 	/**
 	 * How far the accumulated drag must travel before the wheel will commit to anything.

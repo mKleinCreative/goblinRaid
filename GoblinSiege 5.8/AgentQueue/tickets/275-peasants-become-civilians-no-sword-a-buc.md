@@ -2,18 +2,19 @@
 id: 275
 title: Peasants become civilians - no sword, 10 HP, and an ACF data asset they never had
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T02:58Z
 build: none
 waiting_on: "Michael: the project has NO bucket mesh. Pick a stand-in (SM_Pot / SM_Basket / SM_Jug) or say a bucket should be sourced. The bucket brigade behaviour is a separate piece of work - see Refine."
-evaluated: 2026-08-24T03:02:34Z
-observed: 2026-08-24T03:02:35Z | The peasant came up at 10 health on both ACF and our attribute set with zero mismatches, where the same character had read ARS 0 against GS 30 before - and he stood in the level holding nothing, the arming sword gone. GS.Stats.Dump went from 1 mismatch to 0.
-scenario: PIE on L_Tutorial_Island, the only map BP_PeasantMan is placed in, alongside the two castle guards and the player.
+evaluated: 2026-08-24T03:10:27Z
+observed: 2026-08-24T03:10:28Z | The peasant now stands in the level carrying the basket in his right hand instead of an arming sword, and reads 10 health on both ACF and our attribute set with no mismatch. Before this he was a 30 health militia swinging a sword, and his ACF statistics had never initialised at all.
+scenario: PIE on L_Tutorial_Island, the only map BP_PeasantMan is placed in.
 files: 
   - Content/AI/DA_Race_Human.uasset
   - Content/Blueprints/Adversaries/BP_PeasantMan.uasset
   - Content/Data/DT_GSAttributeInits.uasset
   - Content/Data/Characters/DA_Char_Civilian.uasset
+  - Content/Data/Weapons/DA_Weapon_Bucket.uasset
 ---
 
 ## Goal
@@ -121,3 +122,37 @@ not attempt it.
 **Left alone deliberately:** `BP_UrielAPlotexia` is also archetype `Militia` with an arming sword.
 Michael's ruling is that Uriel gets armour and more planning later, so he is **not** swept into this
 change despite matching the pattern.
+
+
+---
+
+### The bucket, 2026-08-24
+
+Michael: *"Use the Basket for the prop."*
+
+`DA_Weapon_Bucket` created by duplicating `DA_Weapon_ArmingSword` (so the socket and offset fields
+keep an authored shape) and overriding what a basket differs in:
+
+- `MeleeMesh` = `SM_Basket`, on `hand_r_weapon`
+- **scale 0.4** - `SM_Basket` measures **70.4 x 70.4 x 59.0 uu** at scale 1, which is a floor basket.
+  A hand-carried bucket wants roughly 25-30uu across, so 0.4 gives 28uu wide by 24 tall. **That is a
+  measurement and a starting point, not a judgement** - whether it reads as a bucket in his hand is
+  Michael's eye, and the number is here so it can be nudged without re-deriving it.
+- `BaseDamage` 0 and `AttackRange` 0 - a bucket is not a weapon
+- `HornMesh` cleared - the sword asset carries `SM_HuntingHorn_Signal01` and a civilian has no
+  business with the war horn
+- `ShowHolsteredWeapon` false - no basket strapped to his back
+
+`BP_PeasantMan.DefaultWeapon` -> `DA_Weapon_Bucket`.
+
+**Observed:** in PIE on `L_Tutorial_Island` the peasant reports `EquippedWeapon = DA_Weapon_Bucket`
+and carries `SM_Basket` attached at `hand_r_weapon` at scale 0.4.
+
+**Not observed: what it looks like.** A viewport capture was attempted and framed the wrong part of
+the level; rather than iterate on camera placement, the measurements above are handed over instead.
+This project's standing rule is that mesh scale and framing are judged by eye by Michael, with the
+agent supplying the numbers.
+
+**Still not done, and still a separate piece of work:** the bucket brigade itself - `BT_Civilian`, the
+fire-seeking behaviour against `UGSFlammableComponent`, and the disbelief -> panic states. The
+civilian archetype and the prop now exist for it to attach to.

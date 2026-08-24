@@ -238,4 +238,18 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemSlot_RightHand);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemSlot_LeftHand);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemSlot_Back);
+
+	// ---- Weapon wheel slots (#274) ----------------------------------------------------------
+	// These replace the EGSWeaponSlot enum. They are a DIFFERENT AXIS from the ItemSlot.* tags
+	// above and must not be confused with them: an ItemSlot is where an item physically hangs
+	// (hand_r_weapon, back_sword), while a WeaponSlot is which loadout the player has chosen. A
+	// torch and a sword both live in ItemSlot.RightHand; they are different WeaponSlots.
+	//
+	// The enum they replace carried an APPEND ONLY warning because its integer values were
+	// serialised into character CDOs. Tags are stored by name, so that hazard is gone and the
+	// wheel's contents are now data (see UGSWeaponComponent::WheelSlots).
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Torch);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Bow);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Sword);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(WeaponSlot_Grapple);
 }

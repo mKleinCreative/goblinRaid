@@ -15,7 +15,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Weapons/GSWeaponComponent.h"   // EGSWeaponSlot, and the delegate signatures
+#include "Weapons/GSWeaponComponent.h"   // the delegate signatures
+#include "GameplayTagContainer.h"
 #include "GSWeaponWheelWidget.generated.h"
 
 class UTextBlock;
@@ -80,14 +81,14 @@ protected:
 	void HandleWheelOpenChanged(bool bOpen);
 
 	UFUNCTION()
-	void HandleWheelHighlightChanged(EGSWeaponSlot Highlighted);
+	void HandleWheelHighlightChanged(FGameplayTag Highlighted);
 
 private:
 	/** The component this widget is bound to. Weak: the widget outlives nothing, but a pawn can be
 	 *  destroyed and respawned by the raid director underneath it. */
 	TWeakObjectPtr<UGSWeaponComponent> BoundComponent;
 
-	void Repaint(EGSWeaponSlot Highlighted, bool bCommitted);
+	void Repaint(FGameplayTag Highlighted, bool bCommitted);
 	/** WhichSlot, not Slot - UWidget::Slot exists and shadowing it is a build error here. */
-	UTextBlock* LabelFor(EGSWeaponSlot WhichSlot) const;
+	UTextBlock* LabelFor(FGameplayTag WhichSlot) const;
 };

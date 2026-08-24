@@ -65,4 +65,10 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemSlot_RightHand, "ItemSlot.RightHand", "ACF equipment slot for the weapon hand - the socket hand_r_weapon, where the axe and the sword go.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemSlot_LeftHand, "ItemSlot.LeftHand", "ACF equipment slot for the off hand - the socket hand_l_weapon, where a drawn bow goes.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemSlot_Back, "ItemSlot.Back", "ACF equipment slot for a sheathed weapon - the back_sword and back_bow holsters.");
+
+	// Weapon wheel slots (#274) - what the player has CHOSEN, not where it hangs. See the header.
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Torch, "WeaponSlot.Torch", "Top of the wheel. The torch is a held weapon, not a loan during an ability.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Bow, "WeaponSlot.Bow", "Right of the wheel. The only slot that puts the character in ranged mode.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Sword, "WeaponSlot.Sword", "Left of the wheel, and the slot every character starts a raid in.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(WeaponSlot_Grapple, "WeaponSlot.Grapple", "Bottom of the wheel.");
 }

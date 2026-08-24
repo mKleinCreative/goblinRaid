@@ -1,4 +1,5 @@
 #include "UI/GSWeaponWheelWidget.h"
+#include "Combat/GSGameplayTags.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
 
@@ -83,7 +84,7 @@ void UGSWeaponWheelWidget::HandleWheelOpenChanged(bool bOpen)
 	}
 }
 
-void UGSWeaponWheelWidget::HandleWheelHighlightChanged(EGSWeaponSlot Highlighted)
+void UGSWeaponWheelWidget::HandleWheelHighlightChanged(FGameplayTag Highlighted)
 {
 	const UGSWeaponComponent* Comp = BoundComponent.Get();
 	Repaint(Highlighted, Comp && Comp->IsWheelCommitted());
@@ -91,25 +92,26 @@ void UGSWeaponWheelWidget::HandleWheelHighlightChanged(EGSWeaponSlot Highlighted
 
 // Parameter is WhichSlot, not Slot: UWidget already has a `Slot` member (its UPanelSlot), and this
 // module builds warnings-as-errors, so shadowing it is a hard compile failure rather than a hint.
-UTextBlock* UGSWeaponWheelWidget::LabelFor(EGSWeaponSlot WhichSlot) const
+UTextBlock* UGSWeaponWheelWidget::LabelFor(FGameplayTag WhichSlot) const
 {
-	switch (WhichSlot)
-	{
-	case EGSWeaponSlot::Torch:   return Label_Torch;
-	case EGSWeaponSlot::Bow:     return Label_Bow;
-	case EGSWeaponSlot::Grapple: return Label_Grapple;
-	default:                     return Label_Sword;
-	}
+	// A tag cannot be switched on, so this is a chain. It is still exhaustive over the four labels
+	// this widget owns, and an unknown slot returns null rather than falling through to Sword -
+	// lighting the wrong label would be a worse lie than lighting none.
+	if (WhichSlot == GSTags::WeaponSlot_Torch)   { return Label_Torch; }
+	if (WhichSlot == GSTags::WeaponSlot_Bow)     { return Label_Bow; }
+	if (WhichSlot == GSTags::WeaponSlot_Sword)   { return Label_Sword; }
+	if (WhichSlot == GSTags::WeaponSlot_Grapple) { return Label_Grapple; }
+	return nullptr;
 }
 
-void UGSWeaponWheelWidget::Repaint(EGSWeaponSlot Highlighted, bool bCommitted)
+void UGSWeaponWheelWidget::Repaint(FGameplayTag Highlighted, bool bCommitted)
 {
 	// Four labels, one lit. Written as a loop over the enum rather than explicit assignments so
 	// adding a slot cannot leave one label stuck on the previous frame's colour - which is exactly
 	// what this array being kept in step bought when Grapple landed (2026-08-17).
-	const EGSWeaponSlot All[] = { EGSWeaponSlot::Torch, EGSWeaponSlot::Bow, EGSWeaponSlot::Sword,
-								  EGSWeaponSlot::Grapple };
-	for (const EGSWeaponSlot WhichSlot : All)
+	const FGameplayTag All[] = { GSTags::WeaponSlot_Torch, GSTags::WeaponSlot_Bow,
+								 GSTags::WeaponSlot_Sword, GSTags::WeaponSlot_Grapple };
+	for (const FGameplayTag& WhichSlot : All)
 	{
 		if (UTextBlock* Label = LabelFor(WhichSlot))
 		{

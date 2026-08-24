@@ -1,16 +1,26 @@
 ﻿---
 id: 274
-title: "PLAN ONLY: ACF Phase 3 stage 3 - retire EGSWeaponSlot in favour of gameplay tags"
+title: "Stage 3 - EGSWeaponSlot retired: the weapon wheel is four gameplay tags and its contents are data"
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T02:55Z
 build: none
-waiting_on: "Michael: one design decision - mirror the enum as WeaponSlot.* tags (stage 3A), or go straight to modelling wheel slots as ACF equipment slots (stage 3B). See The decision."
-evaluated: 2026-08-24T03:02:37Z
-observed:
-scenario:
+waiting_on:
+evaluated: 2026-08-24T03:18:35Z
+observed: 2026-08-24T03:18:46Z | Dragging the wheel in each direction picked the same weapon it always did - up torch, left sword, down grapple, right bow - and every sector boundary from 44 through 316 degrees landed where the old enum put it. Swapping to the bow put the player in ranged mode. Sixteen NPCs came up holding the right thing, both Erikas with bows drawn and ranged, the guards and all ten goblins with swords.
+scenario: PIE on L_CombatArena after a full rebuild, driving SlotForDirection through every sector and boundary angle on the live player component, then summoning the horde alongside the level defenders.
 files: 
-  - AgentQueue/tickets/SCOPING-ONLY-274
+  - Source/GoblinSiege/Weapons/GSWeaponComponent.h
+  - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp
+  - Source/GoblinSiege/UI/GSWeaponWheelWidget.h
+  - Source/GoblinSiege/UI/GSWeaponWheelWidget.cpp
+  - Source/GoblinSiege/Characters/GSPlayerCharacter.cpp
+  - Source/GoblinSiege/Characters/GSEnemyCharacter.h
+  - Source/GoblinSiege/Combat/GSGameplayTags.h
+  - Source/GoblinSiege/Combat/GSGameplayTags.cpp
+  - Source/GoblinSiege/Horde/GSHordeGoblin.cpp
+  - Source/GoblinSiege/Horde/GSHordeOrderTypes.h
+  - Content/Blueprints/Adversaries/BP_ErikaArcher.uasset
 ---
 
 ## Goal
@@ -124,3 +134,72 @@ A first and hearing "no" afterwards would be churn nobody asked for.
 stage-3 note was "touches weapon wheel, HUD, input, abilities" and a hand re-authoring of Blueprint
 graphs. Measuring first turned that into 48 references, no Blueprint logic and one CDO field. That
 should raise the estimate's confidence, not lower the bar for deciding whether to do it.
+
+
+---
+
+### IMPLEMENTED, 2026-08-24
+
+Michael: *"Let's do Stage 3."* Taken as **option A** - the enum-to-tag swap Stage 3 was always
+scoped as. Option B (wheel slots become ACF equipment slots) was my own addition above and is a
+later stage; it is NOT done here and the question it asks is still open.
+
+**Changed:**
+
+- `Combat/GSGameplayTags.{h,cpp}` - four new tags, `WeaponSlot.Torch|Bow|Sword|Grapple`, with a
+  header comment stating plainly that they are a different axis from `ItemSlot.*`.
+- `Weapons/GSWeaponComponent.h` - the `UENUM` is gone, replaced by a headstone comment saying where
+  it went and why the append-only hazard died with it. `CurrentSlot`, `WheelHighlight`, `SetSlot`,
+  `GetCurrentSlot`, `GetWheelHighlight`, `SlotForDirection` and both `BlueprintAssignable` delegates
+  now carry `FGameplayTag`. `IsInRangedMode()` moved out of line.
+- **`WheelSlots` added** - `TArray<FGameplayTag>`, `EditDefaultsOnly`, filtered to the `WeaponSlot`
+  category. **This is the actual point of the ticket.** The wheel's arrangement used to be four
+  hard-coded returns; it is now data, and `SlotForDirection` derives its sector size from the
+  array's length, so a three- or five-slot wheel divides itself with no C++ change.
+- `UI/GSWeaponWheelWidget.{h,cpp}` - the `switch` becomes a tag chain that returns **null** for an
+  unknown slot rather than falling through to Sword. Lighting the wrong label is a worse lie than
+  lighting none.
+- `Characters/GSEnemyCharacter.{h,cpp}` - `DefaultSlot` is a tag; its default moves to the
+  constructor because a native gameplay tag is not a constant expression.
+- `Characters/GSPlayerCharacter.cpp`, `Horde/GSHordeGoblin.cpp` - call sites.
+
+`SlotName()` no longer switches over cases - it returns the tag's leaf, so nothing has to be kept in
+step with a list.
+
+**Build:** editor closed, `-IgnoreQueue` (this was the only open ticket and was the one needing the
+build). **Succeeded in 2:13**, only the two pre-existing `C4996 AbilityTags` warnings.
+
+## Evaluate (implementation)
+
+**The predicted CDO loss happened exactly as predicted, and was repaired.** After the build every
+adversary read `WeaponSlot.Sword` - including `BP_ErikaArcher`, whose `Bow` did not survive, because
+an enum-to-struct change is a type change and CoreRedirects cannot carry it. Five inherited the new
+constructor default correctly. Erika was re-authored by hand and verified.
+
+**Runtime, PIE on `L_CombatArena`. The wheel maths is unchanged, checked at every boundary:**
+
+```
+up    -> WeaponSlot.Torch     44.0 deg -> Bow       224.0 -> Sword
+left  -> WeaponSlot.Sword     46.0 deg -> Torch     226.0 -> Grapple
+down  -> WeaponSlot.Grapple  134.0 deg -> Torch     314.0 -> Grapple
+right -> WeaponSlot.Bow      136.0 deg -> Sword     316.0 -> Bow
+deadzone -> falls back to the current slot
+```
+
+Every one matches the old `>=45 Torch / >=135 Sword / >=225 Grapple / else Bow`. **A player who has
+learned this wheel does not have to relearn it** - which was the risk worth testing, because a
+silently mirrored or rotated wheel reads as "the sectors feel wrong" rather than as an error.
+
+`SetSlot(Bow)` returned true and `IsInRangedMode()` flipped to true. Sixteen NPCs came up correct:
+four castle guards and ten goblins on `WeaponSlot.Sword` not ranged, **both Erikas on
+`WeaponSlot.Bow` and ranged**.
+
+**Not established:** that no Blueprint anywhere binds the two changed delegate signatures. The plan
+flagged this as the check to do first and the compile is the check - the build passed clean, and a
+Blueprint bound to a changed signature would have failed to compile. But the build compiles C++, not
+every Blueprint graph in the project; a stale binding would surface on opening that asset. Nothing
+suggests one exists (`WBP_WeaponWheel` has no graph at all), but it has not been swept.
+
+**Not done:** `IsInRangedMode()` is still `CurrentSlot == WeaponSlot.Bow`. The plan suggested it
+should become a property of the slot's weapon. That is a behavioural change with callers throughout
+ranged combat and it does not belong in a type swap.

@@ -210,12 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 274 | review (waiting on: "Michael: one design decision - mirror the enum as WeaponSlot.* tags (stage 3A), or go straight to modelling wheel slots as ACF equipment slots (stage 3B). See The decision.") | claude-warren | "PLAN ONLY: ACF Phase 3 stage 3 - retire EGSWeaponSlot in favour of gameplay tags" | AgentQueue/tickets/SCOPING-ONLY-274 | none |
-| 275 | review (waiting on: "Michael: the project has NO bucket mesh. Pick a stand-in (SM_Pot / SM_Basket / SM_Jug) or say a bucket should be sourced. The bucket brigade behaviour is a separate piece of work - see Refine.") | claude-warren | Peasants become civilians - no sword, 10 HP, and an ACF data asset they never had | Content/AI/DA_Race_Human.uasset<br>Content/Blueprints/Adversaries/BP_PeasantMan.uasset<br>Content/Data/DT_GSAttributeInits.uasset<br>Content/Data/Characters/DA_Char_Civilian.uasset | none |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 79 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -494,6 +491,8 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 271 | done | claude-warren | ItemSlot gameplay tags so ACF equipment has slots to equip into |
 | 272 | done | claude-warren | The no-EquippedWeapon warning fires on six defender Blueprints that are correctly armed and correctly statted - it is the #268 false positive one class over |
 | 273 | done | claude-warren | 48 ACF errors and warnings a run, of which only one kind was ours - the character data assets had no DefaultAbilitySet |
+| 274 | done | claude-warren | "Stage 3 - EGSWeaponSlot retired: the weapon wheel is four gameplay tags and its contents are data" |
+| 275 | done | claude-warren | Peasants become civilians - no sword, 10 HP, and an ACF data asset they never had |
 
 <!-- BOARD:END -->
 

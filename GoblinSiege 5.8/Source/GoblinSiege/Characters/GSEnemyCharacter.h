@@ -6,9 +6,10 @@
 
 #include "CoreMinimal.h"
 #include "Characters/GSCharacterBase.h"
-// For EGSWeaponSlot, which DefaultSlot holds by value - a UENUM used in a UPROPERTY cannot be
-// forward-declared, so the whole header comes in and the component needs no forward decl.
+// DefaultSlot is a gameplay tag since #274 (it was EGSWeaponSlot). The component header still comes
+// in whole because this class holds a TObjectPtr to the component itself.
 #include "Weapons/GSWeaponComponent.h"
+#include "GameplayTagContainer.h"
 #include "GSEnemyCharacter.generated.h"
 
 class UGSRaceDataAsset;
@@ -87,6 +88,7 @@ protected:
 	 * which put Erika's bow on RangedHolsterSocket - `back_bow`, a socket the human skeleton does
 	 * not have - so it would have attached at the actor root and floated at her feet.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Enemy")
-	EGSWeaponSlot DefaultSlot = EGSWeaponSlot::Sword;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Enemy",
+		meta = (Categories = "WeaponSlot"))
+	FGameplayTag DefaultSlot;
 };

@@ -9,20 +9,22 @@
 #include "Engine/SkinnedAsset.h" // GetSkinnedAsset() in the missing-socket log line names the mesh
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
+#include "Combat/GSGameplayTags.h"
 
 namespace
 {
-	/** Log-only. Not UEnum::GetDisplayValueAsText: this runs on every slot change and the reflection
-	 *  lookup is not worth it for a line that says "is now holding Sword". */
-	FString SlotName(EGSWeaponSlot Slot)
+	/** Log-only: the leaf of the tag, so "WeaponSlot.Sword" logs as "Sword". Was a switch over
+	 *  EGSWeaponSlot until #274; the tag already carries the name, so nothing needs to be kept in
+	 *  step with a list of cases any more. */
+	FString SlotName(FGameplayTag Slot)
 	{
-		switch (Slot)
+		if (!Slot.IsValid())
 		{
-		case EGSWeaponSlot::Torch:   return TEXT("Torch");
-		case EGSWeaponSlot::Bow:     return TEXT("Bow");
-		case EGSWeaponSlot::Grapple: return TEXT("Grapple");
-		default:                     return TEXT("Sword");
+			return TEXT("nothing");
 		}
+		FString Full = Slot.GetTagName().ToString();
+		int32 Dot = INDEX_NONE;
+		return Full.FindLastChar(TEXT('.'), Dot) ? Full.RightChop(Dot + 1) : Full;
 	}
 }
 
@@ -30,6 +32,20 @@ UGSWeaponComponent::UGSWeaponComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+
+	// SECTOR ORDER, not declaration order - index 0 is the top of the wheel and it runs
+	// anticlockwise. This reproduces exactly what SlotForDirection's four hard-coded returns used
+	// to do, so the wheel a player has learned does not move under them.
+	WheelSlots = { GSTags::WeaponSlot_Torch, GSTags::WeaponSlot_Sword,
+				   GSTags::WeaponSlot_Grapple, GSTags::WeaponSlot_Bow };
+
+	CurrentSlot = GSTags::WeaponSlot_Sword;
+	WheelHighlight = GSTags::WeaponSlot_Sword;
+}
+
+bool UGSWeaponComponent::IsInRangedMode() const
+{
+	return CurrentSlot == GSTags::WeaponSlot_Bow;
 }
 
 void UGSWeaponComponent::BeginPlay()
@@ -137,7 +153,7 @@ void UGSWeaponComponent::EquipWeapon(UGSWeaponDataAsset* NewWeapon)
 	// Straight assignment, not SetSlot: this is an equip, not a swap. SetSlot would refuse under the
 	// anti-cancel lock, broadcast a slot change nobody is listening for yet, and ready a torch prop
 	// before the meshes below have been built.
-	CurrentSlot = EGSWeaponSlot::Sword;
+	CurrentSlot = GSTags::WeaponSlot_Sword;
 
 	// A new weapon gets a clean slate on both warn latches - it names its own asset paths and its
 	// own sockets, and the previous kit's failures say nothing about this one. See the header.
@@ -237,10 +253,10 @@ void UGSWeaponComponent::ToggleRangedMode()
 	// The legacy two-way swap, now expressed as a slot change. Torch is deliberately NOT in this
 	// cycle: this is the sword<->bow key, and a player who has never opened the wheel should not
 	// find a torch in their hand because they tapped swap twice.
-	SetSlot(CurrentSlot == EGSWeaponSlot::Bow ? EGSWeaponSlot::Sword : EGSWeaponSlot::Bow);
+	SetSlot(IsInRangedMode() ? GSTags::WeaponSlot_Sword : GSTags::WeaponSlot_Bow);
 }
 
-bool UGSWeaponComponent::SetSlot(EGSWeaponSlot NewSlot)
+bool UGSWeaponComponent::SetSlot(FGameplayTag NewSlot)
 {
 	if (NewSlot == CurrentSlot)
 	{
@@ -265,7 +281,7 @@ bool UGSWeaponComponent::SetSlot(EGSWeaponSlot NewSlot)
 			*GetNameSafe(GetOwner()));
 		return false;
 	}
-	if (NewSlot == EGSWeaponSlot::Bow && !EquippedWeapon->bHasRangedMode)
+	if (NewSlot == GSTags::WeaponSlot_Bow && !EquippedWeapon->bHasRangedMode)
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("[GoblinSiege] Bow slot refused on %s - '%s' has bHasRangedMode unticked, so it has "
@@ -286,7 +302,7 @@ bool UGSWeaponComponent::SetSlot(EGSWeaponSlot NewSlot)
 	// The torch is a HELD weapon now, not a 0.25s loan during an ability (Michael, 2026-08-06).
 	// UGSGA_TorchToss still readies and un-readies around its own throw; making the slot own the
 	// prop is what stops the torch vanishing from the hand the instant the projectile spawns.
-	SetTorchReadied(CurrentSlot == EGSWeaponSlot::Torch);
+	SetTorchReadied(CurrentSlot == GSTags::WeaponSlot_Torch);
 
 	OnWeaponSlotChanged.Broadcast(CurrentSlot);
 	OnWeaponModeChanged.Broadcast(IsInRangedMode());
@@ -308,9 +324,9 @@ bool UGSWeaponComponent::SetSlot(EGSWeaponSlot NewSlot)
 // Radial wheel. See the header for why this is delta-based and why the maths lives here.
 // ---------------------------------------------------------------------------------------------
 
-EGSWeaponSlot UGSWeaponComponent::SlotForDirection(FVector2D Direction, EGSWeaponSlot FallbackSlot) const
+FGameplayTag UGSWeaponComponent::SlotForDirection(FVector2D Direction, FGameplayTag FallbackSlot) const
 {
-	if (Direction.Size() < WheelDeadZone)
+	if (Direction.Size() < WheelDeadZone || WheelSlots.Num() == 0)
 	{
 		return FallbackSlot;
 	}
@@ -321,13 +337,18 @@ EGSWeaponSlot UGSWeaponComponent::SlotForDirection(FVector2D Direction, EGSWeapo
 	const float Degrees = FRotator::ClampAxis(
 		FMath::RadiansToDegrees(FMath::Atan2(-Direction.Y, Direction.X)));
 
-	// 90-degree sectors centred on 90 (top), 180 (left), 270 (bottom) and 0 (right).
-	// Bow and Sword each shifted 30 degrees when the fourth slot landed, rather than rotating the
-	// whole wheel: a player reaching left for the sword still finds it left.
-	if (Degrees >= 45.f  && Degrees < 135.f) { return EGSWeaponSlot::Torch; }
-	if (Degrees >= 135.f && Degrees < 225.f) { return EGSWeaponSlot::Sword; }
-	if (Degrees >= 225.f && Degrees < 315.f) { return EGSWeaponSlot::Grapple; }
-	return EGSWeaponSlot::Bow;
+	// Sectors are derived from the array's length instead of hard-coded, so a wheel with three or
+	// five slots divides itself. Index 0 is centred on the TOP (90 degrees) and the sequence runs
+	// anticlockwise, which is what the four hard-coded returns did before #274: at Num()==4 this
+	// still yields top Torch, left Sword, bottom Grapple, right Bow, with the same boundaries at
+	// 45/135/225/315. A player who has learned the wheel does not have to relearn it.
+	const float SectorSize = 360.f / static_cast<float>(WheelSlots.Num());
+	const float Offset = FRotator::ClampAxis(Degrees - 90.f + (SectorSize * 0.5f));
+	const int32 Index = FMath::Clamp(static_cast<int32>(Offset / SectorSize), 0, WheelSlots.Num() - 1);
+
+	// An unset entry means someone cleared a row in the editor. Falling back is better than handing
+	// out an invalid tag that SetSlot would then refuse with a confusing message.
+	return WheelSlots[Index].IsValid() ? WheelSlots[Index] : FallbackSlot;
 }
 
 void UGSWeaponComponent::OpenWeaponWheel()
@@ -355,7 +376,7 @@ void UGSWeaponComponent::AddWheelInput(FVector2D Delta)
 	}
 	WheelAccum += Delta;
 
-	const EGSWeaponSlot NewHighlight = SlotForDirection(WheelAccum, CurrentSlot);
+	const FGameplayTag NewHighlight = SlotForDirection(WheelAccum, CurrentSlot);
 	if (NewHighlight != WheelHighlight)
 	{
 		WheelHighlight = NewHighlight;
@@ -377,7 +398,7 @@ void UGSWeaponComponent::CloseWeaponWheel(bool bCommit)
 	// needs no special case - SetSlot returns false on a no-op change. The explicit bCommit exists
 	// for the caller that knows the gesture was aborted (menu opened, pawn died) without the player
 	// having dragged back.
-	const EGSWeaponSlot Chosen = bCommit ? WheelHighlight : CurrentSlot;
+	const FGameplayTag Chosen = bCommit ? WheelHighlight : CurrentSlot;
 
 	WheelAccum = FVector2D::ZeroVector;
 	OnWheelOpenChanged.Broadcast(false);
@@ -415,7 +436,7 @@ void UGSWeaponComponent::SetTorchReadied(bool bNewReadied)
 	//
 	// Readying while in another slot is still allowed, so the old ability-driven behaviour survives
 	// untouched for anything that has not moved to slots.
-	if (!bNewReadied && CurrentSlot == EGSWeaponSlot::Torch)
+	if (!bNewReadied && CurrentSlot == GSTags::WeaponSlot_Torch)
 	{
 		return;
 	}
