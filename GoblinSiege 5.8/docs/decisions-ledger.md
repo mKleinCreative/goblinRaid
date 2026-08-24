@@ -18,6 +18,33 @@ dated, citable list.
 
 ---
 
+## 2026-08-24 — the wheel goes to ACF, and Uriel goes to the demo
+
+Michael, asked to pick up the two things left open at the end of the finite-arrows work:
+*"Let's move the weapon wheel to ACF and also the bucket brigade. Uriel in general will be with the
+public facing demo, not the prototype."* Ticket #283.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 53 | **The weapon wheel DOES migrate onto ACF equipment.** Each wheel slot becomes an ACF equipment slot and switching becomes `UACFEquipmentComponent::UseEquippedItemBySlot(tag)` | **This answers #274's open question**, which was deliberately left standing: *"the question worth answering is not tags or enum, it is - is the weapon wheel migrating onto ACF at all?"* It is. That makes #274's tag swap a stepping stone rather than churn, retroactively justifying it, and it means the two overlapping systems #269 recorded stop overlapping |
+| 54 | **Weapons become items, and therefore lootable in principle** | Follows from 53 rather than being chosen separately: once a wheel slot is an ACF equipment slot, what fills it is a `UACFWeapon` item in an inventory. Whether the player actually strips a sword off a corpse is a **separate** design question and is NOT decided here - #270's own note that "nothing draws the axe" is still an open design question, not a bug |
+| 55 | **Uriel A Plotexia is DEMO scope, not prototype scope** | Supersedes the 2026-08-23 note that recorded his armour as "FUTURE, not done" without saying which future. He is not part of the tutorial slice at all, so `BP_UrielAPlotexia` staying archetype `Militia` with an arming sword is **correct for now** and is not a defect anyone should fix in passing |
+
+**The bucket brigade needs no ruling and is not one.** Civilians are already IN the §12.4 scope freeze
+(ruling 13), and `AGENT_STATE.md`'s NEXT list already carries *"Civilians + livestock (routines,
+disbelief, brigade, flee)"* as blocked on `BT_Civilian`. #275 built the civilian archetype and the
+bucket prop, which is what unblocked it. The brigade is implementation of something already in scope.
+
+**What ruling 53 does NOT authorise, recorded because the temptation is real.** The migration is a
+refactor of how weapons are held, not a licence to change how they FEEL. `UGSWeaponComponent` carries
+project-policy visual rules with no ACF equivalent - the holstered melee weapon hidden for the whole
+time the bow is out, the quiver that never moves and is never hidden, the Torch slot outranking an
+ability's request to un-ready - and every one of those is a watched decision, not plumbing. Ruling 51
+already refused ACF's shooting component on the same grounds. **A migration that silently changes
+weapon placement or swap feel has failed even if it compiles and equips.**
+
+---
+
 ## 2026-08-24 — the quiver empties (finite arrows)
 
 Michael, asked whether picking up torches and arrows as consumables would be part of moving the

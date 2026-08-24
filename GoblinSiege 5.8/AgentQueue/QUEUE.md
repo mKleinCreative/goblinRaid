@@ -500,6 +500,7 @@ _Queue is empty. The build gate is OPEN._
 | 280 | done | claude-warren | Finite arrows stage 3 - the gate and the decrement |
 | 281 | done | claude-warren | Finite arrows stage 4 - the arrow count on the HUD |
 | 282 | done | claude-warren | Empty quiver must not draw the bow, and the starting quiver drops to 15 |
+| 283 | done **UNOBSERVED** | claude-warren | "RULING: the weapon wheel migrates onto ACF equipment; Uriel is demo scope, not prototype" |
 
 <!-- BOARD:END -->
 

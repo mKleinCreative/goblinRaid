@@ -1134,3 +1134,22 @@ With a quiver it costs a consumable, in a game that deliberately puts your own h
 your target. If finite arrows feel unfair, this is almost certainly why - and the levers to fix it
 are the starting count, bundle density and drop rate, all data. **Changing what happens when an arrow
 hits an ally would be a new ruling, not a quiet edit inside an ammo ticket.**
+
+## #283 closed UNOBSERVED, 2026-08-24 — the wheel goes to ACF, Uriel goes to the demo
+
+Rulings 53-55. The weapon wheel migrates onto ACF equipment (answering #274's open question);
+weapons therefore become items and lootable in principle, though whether corpses actually surrender
+them is NOT decided; and **Uriel A Plotexia is demo scope, not prototype scope**, which supersedes
+the 2026-08-23 note recording his armour as "FUTURE" without saying which future. `BP_UrielAPlotexia`
+staying Militia with an arming sword is now correct and is not a defect to fix in passing.
+
+**What is unproven, and it is the whole risk of ruling 53:** that the wheel can move onto ACF without
+changing how weapons FEEL. #270 already proved ACF can equip and attach. What it has never had to
+preserve is the set of hand-tuned rules `UGSWeaponComponent` carries that ACF has no equivalent for -
+the holstered melee weapon hidden for the whole time the bow is out (Michael rejected the aim-only
+version by name), the quiver that never moves and is never hidden, the Torch slot outranking an
+ability asking to un-ready, and the 0.15s anti-cancel swap lock.
+
+If the migration goes wrong, it will not go wrong by failing to equip. It will go wrong by equipping
+perfectly while the sword sits in the wrong place, or reappears mid-bow, or the swap starts feeling
+mushy - none of which a compile or a read-back can catch. **Watch the weapons, not the log.**
