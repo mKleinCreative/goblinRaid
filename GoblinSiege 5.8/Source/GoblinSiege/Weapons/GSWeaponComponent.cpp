@@ -60,10 +60,21 @@ void UGSWeaponComponent::BeginPlay()
 		}
 		else
 		{
+			// The attribute half of this sentence was deleted in #272 because it was FALSE, and it
+			// had by then caused a third misdiagnosis on top of #144 and #267. It claimed the
+			// character keeps the attribute set's constructor defaults (100/100/0); GS.Stats.Dump on
+			// the six defenders that trip this showed Erika at 20/20 and the guards at 30/30, their
+			// designed values, with ARS and the GS set agreeing and no mismatches. Health has not
+			// come from InitialAttributesEffect since #228 - AGSCharacterBase::GetHealth() reads
+			// ACF's UACFStatisticsSet first - and every weapon data asset in the project leaves
+			// InitialAttributesEffect unset, so the clause named a field nothing populates.
+			//
+			// What is left is the part that is actually true and actually actionable.
 			UE_LOG(LogTemp, Warning,
-				TEXT("[GoblinSiege] %s has no EquippedWeapon data asset - no weapon meshes, no granted "
-					 "abilities, and no InitialAttributesEffect, so this character keeps the attribute "
-					 "set's constructor defaults (100/100/0). Assign one on the owning Blueprint."),
+				TEXT("[GoblinSiege] %s has no EquippedWeapon on its WeaponComponent and does not expect "
+					 "an external equip - no weapon meshes and no weapon-granted abilities. Assign "
+					 "EquippedWeapon on the owning Blueprint's WeaponComponent, or set "
+					 "bExpectsExternalEquip in the owner's CONSTRUCTOR if it equips itself later."),
 				*GetNameSafe(GetOwner()));
 		}
 	}

@@ -33,6 +33,15 @@ AGSEnemyCharacter::AGSEnemyCharacter(const FObjectInitializer& ObjectInitializer
 	// The same component the player carries. A defender with no weapon component cannot hold
 	// anything at all - which is why every guard in the game has been fighting bare-handed.
 	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
+
+	// This class arms itself from DefaultWeapon in BeginPlay (below), which runs AFTER the
+	// component's - so without this flag the component's null-EquippedWeapon warning fires on every
+	// correctly-authored defender in the game. It did, on all six, and #272 was opened to chase it.
+	//
+	// CONSTRUCTOR, not BeginPlay: component BeginPlay runs first, so a flag set any later arrives
+	// after the check it exists to suppress. AGSHordeGoblin learned the same thing in #268
+	// (GSHordeGoblin.cpp:47); this class simply never got the line.
+	WeaponComponent->bExpectsExternalEquip = true;
 }
 
 void AGSEnemyCharacter::BeginPlay()

@@ -210,11 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 272 | review | claude-warren | The no-EquippedWeapon warning fires on six defender Blueprints that are correctly armed and correctly statted - it is the #268 false positive one class over | Source/GoblinSiege/Characters/GSEnemyCharacter.cpp<br>Source/GoblinSiege/Weapons/GSWeaponComponent.cpp | required |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 79 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -491,6 +489,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 269 | done **UNOBSERVED** | claude-warren | ACF Phase 3 scoping: we have carried an unused UACFEquipmentComponent since Phase 2a while UGSWeaponComponent does the same job |
 | 270 | done | claude-warren | ACF Phase 3 stage 2: equip the goblin axe through ACF on one character, alongside the existing path |
 | 271 | done | claude-warren | ItemSlot gameplay tags so ACF equipment has slots to equip into |
+| 272 | done | claude-warren | The no-EquippedWeapon warning fires on six defender Blueprints that are correctly armed and correctly statted - it is the #268 false positive one class over |
 
 <!-- BOARD:END -->
 

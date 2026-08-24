@@ -2,13 +2,13 @@
 id: 272
 title: The no-EquippedWeapon warning fires on six defender Blueprints that are correctly armed and correctly statted - it is the #268 false positive one class over
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T02:18Z
 build: required
 waiting_on:
-evaluated:
-observed: 2026-08-24T02:28:36Z | GS.Stats.Dump printed Erika at 20/20 health and both castle guards at 30/30, with ARS and the GS attribute set agreeing on all seven characters and zero mismatches - so the warning claim that they fight on 100/100/0 is false, and their health matches the GDD roster exactly. The same characters had already been seen arming themselves 4ms after the warning fired.
-scenario: PIE on L_CombatArena with all six defenders spawned - two Erikas, two CastleGuard01, two CastleGuard02 - plus the player; console command run against the live game world.
+evaluated: 2026-08-24T02:39:16Z
+observed: 2026-08-24T02:39:17Z | After the fix the no-EquippedWeapon warning did not fire once, where it had fired six times per run before. Every one of the six defenders was holding a real weapon at runtime - both Erikas with DA_Weapon_Erika, all four castle guards with DA_Weapon_ArmingSword - so the warning was suppressed without hiding a genuine unarmed character. GS.Stats.Dump read 17 characters with zero MaxHealth mismatches.
+scenario: Editor rebuilt and relaunched, PIE on L_CombatArena with all six defenders present and ten goblins summoned by GS.Horde.SpawnTest, reading the fresh log and the live pawns.
 files: 
   - Source/GoblinSiege/Characters/GSEnemyCharacter.cpp
   - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp
@@ -154,3 +154,37 @@ GDD names castle reinforcements (`goblin-siege-gdd.md:298`) without a stat line,
    "the hamlet can't stop you; the county can" implies yes but attaches no numbers.
 
 That belongs in its own ticket. #272 closes on the warning alone.
+
+---
+
+### The fix, made and verified 2026-08-24
+
+Michael took the build window. Both edits from Refine were made exactly as proposed:
+
+- `Source/GoblinSiege/Characters/GSEnemyCharacter.cpp` - `WeaponComponent->bExpectsExternalEquip = true;`
+  in the constructor, with a comment pointing at the `DefaultWeapon` equip in `BeginPlay` below it and
+  at why it cannot live there.
+- `Source/GoblinSiege/Weapons/GSWeaponComponent.cpp` - the warning text. The attribute clause is gone;
+  the message now names the field and the two ways to fix it. The comment above it records what was
+  deleted and why, so nobody restores it from a stale memory of what the warning used to say.
+
+**Build:** `Build-GoblinSiege.ps1 -IgnoreQueue`, editor closed, **succeeded in 36s**. Only the two
+pre-existing `C4996 AbilityTags` deprecation warnings in `GSGA_Block.cpp` and `GSGA_Interact.cpp`,
+neither touched here. `-IgnoreQueue` was used because #272 was the only open ticket and was the
+ticket being built - the gate cannot be satisfied by the work that needs the build.
+
+**Observed, PIE on `L_CombatArena` with all six defenders spawned plus ten summoned goblins:**
+
+- The `has no EquippedWeapon` warning appears **zero times** in the fresh log. It previously fired
+  once per defender per run, six per run, three runs running.
+- **The suppression did not hide a real failure** - every defender reports a live `EquippedWeapon`:
+  both Erikas `DA_Weapon_Erika`, all four castle guards `DA_Weapon_ArmingSword`. This is the check
+  that matters, because "the warning stopped" and "the warning was right and is now silent" look
+  identical from the log alone.
+- `GS.Stats.Dump`: 17 characters, **0 MaxHealth mismatches**. Guards 30/30, Erika 20/20, goblins
+  40/40, player 100/100 - every one its designed value.
+
+**Not verified:** that the *new* warning text still fires for a genuinely unarmed character. There is
+no such character in the project to test with, and manufacturing one to prove a log line was not
+worth an asset. The branch is unchanged - only its wording moved - so the risk is that the new text
+is wrong, not that the branch is unreachable.
