@@ -490,6 +490,7 @@ _Queue is empty. The build gate is OPEN._
 | 270 | done | claude-warren | ACF Phase 3 stage 2: equip the goblin axe through ACF on one character, alongside the existing path |
 | 271 | done | claude-warren | ItemSlot gameplay tags so ACF equipment has slots to equip into |
 | 272 | done | claude-warren | The no-EquippedWeapon warning fires on six defender Blueprints that are correctly armed and correctly statted - it is the #268 false positive one class over |
+| 273 | done | claude-warren | 48 ACF errors and warnings a run, of which only one kind was ours - the character data assets had no DefaultAbilitySet |
 
 <!-- BOARD:END -->
 
