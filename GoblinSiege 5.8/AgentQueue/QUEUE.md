@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 272 | queued | claude-warren | Three defenders have no EquippedWeapon data asset, so they fight on the attribute set constructor defaults (100/100/0) | Content/Blueprints/Characters/BP_CastleGuard01.uasset<br>Content/Blueprints/Characters/BP_CastleGuard02.uasset<br>Content/Blueprints/Characters/BP_ErikaArcher.uasset<br>Content/Data/Weapons | none |
+| 272 | review | claude-warren | The no-EquippedWeapon warning fires on six defender Blueprints that are correctly armed and correctly statted - it is the #268 false positive one class over | Source/GoblinSiege/Characters/GSEnemyCharacter.cpp<br>Source/GoblinSiege/Weapons/GSWeaponComponent.cpp | required |
 
 **BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
