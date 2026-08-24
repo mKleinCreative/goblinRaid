@@ -227,6 +227,46 @@ public:
 	 */
 	void RefreshACFWeaponVisibility();
 
+	/**
+	 * Push the per-weapon mesh offset from the WEAPON DATA ASSET onto ACF's weapon actor.
+	 *
+	 * THE DATA ASSET IS THE SINGLE SOURCE OF TRUTH FOR WEAPON PLACEMENT, and this is what makes that
+	 * true for the ACF path as well as ours.
+	 *
+	 * Until #293 the offset existed TWICE: once in UGSWeaponDataAsset::MeleeMeshOffset/RangedMeshOffset,
+	 * and again as a hand-copied duplicate on the static mesh component inside each BP_ACFWeapon_*.
+	 * The plan for the migration called that transcription its biggest concrete cost and it was right -
+	 * editing the data asset moved our mesh and did NOTHING to the weapon ACF was holding, so the field
+	 * that looks authoritative in the editor silently was not. Nobody could tune a weapon by eye.
+	 *
+	 * Applied to the static mesh component rather than through ACF's AttachmentOffset because
+	 * AACFWeaponActor::Mesh is a SKELETAL mesh component and every weapon mesh in this project is
+	 * static - so the mesh lives on a component added in the Blueprint, which AlignWeapon never touches.
+	 */
+	void ApplyACFWeaponOffsets();
+
+	/** Which data-asset offset drives a given wheel slot: Primary is the melee half, Bow the ranged
+	 *  half. Null for a slot the data asset has no offset for. */
+	const FTransform* OffsetForWeaponSlot(FGameplayTag Slot) const;
+
+	/**
+	 * GS.Weapon.Set - shove one offset onto whatever weapon this character is holding, right now.
+	 *
+	 * Deliberately writes to the live COMPONENT and never to an asset: a value typed at a console
+	 * during a look-and-tweak pass should not be able to save itself into the project. The value that
+	 * survives is the one somebody types into the data asset, which is also the one Reapply reads.
+	 *
+	 * Covers both paths - ACF's weapon actor and our own mesh components - because which one is
+	 * holding the weapon depends on a per-character flag, and somebody tuning by eye should not have
+	 * to know which. Returns how many meshes it actually moved, so a command that matched a character
+	 * but moved nothing reports 0 rather than looking like it worked.
+	 */
+	int32 DebugApplyOffsetToHeldWeapon(const FTransform& Offset);
+
+	/** GS.Weapon.Reapply - re-read the weapon data asset and push its offsets onto a weapon already
+	 *  in hand, so an edit made in the editor can be seen without restarting PIE. */
+	void DebugReapplyOffsets();
+
 	/** Re-entrancy guard. UseEquippedItemBySlot broadcasts OnEquipmentChanged, which we listen to -
 	 *  so drawing from inside that handler would call straight back into itself. */
 	bool bSyncingACF = false;

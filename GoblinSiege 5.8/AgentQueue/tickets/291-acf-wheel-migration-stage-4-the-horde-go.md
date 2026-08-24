@@ -2,13 +2,13 @@
 id: 291
 title: "ACF wheel migration stage 4: the horde goblins move onto ACF"
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T22:20Z
 build: none
 waiting_on: "Michael: look at a summoned goblin. Ten of them now hold an ACF axe instead of ours, at the same 1.45 scale - but scale is the one thing a socket check cannot see."
 evaluated: 2026-08-24T21:54:24Z
-observed:
-scenario:
+observed: 2026-08-24T21:57:16Z | Michael watched ten summoned goblins and their axes are the size they have always been, one each rather than the two they had been carrying since #270. ACF holds every one of them now instead of our mesh path, and the camera no longer catches on any of them with the whole horde around him.
+scenario: Michael playing in PIE on L_CombatArena with ten goblins summoned.
 files: 
   - Content/Items/BP_ACFWeapon_GoblinAxe.uasset
   - Content/Blueprints/BP_HordeGoblin.uasset

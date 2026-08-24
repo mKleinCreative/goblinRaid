@@ -84,15 +84,34 @@ void UGSWeaponComponent::SyncACFEquippedSlot()
 	// since stage 1, but no bow is equipped through ACF until stage 3 - and UseEquippedItemBySlot on
 	// a slot holding nothing does NOTHING AT ALL: no sheathe, no broadcast, no log. Without this the
 	// player swaps to the bow and the ACF sword stays in his hand, silently.
-	FEquippedItem Unused;
-	if (!Equipment->GetEquippedItemSlot(*ItemSlot, Unused))
+	FEquippedItem Equipped;
+	if (!Equipment->GetEquippedItemSlot(*ItemSlot, Equipped))
 	{
 		Equipment->SheathCurrentWeapon();
 		return;
 	}
 
-	// Safe to call: SetSlot has already refused a same-slot change above, and a same-slot call here
-	// would be read by ACF as "sheathe everything" rather than as a no-op.
+	// ALREADY DRAWN ON THIS SLOT MEANS THERE IS NOTHING TO DO, and saying so here is not belt and
+	// braces - it is the whole difference between a weapon in hand and a weapon on the back.
+	// UseEquippedItemBySlot opens with "if (ItemSlot == CurrentlyEquippedSlotType) { Sheath; return; }",
+	// so re-sending the slot ACF is already holding SHEATHES it. The call is a TOGGLE, not an
+	// assignment, and every sync therefore has to know whether it is the first one.
+	//
+	// #292 is where that bit: a defender whose DefaultSlot differs from the component's default gets
+	// TWO syncs during startup - SetSlot(DefaultSlot) draws, then BeginPlay's next-tick timer fires
+	// and un-draws - while a defender whose slots match gets only one, because SetSlot refuses a
+	// same-slot change before it ever reaches here. So the castle guards came up holding their swords
+	// and Erika came up with her bow on her back, from identical code and identical data. Parity, not
+	// configuration.
+	//
+	// Compared by ACTOR rather than by slot tag because CurrentlyEquippedSlotType is private with no
+	// accessor; the drawn main weapon is the same fact reached through public API.
+	if (Equipment->GetCurrentMainWeapon() &&
+		Equipment->GetCurrentMainWeapon() == Equipped.ItemActor)
+	{
+		return;
+	}
+
 	Equipment->UseEquippedItemBySlot(*ItemSlot);
 }
 
@@ -136,6 +155,11 @@ void UGSWeaponComponent::RefreshACFWeaponVisibility()
 		return;
 	}
 
+	// Placement first, then visibility. ACF's RefreshEquipment re-attaches its weapon actors on every
+	// equipment change and the attach SNAPS the actor to its socket - so the offset has to be
+	// re-asserted on exactly the same beat as the hide, and for exactly the same reason.
+	ApplyACFWeaponOffsets();
+
 	const bool bRangedActive = IsInRangedMode() && EquippedWeapon->bHasRangedMode;
 
 	// PRIMARY. The same expression our own melee mesh uses in RefreshWeaponMeshPlacement - two copies
@@ -166,6 +190,123 @@ void UGSWeaponComponent::RefreshACFWeaponVisibility()
 			Bow.ItemActor->SetActorHiddenInGame(!(bRangedActive || EquippedWeapon->bShowHolsteredWeapon));
 		}
 	}
+}
+
+const FTransform* UGSWeaponComponent::OffsetForWeaponSlot(FGameplayTag Slot) const
+{
+	if (!EquippedWeapon)
+	{
+		return nullptr;
+	}
+	if (Slot == GSTags::WeaponSlot_Primary)
+	{
+		return &EquippedWeapon->MeleeMeshOffset;
+	}
+	if (Slot == GSTags::WeaponSlot_Bow)
+	{
+		return &EquippedWeapon->RangedMeshOffset;
+	}
+	// Torch, Grapple and anything added later: ACF holds no weapon for them, so there is no actor to
+	// offset. Deliberately null rather than identity - identity would silently RESET a weapon.
+	return nullptr;
+}
+
+void UGSWeaponComponent::ApplyACFWeaponOffsets()
+{
+	if (!bUseACFEquipment || !EquippedWeapon)
+	{
+		return;
+	}
+	AActor* Owner = GetOwner();
+	UACFEquipmentComponent* Equipment = Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
+	if (!Equipment)
+	{
+		return;
+	}
+
+	for (const TPair<FGameplayTag, FGameplayTag>& Mapping : WeaponSlotToItemSlot)
+	{
+		const FTransform* Offset = OffsetForWeaponSlot(Mapping.Key);
+		if (!Offset)
+		{
+			continue;
+		}
+
+		FEquippedItem Equipped;
+		if (!Equipment->GetEquippedItemSlot(Mapping.Value, Equipped) || !Equipped.ItemActor)
+		{
+			continue;
+		}
+
+		// The FIRST static mesh component carrying a mesh, not by name. ACF's own Mesh is skeletal and
+		// is left alone; the Blueprint-added static component is the one holding our weapon. Searching
+		// by name would break the moment somebody renames it, and these actors still carry
+		// "AxeMesh_GEN_VARIABLE" from the Blueprint they were duplicated from - a name that is already
+		// wrong on a sword and on a bow.
+		TArray<UStaticMeshComponent*> Meshes;
+		Equipped.ItemActor->GetComponents<UStaticMeshComponent>(Meshes);
+		for (UStaticMeshComponent* MeshComp : Meshes)
+		{
+			if (MeshComp && MeshComp->GetStaticMesh())
+			{
+				MeshComp->SetRelativeTransform(*Offset);
+				break;
+			}
+		}
+	}
+}
+
+int32 UGSWeaponComponent::DebugApplyOffsetToHeldWeapon(const FTransform& Offset)
+{
+	int32 Moved = 0;
+
+	// ACF's actor, when ACF is the one holding it.
+	AActor* Owner = GetOwner();
+	UACFEquipmentComponent* Equipment = Owner ? Owner->FindComponentByClass<UACFEquipmentComponent>() : nullptr;
+	if (bUseACFEquipment && Equipment)
+	{
+		for (const TPair<FGameplayTag, FGameplayTag>& Mapping : WeaponSlotToItemSlot)
+		{
+			FEquippedItem Equipped;
+			if (!Equipment->GetEquippedItemSlot(Mapping.Value, Equipped) || !Equipped.ItemActor)
+			{
+				continue;
+			}
+			TArray<UStaticMeshComponent*> Meshes;
+			Equipped.ItemActor->GetComponents<UStaticMeshComponent>(Meshes);
+			for (UStaticMeshComponent* MeshComp : Meshes)
+			{
+				if (MeshComp && MeshComp->GetStaticMesh())
+				{
+					MeshComp->SetRelativeTransform(Offset);
+					++Moved;
+					break;
+				}
+			}
+		}
+	}
+
+	// And our own meshes, for a character still on the legacy path. The quiver and the horn are
+	// deliberately NOT touched - they are worn, not held, and are not what anybody is tuning here.
+	if (MeleeMeshComponent && MeleeMeshComponent->GetStaticMesh())
+	{
+		MeleeMeshComponent->SetRelativeTransform(Offset);
+		++Moved;
+	}
+	if (RangedMeshComponent && RangedMeshComponent->GetStaticMesh())
+	{
+		RangedMeshComponent->SetRelativeTransform(Offset);
+		++Moved;
+	}
+
+	return Moved;
+}
+
+void UGSWeaponComponent::DebugReapplyOffsets()
+{
+	// Both paths, same reason as above: the person tuning should not have to know which one is live.
+	RefreshWeaponMeshPlacement();
+	ApplyACFWeaponOffsets();
 }
 
 void UGSWeaponComponent::HandleACFEquipmentChanged(const FEquipment& /*NewEquipment*/)

@@ -18,6 +18,19 @@ dated, citable list.
 
 ---
 
+## 2026-08-24 — Uriel is replaced by a Knight
+
+Michael, clearing the last of the ACF migration backlog: *"just replace him with a knight. Don't worry
+about the boss in the demo. We NEED to get moving on the actual demo."* Ticket #294.
+
+| # | Ruling | Consequence |
+|---|--------|-------------|
+| 60 | **Uriel A Plotexia is replaced by a Knight, and there is no bespoke boss character in the demo** | **Supersedes ruling 55**, which parked him in demo scope and told everyone to leave him alone. That was the right call while the demo was undefined; ruling 58 has since defined it as a straight raid - horn, horde, burn, bank, extract - which has no boss in it. `BP_KnightDPelegrini` already exists, is armoured, is on ACF as of #292 and was signed off in play. A second armoured human would be work with nothing behind it |
+| 61 | **`BP_UrielAPlotexia` is deleted rather than left dormant** | He was placed in **no level**, referenced by **no asset**, and spawned from **no code** - and he carried a live defect: **no `CharacterInitDataAsset` at all**, the same fault #275 found on the peasant, so his ACF stats would never have initialised. A dormant asset that is broken in a way nobody can see is a trap for whoever finds it next and assumes it works. Recoverable from git if he is ever wanted back |
+
+**What this does NOT decide:** that the demo has no climactic encounter. It decides there is no
+*bespoke character* for one. A Knight can be a boss.
+
 ## 2026-08-24 — the primary player experience is the bar
 
 Michael, closing #287 after finding a second axe on the scout's back and choosing not to chase it:

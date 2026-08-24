@@ -1190,6 +1190,62 @@ rule that is right while cutting toward a demo can be wrong for a shipping game,
 full of stray actors becomes a performance problem rather than a cosmetic one. Revisiting 59 is
 allowed; revisiting it quietly is not.
 
+## #294 closed UNOBSERVED, 2026-08-24 — Uriel is replaced by a Knight
+
+Rulings 60 and 61, superseding 55. Uriel is not a bespoke character any more: `BP_KnightDPelegrini`
+already exists, is armoured, is on ACF and has been seen in play, and ruling 58's straight raid has no
+boss in it. `BP_UrielAPlotexia` is **deleted** - placed in no level, referenced by no asset, spawned by
+no code, and carrying no `CharacterInitDataAsset`, so his ACF stats would never have initialised.
+
+**What is unproven:** nothing about behaviour, because nothing referenced him - there was no runtime
+change to watch. What could still be wrong is the DECISION, not the deletion: if the demo later wants a
+distinct final opponent, ruling 60 says use a Knight, and somebody may find that a Knight reads as
+"another guard" rather than as an ending. That is a design judgement nobody has tested, and the asset
+is recoverable from git.
+
+**One thing worth carrying forward:** `EditorAssetSubsystem.delete_asset` AND `delete_loaded_asset`
+both returned **True** while leaving the file on disk. Two APIs, two confident lies. Any future ticket
+deleting an asset should check the file system, not the return value.
+
+## #293 closed UNOBSERVED, 2026-08-24 — weapon placement has a loop now, and the wrong bow
+
+The weapon data asset is now the single source of truth for placement on BOTH paths. Until #293 the
+offset existed twice - in `UGSWeaponDataAsset`, and hand-copied onto each `BP_ACFWeapon_*` - so editing
+the data asset moved our mesh and did **nothing** to the weapon ACF was holding. `GS.Weapon.Dump` /
+`Set` / `Reapply` make it a change-look-change loop without leaving PIE.
+
+**What is unproven:** whether the loop is usable by the person it was built for. It was driven end to
+end from script and the round trip is real (Set moved the weapon, Reapply pulled the asset's value
+back), but nobody has tuned anything by eye with it.
+
+**GS_Bow_Only IS THE WRONG BOW MESH.** Michael, 2026-08-24: *"you're using the wrong bow. Stop playing
+with Erika and the bow."* Every stage of the ACF migration carried that asset forward faithfully and
+every transcription was correct - #289 onto the player, #292 onto Erika - and none of it mattered,
+because the asset itself is wrong. **Do not tune Erika's bow and do not assume `GS_Bow_Only` is the
+intended mesh for anybody.** Which bow is right is a question for Michael, not an investigation: three
+sessions of measuring agreeing with itself is exactly how this stayed invisible.
+
+## #295 closed UNOBSERVED, 2026-08-24 — stage 5 retires nothing, deliberately
+
+The ACF migration's final stage was to delete `UGSWeaponComponent`'s dead mesh path. **It removed no
+code, and that is the finding.** `BP_PeasantMan` (the bucket) and `BP_GS_TargetDummy` are still on the
+legacy path, and the quiver, torch and horn keep the rest of it alive. `RangedMeshComponent` is the
+only component with no live user, and deleting it would turn `bUseACFEquipment` into a switch with one
+position - the per-character rollback that made every stage independently revertable, and that proved
+Erika's bow was not a migration regression by running her on both paths and comparing.
+
+**Re-open it when** `BP_PeasantMan` and `BP_GS_TargetDummy` are on ACF and the bow question is settled.
+Both `MeleeMeshComponent` and `RangedMeshComponent` are genuinely unreachable at that point.
+
+**What is unproven:** that keeping it is right. This is a judgement that dead code is cheaper than a
+lost rollback, made while cutting toward a demo. If the legacy path starts causing confusion rather
+than just sitting there - two ways to place a weapon, one live - that trade has flipped and the ticket
+should be re-opened rather than argued with.
+
+**Also unproven and worth naming:** `GetActiveWeaponMesh()` is `BlueprintPure` with no C++ callers and
+returns null for an ACF-held weapon. If a Blueprint melee trace hangs off it, that has been silently
+degrading since #287 and nothing would log it. Nobody has checked.
+
 ## Accepted below the line under ruling 59 — running list
 
 Ruling 59 says below-the-line items are **recorded, not ignored**. This is that record. None of these

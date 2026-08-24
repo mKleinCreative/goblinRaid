@@ -210,11 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 291 | review (waiting on: "Michael: look at a summoned goblin. Ten of them now hold an ACF axe instead of ours, at the same 1.45 scale - but scale is the one thing a socket check cannot see.") | claude-warren | "ACF wheel migration stage 4: the horde goblins move onto ACF" | Content/Items/BP_ACFWeapon_GoblinAxe.uasset<br>Content/Blueprints/BP_HordeGoblin.uasset | none |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 90 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -468,7 +466,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 246 | done | claude-acf | Instrument: GS.AI.LogLocomotion, per-frame AI speed, to prove or refute the one-foot-step diagnosis |
 | 247 | done | claude-acf | Archer stutter: hold a range band instead of chasing a sliding point, and restore combat focus the shot task clears |
 | 248 | done | claude-acf | Erika reposition speed 1023 to 520 so she reaches the run clip instead of sliding 2.5x |
-| 249 | abandoned | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types |
+| 249 | done | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types |
 | 250 | done | claude-acf | Archer step 1: reposition speed to 200 and widen the hold band to 300-1400 |
 | 251 | done | claude-acf | Guards to 500 and the Idle-Walk deadband the guard data finally justifies |
 | 252 | abandoned | claude-corruption | Ruling: world corruption joins the slice (scope freeze amendment) |
@@ -510,6 +508,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 288 | done **UNOBSERVED** | claude-warren | "RULING: the primary player experience is the bar" |
 | 289 | done | claude-warren | "ACF wheel migration stage 3: the bow moves, the quiver does not" |
 | 290 | done | claude-warren | The torch goes in the main hand - the throw animation uses the right |
+| 291 | done | claude-warren | "ACF wheel migration stage 4: the horde goblins move onto ACF" |
+| 292 | done | claude-warren | ACF migration stage 4b: the defenders move onto ACF |
+| 293 | done **UNOBSERVED** | claude-warren | Weapon placement: the data asset drives the ACF weapon, and a live console loop to tune it by eye |
+| 294 | done **UNOBSERVED** | claude-warren | Uriel is replaced by a Knight in the prototype levels |
+| 295 | done **UNOBSERVED** | claude-warren | ACF migration stage 5: retire whatever of the mesh path is provably dead |
 
 <!-- BOARD:END -->
 
