@@ -18,6 +18,39 @@ dated, citable list.
 
 ---
 
+## 2026-08-24 — the primary player experience is the bar
+
+Michael, closing #287 after finding a second axe on the scout's back and choosing not to chase it:
+*"It doesn't bother the primary player and that's how we want to judge things from now on. Primary
+player experience."* Ticket #288.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 59 | **A defect is judged by what the PRIMARY PLAYER experiences.** If it does not reach the person holding the controller, it is not urgent - whatever it looks like in an outliner, a log or a details panel | This is a **triage rule, not a quality rule**. It does not license shipping things that are wrong; it decides what gets fixed *now*. A stray mesh nobody can see, a warning nobody reads and a value that is untidy but never observed are all below the line. A camera that lurches when you swing is above it |
+
+**Why this needed saying, and why now.** #287 produced both kinds in one session. The swinging axe
+blocking the camera probe was **above** the line - it happened to the player, every swing, and it was
+fixed immediately. The spare axe on the scout's back is **below** it: visible from a debug angle,
+invisible to the person playing. The old instinct was to treat both as defects because both are
+"wrong"; ruling 59 says only the first is a defect *today*.
+
+**How this interacts with the project's other rules, because it could be misread as loosening them.**
+
+- **It does not weaken "somebody must have WATCHED it run".** The opposite: the observation gate asks
+  what the thing *did*, and 59 says whose experience decides whether what it did matters. A ticket
+  still cannot close on a compile.
+- **It does not license silent breakage.** Ruling 53's warning stands - a migration that changes how
+  weapons feel has failed even if it equips - precisely *because* feel is primary-player experience.
+- **It does not make the below-the-line items disappear.** They are recorded, not ignored. The
+  difference between "accepted, with a reason" and "unnoticed" is the whole value of writing it down.
+
+**Recorded below the line as of today, and NOT to be fixed in passing:** the scout carries a visible
+second axe on his back while the primary weapon is drawn. Cause not investigated - Michael judged it
+not worth the time, which under 59 is the correct call. If it ever reaches the player - reflected in a
+cutscene, seen over the shoulder in a tighter camera - that is when it becomes work.
+
+---
+
 ## 2026-08-24 — sneaking comes out of the demo
 
 Michael, on being shown that the bucket brigade was deferred out of the slice as a consequence of

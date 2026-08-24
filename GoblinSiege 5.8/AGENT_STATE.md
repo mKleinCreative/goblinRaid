@@ -1174,3 +1174,18 @@ decided.
 consequences paragraph deferred it along with the well. The lesson is written into that ticket: "is
 this in scope?" is not answered by the IN column alone, because the prose removes things the table
 never mentions.
+
+## #288 closed UNOBSERVED, 2026-08-24 — the primary player experience is the bar
+
+Ruling 59: a defect is judged by what the primary player experiences. If it does not reach the person
+holding the controller it is not urgent, whatever it looks like in an outliner, a log or a details
+panel. **A triage rule, not a quality rule** - it decides what gets fixed now, it does not license
+shipping things that are wrong.
+
+**Recorded below the line and NOT to be fixed in passing:** the scout carries a visible second axe on
+his back while the primary weapon is drawn (#287). The cause was deliberately not investigated.
+
+**What is unproven:** whether this is the right bar for the whole project rather than for a demo. A
+rule that is right while cutting toward a demo can be wrong for a shipping game, where an outliner
+full of stray actors becomes a performance problem rather than a cosmetic one. Revisiting 59 is
+allowed; revisiting it quietly is not.

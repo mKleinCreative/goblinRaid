@@ -2,13 +2,13 @@
 id: 287
 title: "ACF wheel migration stage 2: the player's primary weapon moves onto ACF"
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-24T21:00Z
 build: required
 waiting_on: "Michael: re-check after the camera fix. Attack and watch the camera - it should no longer pull in mid-swing. Then the four visual checks in Evaluate."
-evaluated: 2026-08-24T21:07:48Z
-observed:
-scenario:
+evaluated: 2026-08-24T21:19:04Z
+observed: 2026-08-24T21:18:56Z | Michael swung the axe and the camera held its distance through the whole animation, where before it pulled in on every swing. The axe sits in his hand at the size it always did, vanishes off his back while the bow is out and comes back when he swaps - all of it now driven by ACF equipment rather than our mesh path, with nothing about the swap or the placement changing under him.
+scenario: Michael playing in PIE: attacking with the primary weapon, then swapping between primary, bow and torch.
 files: 
   - Source/GoblinSiege/Weapons/GSWeaponComponent.h
   - Source/GoblinSiege/Weapons/GSWeaponComponent.cpp
