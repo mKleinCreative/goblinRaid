@@ -18,6 +18,42 @@ dated, citable list.
 
 ---
 
+## 2026-08-24 — sneaking comes out of the demo
+
+Michael, on being shown that the bucket brigade was deferred out of the slice as a consequence of
+ruling 16: *"We might have to skip the sneaking portion of the demo all together."* Confirmed after
+seeing what it would cost. Ticket #285.
+
+**This reverses a "Never cut" line, which is the strongest commitment the GDD makes**, so it is
+recorded loudly rather than edited quietly.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 56 | **The crouch-and-confirm stealth core is CUT from the demo.** With it go noise, takedowns, corpse-suspicion and the coin toss - the whole sneaking portion | **Supersedes the §12.4 "Never cut" line**, which read *"the horn/horde · the three-objective destruction structure · the crouch-and-confirm stealth core · the runic-site banking loop · the score screen"*. The stealth core is removed from that list; the other four stand untouched |
+| 57 | **The bucket brigade stays DEFERRED** | It was already deferred as a stated consequence of ruling 16 - *"deferring the watchtower, bell and well removes three scoring lines from §10 and the bucket-brigade counterplay with them"*. Ruling 56 strengthens that rather than changing it: the brigade is counterplay to fire, and **fouling the well is the counter to the brigade**. Without the well, and now without the stealth verbs that make fouling interesting, the brigade would be a mechanic with no answer |
+| 58 | **The demo is a straight raid**: horn, horde, burn, bank, extract | What is left after 56 is exactly the part that already works and the part every other "Never cut" item protects |
+
+**Why this costs less than it looks.** §12.1 row 7 grades the stealth five as *"SPLIT - two built,
+three absent"*: the ~1.5s confirm and crouch detection are real and correct in `Stealth/`, but **the
+perception component sits on ZERO actors** - so like the interact framework before it, the stealth
+core exists in full and has **never executed**. Noise, takedown, corpse-suspicion and the coin toss
+have no code at all.
+
+So the sunk cost is two systems that have never run, and the saving is three-to-four systems that do
+not exist - including noise, which ruling 9 had made *"the next major item"*. **The stealth core is
+the only "Never cut" item that has never run on a single actor**, and that asymmetry is the argument.
+
+**This follows the GDD's own cut order to its end rather than inventing one.** §12.4 already carried
+*"Cut order if late blocks slip: self-looting civilians -> sheep & chickens -> coin toss ->
+corpse-suspicion -> takedowns"*. Ruling 56 goes one step past the end of that list. The document
+anticipated shedding stealth piece by piece under pressure; this takes the last step.
+
+**Not decided here.** Whether stealth returns for the full game. It is cut from the **demo**, in the
+same sense ruling 55 put Uriel there - a scope statement about this build, not a deletion of the
+design. The `Stealth/` code is not deleted and no ticket should delete it.
+
+---
+
 ## 2026-08-24 — the wheel goes to ACF, and Uriel goes to the demo
 
 Michael, asked to pick up the two things left open at the end of the finite-arrows work:

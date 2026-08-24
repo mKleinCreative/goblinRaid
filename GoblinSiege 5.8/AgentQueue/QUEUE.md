@@ -502,6 +502,7 @@ _Queue is empty. The build gate is OPEN._
 | 282 | done | claude-warren | Empty quiver must not draw the bow, and the starting quiver drops to 15 |
 | 283 | done **UNOBSERVED** | claude-warren | "RULING: the weapon wheel migrates onto ACF equipment; Uriel is demo scope, not prototype" |
 | 284 | done | claude-warren | The wheel slot is Primary, not Sword - the goblin holds an axe |
+| 285 | done **UNOBSERVED** | claude-warren | "RULING: sneaking is cut from the demo, and the bucket brigade stays deferred" |
 
 <!-- BOARD:END -->
 

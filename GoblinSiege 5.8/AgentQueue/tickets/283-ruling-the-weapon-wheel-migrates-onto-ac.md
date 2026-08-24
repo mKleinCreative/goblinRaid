@@ -64,3 +64,32 @@ is a separate call. The row says so.
 **A "what this does NOT authorise" paragraph was added** after drafting, because ruling 53 reads as
 broad permission and the thing most likely to go wrong is not the equipping - #270 already proved
 that works - but the visual and feel rules being treated as plumbing on the way past.
+
+
+---
+
+### CORRECTION, 2026-08-24 - the claim below about the bucket brigade was WRONG
+
+This ticket states:
+
+> **The bucket brigade is deliberately NOT a ruling.** Civilians are already IN the §12.4 freeze
+> (ruling 13) and NEXT already carries the brigade as blocked on `BT_Civilian`.
+
+**That is false.** I checked that civilians are IN and that `NEXT` carries the brigade, and stopped
+there. I did not read §12.4's *consequences* paragraph, which says in as many words:
+
+> *"Deferring the watchtower, bell and well **removes three scoring lines** from §10 and the
+> bucket-brigade counterplay with them."*
+
+So the brigade was **deferred out of the slice as a stated consequence of ruling 16**, not merely
+unbuilt. Building it would have reversed a live deferral without a ruling - exactly the thing this
+ticket was written to prevent for the weapon wheel, done wrong in the same ticket.
+
+**Caught before any brigade code was written**, by reading the GDD when the work actually started
+rather than trusting the summary written here. Superseded by **rulings 56-58 (#285)**, which leave the
+brigade deferred for a second and stronger reason: fouling the well is the counter to the brigade, and
+ruling 56 cuts the stealth verbs that make fouling interesting.
+
+**The lesson, recorded because it is cheap now and expensive later:** "is this in scope?" is not
+answered by the IN column alone. §12.4's prose carries consequences that remove things the table never
+mentions, and a scope claim that has only read the table is half a check.

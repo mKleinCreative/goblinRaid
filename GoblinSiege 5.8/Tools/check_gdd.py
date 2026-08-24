@@ -44,7 +44,11 @@ GDD_PATH = PROJECT_ROOT / "docs" / "goblin-siege-gdd.md"
 # Ids pinned by features.json. All 21 must survive any edit to the 12.1 table.
 EXPECTED_IDS = [str(n) for n in range(1, 21)] + ["5b"]
 EXPECTED_BLOCKS = list("ABCDEFGH")
-EXPECTED_NEVER_CUT = 5      # a wrapped line silently truncated this to 3 until 2026-08-19
+EXPECTED_NEVER_CUT = 4      # a wrapped line silently truncated this to 3 until 2026-08-19.
+                            # 5 -> 4 on 2026-08-24: ruling 56 (#285) cut the crouch-and-confirm
+                            # stealth core, the only item ever removed from that line. If this
+                            # number ever drops again, the ruling that did it must be named here -
+                            # a Never-cut list that shrinks without a paper trail is worth nothing.
 
 # Shipped, player-facing content. Drafts and traces are working files and are not gated.
 BANKED_CSVS = ["barks.csv", "prompts.csv", "whispers.csv"]

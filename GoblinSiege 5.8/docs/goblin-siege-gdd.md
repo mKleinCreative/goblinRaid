@@ -47,6 +47,7 @@ cost no code change and took the design document out of a tool's private folder.
 | v1.0 | 2026-08-19 | #198 | This file becomes canonical and moves to `docs/`. Reconciled against the live tree: grapple written in as a core verb, audio un-cut for world SFX, climb re-graded as Blueprint-driven, the `L_CombatArena` / `L_Tutorial_Island` divergence stated, §12.1 re-graded, §12.4 scope freeze added, §13 pointed at a real ledger. 23 rulings taken — see `docs/decisions-ledger.md`. |
 | v1.1 | 2026-08-21 | #252 | **World corruption added** — the land visibly turns as you raid. One global monotonic 0..1 scalar drives sky, fog, sun, grade, world materials, VFX and ambience. Added to the §12.4 IN column; §1 pillar reworded; the wayfinding consequence amended, since corruption is now what "the environment does the leading" actually means. Rulings 40–45. |
 | v1.2 | 2026-08-24 | #277 | **Finite arrows added** — the player carries a quiver that empties, refilled by walking over a bundle or a dead archer. Torches stay infinite and AI archers never run dry; weapons are not lootable. Added to the §12.4 IN column. Rulings 46-52. |
+| v1.3 | 2026-08-24 | #285 | **Sneaking cut from the demo.** The crouch-and-confirm stealth core, noise, takedowns, corpse-suspicion and the coin toss all leave the slice; the demo is a straight raid. **Removes the stealth core from the §12.4 "Never cut" line** - the only entry ever taken off it - and notes why in place. The bucket brigade stays deferred. Rulings 56-58. |
 | — | 2026-08-14 | #158 | Re-exported 168 → 272 lines; four-rung grading replaced "Scaffolded"; control map corrected; five live defects recorded |
 | — | 2026-08-04 | — | First export, describing what was *designed* rather than what was built |
 
@@ -424,7 +425,7 @@ three-column shape are pinned by `features.json` — see the parser contract at 
 | 5 | Third-person camera & control | **BUILT** |
 | 5b | Traversal — climb (Blueprint-driven) | **BUILT** — climb rebuilt over #070–#084 and signed off. `UGSClimbLibrary` has **zero C++ callers by design**: the climb lives in the player Blueprint calling it, so "no callers" is not "dead code". **Vault and mantle do not exist**, which leaves decision 41-a's vault-only horde depending on a verb the project has never had |
 | 6 | Horn & horde — summon, pool, follow/frenzy/orders | **WIRED** — summon, follow, frenzy and Attack orders work; Hold/Loot/Smash inert (§5). Pool is 20 (10 active × reserve 2), settled. The behaviour tree was found gutted on 2026-08-14 and repaired (#153) |
-| 7 | The stealth five | **SPLIT — two built, three absent.** The ~1.5s confirm and crouch detection are real and correct in `Stealth/`; **noise, takedown, corpse-suspicion and the coin toss have no code at all**. The perception component sits on **zero actors**. Noise is IN and is the next major item (ruling 9) |
+| 7 | The stealth five | **SPLIT — two built, three absent.** The ~1.5s confirm and crouch detection are real and correct in `Stealth/`; **noise, takedown, corpse-suspicion and the coin toss have no code at all**. The perception component sits on **zero actors** - which became the argument for ruling 56 (#285), that being the only "Never cut" item never to have run. **The whole sneaking portion is CUT from the demo as of 2026-08-24**; noise is no longer IN and ruling 9 is superseded. The `Stealth/` code stays in the tree |
 | 8 | Interact framework — hold-channel | **BELIEVED WIRED, UNOBSERVED** — was "MISSING and blocking" for eight days on the unset `InteractAction`. #161/#163/#172/#181/#187 landed the assignment, the first interactables, the channel ring and the focus prompt — **in `L_CombatArena` only**. Watch it before trusting this row in either direction (Block A) |
 | 9 | Breach set | **DEFERRED — tier-2** |
 | 10 | Wood economy | **DEFERRED — tier-2** |
@@ -458,14 +459,23 @@ move, H is last.
 
 ### 12.3 Honest scoping — the cut order
 
-**Cut for this slice:** bind/capture (2026-08-14) · **gore/gibs** (2026-08-19, ruling 15 — ragdoll
+**Cut for this slice:** **the whole sneaking portion** (2026-08-24, ruling 56 — crouch-and-confirm,
+noise, takedowns, corpse-suspicion, the coin toss) · bind/capture (2026-08-14) · **gore/gibs** (2026-08-19, ruling 15 — ragdoll
 covers it) · **bark VO** (text-only; world SFX is *not* cut, see §11) · per-raid map generation ·
 livestock beyond a single-species MVP.
 
 Cut order if late blocks slip: self-looting civilians → sheep & chickens → coin toss →
-corpse-suspicion → takedowns.
+corpse-suspicion → takedowns. **Ruling 56 took this list one step past its end**, cutting the
+stealth core the order stopped short of. What remains to shed under pressure is the first two.
 
-**Never cut:** the horn/horde · the three-objective destruction structure · the crouch-and-confirm stealth core · the runic-site banking loop · the score screen.
+**Never cut:** the horn/horde · the three-objective destruction structure · the runic-site banking loop · the score screen.
+
+> **The crouch-and-confirm stealth core was removed from this line on 2026-08-24 (ruling 56, #285).**
+> It is the only item that was ever taken off it. Recorded here rather than deleted silently, because
+> a "Never cut" list that quietly loses entries is worth nothing. The argument was that it is also the
+> only item on the list that had **never run on a single actor** - §12.1 row 7, the perception component
+> sits on zero actors - so the sunk cost was two systems that had never executed and the saving was
+> three that did not exist. Cut from the DEMO; the `Stealth/` code is not deleted.
 
 Team reality: solo dev (Michael) + AI agents. Post-slice roadmap: economy → co-op → the ladder
 (generator un-shelved) → the assassination mission.

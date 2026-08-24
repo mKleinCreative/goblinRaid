@@ -1153,3 +1153,24 @@ ability asking to un-ready, and the 0.15s anti-cancel swap lock.
 If the migration goes wrong, it will not go wrong by failing to equip. It will go wrong by equipping
 perfectly while the sword sits in the wrong place, or reappears mid-bow, or the swap starts feeling
 mushy - none of which a compile or a read-back can catch. **Watch the weapons, not the log.**
+
+## #285 closed UNOBSERVED, 2026-08-24 — sneaking is cut from the demo
+
+Rulings 56-58, GDD v1.3. The crouch-and-confirm stealth core, noise, takedowns, corpse-suspicion and
+the coin toss all leave the slice. **This removed an item from §12.4's "Never cut" line - the only
+time anything has ever come off it** - and the line now carries a blockquote saying so in place.
+The bucket brigade stays deferred. The demo is a straight raid: horn, horde, burn, bank, extract.
+
+**What is unproven:** whether cutting sneaking is right for the GAME. It was taken as a demo scope
+decision with the costs on the table - the stealth core is the only Never-cut item that had never run
+on a single actor (§12.1 row 7: the perception component sits on zero actors), so the sunk cost was
+two systems that never executed and the saving was three that do not exist.
+
+**Nothing is deleted.** `Stealth/`, the perception component and `BTTask_Firefight` all stay in the
+tree. No ticket should remove them. Whether stealth returns for the full game is explicitly not
+decided.
+
+**Also corrected here:** #283 claimed the bucket brigade needed no ruling, which was false - §12.4's
+consequences paragraph deferred it along with the well. The lesson is written into that ticket: "is
+this in scope?" is not answered by the IN column alone, because the prose removes things the table
+never mentions.
