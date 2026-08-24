@@ -212,9 +212,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 249 | review **STALE 48.4h** | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types | Config/DefaultEngine.ini<br>Content/Audio<br>.gitignore | none |
-| 252 | review (waiting on: Docs only, no build. Rulings 40-45 in the ledger + four GDD edits; check_gdd.py CLEAN 10/10. Needs Michael on one open question: do civilian kills corrupt the world as much as knights? features.json and the 12.1 row deliberately deferred to stage 6.) **STALE 45.0h** | claude-corruption | Ruling: world corruption joins the slice (scope freeze amendment) | docs/decisions-ledger.md<br>docs/goblin-siege-gdd.md<br>Tools/CodeArchitect/features.json | none |
-| 263 | review (waiting on: BUILT. Blow the horn and stand still - the band should settle into ranks of three behind you instead of crowding. Judge whether 220uu reads as the right distance.) | claude-acf | The horde crowds you because FollowSlot drives nothing: give each goblin a formation post behind the summoner | Source/GoblinSiege/Horde/GSHordeAIController.h<br>Source/GoblinSiege/Horde/GSHordeAIController.cpp<br>Content/AI/BB_HordeGoblin.uasset<br>Content/AI/BT_HordeGoblin.uasset | done |
+| 249 | review **STALE 49.1h** | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types | Config/DefaultEngine.ini<br>Content/Audio<br>.gitignore | none |
+| 252 | review (waiting on: Docs only, no build. Rulings 40-45 in the ledger + four GDD edits; check_gdd.py CLEAN 10/10. Needs Michael on one open question: do civilian kills corrupt the world as much as knights? features.json and the 12.1 row deliberately deferred to stage 6.) **STALE 45.8h** | claude-corruption | Ruling: world corruption joins the slice (scope freeze amendment) | docs/decisions-ledger.md<br>docs/goblin-siege-gdd.md<br>Tools/CodeArchitect/features.json | none |
+| 268 | review | claude-warren | The unarmed-goblin warning is a false diagnostic: it fires before AGSHordeGoblin equips itself, and has now caused two misdiagnoses | Source/GoblinSiege/Weapons/GSWeaponComponent.h<br>Source/GoblinSiege/Weapons/GSWeaponComponent.cpp<br>Source/GoblinSiege/Horde/GSHordeGoblin.cpp | none |
 
 **STALE - #249, #252 open longer than 2h.** Ask Michael whether each is
 still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
@@ -438,8 +438,8 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 211 | done **UNOBSERVED** | claude-statelog | Fold the traversal/dodge session into AGENT_STATE: two dodge systems, the Started pin, the horde follow competition, and what the UNOBSERVED closes leave unproven |
 | 212 | done **UNOBSERVED** | claude-hordetarget | BT_HordeGoblin's AcquireTarget service has bSelectTarget ON, so it overwrites the ordered target every rescan and the goblin flickers between attacking and following |
 | 213 | abandoned | claude-hordehold | Hold is unbuilt: BT_HordeGoblin has no branch reading OrderVerb, so a Hold order lands nowhere |
-| 214 | done **UNOBSERVED** | claude-acfphase1 | ACF Phase 1: reparent AGSAIControllerBase onto AACFAIController - moves the horde AND the defenders in one edit |
-| 215 | done **UNOBSERVED** | claude-acfentity | ACF 4.4.2 ships AACFBaseAIController implementing only 2 of IACFEntityInterface's 4 methods - supply the other two or nothing deriving from it can link |
+| 214 | done | claude-acfphase1 | ACF Phase 1: reparent AGSAIControllerBase onto AACFAIController - moves the horde AND the defenders in one edit |
+| 215 | done | claude-acfentity | ACF 4.4.2 ships AACFBaseAIController implementing only 2 of IACFEntityInterface's 4 methods - supply the other two or nothing deriving from it can link |
 | 216 | done **UNOBSERVED** | claude-attrruling | Record the Phase 2 attribute ruling: ACF AdvancedRPGSystem becomes the attribute owner, and what that puts at risk |
 | 217 | done | claude-acf | Silence per-frame GSDBG climb/LIP print spam in BP_GSPlayerCharacter |
 | 218 | done | claude-acf | Overflow attackers get a distinct outer-ring bearing instead of stacking |
@@ -456,7 +456,7 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 229 | done | claude-acf | ACF config debts: team manager + teams config, collisions master, ability set |
 | 230 | done **UNOBSERVED** | claude-acf | The Scout axe wears the old mesh offset: SM_WoodcutterAxe needs the sword convention |
 | 231 | done | claude-acf | ACF Phase 2b-3: stamina storage moves to ARS, GSStaminaComponent becomes policy |
-| 232 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-4: sprint and slows move to ACF locomotion states |
+| 232 | abandoned **UNOBSERVED** | claude-acf | ACF Phase 2b-4: sprint and slows move to ACF locomotion states |
 | 233 | done | claude-acf | GE_GSStatModifier: the missing effect that made every ACF statistic write a no-op |
 | 234 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-2a: port our damage rules into a UACFDamageCalculation subclass |
 | 235 | done **UNOBSERVED** | claude-acf | ACF Phase 2b-2b: GS damage types carrying our damage tags |
@@ -485,9 +485,11 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 260 | done | claude-acf | The holstered axe sits in the aim sightline: hide it while aiming |
 | 261 | done **UNOBSERVED** | claude-acf | Delete GetFireCooldownRemaining - its only caller was the draw gate removed in 258 |
 | 262 | done | claude-acf | GS.Horde.Slots and GS.Horde.KillSlot: make the follow-slot fix testable |
+| 263 | done | claude-acf | The horde crowds you because FollowSlot drives nothing: give each goblin a formation post behind the summoner |
 | 264 | done | claude-acf | An attack order becomes a place, not a person: arrive, sweep locally, engage whatever is nearest |
 | 265 | done | claude-warren | Horn summons from the gate until a Warren is down: arrival falls back to the runic site, not the treeline markers |
 | 266 | done | claude-warren | AGSWarren moves onto the shared loot bank component, so there is one banking implementation not two |
+| 267 | abandoned | claude-warren | Summoned horde goblins spawn with no EquippedWeapon again: no abilities granted, no ARS attributes, two ACF errors per goblin |
 
 <!-- BOARD:END -->
 

@@ -6,9 +6,9 @@ status: done
 claimed: 2026-08-20T21:31Z
 build: required
 waiting_on:
-evaluated: 2026-08-20T21:32:34Z
-observed: UNOBSERVED 2026-08-20T21:32:34Z - Written, never compiled - this ticket own claim shuts the build gate. The DEFECT is evidenced from ACF source (two of four interface methods defined, interface cpp empty) and from the verbatim LNK2001 output; the FIX has not been near a linker.
-scenario: none - never run
+evaluated: 2026-08-24T00:00:52Z
+observed: 2026-08-24T00:00:51Z | The two implementations ship and ACF-driven behaviour that would depend on them works: goblins hold formation posts behind the summoner (#263) and resolve attack orders as places, engaging what is nearest (#264), both watched by Michael. IsEntityAlive_Implementation and GetEntityExtentRadius_Implementation are present on AGSAIControllerBase, filling the half of IACFEntityInterface that ACF 4.4.2 declares but never defines. HONEST LIMIT: nothing in our code calls these two methods, so this is evidence that ACF targeting and spacing behave, not a direct read of either return value. If ACF consults them they work; if it never does, this removed a linker hazard and nothing more - and that distinction was not tested.
+scenario: Cumulative PIE across 2026-08-21 to 2026-08-23 in L_CombatArena with horn-summoned bands, editor build of 16:59 on 08-23.
 files: 
   - Source/GoblinSiege/AI/GSAIControllerBase.h
   - Source/GoblinSiege/AI/GSAIControllerBase.cpp
@@ -83,3 +83,21 @@ on this project the mesh is exactly the thing that does not match the collision 
 
 Wrote the ACF defect into the header rather than only this ticket, because the next person to derive
 anything from an ACF base class will meet it again and the ticket will not be read.
+
+
+### Post-build truth, 2026-08-23
+
+**BUILT.** The Evaluate above says "written, never compiled". Stale since 2026-08-21; the two
+implementations ship in the DLL of 2026-08-23 16:59.
+
+`IsEntityAlive_Implementation` and `GetEntityExtentRadius_Implementation` are both present on
+`AGSAIControllerBase`, re-checked in source, filling the half of `IACFEntityInterface` that ACF 4.4.2
+declares but does not define.
+
+**Honest limit on the observation:** nothing calls these two methods from our code, so the evidence
+is that ACF-driven targeting and spacing behave correctly - watched repeatedly via #263's formation
+posts and #264's attack orders - rather than a direct read of either method's return value. If ACF
+consults them at all, they are working; if ACF never consults them, this ticket removed a linker
+hazard and nothing more. That distinction was not tested.
+
+> 2026-08-24T00:00Z Evaluate refreshed post-build.

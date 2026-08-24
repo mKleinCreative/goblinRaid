@@ -41,6 +41,10 @@ AGSHordeGoblin::AGSHordeGoblin(const FObjectInitializer& ObjectInitializer)
 	// The same component the player and (since #097) the defenders carry. Without it a goblin cannot
 	// hold anything, which is why the whole warband has been swinging bare fists at armoured men.
 	WeaponComponent = CreateDefaultSubobject<UGSWeaponComponent>(TEXT("WeaponComponent"));
+	// This goblin equips DA_Weapon_HordeGoblin in its own BeginPlay, after the component's. Say so
+	// here, in the constructor, so the component does not report it unarmed in the meantime - a
+	// warning that has twice been read as a real defect and twice nearly cost a working asset.
+	WeaponComponent->bExpectsExternalEquip = true;
 
 	// The courier's hands (#141). See the header for the socket caveat. This is the component that
 	// makes NotifyCourierDelivered reachable at all - it has been written and callerless since #069.

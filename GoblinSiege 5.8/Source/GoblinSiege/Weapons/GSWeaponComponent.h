@@ -363,6 +363,28 @@ protected:
 	bool bSwapLocked = false;
 	bool bTorchReadied = false;
 	bool bHornRaised = false;
+
+public:
+	/**
+	 * "My owner arms me itself, later - do not complain that I start empty."
+	 *
+	 * AGSHordeGoblin equips DA_Weapon_HordeGoblin in its own BeginPlay, which runs AFTER this
+	 * component's. The null-EquippedWeapon warning below therefore fired on every single summoned
+	 * goblin and said they had no abilities and default attributes - and it was wrong every time.
+	 *
+	 * That false diagnostic has now caused TWO misdiagnoses (#144, #267): both times an agent read
+	 * the warning, concluded the warband was unarmed, and proposed editing a working Blueprint to
+	 * match it. #144 disproved it by reading EquippedWeapon off the live pawns in PIE, where every
+	 * goblin reported DA_Weapon_HordeGoblin. A diagnostic that is confidently wrong for a whole
+	 * class of pawn is worse than no diagnostic, because it manufactures work.
+	 *
+	 * Set in the OWNER'S CONSTRUCTOR, not BeginPlay - component BeginPlay runs first, so a flag set
+	 * any later would arrive after the check it exists to suppress.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "GoblinSiege|Weapon")
+	bool bExpectsExternalEquip = false;
+
+private:
 	int32 BloodOrbs = 0;
 	FTimerHandle SwapLockTimerHandle;
 

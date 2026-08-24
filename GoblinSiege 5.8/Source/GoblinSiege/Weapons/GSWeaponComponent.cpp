@@ -50,11 +50,22 @@ void UGSWeaponComponent::BeginPlay()
 		// It costs an afternoon because the symptom (no weapon, no abilities, default attributes)
 		// looks exactly like a broken socket or a bad mesh path. It is also the single most likely
 		// state for a freshly-made character Blueprint, which is why it is a Warning and not a Log.
-		UE_LOG(LogTemp, Warning,
-			TEXT("[GoblinSiege] %s has no EquippedWeapon data asset - no weapon meshes, no granted "
-				 "abilities, and no InitialAttributesEffect, so this character keeps the attribute "
-				 "set's constructor defaults (100/100/0). Assign one on the owning Blueprint."),
-			*GetNameSafe(GetOwner()));
+		if (bExpectsExternalEquip)
+		{
+			// Not a defect: this owner arms itself a moment from now. Still SAID, at Verbose, so
+			// that a genuinely broken external equip is not silent either.
+			UE_LOG(LogTemp, Verbose,
+				TEXT("[GoblinSiege] %s starts with no EquippedWeapon and expects its owner to equip "
+					 "it - this is normal for the horde."), *GetNameSafe(GetOwner()));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] %s has no EquippedWeapon data asset - no weapon meshes, no granted "
+					 "abilities, and no InitialAttributesEffect, so this character keeps the attribute "
+					 "set's constructor defaults (100/100/0). Assign one on the owning Blueprint."),
+				*GetNameSafe(GetOwner()));
+		}
 	}
 }
 

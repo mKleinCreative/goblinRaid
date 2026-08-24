@@ -6,9 +6,9 @@ status: done
 claimed: 2026-08-20T21:22Z
 build: required
 waiting_on:
-evaluated: 2026-08-20T21:23:57Z
-observed: UNOBSERVED 2026-08-20T21:24:35Z - Phase 1 reparent is WRITTEN and has never been near a compiler - this ticket own claim shuts the build gate. Nothing claimed about behaviour. Expect on first run: one ACFAILog Error per possessed pawn (ACF OnPossess bails on a non-AACFCharacter until Phase 2, harmless because our own OnPossess calls RunBehaviorTree), and a genuine movement change from ACF UCrowdFollowingComponent replacing the default path-following component.
-scenario: none - never run
+evaluated: 2026-08-24T00:00:36Z
+observed: 2026-08-24T00:00:14Z | The reparent is exercised continuously by watched horde behaviour rather than by a purpose-built test. AGSHordeAIController inherits AGSAIControllerBase, which inherits AACFAIController, so every observation of horde AI this session ran through the reparented controller: #263 - Michael watched summoned goblins hold formation posts behind him instead of crowding; #264 - he watched an attack order resolve as a place, goblins arriving and engaging what was nearest; #265 - seven goblins summoned, pathed out of a planted Warren and followed. Acquire, path, follow, order and engage have all been seen working on ACF controllers. NOT covered: no test isolated the reparent itself, so a latent ACF-side defect that our subclass happens to mask would not have been caught.
+scenario: Cumulative PIE across 2026-08-21 to 2026-08-23 in L_CombatArena, player pawn with horn-summoned bands, editor builds through 16:59 on 08-23.
 files: 
   - Source/GoblinSiege/AI/GSAIControllerBase.h
   - Source/GoblinSiege/AI/GSAIControllerBase.cpp
@@ -90,3 +90,19 @@ trivia.
 2026-08-19 ruling), which is where the attribute question bites — ACF ships `AdvancedRPGSystem` while
 we run stock GAS with `UGSAttributeSetBase`, and **two health pools is the failure mode to avoid**.
 That decision should be made deliberately and not inside a reparent.
+
+
+### Post-build truth, 2026-08-23
+
+**BUILT AND EXERCISED.** The Evaluate above says this "has never been near a compiler" and that its
+own claim shut the build gate. Both were true when written and are now stale.
+
+The reparent has compiled in every build since 2026-08-21 and shipped in the DLL of 2026-08-23 16:59.
+`AGSAIControllerBase : public AACFAIController` and `AGSHordeAIController : public AGSAIControllerBase`
+were re-checked in source, so the chain is real and not merely claimed.
+
+Behaviour evidence is cumulative rather than from one purpose-built test - see the observed field.
+**What that does not cover:** no test isolated the reparent, so an ACF-side defect our subclass
+happens to mask would not have surfaced.
+
+> 2026-08-24T00:00Z Evaluate refreshed post-build.

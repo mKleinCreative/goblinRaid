@@ -2,13 +2,13 @@
 id: 263
 title: The horde crowds you because FollowSlot drives nothing: give each goblin a formation post behind the summoner
 agent: claude-acf
-status: review
+status: done
 claimed: 2026-08-23T22:12Z
 build: done
 waiting_on: BUILT. Blow the horn and stand still - the band should settle into ranks of three behind you instead of crowding. Judge whether 220uu reads as the right distance.
 evaluated: 2026-08-23T22:21:00Z
-observed:
-scenario:
+observed: 2026-08-23T23:22:16Z | Michael played with a summoned band following him and reported that the goblins stopped crowding him - they hold formation posts behind the summoner instead of converging on his position, which is the behaviour this ticket set out to produce.
+scenario: PIE in L_CombatArena on the player pawn with a horn-summoned band, 2026-08-23, editor build of 16:09.
 files: 
   - Source/GoblinSiege/Horde/GSHordeAIController.h
   - Source/GoblinSiege/Horde/GSHordeAIController.cpp

@@ -2,7 +2,7 @@
 id: 232
 title: ACF Phase 2b-4: sprint and slows move to ACF locomotion states
 agent: claude-acf
-status: done
+status: abandoned
 claimed: 2026-08-21T03:56Z
 build: none
 waiting_on:
@@ -56,3 +56,5 @@ The ledger entry for ruling 27 already records how the slows must work when this
 multiplicative composition stays ours - carry x block x swing, which discrete states cannot express -
 and only the product crosses over, pushed into `SetLocomotionStateSpeed` per state. Nothing here
 changes that plan; it only moves when it happens.
+
+> 2026-08-23T23:53Z Marked abandoned on Michaels instruction 2026-08-23. Its own closing note says it was abandoned before any code was written, so done was the wrong state - nothing was delivered and nothing needs reverting. If sprint and slows on ACF locomotion states are still wanted, they need a fresh ticket.
