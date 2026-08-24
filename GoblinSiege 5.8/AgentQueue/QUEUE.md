@@ -212,14 +212,16 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 249 | review **STALE 49.1h** | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types | Config/DefaultEngine.ini<br>Content/Audio<br>.gitignore | none |
-| 252 | review (waiting on: Docs only, no build. Rulings 40-45 in the ledger + four GDD edits; check_gdd.py CLEAN 10/10. Needs Michael on one open question: do civilian kills corrupt the world as much as knights? features.json and the 12.1 row deliberately deferred to stage 6.) **STALE 45.8h** | claude-corruption | Ruling: world corruption joins the slice (scope freeze amendment) | docs/decisions-ledger.md<br>docs/goblin-siege-gdd.md<br>Tools/CodeArchitect/features.json | none |
-| 268 | review | claude-warren | The unarmed-goblin warning is a false diagnostic: it fires before AGSHordeGoblin equips itself, and has now caused two misdiagnoses | Source/GoblinSiege/Weapons/GSWeaponComponent.h<br>Source/GoblinSiege/Weapons/GSWeaponComponent.cpp<br>Source/GoblinSiege/Horde/GSHordeGoblin.cpp | none |
+| 249 | review **STALE 51.2h** | claude-audio | Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types | Config/DefaultEngine.ini<br>Content/Audio<br>.gitignore | none |
+| 252 | review (waiting on: Docs only, no build. Rulings 40-45 in the ledger + four GDD edits; check_gdd.py CLEAN 10/10. Needs Michael on one open question: do civilian kills corrupt the world as much as knights? features.json and the 12.1 row deliberately deferred to stage 6.) **STALE 47.9h** | claude-corruption | Ruling: world corruption joins the slice (scope freeze amendment) | docs/decisions-ledger.md<br>docs/goblin-siege-gdd.md<br>Tools/CodeArchitect/features.json | none |
+| 268 | review **STALE 2.2h** | claude-warren | The unarmed-goblin warning is a false diagnostic: it fires before AGSHordeGoblin equips itself, and has now caused two misdiagnoses | Source/GoblinSiege/Weapons/GSWeaponComponent.h<br>Source/GoblinSiege/Weapons/GSWeaponComponent.cpp<br>Source/GoblinSiege/Horde/GSHordeGoblin.cpp | none |
+| 269 | review **STALE 2.1h** | claude-warren | ACF Phase 3 scoping: we have carried an unused UACFEquipmentComponent since Phase 2a while UGSWeaponComponent does the same job | AgentQueue/tickets/SCOPING-ONLY | none |
+| 271 | review | claude-warren | ItemSlot gameplay tags so ACF equipment has slots to equip into | Source/GoblinSiege/Combat/GSGameplayTags.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp | required |
 
-**STALE - #249, #252 open longer than 2h.** Ask Michael whether each is
+**STALE - #249, #252, #268, #269 open longer than 2h.** Ask Michael whether each is
 still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
 
-**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 5 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -490,6 +492,7 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 265 | done | claude-warren | Horn summons from the gate until a Warren is down: arrival falls back to the runic site, not the treeline markers |
 | 266 | done | claude-warren | AGSWarren moves onto the shared loot bank component, so there is one banking implementation not two |
 | 267 | abandoned | claude-warren | Summoned horde goblins spawn with no EquippedWeapon again: no abilities granted, no ARS attributes, two ACF errors per goblin |
+| 270 | done | claude-warren | ACF Phase 3 stage 2: equip the goblin axe through ACF on one character, alongside the existing path |
 
 <!-- BOARD:END -->
 

@@ -60,4 +60,9 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Mill, "Marker.ObjectiveAnchor.Mill", "Where a windmill belongs - wants a flat, visible rise.");
 	// Optional (2.8).
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Marker_ObjectiveAnchor_Field, "Marker.ObjectiveAnchor.Field", "Where a wheat field belongs.");
+
+	// ---- ACF equipment slots ----
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemSlot_RightHand, "ItemSlot.RightHand", "ACF equipment slot for the weapon hand - the socket hand_r_weapon, where the axe and the sword go.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemSlot_LeftHand, "ItemSlot.LeftHand", "ACF equipment slot for the off hand - the socket hand_l_weapon, where a drawn bow goes.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemSlot_Back, "ItemSlot.Back", "ACF equipment slot for a sheathed weapon - the back_sword and back_bow holsters.");
 }

@@ -222,4 +222,20 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Mill);
 	// Optional (2.8).
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Marker_ObjectiveAnchor_Field);
+
+	// ---- ACF equipment slots -------------------------------------------------------------------
+	// ACF addresses equipment slots by GameplayTag, where this project has always used the
+	// EGSWeaponSlot enum. These exist so UACFEquipmentComponent has somewhere to put an item at
+	// all: AvailableEquipmentSlot is empty on every character in the project, which is why nothing
+	// can be equipped through ACF today.
+	//
+	// Declared in C++ rather than an ini because that is how all 45 tags here are declared - this
+	// project has no DefaultGameplayTags.ini. ACF's own config ships only "ItemSlot.ItemSlot",
+	// which is a category root and not a usable slot.
+	//
+	// Named for the SOCKETS they correspond to on GOB_Scout_v2_Skeleton, so the mapping stays
+	// obvious: RightHand is hand_r_weapon, LeftHand is hand_l_weapon, Back is the back_* holsters.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemSlot_RightHand);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemSlot_LeftHand);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemSlot_Back);
 }

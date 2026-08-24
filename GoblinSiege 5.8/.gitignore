@@ -60,6 +60,15 @@ Content/*
 # authored configuration, not imported art. None of it is re-downloadable.
 !Content/Audio/
 
+# 2026-08-24 (#270): a FOURTH instance of the same bug. Content/Items/ holds the ACF item and
+# weapon Blueprints - BP_Item_GoblinAxe and BP_ACFWeapon_GoblinAxe. These are not imported art;
+# they are the data half of the ACF equipment migration, and DA_Char_HordeGoblin (already tracked,
+# under the Content/Data negation above) points straight at BP_Item_GoblinAxe. Without this line a
+# clean checkout gets a character data asset referencing an item class that is not in the repo,
+# which fails as a goblin that silently spawns unarmed - the exact symptom #270 spent a session
+# chasing for a different reason.
+!Content/Items/
+
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.
 _MixamoStaging/
