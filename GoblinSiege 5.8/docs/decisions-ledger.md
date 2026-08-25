@@ -18,6 +18,30 @@ dated, citable list.
 
 ---
 
+## 2026-08-24 — atrocity corrupts faster than battle (world corruption, cont.)
+
+Michael, asked whether a civilian death should turn the land as much as a soldier's now that
+civilians actually exist (#275): **civilians count MORE.** Ticket #296. Continues the block of
+2026-08-21 (rulings 40–45) and closes the one question it deliberately left open.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 62 | **A civilian kill corrupts the world MORE than an armed defender's.** Killing the hamlet's people turns the land faster than beating its defence does | This is the first thing in the game that makes an **ugly choice a real one**. Under ruling 59 it is squarely primary-player experience — the sky is the feedback, and it rewards the player for something the fiction should make them feel. It also finally gives `GSCharacterBase.cpp:258` the *"real case"* its own comment has been asking for since rulings 13/14: the not-a-goblin-is-a-human test now has a second consumer that must tell a peasant from a militiaman, and the archetype or a `Civilian` tag is where that comes from — **not** a class-name string match |
+
+**What this does NOT decide.** The multiplier itself is a feel number, not a ruling — it starts as a
+cvar (`GS.Corruption.CivilianWeight`) and graduates onto `DA_Corruption_Default` once it is settled,
+per the project's tuning tiers. And it says nothing about **hostility**: the same comment at
+`GSCharacterBase.cpp:258` notes civilians are *"human by race but should not be hostile to anyone"*,
+which is a separate live defect this ruling neither fixes nor worsens.
+
+**A sizing consequence that follows from the 2026-08-23 roster ruling.** The kill term's soft knee
+was drafted at 12, sized against the finite 15-defender pool of ruling 19. The castle guards are
+Militia and *"there's just a decent amount of them"* — so the real body count in a full raid is
+higher than 15, and a knee of 12 saturates too early. The knee is re-sized when the term is built,
+against a counted roster rather than a remembered one.
+
+---
+
 ## 2026-08-24 — Uriel is replaced by a Knight
 
 Michael, clearing the last of the ACF migration backlog: *"just replace him with a knight. Don't worry
@@ -224,7 +248,7 @@ peasant is mis-authored; nobody has ruled, and this ledger will not guess.
 Michael, asked for *"a system where the environment as a whole will start to look more sinister, as if
 we're converting the land to Mordor as we burn objectives and kill humans in the area"*. The four
 shape decisions were taken in the same session: global rather than zoned or radial; all four visual
-layers; all four drivers; and monotonic. Ticket #252.
+layers; all four drivers; and monotonic. Tickets #252 (abandoned) and **#296** (re-filed).
 
 This is the first system the GDD acquires that exists to be *looked at* rather than played, and it
 lands against §12.4's scope freeze — hence a ruling before a line of code.
@@ -238,11 +262,10 @@ lands against §12.4's scope freeze — hence a ruling before a line of code.
 | 44 | **ACF contributes nothing here, and no ACF module joins `GoblinSiege.Build.cs`** | Swept all 48 modules: zero hits for `MaterialParameterCollection`, `SkyAtmosphere`, `ExponentialHeightFog`, `Weather`, `WorldState`, `Karma`. `UACFMoralityComponent` is a 70-line per-**player** unnormalised tag→float bag with no bands (and a live `INT32_MIN`-vs-float bug in `GetMoralityAlignment`); `UACFMusicComponent` is hardcoded to `EBattleState` and would log `Missing ACFGameState!` here because `AGSGameState` does not derive `AACFGameState`; `AACFAssaultPoint` has no progress float at all. Only `AscentSaveSystem` stays in view, and only if cross-raid persistence is ever wanted — see the note under ruling 45 |
 | 45 | **Corruption is per-raid. It does not persist between raids** | Keeps the canonical float on the subsystem, which is the clean home. Recorded because the constraint is not obvious: `IALSSavableInterface` is actor/component-shaped, so a `UWorldSubsystem` **cannot be saved by ALS** at all. If persistence is ever wanted, the canonical `UPROPERTY(SaveGame) float` has to move onto the director actor with the subsystem demoted to a query face — a refactor, not an addition |
 
-**Left open, deliberately — a question for Michael, not a ruling.** The race test is the one already
-in the tree (`GSCharacterBase.cpp`: *"Anything that is not a goblin is a human here"*). With civilians
-now IN (rulings 13/14), that means **a slaughtered peasant corrupts the world exactly as much as a
-knight**. That may well be right for a goblin raid — but nobody has decided it, and it is much better
-settled here than discovered the day civilians land.
+*The civilian question left open here was settled on 2026-08-24 — see ruling 62. Civilians count
+**more** than soldiers, not the same. The ticket authorising this block is **#296**; #252 was
+abandoned as bookkeeping on a stale session without its edits being reverted, which left canon
+citing a ticket that was not standing behind it.*
 
 ---
 

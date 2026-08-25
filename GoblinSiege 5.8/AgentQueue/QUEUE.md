@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 _Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: OPEN - and 90 finished ticket(s) asked for a build.**
+**BUILD GATE: OPEN - and 91 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -513,6 +513,12 @@ _Queue is empty. The build gate is OPEN._
 | 293 | done **UNOBSERVED** | claude-warren | Weapon placement: the data asset drives the ACF weapon, and a live console loop to tune it by eye |
 | 294 | done **UNOBSERVED** | claude-warren | Uriel is replaced by a Knight in the prototype levels |
 | 295 | done **UNOBSERVED** | claude-warren | ACF migration stage 5: retire whatever of the mesh path is provably dead |
+| 296 | done | claude-corruption | Re-file 252: the world corruption rulings, and civilians corrupt the land faster than soldiers do |
+| 297 | done | claude-audio | Horn pops: CC_GS_Signal max 1 denies the horn's own end sample mid-fade |
+| 298 | done | claude-audio | Audio: the variation cue layer - random containers with pitch/volume jitter over the pack waves |
+| 299 | done | claude-warren | Demo staging on L_Tutorial_Island: the seal, the gate, the resources |
+| 300 | done | claude-warren | Livestock become loot in place: MakeActorCarryable, animations untouched |
+| 301 | done | claude-audio | Audio reaches gameplay: loot containers get smash, break, loot and ignite sounds via Blueprint delegate binds |
 
 <!-- BOARD:END -->
 

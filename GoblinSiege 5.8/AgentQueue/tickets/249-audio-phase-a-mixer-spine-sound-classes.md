@@ -2,13 +2,13 @@
 id: 249
 title: Audio phase A: mixer spine - sound classes, submixes, attenuation, concurrency, surface types
 agent: claude-audio
-status: abandoned
+status: done
 claimed: 2026-08-21T22:55Z
 build: none
 waiting_on:
-evaluated: 2026-08-21T23:06:44Z
-observed:
-scenario:
+evaluated: 2026-08-24T22:47:18Z
+observed: 2026-08-24T22:47:28Z | In PIE the engine built the project master submix from our asset - log shows Creating Master Submix SM_GS_Master and SM_GS_Reverb on both runs. Music and the horn each sounded through their new sound classes, the horn carrying on the long logarithmic falloff. First run surfaced stale post-move package references as LoadErrors; after the fix the second run played both sounds with zero audio errors or warnings. Music ducking under the horn was NOT heard or measured - see the ticket.
+scenario: Editor restarted so DefaultEngine.ini took effect, PIE on L_CombatArena, music cue and horn loop spawned through the spine, log read for both runs.
 files: 
   - Config/DefaultEngine.ini
   - Content/Audio
@@ -188,3 +188,80 @@ but it is somebody else's, so I left it. Worth a glance - if it holds anything r
 fourth instance of the same bug.
 
 > 2026-08-24T02:18Z ICEBOXED by Michael 2026-08-23, not reverted - all work is committed in main. Handover with what is done and what is left: AgentQueue/ICEBOX.md. Status is abandoned only so it stops holding the build gate shut.
+
+### Post-restart pass (2026-08-24)
+
+**The spine is live, and there is runtime proof rather than an inference.** After the editor
+restart, `Saved/Logs/MyProject.log` shows, on both PIE runs:
+
+```
+LogAudioMixer: Display: Creating Master Submix 'SM_GS_Master'
+LogAudioMixer: Display: Creating Master Submix 'SM_GS_Reverb'
+```
+
+That is the engine reading the `[/Script/Engine.AudioSettings]` block and building the project's
+master submix out of our asset. `unreal.PhysicalSurface` now exposes `SURFACE_TYPE1..7`, confirming
+the `PhysicalSurfaces` block loaded too, and **`surface_type` is now assigned and read back on all 7
+`PM_GS_*` materials** (Dirt=1 … Metal=7, matching the ini order).
+
+**A real defect was found by running it, and it invalidates part of the first Evaluate.** The first
+PIE run logged:
+
+```
+LoadErrors: While trying to load package /Game/Audio/Mix/Classes/SC_GS_Music, a dependent package
+/Game/GoblinSiege/Audio/Mix/Submixes/SM_GS_Music was not available.
+```
+
+When the 48 assets were moved, the *saved packages* kept pointing at the pre-move paths. The
+post-move verification in this ticket passed because it re-read the objects through
+`unreal.load_asset`, **which returns the in-memory, already-fixed-up object** - so read-back
+confirmed something that was false on disk. This is precisely the "symbols exist ⇒ done" trap in a
+new costume, and it should be treated as a standing lesson: **after an asset move, read-back is not
+evidence. `AssetRegistry.get_dependencies()` is.**
+
+Fix: every cross-reference re-written and force-saved, then audited with a dependency scan across
+all 55 packages under `/Game/Audio` and `Bonus_Music`. That scan found **4 more stale refs that
+read-back had missed** - `SC_GS_Master`'s `child_classes` array, which had never been re-saved.
+After rebuilding and re-saving the whole class tree: **0 stale references**, old directory gone, and
+the second PIE run logged **no LoadErrors and no LogAudio warnings at all**.
+
+Also assigned `SC_GS_Music` to the two `Bonus_Music` cues, which is what phase F maps to
+`MusicCueByState`. Two vendor assets touched, deliberately; the other ~1050 remain untouched.
+
+**What is still NOT verified: the music ducking under the horn.** Music and the horn were both
+played through the spine in PIE (music on `SC_GS_Music` → `SM_GS_Music`, horn on `SC_GS_SFX_Signal`
+→ `SM_GS_Voice`, which is the compressor's key). An attempt to measure the duck objectively by
+recording `SM_GS_Music`'s output via `SoundSubmix.start_recording_output` / `stop_recording_output`
+**produced no file and no error** - cause undiagnosed, and the editor closed before it could be
+retried. So the compressor's settings (4:1, −22 dB, 250 ms) have never been heard or measured, and
+the phase A exit test as originally written is **unmet**. Nothing depends on it until phase F, when
+music actually plays in game and the swell/hysteresis work will exercise it properly - but it should
+be checked there rather than assumed to work.
+
+> 2026-08-24T22:47Z Reopened from abandoned: the work shipped and is committed. Spine confirmed live at runtime.
+
+### Duck CONFIRMED by ear, 2026-08-24 (supersedes the "not verified" note above)
+
+Michael listened on headphones in PIE on `L_CombatArena`: combat music looping through
+`SC_GS_Music` -> `SM_GS_Music`, horn triggered by hand on middle mouse through
+`SC_GS_SFX_Signal` -> `SM_GS_Voice`. **The music audibly dips under the horn.** So the compressor
+settings (COMPRESSOR, key = SM_GS_Voice, 4:1, -22 dB, attack 10 ms, release 250 ms) are heard, not
+assumed, and the phase A exit test is met. `SM_GS_Voice` doubling as the duck-key bus works.
+
+Two things surfaced getting there, both worth keeping:
+
+1. **The music "Loop" assets were not flagged looping.** `SW_Epic_Combat_Music_Loop` (81.6s) and
+   `SW_Tavern_Music_Loop` (83.6s) both had `looping = False` - the word "Loop" in the vendor's name
+   is about how the audio was rendered, not an asset flag. The first duck attempt failed silently
+   because the music component reported `is_playing` while producing nothing. **Both are now set
+   `looping = True` and assigned `SC_GS_Music`, saved and read back from disk.** Phase F would have
+   hit this: the track would have played once for 81 seconds and stopped.
+2. **The horn has a pre-existing pop**, unrelated to anything here - proven by A/B in ticket #297 by
+   stripping all routing off the horn waves and hearing it pop anyway. It belongs to phase C.
+
+Also worth recording: **two attempts to measure the duck programmatically both failed** -
+`SoundSubmix.start_recording_output` / `stop_recording_output` wrote no file and raised no error,
+and the envelope follower delegate (`OnSubmixEnvelopeBP.bind_callable`) fired steadily but returned
+2 channels of 0.0 on both `SM_GS_Music` and `SM_GS_Master` while audio was demonstrably playing.
+Neither is a usable instrument from Python in this build, so **audio verification here is by ear**
+until something better is found. Do not spend another session re-discovering that.
