@@ -3,6 +3,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
+#include "Combat/GSGameplayTags.h"
 
 UGSInteractableComponent::UGSInteractableComponent()
 {
@@ -82,6 +83,28 @@ void UGSInteractableComponent::SetAvailable(bool bNewAvailable)
 void UGSInteractableComponent::OnRep_IsAvailable()
 {
 	OnAvailabilityChanged.Broadcast(this, bIsAvailable);
+}
+
+void UGSInteractableComponent::InitialiseAsCarryable(int32 InLootValue, const FText& InPrompt,
+	float InChannelSeconds, const FVector& InInteractionOffset)
+{
+	// LIFTS THE INTERACTION POINT OFF THE FLOOR, and it is not cosmetic. UGSInteractionComponent
+	// line-of-sight traces from the eye to this point, and a decorative animal's actor origin sits
+	// exactly ON the terrain - so the trace hits Landscape ~15 uu short and the focus is refused,
+	// silently, on an actor whose every other field is correct. Measured on A_Pig_SitLoop7_5.
+	InteractionOffset = InInteractionOffset;
+
+	// Matched to BP_Livestock_Pig rather than invented, so a pig converted in place and an authored
+	// one behave identically.
+	VerbTag = GSTags::Interact_Carry;
+	LootValue = FMath::Max(0, InLootValue);
+	PromptText = InPrompt;
+	ChannelSeconds = FMath::Max(0.f, InChannelSeconds);
+	bIsCarryable = true;
+
+	// NOT consumed on completion: livestock is picked up and carried, not made to disappear. The
+	// component's default is true because it was written for chests.
+	bConsumeOnComplete = false;
 }
 
 void UGSInteractableComponent::NotifyChannelStarted(AActor* Interactor)

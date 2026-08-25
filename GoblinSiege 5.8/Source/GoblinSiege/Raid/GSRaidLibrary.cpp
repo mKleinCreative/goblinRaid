@@ -3,6 +3,7 @@
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Destruction/GSFlammableComponent.h"
 #include "Destruction/GSBreakableComponent.h"
+#include "Interaction/GSInteractableComponent.h"
 #include "Destruction/GSBurnFXComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagsManager.h"
@@ -168,6 +169,66 @@ UGSBreakableComponent* UGSRaidLibrary::MakeActorBreakable(AActor* Actor, bool bO
 
 	Actor->MarkPackageDirty();
 	return Comp;
+}
+
+UGSInteractableComponent* UGSRaidLibrary::MakeActorCarryable(AActor* Actor, int32 LootValue,
+	FText PromptText, float ChannelSeconds)
+{
+	if (!Actor)
+	{
+		return nullptr;
+	}
+
+	// Idempotent, and the guard matters more here than for flammable: these get run over whole herds
+	// by script, and a re-run must not give one pig two prompts.
+	if (UGSInteractableComponent* Existing = Actor->FindComponentByClass<UGSInteractableComponent>())
+	{
+		return Existing;
+	}
+
+	UGSInteractableComponent* Comp = NewObject<UGSInteractableComponent>(Actor,
+		UGSInteractableComponent::StaticClass(), TEXT("GSCarryable"), RF_Transactional);
+	if (!Comp)
+	{
+		return nullptr;
+	}
+
+	// AddInstanceComponent is the whole point - see the header.
+	Actor->AddInstanceComponent(Comp);
+	Comp->RegisterComponent();
+
+	// WHERE the player interacts with it, derived from the actor rather than guessed. A decorative
+	// animal's origin sits ON the terrain, and the interaction component's line-of-sight trace runs
+	// eye -> interaction point, so an origin-height point is blocked by the ground ~15 uu short and
+	// the focus is silently refused. Using the actor's bounds centre puts the point inside the body,
+	// which is right for a pig, a sheep and a chicken without anyone tuning three numbers.
+	FVector BoundsOrigin, BoundsExtent;
+	Actor->GetActorBounds(/*bOnlyCollidingComponents*/ true, BoundsOrigin, BoundsExtent);
+	const FVector LocalCentre = Actor->GetActorTransform().InverseTransformPosition(BoundsOrigin);
+
+	// The component configures itself - its authored fields are protected, and one initialiser called
+	// once at dressing time is the only moment any of them should change.
+	Comp->InitialiseAsCarryable(LootValue, PromptText, ChannelSeconds, LocalCentre);
+
+	Actor->MarkPackageDirty();
+	return Comp;
+}
+
+int32 UGSRaidLibrary::CountCarryable(const TArray<AActor*>& Actors)
+{
+	int32 Count = 0;
+	for (const AActor* Actor : Actors)
+	{
+		if (const UGSInteractableComponent* Comp =
+			Actor ? Actor->FindComponentByClass<UGSInteractableComponent>() : nullptr)
+		{
+			if (Comp->IsCarryable())
+			{
+				++Count;
+			}
+		}
+	}
+	return Count;
 }
 
 int32 UGSRaidLibrary::CountBreakable(const TArray<AActor*>& Actors)

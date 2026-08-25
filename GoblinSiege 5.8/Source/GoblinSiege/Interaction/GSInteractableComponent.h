@@ -27,6 +27,20 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	/**
+	 * Configure a component that was just bolted onto an existing level actor at edit time.
+	 *
+	 * EXISTS BECAUSE THE FIELDS BELOW ARE PROTECTED, and deliberately kept that way: they are
+	 * per-instance authored data, and a public setter for each would invite runtime code to
+	 * reconfigure an interactable halfway through a channel. One initialiser, called once, at
+	 * dressing time, says what this is - which is the only moment any of it should change.
+	 *
+	 * Used by UGSRaidLibrary::MakeActorCarryable to turn a level's decorative livestock into loot
+	 * without replacing the actor or disturbing its animation.
+	 */
+	void InitialiseAsCarryable(int32 InLootValue, const FText& InPrompt, float InChannelSeconds,
+		const FVector& InInteractionOffset);
+
 	/** Eligibility as the interactable sees it: available, and nobody else already mid-channel on
 	 *  me. Range and facing are the interactor's half (UGSInteractionComponent) - deliberately not
 	 *  duplicated here. Override in Blueprint for verb-specific gates, e.g. a takedown that only

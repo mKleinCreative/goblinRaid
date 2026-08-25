@@ -31,6 +31,7 @@ class AGSBurnObjectiveBase;
 class AGSRaidMarker;
 class UGSFlammableComponent;
 class UGSBreakableComponent;
+class UGSInteractableComponent;
 
 UCLASS()
 class GOBLINSIEGE_API UGSRaidLibrary : public UBlueprintFunctionLibrary
@@ -119,6 +120,34 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
 	static int32 CountBreakable(const TArray<AActor*>& Actors);
+
+	/**
+	 * Make an actor that ALREADY EXISTS in a level carryable loot, without replacing it.
+	 *
+	 * WHY IN PLACE RATHER THAN SWAPPED FOR A BLUEPRINT: Tutorial Island is dressed with 46
+	 * `A_Pig_*` actors that are plain SkeletalMeshActors playing A_Pig_Eat / SitLoop / SleepLoop as
+	 * single-node animations. They look exactly like livestock and are not - no interactable, no
+	 * loot value - so the player walks up to a pig and nothing happens, which reads as the pickup
+	 * being broken rather than as that pig being scenery. Michael hit this in play.
+	 *
+	 * Swapping each one for BP_Livestock_Pig would work and would throw away the dressing: the
+	 * per-instance animation, the pose variety, the placement. This adds the component and touches
+	 * NOTHING else, so the pig goes on eating and can now be picked up.
+	 *
+	 * Same AddInstanceComponent reason as MakeActorFlammable and MakeActorBreakable - see above.
+	 * A component added any other way from Python vanishes on the next level load.
+	 *
+	 * LootValue follows GDD 10: pig 40, sheep 25, chicken 10. Passing 0 is legal and means "carryable
+	 * but worth nothing" - the component's own rule is that zero value is NOT loot.
+	 *
+	 * Idempotent: returns the existing component rather than stacking a second one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
+	static UGSInteractableComponent* MakeActorCarryable(AActor* Actor, int32 LootValue,
+		FText PromptText, float ChannelSeconds = 1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Raid|Scripting")
+	static int32 CountCarryable(const TArray<AActor*>& Actors);
 
 	/**
 	 * Damage every breakable prop inside a swing arc. Returns how many were hit.
