@@ -23,6 +23,25 @@ void UGSTopplableComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(UGSTopplableComponent, bToppled);
 }
 
+bool UGSTopplableComponent::WardReaches(const FVector& Spot) const
+{
+	if (bWardsEntireLevel)
+	{
+		return true;
+	}
+
+	const AActor* Monument = GetOwner();
+	if (!Monument || WardRadius <= 0.f)
+	{
+		return false;
+	}
+
+	// 2D, deliberately. A monument in a graveyard below the hamlet it guards would otherwise let the
+	// player climb the slope and plant a gate 900 uu away on the map but "outside" the ward purely on
+	// height.
+	return FVector::DistSquared2D(Monument->GetActorLocation(), Spot) <= FMath::Square(WardRadius);
+}
+
 UGeometryCollectionComponent* UGSTopplableComponent::ResolveCollection() const
 {
 	AActor* Owner = GetOwner();

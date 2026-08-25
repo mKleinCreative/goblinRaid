@@ -42,6 +42,27 @@ against a counted roster rather than a remembered one.
 
 ---
 
+## 2026-08-25 — the objective set, and what the portal waits for
+
+Michael, defining the raid's win condition in his own words: *"The objective we need to complete, is to
+burn down a percentage of houses, the market stalls, the Statue and the field. Everything else is
+optional, but the prompt to leave doesn't come back unless you've completed those missions, or you've
+ran out of lives."* Ticket #305.
+
+| # | Ruling | Consequence |
+|---|--------|-------------|
+| 63 | **The required set is: a PERCENTAGE of houses, the market stalls, the statue, and the field. Everything else is optional** | The mill was placed, tagged and required, so it would have held the portal shut after everything Michael asked for was already done. It is now Optional: it still lists, still burns, still scores, and never gates |
+| 64 | **A type completes at a FRACTION of its carriers, not at the first one. Supersedes ruling Q-32 (2026-07-31)** | Q-32 said the first carrier of a type to burn demotes every sibling to Optional. That was right when a type meant "the mill" - one building, one objective - and wrong for 67 houses, where it meant a single cottage satisfied them all. The demotion pass now fires when the threshold is met. Types with no fraction still need one carrier, so the market and the field are unchanged |
+| 65 | **A percentage rather than a flat count, because the count would visibly lie** | Michael, having played it: *"some of the village houses count as multiple pieces. it's strange... which is why I don't want a firm number, because it'd look strange."* Two village houses are each split into two objectives, one per storey - residue of the multi-storey split `InteriorNameFilters` was written to fix. "Burn 8 houses" is a number the player can watch be wrong; a fraction absorbs it |
+| 66 | **The statue is a required objective, satisfied by TOPPLING** | It counted for nothing: the raid director only ever swept `AGSBurnObjectiveBase`, and `AGSObjective_ToppleStatue` hard-casts to `AGSDestructibleObjective`, which completes by **burning** - so its total stayed 0 and its condition was true on the first broadcast. Monuments are now swept separately and satisfy their type through `OnToppled` |
+
+**The house fraction is 0.4**, calibrated against the fire spread landed in #304: one well-placed torch
+completes 23 of the island's 67 houses, so 40% (27) needs a second fire or the outliers. It rewards
+choosing where to light rather than counting doors, and it is one number to change.
+
+**What this does NOT decide:** how the player is told. "The prompt to leave doesn't come back" implies
+a prompt; nothing renders one yet.
+
 ## 2026-08-24 — Uriel is replaced by a Knight
 
 Michael, clearing the last of the ACF migration backlog: *"just replace him with a knight. Don't worry

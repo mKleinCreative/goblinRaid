@@ -171,6 +171,14 @@ void UGSFlammableComponent::BurnTick()
 	}
 }
 
+void UGSFlammableComponent::SetSpreadRadius(float NewRadius)
+{
+	if (NewRadius > 0.f)
+	{
+		SpreadRadius = NewRadius;
+	}
+}
+
 void UGSFlammableComponent::TrySpread()
 {
 	AActor* Owner = GetOwner();

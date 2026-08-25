@@ -14,6 +14,7 @@
 #include "GSWarrenPlacementComponent.generated.h"
 
 class AGSWarren;
+class UGSTopplableComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UStaticMesh;
@@ -28,7 +29,8 @@ enum class EGSWarrenPlacementBlock : uint8
 	NoGround        UMETA(DisplayName = "Nothing to plant it in"),
 	GroundTooSteep  UMETA(DisplayName = "Ground too steep"),
 	Obstructed      UMETA(DisplayName = "Mouth is blocked"),
-	OnCooldown      UMETA(DisplayName = "Still digging out the last one")
+	OnCooldown      UMETA(DisplayName = "Still digging out the last one"),
+	WardedByStatue  UMETA(DisplayName = "A standing statue wards this ground")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnWarrenPlacementChanged, bool, bPlacing, EGSWarrenPlacementBlock, Block);
@@ -188,6 +190,24 @@ private:
 	void ApplyGhostMaterial(bool bValid);
 
 	void SetBlockReason(EGSWarrenPlacementBlock NewReason);
+
+	/**
+	 * Every warding monument in the level, gathered when T goes down.
+	 *
+	 * GATHERED PER PRESS, not per tick and not once at BeginPlay. Per tick would walk all 9,000+
+	 * actors of Tutorial Island every frame the ghost is up; once at BeginPlay would miss a monument
+	 * spawned later and, worse, would go stale in exactly the case that matters - a statue toppled
+	 * mid-raid. A press is the right grain: the set cannot meaningfully change while the key is held.
+	 */
+	void RefreshWards();
+
+	/** The monument warding this spot, or null. Returns the component so the caller can log WHICH
+	 *  statue refused - "you cannot plant here" with no cause is the bug this whole enum exists to
+	 *  avoid. */
+	const UGSTopplableComponent* FindWardBlocking(const FVector& Spot) const;
+
+	UPROPERTY(Transient)
+	TArray<TWeakObjectPtr<UGSTopplableComponent>> Wards;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> GhostComponent;

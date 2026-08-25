@@ -32,6 +32,7 @@
 #include "GSRaidDirector.generated.h"
 
 class AGSBurnObjectiveBase;
+class UGSTopplableComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnRaidEnded, EGSRaidResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnRaidObjectivesComplete);
@@ -48,8 +49,16 @@ struct FGSObjectiveTypeBucket
 {
 	TArray<TWeakObjectPtr<AGSBurnObjectiveBase>> Carriers;
 
-	/** True once ANY carrier of this type has completed. Terminal - a type is never un-won. */
+	/** True once ENOUGH carriers of this type have completed. Terminal - a type is never un-won. */
 	bool bTypeComplete = false;
+
+	/** How many carriers of this type have completed. Counted rather than inferred, because a
+	 *  carrier destroyed mid-raid would otherwise silently reduce the tally that already satisfied
+	 *  the type. */
+	int32 CompletedCount = 0;
+
+	/** How many are needed. Resolved once at registration from the director's fractions. */
+	int32 RequiredCount = 1;
 };
 
 UCLASS(Config = Game)
@@ -58,6 +67,8 @@ class GOBLINSIEGE_API UGSRaidDirector : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
+	UGSRaidDirector();
+
 	// ------------------------------------------------------------------ lifecycle
 
 	/** Game and PIE only - UE spins up editor, preview and thumbnail worlds constantly and none of
@@ -178,6 +189,35 @@ protected:
 	UPROPERTY(Config, EditDefaultsOnly, Category = "GoblinSiege|Raid|Tuning")
 	bool bAutoBeginMissionObjectives = true;
 
+	/**
+	 * What FRACTION of a type's carriers must burn before the type counts, keyed by type tag.
+	 *
+	 * SUPERSEDES RULING Q-32 (2026-07-31), which said the first carrier of a type to burn demotes
+	 * every sibling to Optional. That was right when a type meant "the mill" or "the market" - one
+	 * building, one objective. It is wrong for houses: Michael, 2026-08-25, wants "a percentage of
+	 * houses", and under Q-32 burning a single cottage satisfied all 67.
+	 *
+	 * A PERCENTAGE RATHER THAN A COUNT, and the reason is visible in play: two of Tutorial Island's
+	 * village houses are each split into two objectives (one per storey), so "burn 8 houses" is a
+	 * number the player can watch be wrong. A fraction absorbs that.
+	 *
+	 * Types absent from this map need ONE carrier, which is the old behaviour - so the market, the
+	 * field and every future one-of-a-kind objective are unaffected and need no entry.
+	 */
+	UPROPERTY(Config, EditDefaultsOnly, Category = "GoblinSiege|Raid|Tuning")
+	TMap<FGameplayTag, float> TypeCompletionFraction;
+
+	/**
+	 * Types that register, list and score but never gate the win.
+	 *
+	 * The mill lives here. Michael listed the required set as "a percentage of houses, the market
+	 * stalls, the Statue and the field. Everything else is optional" - and the mill is placed and
+	 * tagged, so without this it would silently keep the portal shut after everything he asked for
+	 * was done.
+	 */
+	UPROPERTY(Config, EditDefaultsOnly, Category = "GoblinSiege|Raid|Tuning")
+	TSet<FGameplayTag> OptionalTypes;
+
 	// ------------------------------------------------------------------ state
 
 	/** Registration order, which is the order the HUD lists them in. Weak so a destroyed carrier
@@ -185,6 +225,17 @@ protected:
 	TArray<TWeakObjectPtr<AGSBurnObjectiveBase>> TrackedCarriers;
 
 	TMap<FGameplayTag, FGSObjectiveTypeBucket> BucketsByType;
+
+	/** Toppleable monuments that satisfy a type when they fall, grouped by that type. Kept apart from
+	 *  BucketsByType::Carriers because a monument is not an AGSBurnObjectiveBase and never will be -
+	 *  it is not burned, it is pulled over. */
+	TMap<FGameplayTag, TArray<TWeakObjectPtr<UGSTopplableComponent>>> MonumentsByType;
+
+	/** Any monument fell. Recounts every monument type rather than trusting the argument, because
+	 *  FGSOnToppled carries the TOPPLER, not the monument - so the broadcast cannot say which one it
+	 *  came from. Recounting is O(monuments) and happens at most once per statue in a raid. */
+	UFUNCTION()
+	void HandleMonumentToppled(AActor* Toppler);
 
 	/** One entry per DISTINCT type tag placed in the level. */
 	TSet<FGameplayTag> RequiredTypes;

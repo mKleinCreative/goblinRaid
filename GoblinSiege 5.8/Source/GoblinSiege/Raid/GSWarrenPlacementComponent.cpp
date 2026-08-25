@@ -1,6 +1,7 @@
 #include "Raid/GSWarrenPlacementComponent.h"
 
 #include "Raid/GSWarren.h"
+#include "Destruction/GSTopplableComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -79,6 +80,7 @@ void UGSWarrenPlacementComponent::BeginPlacement()
 	}
 
 	bPlacing = true;
+	RefreshWards();
 	SetComponentTickEnabled(true);
 	EnsureGhost();
 	ShowGhost(true);
@@ -288,6 +290,23 @@ bool UGSWarrenPlacementComponent::EvaluateSpot(FVector& OutLocation, FRotator& O
 		return false;
 	}
 
+	// THE STATUE WARDS THIS GROUND. Michael's rule: while the monument stands you cannot summon a
+	// gate inside the ground it protects - casting it down is the price of opening a portal here.
+	//
+	// Checked alongside the cooldown rather than with the ground tests, because it is the same KIND
+	// of refusal: the spot is fine, the world says no. The ghost turns red and stays red while the
+	// statue stands, so the player reads the rule off the world instead of pressing a dead key.
+	if (const UGSTopplableComponent* Ward = FindWardBlocking(OutLocation))
+	{
+		UE_LOG(LogTemp, Verbose,
+			TEXT("[GoblinSiege] Warren placement refused - '%s' still stands and seals %s."),
+			*GetNameSafe(Ward->GetOwner()),
+			Ward->bWardsEntireLevel ? TEXT("the whole land")
+									: *FString::Printf(TEXT("%.0f uu around it"), Ward->WardRadius));
+		SetBlockReason(EGSWarrenPlacementBlock::WardedByStatue);
+		return false;
+	}
+
 	const float SlopeDegrees = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(
 		static_cast<float>(FVector::DotProduct(Hit.ImpactNormal, FVector::UpVector)), -1.f, 1.f)));
 	if (SlopeDegrees > MaxGroundSlopeDegrees)
@@ -322,6 +341,47 @@ bool UGSWarrenPlacementComponent::EvaluateSpot(FVector& OutLocation, FRotator& O
 
 	SetBlockReason(EGSWarrenPlacementBlock::None);
 	return true;
+}
+
+void UGSWarrenPlacementComponent::RefreshWards()
+{
+	Wards.Reset();
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		if (UGSTopplableComponent* Topplable = It->FindComponentByClass<UGSTopplableComponent>())
+		{
+			// Store every topplable, warding or not - IsWarding() is asked at test time, so a statue
+			// toppled while the key is held stops warding immediately rather than at the next press.
+			Wards.Add(Topplable);
+		}
+	}
+}
+
+const UGSTopplableComponent* UGSWarrenPlacementComponent::FindWardBlocking(const FVector& Spot) const
+{
+	for (const TWeakObjectPtr<UGSTopplableComponent>& Weak : Wards)
+	{
+		const UGSTopplableComponent* Ward = Weak.Get();
+		if (!Ward || !Ward->IsWarding())
+		{
+			continue;
+		}
+
+		// The monument answers for its own reach - a global ward reaches everywhere, a radius ward
+		// measures. Asked rather than computed here so the two cannot drift apart.
+		if (Ward->WardReaches(Spot))
+		{
+			return Ward;
+		}
+	}
+	return nullptr;
 }
 
 void UGSWarrenPlacementComponent::SetBlockReason(EGSWarrenPlacementBlock NewReason)

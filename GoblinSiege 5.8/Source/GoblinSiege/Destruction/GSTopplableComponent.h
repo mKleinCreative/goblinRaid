@@ -63,6 +63,38 @@ public:
 	bool IsToppled() const { return bToppled; }
 
 	/**
+	 * While this monument STANDS, no portal may be summoned in the land it seals.
+	 *
+	 * Michael's fiction is the rule: "the seal that prevents chaos magic from happening IN THE LAND".
+	 * Not in a circle around itself - in the land. So the default is bWardsEntireLevel, and a standing
+	 * warded monument refuses Warren placement anywhere on the map. Casting it down is what opens the
+	 * ground to a gate, wherever the player chooses to plant it.
+	 *
+	 * THE FIRST VERSION WAS A RADIUS AND IT WAS USELESS, which is worth writing down rather than
+	 * quietly replacing: the statue sits 12,475 uu from the player's spawn and the ward was 6,000, so
+	 * the player could plant a gate at spawn without ever walking to the statue and the whole opening
+	 * beat was decorative. A rule that the player can trivially stand outside is not a rule.
+	 *
+	 * WardRadius survives for levels with several shrines, where "this one guards the mill" is a real
+	 * distinction. It is only consulted when bWardsEntireLevel is false.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Topple|Ward")
+	bool bWardsEntireLevel = true;
+
+	/** Only used when bWardsEntireLevel is false. 0 wards nothing. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Topple|Ward",
+		meta = (ClampMin = "0.0", EditCondition = "!bWardsEntireLevel"))
+	float WardRadius = 0.f;
+
+	/** True while this monument is standing AND seals anything at all. The one question the placement
+	 *  rule asks; kept here so the rule cannot drift from the component that owns the state. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Topple|Ward")
+	bool IsWarding() const { return !bToppled && (bWardsEntireLevel || WardRadius > 0.f); }
+
+	/** Does this monument's ward reach Spot? Global wards reach everywhere. */
+	bool WardReaches(const FVector& Spot) const;
+
+	/**
 	 * Stand it back up. The exact inverse of Topple(), for testing.
 	 *
 	 * A monument comes down ONCE, which is right for the game and miserable for iteration: every retry
@@ -81,6 +113,24 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Topple")
 	FGSOnToppled OnToppled;
+
+	/**
+	 * Which win-condition type this monument satisfies when it falls. Invalid means it counts for
+	 * nothing, which is right for scenery.
+	 *
+	 * EXISTS BECAUSE THE STATUE COUNTED FOR NOTHING. Michael, 2026-08-25, named the required set as
+	 * "a percentage of houses, the market stalls, the Statue and the field" - and the raid director
+	 * only ever swept AGSBurnObjectiveBase, so the statue could be hauled down to no effect at all on
+	 * the win. AGSObjective_ToppleStatue looks like the answer and is not: it hard-casts to
+	 * AGSDestructibleObjective, which completes by BURNING, so its total stayed 0 and its condition
+	 * was true on the first broadcast.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Topple|Objective")
+	FGameplayTag ObjectiveTypeTag;
+
+	/** The type this monument satisfies, or an invalid tag. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Topple|Objective")
+	FGameplayTag GetObjectiveTypeTag() const { return ObjectiveTypeTag; }
 
 protected:
 	/**

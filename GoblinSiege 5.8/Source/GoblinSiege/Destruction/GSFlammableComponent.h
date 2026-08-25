@@ -33,6 +33,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Fire")
 	bool IsBurning() const { return bIsBurning; }
 
+	/**
+	 * Override how far this thing can throw fire. 0 or less is ignored.
+	 *
+	 * Exists so AGSBuildingObjective can give its adopted pieces a village-sized reach without
+	 * changing this component's own 450uu default, which is correct for the loose flammables it was
+	 * tuned against. A setter rather than making SpreadRadius public: this is authored data, and the
+	 * one legitimate moment to change it is when a building adopts the piece.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Fire|Spread")
+	void SetSpreadRadius(float NewRadius);
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Fire")
 	bool HasBurnedDown() const { return bBurnedDown; }
 

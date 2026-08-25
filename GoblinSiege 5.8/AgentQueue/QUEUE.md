@@ -210,9 +210,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 305 | review (waiting on: Michael: burn 27 houses + market + field + statue and confirm the portal opens.) | claude-warren | The objective set: a percentage of houses, the statue counts, the mill does not | Source/GoblinSiege/Raid/GSRaidDirector.h<br>Source/GoblinSiege/Raid/GSRaidDirector.cpp<br>Source/GoblinSiege/Destruction/GSTopplableComponent.h<br>Source/GoblinSiege/Destruction/GSTopplableComponent.cpp<br>Content/Maps/L_Tutorial_Island.umap<br>docs/decisions-ledger.md<br>Config/DefaultGame.ini<br>Config/DefaultGameplayTags.ini | required |
 
-**BUILD GATE: OPEN - and 91 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -519,6 +521,9 @@ _Queue is empty. The build gate is OPEN._
 | 299 | done | claude-warren | Demo staging on L_Tutorial_Island: the seal, the gate, the resources |
 | 300 | done | claude-warren | Livestock become loot in place: MakeActorCarryable, animations untouched |
 | 301 | done | claude-audio | Audio reaches gameplay: loot containers get smash, break, loot and ignite sounds via Blueprint delegate binds |
+| 302 | done | claude-warren | "The statue wards the ground: no portal while it stands" |
+| 303 | done | claude-warren | Goblins steal cargo off each other and are eaten as couriers |
+| 304 | done | claude-warren | Fire jumps between houses: building-to-building spread |
 
 <!-- BOARD:END -->
 

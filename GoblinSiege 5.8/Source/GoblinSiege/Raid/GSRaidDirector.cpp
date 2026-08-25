@@ -1,5 +1,7 @@
 #include "Raid/GSRaidDirector.h"
 #include "Destruction/GSBurnObjectiveBase.h"
+#include "Destruction/GSTopplableComponent.h"
+#include "Combat/GSGameplayTags.h"
 #include "Missions/GSMissionObjective.h"
 #include "Core/GSGameState.h"
 #include "Engine/World.h"
@@ -8,6 +10,28 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGSRaid, Log, All);
 
 // ====================================================================== lifecycle
+
+UGSRaidDirector::UGSRaidDirector()
+{
+	// SEEDED HERE, NOT IN DefaultGame.ini, and that is a correction rather than a preference.
+	// The ini form was written first and silently parsed to nothing - a TMap keyed by FGameplayTag
+	// and a TSet of them are both finicky to express in config, and the failure is invisible: the
+	// section loads, the properties stay empty, and the raid quietly keeps the pre-#305 rules. It was
+	// caught by reading the CDO back rather than by trusting the file.
+	//
+	// The properties remain Config, so an ini override still wins if anyone writes a working one.
+	// These are the defaults, in native tags that cannot be mistyped.
+
+	// Michael, 2026-08-25: "burn down a percentage of houses". 0.4 of 67 houses is 27, calibrated
+	// against #304's fire spread - one well-placed torch completes 23, so 40% needs a second fire or
+	// the outliers rather than rewarding a single lucky light.
+	TypeCompletionFraction.Add(GSTags::Objective_Burn_House, 0.4f);
+
+	// "...the market stalls, the Statue and the field. Everything else is optional." The mill is
+	// placed and tagged, so without this line it would keep the portal shut after everything he
+	// asked for was already done.
+	OptionalTypes.Add(GSTags::Objective_Burn_Mill);
+}
 
 bool UGSRaidDirector::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -55,6 +79,42 @@ void UGSRaidDirector::OnWorldBeginPlay(UWorld& InWorld)
 	for (TActorIterator<AGSBurnObjectiveBase> It(&InWorld); It; ++It)
 	{
 		RegisterCarrier(*It);
+	}
+
+	// ---- 1b. Monuments. A statue is not burned, it is pulled over - so it is swept separately and
+	// satisfies its type through OnToppled rather than through the burn delegate.
+	for (TActorIterator<AActor> It(&InWorld); It; ++It)
+	{
+		UGSTopplableComponent* Topplable = It->FindComponentByClass<UGSTopplableComponent>();
+		if (!Topplable)
+		{
+			continue;
+		}
+
+		const FGameplayTag MonumentType = Topplable->GetObjectiveTypeTag();
+		if (!MonumentType.IsValid())
+		{
+			continue;   // scenery: a monument that counts for nothing is a legitimate thing to place
+		}
+
+		MonumentsByType.FindOrAdd(MonumentType).Add(Topplable);
+
+		if (!OptionalTypes.Contains(MonumentType))
+		{
+			RequiredTypes.Add(MonumentType);
+		}
+
+		FGSObjectiveTypeBucket& Bucket = BucketsByType.FindOrAdd(MonumentType);
+		const float* MonumentFraction = TypeCompletionFraction.Find(MonumentType);
+		const int32 MonumentCount = MonumentsByType[MonumentType].Num();
+		Bucket.RequiredCount = MonumentFraction
+			? FMath::Max(1, FMath::CeilToInt(*MonumentFraction * MonumentCount))
+			: 1;
+
+		Topplable->OnToppled.AddDynamic(this, &UGSRaidDirector::HandleMonumentToppled);
+
+		UE_LOG(LogGSRaid, Log, TEXT("[GoblinSiege] Monument '%s' counts toward %s (%d needed)."),
+			*It->GetName(), *MonumentType.ToString(), Bucket.RequiredCount);
 	}
 
 	if (RequiredTypes.Num() == 0)
@@ -180,7 +240,21 @@ void UGSRaidDirector::RegisterCarrier(AGSBurnObjectiveBase* Carrier)
 
 	FGSObjectiveTypeBucket& Bucket = BucketsByType.FindOrAdd(TypeTag);
 	Bucket.Carriers.Add(Carrier);
-	RequiredTypes.Add(TypeTag);
+
+	// OPTIONAL TYPES REGISTER BUT DO NOT GATE. They still list, still burn and still score - they
+	// simply never appear in RequiredTypes, so the portal does not wait on them.
+	if (!OptionalTypes.Contains(TypeTag))
+	{
+		RequiredTypes.Add(TypeTag);
+	}
+
+	// How many of this type are needed. Recomputed on every registration because carriers arrive one
+	// at a time and the denominator is only correct once they all have - a fraction resolved on the
+	// first carrier would demand ceil(0.4 * 1) = 1 house.
+	const float* Fraction = TypeCompletionFraction.Find(TypeTag);
+	Bucket.RequiredCount = Fraction
+		? FMath::Max(1, FMath::CeilToInt(*Fraction * Bucket.Carriers.Num()))
+		: 1;
 
 	Carrier->OnBurnObjectiveCompleted.AddDynamic(this, &UGSRaidDirector::HandleCarrierCompleted);
 
@@ -250,10 +324,24 @@ void UGSRaidDirector::HandleCarrierCompleted(AGSBurnObjectiveBase* Objective)
 		return;
 	}
 
-	const bool bFirstOfType = !Bucket->bTypeComplete;
-	Bucket->bTypeComplete = true;
+	// COUNT FIRST, THEN DECIDE. Under Q-32 the first carrier flipped the type outright; a fraction
+	// needs a tally, and the tally has to survive a carrier being destroyed mid-raid.
+	++Bucket->CompletedCount;
 
-	if (bFirstOfType)
+	const bool bJustSatisfied = !Bucket->bTypeComplete
+		&& Bucket->CompletedCount >= Bucket->RequiredCount;
+
+	UE_LOG(LogGSRaid, Log, TEXT("[GoblinSiege] '%s' burned: %s now %d/%d.%s"),
+		*Objective->GetName(), *TypeTag.ToString(),
+		Bucket->CompletedCount, Bucket->RequiredCount,
+		bJustSatisfied ? TEXT(" TYPE SATISFIED.") : TEXT(""));
+
+	if (bJustSatisfied)
+	{
+		Bucket->bTypeComplete = true;
+	}
+
+	if (bJustSatisfied)
 	{
 		// THE DEMOTION PASS (Q-32, ruled 2026-07-31). The first carrier of a type to burn drops
 		// every sibling of that type from Required to Optional - they are still burnable and still
@@ -313,6 +401,51 @@ void UGSRaidDirector::EvaluateWinCondition()
 		TEXT("[GoblinSiege] All %d objective type(s) burned - the portal opens."), RequiredTypes.Num());
 
 	OnRaidObjectivesComplete.Broadcast();
+}
+
+void UGSRaidDirector::HandleMonumentToppled(AActor* /*Toppler*/)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	// RECOUNT rather than increment. FGSOnToppled carries the TOPPLER, not the monument, so this
+	// broadcast cannot say which statue it came from - and a blind ++ would double-count if two
+	// monuments of a type fell, or miscount after a GS.Topple.ResetAll.
+	for (const TPair<FGameplayTag, TArray<TWeakObjectPtr<UGSTopplableComponent>>>& Pair : MonumentsByType)
+	{
+		FGSObjectiveTypeBucket* Bucket = BucketsByType.Find(Pair.Key);
+		if (!Bucket)
+		{
+			continue;
+		}
+
+		int32 Down = 0;
+		for (const TWeakObjectPtr<UGSTopplableComponent>& Weak : Pair.Value)
+		{
+			if (const UGSTopplableComponent* Monument = Weak.Get())
+			{
+				Down += Monument->IsToppled() ? 1 : 0;
+			}
+		}
+
+		if (Down == Bucket->CompletedCount)
+		{
+			continue;
+		}
+		Bucket->CompletedCount = Down;
+
+		if (!Bucket->bTypeComplete && Down >= Bucket->RequiredCount)
+		{
+			Bucket->bTypeComplete = true;
+			UE_LOG(LogGSRaid, Log,
+				TEXT("[GoblinSiege] %s satisfied - %d of %d monument(s) cast down."),
+				*Pair.Key.ToString(), Down, Bucket->RequiredCount);
+		}
+	}
+
+	EvaluateWinCondition();
 }
 
 int32 UGSRaidDirector::GetCompletedTypeCount() const

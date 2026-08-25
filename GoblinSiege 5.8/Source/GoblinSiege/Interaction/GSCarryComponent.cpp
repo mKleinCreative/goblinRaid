@@ -76,9 +76,38 @@ void UGSCarryComponent::DestroyCarried()
 	}
 }
 
+bool UGSCarryComponent::IsActorCarried(const AActor* Object)
+{
+	if (!IsValid(Object))
+	{
+		return false;
+	}
+
+	// Asked of the ATTACH PARENT rather than by searching the world: carrying is expressed as an
+	// attachment, so the carrier is exactly one hop away and there is nothing to iterate. A parent
+	// that has a carry component but is holding something else is not carrying THIS - which is the
+	// case that a bare "am I attached to a pawn" test would get wrong.
+	if (const AActor* Parent = Object->GetAttachParentActor())
+	{
+		if (const UGSCarryComponent* Carrier = Parent->FindComponentByClass<UGSCarryComponent>())
+		{
+			return Carrier->GetCarriedActor() == Object;
+		}
+	}
+	return false;
+}
+
 bool UGSCarryComponent::StartCarry(AActor* Object)
 {
 	if (!IsValid(Object) || IsCarrying() || !IsValid(GetOwner()))
+	{
+		return false;
+	}
+
+	// SOMEBODY ELSE HAS IT. Refusing here rather than in the behaviour tree because the invariant
+	// belongs to carrying itself - one object, one carrier - and a rule enforced in one BT task is a
+	// rule the next caller will not know about.
+	if (IsActorCarried(Object))
 	{
 		return false;
 	}

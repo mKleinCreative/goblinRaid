@@ -218,6 +218,24 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
 	float AlarmOnIgnite = 15.f;
 
+	/**
+	 * Spread radius handed to every piece this building adopts. 0 leaves the component's own default.
+	 *
+	 * WHY BUILDINGS GET THEIR OWN NUMBER: UGSFlammableComponent defaults to 450uu, which is right for
+	 * a fence catching a haycart and far too short for a village. Measured on Tutorial Island, the
+	 * nearest PIECE-to-piece gap between neighbouring village houses has a median of 745uu - so at
+	 * 450 only about a third of houses can ever reach a neighbour, and a torched village stops at the
+	 * first gap. At 1200 one torch took 21 of the village's 36 houses in 90 seconds and the fire
+	 * travelled 88 metres, which is the picture Michael asked for: "it'd be quicker to burn house
+	 * blocks".
+	 *
+	 * Deliberately NOT a change to the component's default - fences, haycarts and market stalls keep
+	 * the tighter 450/600 they were tuned with, so raising the reach of houses cannot silently turn
+	 * every hedgerow into a 12-metre firebomb.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning", meta = (ClampMin = "0.0"))
+	float PieceSpreadRadius = 1200.f;
+
 	// ------------------------------------------------------------------ visuals
 	//
 	// A house that burns invisibly is a house that did not burn, as far as the player is concerned.

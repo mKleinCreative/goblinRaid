@@ -33,6 +33,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Carry")
 	bool StartCarry(AActor* Object);
 
+	/**
+	 * Is this actor already on somebody's back?
+	 *
+	 * EXISTS BECAUSE STARTCARRY ONLY ASKED "AM I CARRYING", NEVER "IS IT CARRIED". Every goblin under
+	 * one Loot order shares an OrderSubject, so the second to reach the sack took it off the first:
+	 * the thief re-parented it, the victim kept a stale CarriedActor and therefore still reported
+	 * IsCarrying(), walked to the delivery point, delivered nothing, and was consumed as a courier
+	 * anyway. Five goblins were eaten for one pig, and the loot arrived unbanked.
+	 *
+	 * It looked like a feature - a warband relaying loot down a line - which is why it survived a
+	 * play session and a ticket before anyone counted the couriers.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Carry")
+	static bool IsActorCarried(const AActor* Object);
+
 	/** Sets the object down in front of the carrier. Returns whatever was dropped, so the caller can
 	 *  hand it straight to an extraction point. SERVER ONLY, same reasoning as StartCarry. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Carry")

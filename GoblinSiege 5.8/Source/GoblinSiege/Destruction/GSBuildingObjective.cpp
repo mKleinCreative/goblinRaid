@@ -263,6 +263,14 @@ void AGSBuildingObjective::EnsurePiecesFlammable()
 
 		if (Flam)
 		{
+			// Give the piece this building's reach. Applied to pieces that ALREADY had a flammable
+			// component too, not just ones we just created - a stall or cart standing inside the
+			// adopt radius is part of this house as far as fire is concerned.
+			if (PieceSpreadRadius > 0.f)
+			{
+				Flam->SetSpreadRadius(PieceSpreadRadius);
+			}
+
 			Flam->OnBurnedDown.AddDynamic(this, &AGSBuildingObjective::HandlePieceBurnedDown);
 			Flam->OnIgnited.AddDynamic(this, &AGSBuildingObjective::HandlePieceIgnited);
 			PieceFlammables.Add(Flam);
