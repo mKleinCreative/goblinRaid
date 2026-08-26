@@ -212,9 +212,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 179 | review **STALE 121.6h** | claude-anchortags | Marker.ObjectiveAnchor.Statue added, .Granary retired (GDD 156 roster) - WRITTEN, staged for the next build window | Source/GoblinSiege/Combat/GSGameplayTags.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp | required |
-| 189 | review **STALE 100.9h** | claude-statuerename | Rename the granary objective: AGSObjective_BurnGranaries -> AGSObjective_ToppleStatue, Objective.Granary -> Objective.Statue, with CoreRedirects - WRITTEN, needs build | Source/GoblinSiege/Missions/GSObjective_BurnGranaries.h<br>Source/GoblinSiege/Missions/GSObjective_BurnGranaries.cpp<br>Source/GoblinSiege/Destruction/GSDestructibleObjective.h<br>Source/GoblinSiege/Destruction/GSDestructibleObjective.cpp<br>Config/DefaultEngine.ini | required |
-| 190 | review **STALE 100.8h** | claude-statuerename | Supplement to 189 - comment-only cross-references to the renamed class in three files missed by that claim | Source/GoblinSiege/Missions/GSObjective_KillLandlord.h<br>Source/GoblinSiege/Missions/GSObjective_KillLandlord.cpp<br>Source/GoblinSiege/AI/GSSpawnerActor.cpp | none |
+| 179 | review **STALE 193.9h** | claude-anchortags | Marker.ObjectiveAnchor.Statue added, .Granary retired (GDD 156 roster) - WRITTEN, staged for the next build window | Source/GoblinSiege/Combat/GSGameplayTags.h<br>Source/GoblinSiege/Combat/GSGameplayTags.cpp | required |
+| 189 | review **STALE 173.1h** | claude-statuerename | Rename the granary objective: AGSObjective_BurnGranaries -> AGSObjective_ToppleStatue, Objective.Granary -> Objective.Statue, with CoreRedirects - WRITTEN, needs build | Source/GoblinSiege/Missions/GSObjective_BurnGranaries.h<br>Source/GoblinSiege/Missions/GSObjective_BurnGranaries.cpp<br>Source/GoblinSiege/Destruction/GSDestructibleObjective.h<br>Source/GoblinSiege/Destruction/GSDestructibleObjective.cpp<br>Config/DefaultEngine.ini | required |
+| 190 | review **STALE 173.1h** | claude-statuerename | Supplement to 189 - comment-only cross-references to the renamed class in three files missed by that claim | Source/GoblinSiege/Missions/GSObjective_KillLandlord.h<br>Source/GoblinSiege/Missions/GSObjective_KillLandlord.cpp<br>Source/GoblinSiege/AI/GSSpawnerActor.cpp | none |
 
 **STALE - #179, #189, #190 open longer than 2h.** Ask Michael whether each is
 still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
@@ -387,6 +387,10 @@ still live before doing anything about it. Run `gsqueue.ps1 list` for the wordin
 | 200 | done | claude-housevariant | Move selected House_4 actors into their own outliner folder |
 | 201 | done | claude-housevariant | Re-sync house outliner folders to current actor positions after user edits |
 | 202 | done | claude-housevariant | Merge each house into one static mesh asset for manual FBX export |
+| 203 | done | claude-housetower | House_3 + attached 4-story tower in L_LevelGen_Scratch_2 |
+| 204 | done | claude-housetower | Supplement to #203 - fix missing window glazing on House_3_Tower |
+| 205 | done | claude-housetower | Supplement to #203/#204 - close the wall-bottom V-notch gap at each tower story seam |
+| 206 | done | claude-housetower | Supplement to #205 - stack tower stories directly, trim on the wall-to-wall junction |
 
 <!-- BOARD:END -->
 
