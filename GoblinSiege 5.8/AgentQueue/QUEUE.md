@@ -212,11 +212,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 309 | review (waiting on: NEVER COMPILED - build gate closed on 306 and 308. Needs an editor-closed build (3 new UCLASS types, so Live Coding cannot do it), then PIE in L_CombatArena: GS.Corruption.Set 1 and watch the sky and grade travel from blown-out to gritty. Both grade ends are EditAnywhere on the director for Michael to tune by eye.) **STALE 2.3h** | claude-corruption | World corruption 1/6 - the scalar, the sky, and a two-ended post-process grade from blown-out to gritty | Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDirector.h<br>Source/GoblinSiege/World/GSCorruptionDirector.cpp<br>Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp<br>Config/DefaultGame.ini | none |
-| 310 | review (waiting on: Michael: 306 must close before the textures can be wired into WBP_GSPlayerHUD. Nothing is on screen yet.) | claude-ui | The generated HUD art gets real alpha and comes into the project | Content/UI/Textures | none |
-| 311 | active | claude-ui | M opens the objective board, with a seam for the map it becomes | Source/GoblinSiege/Characters/GSPlayerCharacter.h<br>Source/GoblinSiege/Characters/GSPlayerCharacter.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Content/UI/WBP_GSPlayerHUD.uasset<br>Content/Input/IMC_Default.uasset<br>Content/Input/IA_Map.uasset | required |
+| 312 | review (waiting on: BUILT CLEAN 2026-08-25 18:52 (exit 0, 53s, zero errors; only pre-existing C4996 AbilityTags warnings in GSGA_Block/GSGA_Interact). NOT YET OBSERVED - needs Michael in PIE: GS.Burn.IgniteAll, then GS.Corruption.Dump repeatedly and watch the objective term climb and the sky darken with nobody touching GS.Corruption.Set.) | claude-corruption | World corruption 2/6 - objectives, destruction, clock and horde presence drive the scalar | Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp<br>Source/GoblinSiege/Destruction/GSBreakableComponent.cpp<br>Source/GoblinSiege/Destruction/GSTopplableComponent.cpp<br>Source/GoblinSiege/Destruction/GSFlammableComponent.cpp<br>Source/GoblinSiege/Raid/GSScoreSubsystem.h<br>Source/GoblinSiege/Raid/GSScoreSubsystem.cpp | none |
+| 313 | blocked | claude-ui | L_Tutorial_Island onto World Partition, objective actors always loaded | Content/Maps/L_Tutorial_Island.umap<br>Content/Maps/__ExternalActors__ | required |
 
-**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -530,6 +529,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 306 | done | claude-ui | The statue joins the objective list, and completing one says so |
 | 307 | done | claude-warren | The forest closes the map: an impassable treeline along the drawn boundary |
 | 308 | done | claude-warren | Goblins hate water: past waist deep you drown |
+| 309 | done | claude-corruption | World corruption 1/6 - the scalar, the sky, and a two-ended post-process grade from blown-out to gritty |
+| 310 | done | claude-ui | The generated HUD art gets real alpha and comes into the project |
+| 311 | done | claude-ui | M opens the objective board, with a seam for the map it becomes |
 
 <!-- BOARD:END -->
 

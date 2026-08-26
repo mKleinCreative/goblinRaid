@@ -2,13 +2,13 @@
 id: 309
 title: World corruption 1/6 - the scalar, the sky, and a two-ended post-process grade from blown-out to gritty
 agent: claude-corruption
-status: review
+status: done
 claimed: 2026-08-25T22:59Z
 build: none
 waiting_on: NEVER COMPILED - build gate closed on 306 and 308. Needs an editor-closed build (3 new UCLASS types, so Live Coding cannot do it), then PIE in L_CombatArena: GS.Corruption.Set 1 and watch the sky and grade travel from blown-out to gritty. Both grade ends are EditAnywhere on the director for Michael to tune by eye.
-evaluated: 2026-08-25T23:08:44Z
-observed:
-scenario:
+evaluated: 2026-08-26T01:33:11Z
+observed: 2026-08-26T01:32:58Z | Set the corruption scalar and watched the sky and colour grade shift from blown-out toward gritty
+scenario: PIE, GS.Corruption.Set 1
 files: 
   - Source/GoblinSiege/World/GSCorruptionSubsystem.h
   - Source/GoblinSiege/World/GSCorruptionSubsystem.cpp

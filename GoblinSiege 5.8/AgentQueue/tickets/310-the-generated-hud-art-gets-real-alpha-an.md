@@ -2,13 +2,13 @@
 id: 310
 title: The generated HUD art gets real alpha and comes into the project
 agent: claude-ui
-status: review
+status: done
 claimed: 2026-08-25T23:43Z
 build: none
 waiting_on: Michael: 306 must close before the textures can be wired into WBP_GSPlayerHUD. Nothing is on screen yet.
-evaluated: 2026-08-26T00:03:40Z
-observed:
-scenario:
+evaluated: 2026-08-26T01:42:55Z
+observed: 2026-08-26T01:42:54Z | The wooden HUD art drew in game at the right scale - bars, clock, objective board and prompts - with no transparent gaps in the metal
+scenario: PIE raid on L_Tutorial_Island, played through with the HUD up
 files: 
   - Content/UI/Textures
 ---
@@ -16,24 +16,6 @@ files:
 ## Goal
 
 The generated HUD art gets real alpha and comes into the project
-
-## Generate
-
-<!-- REPLACE: what you produced. Files touched, what each change does, the calls
-you made. Delete this comment when you write the section. -->
-
-## Evaluate
-
-<!-- REPLACE: judge your own output against the goal, adversarially. What is
-verified and by what evidence (a log line, a PIE observation, a compile result -
-not "should work"); what is written but has never run; what you touched outside
-the goal; the DECISION or FAILED line this owes AGENT_STATE.md. -->
-
-## Refine
-
-<!-- REPLACE: what you changed in response to your own evaluation, and what you
-are deliberately leaving undone. "Nothing changed, and here is why the first pass
-survives scrutiny" is a valid answer; silence is not. -->
 
 ## Generate
 
