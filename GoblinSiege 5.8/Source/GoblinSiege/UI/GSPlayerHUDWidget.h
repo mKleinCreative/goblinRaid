@@ -548,6 +548,46 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives")
 	TSoftObjectPtr<UTexture2D> ObjectiveIconDone;
 
+	/** Gap under each row. Michael, having seen the first pass: "add some vertical space
+	 *  between items on the board." A dial rather than a constant - line spacing is judged by
+	 *  eye and he is the one looking. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives", meta = (ClampMin = "0"))
+	float ObjectiveRowSpacing = 6.f;
+
+	// ------------------------------------------------- quiver, lives, score (#314 follow-on)
+
+	/** Sits beside ArrowCountText and swaps to the empty quiver at zero arrows. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> QuiverIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Ammo")
+	TSoftObjectPtr<UTexture2D> QuiverFullTexture;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Ammo")
+	TSoftObjectPtr<UTexture2D> QuiverEmptyTexture;
+
+	/**
+	 * One skull per life. Filled from HandleLivesChanged, which already fires on every change -
+	 * a row of pictures says "three left" faster than a number does, and losing one is the
+	 * moment that most needs to land.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UHorizontalBox> LivesRow;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Lives")
+	TSoftObjectPtr<UTexture2D> LifeAliveTexture;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Lives")
+	TSoftObjectPtr<UTexture2D> LifeSpentTexture;
+
+	/** Spent skulls stay on the row rather than vanishing, so the player can see what the raid
+	 *  has cost as well as what is left. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Lives", meta = (ClampMin = "1"))
+	int32 LivesRowMax = 5;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Lives", meta = (ClampMin = "4"))
+	float LifeIconSize = 28.f;
+
 	// ------------------------------------------------------------------ Blueprint hooks
 
 	/** Called on damage so a Blueprint can flash the bar, shake, play a sound - anything that wants
@@ -624,6 +664,9 @@ protected:
 
 	/** Rebuilds ObjectiveList from display rows. No-op without a container and a row class. */
 	void RebuildObjectiveRowWidgets(const TArray<FGSObjectiveDisplayRow>& Rows);
+
+	/** Repaints the skull row for a life count. */
+	void RefreshLivesRow(int32 LivesRemaining);
 
 	UFUNCTION()
 	void HandleObjectiveAnnounced(const FText& Message);

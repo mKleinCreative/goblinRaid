@@ -19,6 +19,9 @@
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 #include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "UI/GSObjectiveRowWidget.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
@@ -519,11 +522,29 @@ void UGSPlayerHUDWidget::RefreshArrowCount()
 	if (!AmmoClass || !Inventory)
 	{
 		ArrowCountText->SetVisibility(ESlateVisibility::Collapsed);
+		if (QuiverIcon) { QuiverIcon->SetVisibility(ESlateVisibility::Collapsed); }
 		return;
 	}
 
+	const int32 Arrows = Inventory->GetTotalCountOfItemsByClass(AmmoClass);
 	ArrowCountText->SetVisibility(ESlateVisibility::HitTestInvisible);
-	ArrowCountText->SetText(FText::AsNumber(Inventory->GetTotalCountOfItemsByClass(AmmoClass)));
+	ArrowCountText->SetText(FText::AsNumber(Arrows));
+
+	// The empty quiver is the warning the number alone does not give - a slumped, open bag
+	// reads at a glance where "0" has to be read.
+	if (QuiverIcon)
+	{
+		UTexture2D* Tex = (Arrows > 0 ? QuiverFullTexture : QuiverEmptyTexture).LoadSynchronous();
+		if (Tex)
+		{
+			QuiverIcon->SetBrushFromTexture(Tex, false);
+			QuiverIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			QuiverIcon->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }
 
 void UGSPlayerHUDWidget::HandleBowDrawStarted(float TraverseSeconds)
@@ -900,7 +921,10 @@ void UGSPlayerHUDWidget::RebuildObjectiveRowWidgets(const TArray<FGSObjectiveDis
 		}
 
 		RowWidget->SetRow(Row, TypeTexture, StateTexture);
-		ObjectiveList->AddChildToVerticalBox(RowWidget);
+		if (UVerticalBoxSlot* RowSlot = ObjectiveList->AddChildToVerticalBox(RowWidget))
+		{
+			RowSlot->SetPadding(FMargin(0.f, 0.f, 0.f, ObjectiveRowSpacing));
+		}
 	}
 }
 
@@ -1139,8 +1163,46 @@ void UGSPlayerHUDWidget::HandleAlarmPhaseChanged(EGSAlarmPhase NewPhase, EGSAlar
 	OnAlarmPhaseChanged(NewPhase);
 }
 
+void UGSPlayerHUDWidget::RefreshLivesRow(int32 LivesRemaining)
+{
+	if (!LivesRow)
+	{
+		return;
+	}
+
+	// Rebuilt rather than diffed, for the same reason the objective rows are: five icons, and
+	// reconciling widgets against a count is how a skull survives the life that paid for it.
+	LivesRow->ClearChildren();
+
+	UTexture2D* Alive = LifeAliveTexture.LoadSynchronous();
+	UTexture2D* Spent = LifeSpentTexture.LoadSynchronous();
+	const int32 Total = FMath::Max(LivesRowMax, LivesRemaining);
+
+	for (int32 i = 0; i < Total; ++i)
+	{
+		UTexture2D* Tex = (i < LivesRemaining) ? Alive : Spent;
+		if (!Tex)
+		{
+			continue;   // no art for that state; draw nothing rather than a white square
+		}
+
+		UImage* Skull = NewObject<UImage>(this);
+		Skull->SetBrushFromTexture(Tex, false);
+		Skull->SetDesiredSizeOverride(FVector2D(LifeIconSize, LifeIconSize));
+		// SkullSlot, not Slot: UWidget already has a member called Slot, and this project builds
+		// warnings-as-errors.
+		if (UHorizontalBoxSlot* SkullSlot = LivesRow->AddChildToHorizontalBox(Skull))
+		{
+			SkullSlot->SetPadding(FMargin(0.f, 0.f, 3.f, 0.f));
+			SkullSlot->SetVerticalAlignment(VAlign_Center);
+		}
+	}
+}
+
 void UGSPlayerHUDWidget::HandleLivesChanged(int32 LivesRemaining)
 {
+	RefreshLivesRow(LivesRemaining);
+
 	if (LivesText)
 	{
 		LivesText->SetText(FText::FromString(FString::Printf(TEXT("LIVES  %d"), LivesRemaining)));
