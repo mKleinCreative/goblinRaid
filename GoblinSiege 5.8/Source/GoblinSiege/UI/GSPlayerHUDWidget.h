@@ -510,6 +510,44 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD", meta = (ClampMin = "1"))
 	int32 CollapseTypeAbove = 2;
 
+	// ------------------------------------------------------------- the icon list (#314)
+
+	/**
+	 * The rows with pictures. Optional, like everything else here: leave it out of the .uasset and
+	 * the text list carries on alone, which is also what happens on a HUD that has not been
+	 * upgraded yet.
+	 *
+	 * ObjectiveListText and this are NOT alternatives in code - both are filled from the same
+	 * BuildDisplayRows pass. Which one the player sees is decided in the .uasset by collapsing the
+	 * other, so the two can never disagree about what is required.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UVerticalBox> ObjectiveList;
+
+	/** Set to WBP_GSObjectiveRow. Unset means no icon rows - the text list still works. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives")
+	TSubclassOf<class UGSObjectiveRowWidget> ObjectiveRowClass;
+
+	/**
+	 * Which picture a burn type draws, keyed by the same tag the director groups on.
+	 *
+	 * DATA, not a switch statement: a sixth burn type should cost a tag and a row in this map, which
+	 * is the argument that made ObjectiveTypeTag a tag rather than an enum in the first place. A tag
+	 * with no entry simply draws no type picture and still reads.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives")
+	TMap<FGameplayTag, TSoftObjectPtr<UTexture2D>> ObjectiveTypeIcons;
+
+	/** Untouched / in-progress / done, in that order. Indexed by EGSObjectiveRowIcon. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives")
+	TSoftObjectPtr<UTexture2D> ObjectiveIconUntouched;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives")
+	TSoftObjectPtr<UTexture2D> ObjectiveIconInProgress;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Objectives")
+	TSoftObjectPtr<UTexture2D> ObjectiveIconDone;
+
 	// ------------------------------------------------------------------ Blueprint hooks
 
 	/** Called on damage so a Blueprint can flash the bar, shake, play a sound - anything that wants
@@ -577,6 +615,15 @@ protected:
 
 	void Refresh(float NewHealth, float MaxHealth);
 	void RebuildObjectiveList();
+
+	/**
+	 * The grouping pass: raw carrier rows in, display-ready rows out - collapsed, counted,
+	 * pluralised. The ONE place the collapse rule and the required denominator live.
+	 */
+	void BuildDisplayRows(TArray<FGSObjectiveDisplayRow>& OutRows) const;
+
+	/** Rebuilds ObjectiveList from display rows. No-op without a container and a row class. */
+	void RebuildObjectiveRowWidgets(const TArray<FGSObjectiveDisplayRow>& Rows);
 
 	UFUNCTION()
 	void HandleObjectiveAnnounced(const FText& Message);

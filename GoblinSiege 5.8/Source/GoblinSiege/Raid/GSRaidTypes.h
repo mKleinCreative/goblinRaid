@@ -44,6 +44,50 @@ enum class EGSRaidResult : uint8
  * A flattened snapshot rather than a pointer to the carrier, so a Blueprint building a prettier
  * list cannot accidentally reach through it and mutate objective state from the HUD.
  */
+/** Which of the three state markers a row draws. Mirrors the [ ] / [~] / [x] the text list uses,
+ *  because they say the same thing and must not be able to disagree. */
+UENUM(BlueprintType)
+enum class EGSObjectiveRowIcon : uint8
+{
+	Untouched,   // [ ] nothing has happened to it
+	InProgress,  // [~] burning, or partly done
+	Done         // [x] complete
+};
+
+/**
+ * One row EXACTLY as it should be displayed - already collapsed, already counted, already
+ * pluralised.
+ *
+ * FGSObjectiveRow below is the raw per-carrier row. This is what survives the grouping pass: a
+ * type with more carriers than CollapseTypeAbove becomes ONE of these reading "Houses 12 / 27",
+ * while small types keep a row each.
+ *
+ * It exists so the text list and the icon list are the same list. The collapse rule, the required
+ * denominator and the clamp are subtle and were each written to fix a specific misreading; a
+ * second consumer re-deriving them would eventually disagree with the first, and the player would
+ * be told two different things about the same objective.
+ */
+USTRUCT(BlueprintType)
+struct FGSObjectiveDisplayRow
+{
+	GENERATED_BODY()
+
+	/** "Houses", "The Wheat Field". Never empty - an unnamed objective still gets a placeholder. */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Objective")
+	FText Label;
+
+	/** The trailing qualifier: "12 / 27", "40%", "(bonus)", or empty. */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Objective")
+	FText Detail;
+
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Objective")
+	EGSObjectiveRowIcon Icon = EGSObjectiveRowIcon::Untouched;
+
+	/** Picks the type picture - house, field, market, mill, statue. */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Objective")
+	FGameplayTag TypeTag;
+};
+
 USTRUCT(BlueprintType)
 struct FGSObjectiveRow
 {

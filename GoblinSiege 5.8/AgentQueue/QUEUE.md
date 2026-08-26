@@ -214,8 +214,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 |---|--------|-------|-------|---------------|-------|
 | 312 | review (waiting on: BUILT CLEAN 2026-08-25 18:52 (exit 0, 53s, zero errors; only pre-existing C4996 AbilityTags warnings in GSGA_Block/GSGA_Interact). NOT YET OBSERVED - needs Michael in PIE: GS.Burn.IgniteAll, then GS.Corruption.Dump repeatedly and watch the objective term climb and the sky darken with nobody touching GS.Corruption.Set.) | claude-corruption | World corruption 2/6 - objectives, destruction, clock and horde presence drive the scalar | Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp<br>Source/GoblinSiege/Destruction/GSBreakableComponent.cpp<br>Source/GoblinSiege/Destruction/GSTopplableComponent.cpp<br>Source/GoblinSiege/Destruction/GSFlammableComponent.cpp<br>Source/GoblinSiege/Raid/GSScoreSubsystem.h<br>Source/GoblinSiege/Raid/GSScoreSubsystem.cpp | none |
 | 313 | blocked | claude-ui | L_Tutorial_Island onto World Partition, objective actors always loaded | Content/Maps/L_Tutorial_Island.umap<br>Content/Maps/__ExternalActors__ | required |
+| 314 | review (waiting on: Michael: the Hill Windmill row clips the board edge - shorten the name, widen the board, or drop a font point?) | claude-ui | The objective list becomes rows with type and state icons | Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Source/GoblinSiege/UI/GSObjectiveRowWidget.h<br>Source/GoblinSiege/UI/GSObjectiveRowWidget.cpp<br>Content/UI/WBP_GSPlayerHUD.uasset<br>Content/UI/WBP_GSObjectiveRow.uasset | required |
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 

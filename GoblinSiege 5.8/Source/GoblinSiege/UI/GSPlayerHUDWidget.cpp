@@ -18,6 +18,8 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Components/VerticalBox.h"
+#include "UI/GSObjectiveRowWidget.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
 #include "GameFramework/Pawn.h"
@@ -838,6 +840,7 @@ void UGSPlayerHUDWidget::SetMapOpen(bool bOpen)
 	const ESlateVisibility Vis = bOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
 	if (ObjectiveBoardPlate) { ObjectiveBoardPlate->SetVisibility(Vis); }
 	if (ObjectiveListText)   { ObjectiveListText->SetVisibility(Vis); }
+	if (ObjectiveList)       { ObjectiveList->SetVisibility(Vis); }
 
 	// Rebuild on OPEN rather than on every completion while closed: the list is only read when
 	// it is up, and a closed board that keeps rebuilding is work nobody sees.
@@ -862,8 +865,48 @@ void UGSPlayerHUDWidget::HandleObjectiveProgress(float /*Completion01*/)
 	RebuildObjectiveList();
 }
 
-void UGSPlayerHUDWidget::RebuildObjectiveList()
+void UGSPlayerHUDWidget::RebuildObjectiveRowWidgets(const TArray<FGSObjectiveDisplayRow>& Rows)
 {
+	if (!ObjectiveList || !ObjectiveRowClass)
+	{
+		return;   // a HUD without the icon list; the text list already carries it
+	}
+
+	// REBUILT, not diffed. The list is three to six rows and changes only when an objective moves
+	// state, so the cost is nothing and the alternative - reconciling widgets against rows - is a
+	// well-known source of stale entries that survive an objective completing.
+	ObjectiveList->ClearChildren();
+
+	for (const FGSObjectiveDisplayRow& Row : Rows)
+	{
+		UGSObjectiveRowWidget* RowWidget = CreateWidget<UGSObjectiveRowWidget>(GetOwningPlayer(), ObjectiveRowClass);
+		if (!RowWidget)
+		{
+			continue;
+		}
+
+		// Synchronous load. These are UI-sized textures already in memory from the first raid
+		// frame, and an async load would let a row draw with no picture and pop one in a frame
+		// later - which reads as a glitch on a list the player is reading to plan.
+		const TSoftObjectPtr<UTexture2D>* TypeSoft = ObjectiveTypeIcons.Find(Row.TypeTag);
+		UTexture2D* TypeTexture = TypeSoft ? TypeSoft->LoadSynchronous() : nullptr;
+
+		UTexture2D* StateTexture = nullptr;
+		switch (Row.Icon)
+		{
+		case EGSObjectiveRowIcon::Done:       StateTexture = ObjectiveIconDone.LoadSynchronous();       break;
+		case EGSObjectiveRowIcon::InProgress: StateTexture = ObjectiveIconInProgress.LoadSynchronous(); break;
+		default:                              StateTexture = ObjectiveIconUntouched.LoadSynchronous();  break;
+		}
+
+		RowWidget->SetRow(Row, TypeTexture, StateTexture);
+		ObjectiveList->AddChildToVerticalBox(RowWidget);
+	}
+}
+
+void UGSPlayerHUDWidget::BuildDisplayRows(TArray<FGSObjectiveDisplayRow>& OutRows) const
+{
+	OutRows.Reset();
 	UGSRaidDirector* Director = BoundDirector.Get();
 	if (!Director)
 	{
@@ -873,16 +916,6 @@ void UGSPlayerHUDWidget::RebuildObjectiveList()
 	TArray<FGSObjectiveRow> Rows;
 	Director->GetObjectiveRows(Rows);
 
-	OnObjectiveListChanged(Rows);
-
-	if (!ObjectiveListText)
-	{
-		return;
-	}
-
-	// Names only - no arrows, no distances, no waypoints (GDD §2.1, decision 11). The player is
-	// told WHAT to burn and finds it themselves; that search is the scouting half of the game.
-	//
 	// GROUPED BY TYPE (2026-08-05). Eleven houses arrived in the level and named every one of them
 	// individually, which made the list longer than the screen and stopped it being read at all.
 	// Naming is only useful while the names distinguish things: "The Windmill" tells you where to
@@ -902,9 +935,6 @@ void UGSPlayerHUDWidget::RebuildObjectiveList()
 		}
 		Group.Add(&Row);
 	}
-
-	TArray<FString> Lines;
-	Lines.Reserve(TypeOrder.Num() + Rows.Num());
 
 	for (const FGameplayTag& TypeTag : TypeOrder)
 	{
@@ -938,48 +968,102 @@ void UGSPlayerHUDWidget::RebuildObjectiveList()
 			const int32 Needed = Director->GetRequiredCountForType(TypeTag);
 			const int32 Denominator = Needed > 0 ? Needed : Group.Num();
 
+			FGSObjectiveDisplayRow& Out = OutRows.AddDefaulted_GetRef();
+			Out.TypeTag = TypeTag;
+			Out.Label   = FText::FromString(Leaf + TEXT("s"));
 			// Clamped so a type that over-completes - fire spread does not stop at 27 houses - reads
 			// "27 / 27" rather than "34 / 27", which looks like a bug in the counter.
-			Lines.Add(FString::Printf(TEXT("  %s %ss  %d / %d"),
-				Done >= Denominator ? TEXT("[x]") : (Done > 0 ? TEXT("[~]") : TEXT("[ ]")),
-				*Leaf, FMath::Min(Done, Denominator), Denominator));
+			Out.Detail  = FText::FromString(FString::Printf(TEXT("%d / %d"),
+				FMath::Min(Done, Denominator), Denominator));
+			Out.Icon    = Done >= Denominator ? EGSObjectiveRowIcon::Done
+						: (Done > 0 ? EGSObjectiveRowIcon::InProgress : EGSObjectiveRowIcon::Untouched);
 			continue;
 		}
 
 		for (const FGSObjectiveRow* Row : Group)
 		{
 			const EGSObjectiveListState State = static_cast<EGSObjectiveListState>(Row->ListState);
-			const FString Name = Row->DisplayName.IsEmpty()
-				? TEXT("(unnamed objective)")  // an unset ObjectiveDisplayName, visible rather than blank
-				: Row->DisplayName.ToString();
+
+			FGSObjectiveDisplayRow& Out = OutRows.AddDefaulted_GetRef();
+			Out.TypeTag = Row->TypeTag;
+			Out.Label   = Row->DisplayName.IsEmpty()
+				? NSLOCTEXT("GoblinSiege", "UnnamedObjective", "(unnamed objective)")
+				: Row->DisplayName;   // an unset ObjectiveDisplayName, visible rather than blank
 
 			switch (State)
 			{
 			case EGSObjectiveListState::Complete:
-				Lines.Add(FString::Printf(TEXT("  [x] %s"), *Name));
+				Out.Icon = EGSObjectiveRowIcon::Done;
 				break;
 
 			case EGSObjectiveListState::Optional:
 				// Demoted: a carrier of this type has already burned. Still worth points, no longer
 				// required - and the player has to be able to see that, or Q-32's "one of each type"
 				// rule is invisible.
-				Lines.Add(FString::Printf(TEXT("  [ ] %s  (bonus)"), *Name));
+				Out.Icon   = EGSObjectiveRowIcon::Untouched;
+				Out.Detail = NSLOCTEXT("GoblinSiege", "ObjectiveBonus", "(bonus)");
 				break;
 
 			case EGSObjectiveListState::Required:
 			default:
 				if (Row->Completion01 > 0.01f)
 				{
-					Lines.Add(FString::Printf(TEXT("  [ ] %s  %d%%"), *Name,
+					Out.Icon   = EGSObjectiveRowIcon::InProgress;
+					Out.Detail = FText::FromString(FString::Printf(TEXT("%d%%"),
 						FMath::FloorToInt(Row->Completion01 * 100.f)));
 				}
 				else
 				{
-					Lines.Add(FString::Printf(TEXT("  [ ] %s"), *Name));
+					Out.Icon = EGSObjectiveRowIcon::Untouched;
 				}
 				break;
 			}
 		}
+	}
+}
+
+void UGSPlayerHUDWidget::RebuildObjectiveList()
+{
+	UGSRaidDirector* Director = BoundDirector.Get();
+	if (!Director)
+	{
+		return;
+	}
+
+	TArray<FGSObjectiveRow> Rows;
+	Director->GetObjectiveRows(Rows);
+	OnObjectiveListChanged(Rows);
+
+	// ONE grouping pass, two renderings. The collapse rule, the required denominator and the clamp
+	// were each written to fix a specific misreading; a second consumer re-deriving them would
+	// eventually disagree, and the player would be told two different things about one objective.
+	TArray<FGSObjectiveDisplayRow> Display;
+	BuildDisplayRows(Display);
+
+	RebuildObjectiveRowWidgets(Display);
+
+	if (!ObjectiveListText)
+	{
+		return;
+	}
+
+	// Names only - no arrows, no distances, no waypoints (GDD 2.1, decision 11). The player is
+	// told WHAT to burn and finds it themselves; that search is the scouting half of the game.
+	// When the icon rows are drawing the body, this block keeps ONLY the header. The header is
+	// the win condition - types completed of types required - and the rows do not carry it, so
+	// collapsing this widget outright would silently drop the one number the raid is scored on.
+	const bool bRowsDrawBody = ObjectiveList != nullptr && ObjectiveRowClass != nullptr;
+
+	static const TCHAR* Marks[] = { TEXT("[ ]"), TEXT("[~]"), TEXT("[x]") };
+	TArray<FString> Lines;
+	Lines.Reserve(Display.Num());
+	for (const FGSObjectiveDisplayRow& Row : Display)
+	{
+		if (bRowsDrawBody) { break; }
+
+		const FString Detail = Row.Detail.IsEmpty() ? FString() : TEXT("  ") + Row.Detail.ToString();
+		Lines.Add(FString::Printf(TEXT("  %s %s%s"),
+			Marks[static_cast<uint8>(Row.Icon)], *Row.Label.ToString(), *Detail));
 	}
 
 	// The header counts TYPES, not carriers - it is the win condition, and the win is one of each
@@ -987,8 +1071,8 @@ void UGSPlayerHUDWidget::RebuildObjectiveList()
 	const FString Header = FString::Printf(TEXT("BURN  (%d / %d)"),
 		Director->GetCompletedTypeCount(), Director->GetRequiredTypeCount());
 
-	// "\n", not LINE_TERMINATOR: on Windows that macro is "\r\n" and Slate renders the carriage
-	// return as a missing-glyph box at the end of every line.
+	// "\n", not LINE_TERMINATOR: on Windows that macro is "\r\n" and Slate renders the
+	// carriage return as a missing-glyph box at the end of every line.
 	ObjectiveListText->SetText(FText::FromString(
 		Lines.Num() > 0
 			? Header + TEXT("\n") + FString::Join(Lines, TEXT("\n"))
