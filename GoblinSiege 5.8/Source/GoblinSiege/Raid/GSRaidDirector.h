@@ -36,6 +36,10 @@ class UGSTopplableComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnRaidEnded, EGSRaidResult, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnRaidObjectivesComplete);
+
+/** One line the HUD can put on screen when something is achieved. FText because it is shown to a
+ *  player, not logged. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnObjectiveAnnounced, const FText&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnObjectiveRosterChanged);
 
 /**
@@ -145,6 +149,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Raid")
 	int32 GetRequiredTypeCount() const { return RequiredTypes.Num(); }
 
+	/**
+	 * How many carriers of this type must complete. 0 for a type the level does not have.
+	 *
+	 * EXISTS FOR THE HUD, and for a reason worth stating: the collapsed row counted GROUP SIZE, so
+	 * with a 40% house rule the player was told "Houses 0/67" when 27 would do. A requirement the
+	 * player is told wrong is worse than one they are not told at all - they budget the whole raid
+	 * against it.
+	 */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Raid")
+	int32 GetRequiredCountForType(FGameplayTag TypeTag) const;
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Raid")
 	int32 GetCompletedTypeCount() const;
 
@@ -158,6 +173,17 @@ public:
 	/** Server-side. AGSRunicSite binds this to open its portal. */
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Raid")
 	FGSOnRaidObjectivesComplete OnRaidObjectivesComplete;
+
+	/**
+	 * Something worth telling the player about happened.
+	 *
+	 * Michael, 2026-08-25, asked for "prompts for when an objective gets completed". Deliberately ONE
+	 * delegate carrying a finished line rather than a family of typed events: the HUD's job is to show
+	 * a sentence, and every caller here already knows which sentence it means. A HUD that had to
+	 * assemble the wording would be a second place the rules live.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Raid")
+	FGSOnObjectiveAnnounced OnObjectiveAnnounced;
 
 	/** A carrier joined the roster - the HUD rebuilds its list. Fires on clients too. */
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Raid")
@@ -236,6 +262,11 @@ protected:
 	 *  came from. Recounting is O(monuments) and happens at most once per statue in a raid. */
 	UFUNCTION()
 	void HandleMonumentToppled(AActor* Toppler);
+
+	/** Turn a type advance into one line for the player. Kept here rather than in the HUD so the
+	 *  wording lives with the rules that produce it. */
+	void AnnounceObjective(const FGameplayTag& TypeTag, const FText& DisplayName,
+		const FGSObjectiveTypeBucket& Bucket, bool bTypeJustSatisfied);
 
 	/** One entry per DISTINCT type tag placed in the level. */
 	TSet<FGameplayTag> RequiredTypes;

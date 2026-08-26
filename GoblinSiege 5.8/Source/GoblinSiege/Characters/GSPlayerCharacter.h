@@ -123,6 +123,8 @@ protected:
 
 	/** Q down: open the radial wheel. While it is open, Input_Look feeds the drag instead of the
 	 *  camera - see the comment there. */
+	void Input_ToggleMap(const FInputActionValue& Value);
+
 	void Input_WheelOpen(const FInputActionValue& Value);
 
 	/** Q up: commit whatever sector is highlighted. Bound to Completed AND Canceled, so losing focus
@@ -274,6 +276,27 @@ protected:
 	void HandleStaminaExhausted();
 
 	/**
+	 * Drain stamina while the goblin is out of his depth. Called every frame.
+	 *
+	 * MICHAEL'S RULE, 2026-08-25: "anything further than waist deep will drown you. We can also make
+	 * it canon that Goblins notoriously hate water."
+	 *
+	 * SO THE GATE IS IMMERSION, NOT MOVEMENT MODE. The engine puts a character into MOVE_Swimming the
+	 * moment it touches a water volume at any depth, so draining on IsSwimming() would punish ankles
+	 * in the village river. ImmersionDepth() is a 0..1 fraction of the capsule, so 0.5 is literally
+	 * the waist and the rule reads exactly as he said it.
+	 */
+	void UpdateWaterDrain();
+
+	/** How deep is too deep, as a fraction of the capsule. 0.5 is the waist. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Water", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DrowningImmersion01 = 0.5f;
+
+	/** True while WE are the ones draining the pool, so leaving the water clears our drain and never
+	 *  somebody else's - sprint sets this same rate from its own path. */
+	bool bDrainingFromWater = false;
+
+	/**
 	 * Kills the goblin and destroys whatever they were carrying.
 	 *
 	 * Separate from a normal death because the loss rule differs: dying on land drops your sack
@@ -335,6 +358,15 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> ThrowTorchAction;
+
+	/**
+	 * M. Opens and closes the objective board, and later the map it turns into (#311).
+	 *
+	 * Tab was the obvious key and is already IA_SwapWeaponMode - Michael: "right now, tab goes
+	 * betweens weapons". Leave this unset and the board simply never opens; nothing else changes.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
+	TObjectPtr<UInputAction> MapAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> SwapWeaponModeAction;

@@ -42,6 +42,26 @@ against a counted roster rather than a remembered one.
 
 ---
 
+## 2026-08-25 — goblins hate water
+
+Michael, deciding the map edge after four failed attempts to trace a coastline: *"let's have anything
+further than waist deep will drown you, We can also make it cannon that Goblins notoriously hate
+water."* Ticket #308.
+
+| # | Ruling | Consequence |
+|---|--------|-------------|
+| 67 | **Water deeper than the waist drowns you.** Goblins notoriously hate water - it is canon, not a limitation | **This replaces the coast wall entirely.** The playable area is closed by forest on the land side and by drowning on the water side, so no invisible barrier is needed along a shoreline nobody could trace. A rule the player can discover and explain beats a wall they walk into |
+| 68 | **Swimming is NOT a verb in this game** | #054 built `AGSWaterVolume`, `bCanSwim`, `MaxSwimSpeed` and a drowning path on the say-so of a pre-v1.0 GDD draft; the canonical GDD (v1.0, #198) contains **no mention of water, swimming, drowning, shore or boundary at all**. There is no swim animation on the goblin skeleton - not one clip - so swimming would ship as the run animation sliding across the sea. Ruling 67 makes that irrelevant rather than a debt |
+| 69 | **The sea stops being a floor** | `Plane2` - the 11 km water plane - has blocked pawns since 2026-08-06, so the ocean was WALKABLE for 5.5 km in every direction. That was the actual hole in the map, and no coast wall would have closed it while the fix was one collision response |
+
+**Waist deep is not a hand-tuned number.** A character's physics volume is chosen by its capsule
+CENTRE, so the water volume engages exactly when the goblin is more than half submerged. The rule and
+the implementation are the same fact.
+
+**What this does NOT decide:** whether drowning is the right punishment long-term, or whether it should
+warn first. The drain is 25/s against a 100 pool - about four seconds - and lives on the placed volume,
+so it is one field to change.
+
 ## 2026-08-25 — the objective set, and what the portal waits for
 
 Michael, defining the raid's win condition in his own words: *"The objective we need to complete, is to

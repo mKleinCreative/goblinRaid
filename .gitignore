@@ -49,3 +49,11 @@ dev/null/
 
 # Cygwin/MSYS grep crash dumps. Pure noise; one already slipped into the index.
 *.stackdump
+
+# ACF sample project, extracted from ACFUSampleProject4.2.rar for reference.
+# 2.2 GB of marketplace content that is not ours and must never enter the repo.
+ACFUSampleProject4.2/
+
+# Packaged build of the ACF sample (ACFUSample.exe). Another 2.2 GB of marketplace
+# content sitting in the repo root; same reason as ACFUSampleProject4.2 above.
+/Windows/

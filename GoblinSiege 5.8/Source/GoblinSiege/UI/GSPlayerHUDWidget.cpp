@@ -46,6 +46,7 @@ void UGSPlayerHUDWidget::NativeConstruct()
 	WarnIfUnbound(HealthBar, TEXT("HealthBar"));
 	WarnIfUnbound(HealthText, TEXT("HealthText"));
 	WarnIfUnbound(ObjectiveListText, TEXT("ObjectiveListText"));
+	WarnIfUnbound(ObjectivePromptText, TEXT("ObjectivePromptText"));
 	WarnIfUnbound(ClockText, TEXT("ClockText"));
 	WarnIfUnbound(LivesText, TEXT("LivesText"));
 	WarnIfUnbound(AlarmText, TEXT("AlarmText"));
@@ -135,6 +136,11 @@ void UGSPlayerHUDWidget::NativeConstruct()
 	// designer leaving it visible mid-edit would otherwise ship a ring stuck on screen all raid.
 	ShowChannelRing(false);
 	RefreshPrompt(nullptr);
+
+	// Same reasoning one line up: the board's state is decided here, not by whatever the asset
+	// happened to be saved with. Closed by default - Michael, on the first art pass: "the UI is
+	// way too huge, at least the objective marker".
+	SetMapOpen(bMapOpenByDefault);
 }
 
 void UGSPlayerHUDWidget::NativeDestruct()
@@ -303,12 +309,14 @@ void UGSPlayerHUDWidget::RefreshPrompt(UGSInteractableComponent* Focus)
 	if (!IsValid(Focus) || !Focus->IsAvailable())
 	{
 		InteractPrompt->SetVisibility(ESlateVisibility::Collapsed);
+		if (InteractPromptPlate) { InteractPromptPlate->SetVisibility(ESlateVisibility::Collapsed); }
 		return;
 	}
 
 	InteractPrompt->SetText(Focus->GetPromptText());
 	InteractPrompt->SetColorAndOpacity(FSlateColor(PromptAvailableColour));
 	InteractPrompt->SetVisibility(ESlateVisibility::HitTestInvisible);
+	if (InteractPromptPlate) { InteractPromptPlate->SetVisibility(ESlateVisibility::HitTestInvisible); }
 }
 
 void UGSPlayerHUDWidget::HandleHaulStarted(AActor* Target, float DurationSeconds)
@@ -760,7 +768,88 @@ void UGSPlayerHUDWidget::HandleObjectiveRosterChanged()
 		BoundCarriers.Add(Carrier);
 	}
 
+	// The announcement line. Bound to the DIRECTOR, not to each carrier: a monument is not a carrier,
+	// and the "way out is open" line has no carrier at all - binding per-objective would have missed
+	// both, which is how the statue came to count toward the win and appear nowhere.
+	Director->OnObjectiveAnnounced.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleObjectiveAnnounced);
+	Director->OnObjectiveAnnounced.AddDynamic(this, &UGSPlayerHUDWidget::HandleObjectiveAnnounced);
+
+	if (ObjectivePromptText)
+	{
+		ObjectivePromptText->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
 	RebuildObjectiveList();
+}
+
+void UGSPlayerHUDWidget::HandleObjectiveAnnounced(const FText& Message)
+{
+	// THE LIST FIRST, and above the early return below - the refresh must not depend on the
+	// prompt widget existing. RebuildObjectiveList is otherwise reached only from the two
+	// PER-CARRIER delegates bound in HandleObjectiveRosterChanged, and a monument is not a
+	// carrier and has neither. So the statue toppled, the director marked the type satisfied
+	// (log: "Objective.Topple.Statue satisfied - 1 of 1 monument(s) cast down"), and the HUD
+	// went on listing it as required until some house happened to burn and rebuilt the list
+	// as a side effect. Binding to the DIRECTOR is what makes this monument-safe, which is
+	// the same reasoning the announcement binding itself already carries.
+	RebuildObjectiveList();
+
+	if (!ObjectivePromptText)
+	{
+		// Optional binding: a HUD without the widget still plays, it just says nothing. Warned about
+		// once at construction like every other optional binding rather than every announcement.
+		return;
+	}
+
+	ObjectivePromptText->SetText(Message);
+	ObjectivePromptText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	if (AnnouncementPlate) { AnnouncementPlate->SetVisibility(ESlateVisibility::HitTestInvisible); }
+
+	// RESET the timer rather than stacking. Fire spread completes houses seconds apart, so several
+	// announcements land in a row - each should hold the line for its full time, not have it vanish
+	// on the first one's schedule.
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ObjectivePromptTimer);
+		World->GetTimerManager().SetTimer(ObjectivePromptTimer, this,
+			&UGSPlayerHUDWidget::HideObjectivePrompt, ObjectivePromptSeconds, false);
+	}
+}
+
+void UGSPlayerHUDWidget::HideObjectivePrompt()
+{
+	if (ObjectivePromptText)
+	{
+		ObjectivePromptText->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (AnnouncementPlate)
+	{
+		AnnouncementPlate->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UGSPlayerHUDWidget::SetMapOpen(bool bOpen)
+{
+	bMapOpen = bOpen;
+
+	// The panel is the objective board and its plate, and for now that is ALL it is. A map view
+	// becomes another pair of lines here and nothing else in this file changes - that is the
+	// whole point of routing the key through one function (#311).
+	const ESlateVisibility Vis = bOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed;
+	if (ObjectiveBoardPlate) { ObjectiveBoardPlate->SetVisibility(Vis); }
+	if (ObjectiveListText)   { ObjectiveListText->SetVisibility(Vis); }
+
+	// Rebuild on OPEN rather than on every completion while closed: the list is only read when
+	// it is up, and a closed board that keeps rebuilding is work nobody sees.
+	if (bOpen)
+	{
+		RebuildObjectiveList();
+	}
+}
+
+void UGSPlayerHUDWidget::ToggleMap()
+{
+	SetMapOpen(!bMapOpen);
 }
 
 void UGSPlayerHUDWidget::HandleObjectiveListStateChanged(EGSObjectiveListState /*NewState*/)
@@ -842,8 +931,18 @@ void UGSPlayerHUDWidget::RebuildObjectiveList()
 				Leaf = Leaf.RightChop(Dot + 1);
 			}
 
+			// THE DENOMINATOR IS WHAT IS REQUIRED, NOT WHAT EXISTS. Michael's 40% house rule means
+			// 27 of the island's 67 houses; showing "0 / 67" tells the player to budget the whole
+			// raid against a number more than twice the real one. A requirement stated wrong is
+			// worse than one not stated - they plan around it.
+			const int32 Needed = Director->GetRequiredCountForType(TypeTag);
+			const int32 Denominator = Needed > 0 ? Needed : Group.Num();
+
+			// Clamped so a type that over-completes - fire spread does not stop at 27 houses - reads
+			// "27 / 27" rather than "34 / 27", which looks like a bug in the counter.
 			Lines.Add(FString::Printf(TEXT("  %s %ss  %d / %d"),
-				Done > 0 ? TEXT("[x]") : TEXT("[ ]"), *Leaf, Done, Group.Num()));
+				Done >= Denominator ? TEXT("[x]") : (Done > 0 ? TEXT("[~]") : TEXT("[ ]")),
+				*Leaf, FMath::Min(Done, Denominator), Denominator));
 			continue;
 		}
 

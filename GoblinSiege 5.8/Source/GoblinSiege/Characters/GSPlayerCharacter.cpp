@@ -6,6 +6,7 @@
 #include "GameplayEffectExtension.h"
 #include "Interaction/GSCarryComponent.h"
 #include "Characters/GSStaminaComponent.h"
+#include "World/GSWaterVolume.h"
 #include "Interaction/GSInteractionComponent.h"
 #include "Weapons/GSWeaponComponent.h"
 #include "Weapons/GSArrowProjectile.h"
@@ -28,6 +29,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "UI/GSWeaponWheelWidget.h"
+#include "UI/GSPlayerHUDWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "UI/GSHordeOrderWheelWidget.h"
 #include "Horde/GSHordeCommandComponent.h"
 #include "Blueprint/UserWidget.h"
@@ -312,6 +315,8 @@ void AGSPlayerCharacter::Tick(float DeltaSeconds)
 
 	UpdateAimCamera(DeltaSeconds);
 
+	UpdateWaterDrain();
+
 	// The guard can drop without the player releasing the button - a guard break, the recoil from a
 	// blocked swing, death - and every one of those ends the block through the ability system rather
 	// than through input. UpdateRotationMode is only called from the five input paths, so without
@@ -490,6 +495,7 @@ void AGSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(ThrowTorchAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_ThrowTorchRelease);
 		EIC->BindAction(SwapWeaponModeAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_SwapWeaponMode);
+		EIC->BindAction(MapAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_ToggleMap);
 		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Started, this, &AGSPlayerCharacter::Input_WheelOpen);
 		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Completed, this, &AGSPlayerCharacter::Input_WheelClose);
 		EIC->BindAction(WeaponWheelAction, ETriggerEvent::Canceled, this, &AGSPlayerCharacter::Input_WheelClose);
@@ -594,6 +600,34 @@ void AGSPlayerCharacter::Input_Move(const FInputActionValue& Value)
 	// Facing itself is handled by CharacterMovementComponent::bOrientRotationToMovement +
 	// RotationRate (set from TurnRateRadPerSec - see SetTurnRateRadPerSec) rather than here, so
 	// aim-facing (UpdateRotationMode) can override it without touching this function.
+}
+
+void AGSPlayerCharacter::UpdateWaterDrain()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp || !StaminaComponent)
+	{
+		return;
+	}
+
+	const AGSWaterVolume* Water = Cast<AGSWaterVolume>(MoveComp->GetPhysicsVolume());
+	const bool bOutOfDepth = Water && MoveComp->ImmersionDepth() > DrowningImmersion01;
+
+	if (bOutOfDepth)
+	{
+		// Read the rate off the VOLUME, which is the whole reason GetSwimDrainRate exists. It has had
+		// no caller since #054 wrote it - a tuning field that looked configured and did nothing, so a
+		// goblin in deep water would have swum forever and never drowned.
+		StaminaComponent->SetDrainRate(Water->GetSwimDrainRate());
+		bDrainingFromWater = true;
+	}
+	else if (bDrainingFromWater)
+	{
+		// Only clear what we set. Sprint drives this same rate from its own path, and unconditionally
+		// zeroing it every frame we are dry would cancel a sprint the moment the player left a river.
+		StaminaComponent->SetDrainRate(0.f);
+		bDrainingFromWater = false;
+	}
 }
 
 void AGSPlayerCharacter::HandleStaminaExhausted()
@@ -701,6 +735,27 @@ void AGSPlayerCharacter::Input_Look(const FInputActionValue& Value)
 	{
 		AddControllerYawInput(LookInput.X);
 		AddControllerPitchInput(LookInput.Y);
+	}
+}
+
+void AGSPlayerCharacter::Input_ToggleMap(const FInputActionValue& /*Value*/)
+{
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	// The HUD is added from Blueprint, not from here, so there is no member to reach for. Searching
+	// costs one array walk on a keypress, which is the cheap side of the trade against holding a
+	// second reference that has to be kept valid across respawns.
+	TArray<UUserWidget*> Found;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Found, UGSPlayerHUDWidget::StaticClass(), false);
+	for (UUserWidget* W : Found)
+	{
+		if (UGSPlayerHUDWidget* HUD = Cast<UGSPlayerHUDWidget>(W))
+		{
+			HUD->ToggleMap();
+		}
 	}
 }
 

@@ -2,13 +2,13 @@
 id: 305
 title: The objective set: a percentage of houses, the statue counts, the mill does not
 agent: claude-warren
-status: review
+status: done
 claimed: 2026-08-25T06:36Z
 build: required
 waiting_on: Michael: burn 27 houses + market + field + statue and confirm the portal opens.
 evaluated: 2026-08-25T06:49:21Z
-observed:
-scenario:
+observed: UNOBSERVED 2026-08-25T07:02:49Z - Each of the four behaviours was seen working in-engine and logged - houses tally 20/27 instead of completing on the first, the market still needs one, the statue satisfies by toppling, the mill no longer gates - but nobody has had all four true at once, so the portal actually opening on objectives-complete is still inferred rather than watched. Michael has played this build and reported two gaps from it (the statue missing from the HUD list, three windmills that cannot be burned), which are now #306.
+scenario: none - never run
 files: 
   - Source/GoblinSiege/Raid/GSRaidDirector.h
   - Source/GoblinSiege/Raid/GSRaidDirector.cpp

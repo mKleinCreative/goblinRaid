@@ -27,10 +27,18 @@ UGSRaidDirector::UGSRaidDirector()
 	// the outliers rather than rewarding a single lucky light.
 	TypeCompletionFraction.Add(GSTags::Objective_Burn_House, 0.4f);
 
-	// "...the market stalls, the Statue and the field. Everything else is optional." The mill is
-	// placed and tagged, so without this line it would keep the portal shut after everything he
-	// asked for was already done.
-	OptionalTypes.Add(GSTags::Objective_Burn_Mill);
+	// THE MILL IS REQUIRED AGAIN, and deliberately with no fraction. Michael, 2026-08-25: "Make both
+	// windmill 1 and 2 on the inside burnable as objectives, but only make one count as a primary,
+	// the other is secondary for points."
+	//
+	// That is exactly what a type with NO fraction already does. RequiredCount stays 1, so the first
+	// windmill to burn satisfies the type and the demotion pass drops its sibling to Optional - still
+	// burnable, still scored, no longer on the critical path. Ruling Q-32 survives here precisely
+	// because this is the case it was written for: one of a kind, where the player picks which.
+	//
+	// It was in OptionalTypes for a few hours under ruling 63, when Michael's required set named
+	// houses, stalls, statue and field and nothing else. It is out again by his later instruction,
+	// and the ledger records both.
 }
 
 bool UGSRaidDirector::ShouldCreateSubsystem(UObject* Outer) const
@@ -298,6 +306,37 @@ void UGSRaidDirector::GetObjectiveRows(TArray<FGSObjectiveRow>& OutRows) const
 		Row.Completion01 = Carrier->GetCompletion01();
 		Row.TypeTag = Carrier->GetObjectiveTypeTag();
 	}
+
+	// MONUMENTS TOO. Michael, having played #305: "the statue wasn't listed up there with the
+	// objectives on the HUD." It counted toward the win and appeared nowhere, which is the worst
+	// combination - a requirement the player cannot see is one they cannot plan around. The list is
+	// built from TrackedCarriers, and a monument is not an AGSBurnObjectiveBase, so it was invisible
+	// by construction rather than by oversight.
+	for (const TPair<FGameplayTag, TArray<TWeakObjectPtr<UGSTopplableComponent>>>& Pair : MonumentsByType)
+	{
+		for (const TWeakObjectPtr<UGSTopplableComponent>& Weak : Pair.Value)
+		{
+			const UGSTopplableComponent* Monument = Weak.Get();
+			if (!Monument)
+			{
+				continue;
+			}
+
+			FGSObjectiveRow& Row = OutRows.AddDefaulted_GetRef();
+			Row.DisplayName = Monument->GetObjectiveDisplayName();
+
+			// A monument is Required until it falls, then Complete. It never becomes Optional: the
+			// demotion pass exists so that burning ONE of eleven houses stops nagging you about the
+			// other ten, and a statue has no siblings to demote.
+			const bool bDown = Monument->IsToppled();
+			Row.ListState = static_cast<uint8>(bDown ? EGSObjectiveListState::Complete
+														: (OptionalTypes.Contains(Pair.Key)
+															? EGSObjectiveListState::Optional
+															: EGSObjectiveListState::Required));
+			Row.Completion01 = bDown ? 1.f : 0.f;
+			Row.TypeTag = Pair.Key;
+		}
+	}
 }
 
 // ====================================================================== the Q-37 pass
@@ -336,6 +375,8 @@ void UGSRaidDirector::HandleCarrierCompleted(AGSBurnObjectiveBase* Objective)
 		Bucket->CompletedCount, Bucket->RequiredCount,
 		bJustSatisfied ? TEXT(" TYPE SATISFIED.") : TEXT(""));
 
+	AnnounceObjective(TypeTag, Objective->GetObjectiveDisplayName(), *Bucket, bJustSatisfied);
+
 	if (bJustSatisfied)
 	{
 		Bucket->bTypeComplete = true;
@@ -372,6 +413,43 @@ void UGSRaidDirector::HandleCarrierCompleted(AGSBurnObjectiveBase* Objective)
 	EvaluateWinCondition();
 }
 
+void UGSRaidDirector::AnnounceObjective(const FGameplayTag& TypeTag, const FText& DisplayName,
+	const FGSObjectiveTypeBucket& Bucket, bool bTypeJustSatisfied)
+{
+	// The leaf, pluralised the same way the HUD list does it - a fifth type should cost a tag and
+	// nothing else.
+	FString Leaf = TypeTag.IsValid() ? TypeTag.ToString() : TEXT("Objective");
+	int32 Dot = INDEX_NONE;
+	if (Leaf.FindLastChar(TEXT('.'), Dot))
+	{
+		Leaf = Leaf.RightChop(Dot + 1);
+	}
+
+	FText Message;
+	if (bTypeJustSatisfied)
+	{
+		Message = FText::Format(
+			NSLOCTEXT("GoblinSiege", "ObjectiveTypeDone", "{0} - done"), FText::FromString(Leaf));
+	}
+	else if (Bucket.RequiredCount > 1)
+	{
+		// A COUNT ONLY WHEN THERE IS ONE WORTH SHOWING. With RequiredCount 1 the tally is always
+		// "1/1" and says nothing; with 27 houses it is the whole information.
+		Message = FText::Format(
+			NSLOCTEXT("GoblinSiege", "ObjectiveTally", "{0}  {1}/{2}"),
+			FText::FromString(Leaf), FText::AsNumber(Bucket.CompletedCount),
+			FText::AsNumber(Bucket.RequiredCount));
+	}
+	else
+	{
+		Message = FText::Format(
+			NSLOCTEXT("GoblinSiege", "ObjectiveDone", "{0} destroyed"),
+			DisplayName.IsEmpty() ? FText::FromString(Leaf) : DisplayName);
+	}
+
+	OnObjectiveAnnounced.Broadcast(Message);
+}
+
 void UGSRaidDirector::EvaluateWinCondition()
 {
 	if (bObjectivesComplete || !HasAuthority())
@@ -399,6 +477,11 @@ void UGSRaidDirector::EvaluateWinCondition()
 
 	UE_LOG(LogGSRaid, Log,
 		TEXT("[GoblinSiege] All %d objective type(s) burned - the portal opens."), RequiredTypes.Num());
+
+	// Michael's own phrasing for the win condition was about this moment: "the prompt to leave
+	// doesn't come back unless you've completed those missions". This is that prompt.
+	OnObjectiveAnnounced.Broadcast(
+		NSLOCTEXT("GoblinSiege", "WayOutOpen", "The way out is open"));
 
 	OnRaidObjectivesComplete.Broadcast();
 }
@@ -443,9 +526,29 @@ void UGSRaidDirector::HandleMonumentToppled(AActor* /*Toppler*/)
 				TEXT("[GoblinSiege] %s satisfied - %d of %d monument(s) cast down."),
 				*Pair.Key.ToString(), Down, Bucket->RequiredCount);
 		}
+
+		// Announce whichever monument of this type is down and has a name. With one statue this is
+		// simply "the statue"; with several it names the type, which is the honest thing to say when
+		// the broadcast cannot tell us which one fell.
+		FText MonumentName;
+		for (const TWeakObjectPtr<UGSTopplableComponent>& Weak : Pair.Value)
+		{
+			if (const UGSTopplableComponent* M = Weak.Get())
+			{
+				MonumentName = M->GetObjectiveDisplayName();
+				break;
+			}
+		}
+		AnnounceObjective(Pair.Key, MonumentName, *Bucket, Bucket->bTypeComplete);
 	}
 
 	EvaluateWinCondition();
+}
+
+int32 UGSRaidDirector::GetRequiredCountForType(FGameplayTag TypeTag) const
+{
+	const FGSObjectiveTypeBucket* Bucket = BucketsByType.Find(TypeTag);
+	return Bucket ? Bucket->RequiredCount : 0;
 }
 
 int32 UGSRaidDirector::GetCompletedTypeCount() const

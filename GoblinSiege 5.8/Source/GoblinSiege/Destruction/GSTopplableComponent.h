@@ -132,6 +132,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Topple|Objective")
 	FGameplayTag GetObjectiveTypeTag() const { return ObjectiveTypeTag; }
 
+	/** What the HUD calls this monument. Empty falls back to the type tag's leaf, so a monument that
+	 *  counts is never a nameless row. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Topple|Objective")
+	FText ObjectiveDisplayName;
+
+	/** The HUD name, resolved: the authored one, else the tag leaf, else "Monument". */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Topple|Objective")
+	FText GetObjectiveDisplayName() const;
+
 protected:
 	/**
 	 * Seconds of sustained tension before it goes over.

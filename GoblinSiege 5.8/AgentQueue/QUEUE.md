@@ -212,9 +212,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 305 | review (waiting on: Michael: burn 27 houses + market + field + statue and confirm the portal opens.) | claude-warren | The objective set: a percentage of houses, the statue counts, the mill does not | Source/GoblinSiege/Raid/GSRaidDirector.h<br>Source/GoblinSiege/Raid/GSRaidDirector.cpp<br>Source/GoblinSiege/Destruction/GSTopplableComponent.h<br>Source/GoblinSiege/Destruction/GSTopplableComponent.cpp<br>Content/Maps/L_Tutorial_Island.umap<br>docs/decisions-ledger.md<br>Config/DefaultGame.ini<br>Config/DefaultGameplayTags.ini | required |
+| 309 | review (waiting on: NEVER COMPILED - build gate closed on 306 and 308. Needs an editor-closed build (3 new UCLASS types, so Live Coding cannot do it), then PIE in L_CombatArena: GS.Corruption.Set 1 and watch the sky and grade travel from blown-out to gritty. Both grade ends are EditAnywhere on the director for Michael to tune by eye.) **STALE 2.3h** | claude-corruption | World corruption 1/6 - the scalar, the sky, and a two-ended post-process grade from blown-out to gritty | Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDirector.h<br>Source/GoblinSiege/World/GSCorruptionDirector.cpp<br>Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp<br>Config/DefaultGame.ini | none |
+| 310 | review (waiting on: Michael: 306 must close before the textures can be wired into WBP_GSPlayerHUD. Nothing is on screen yet.) | claude-ui | The generated HUD art gets real alpha and comes into the project | Content/UI/Textures | none |
+| 311 | active | claude-ui | M opens the objective board, with a seam for the map it becomes | Source/GoblinSiege/Characters/GSPlayerCharacter.h<br>Source/GoblinSiege/Characters/GSPlayerCharacter.cpp<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Content/UI/WBP_GSPlayerHUD.uasset<br>Content/Input/IMC_Default.uasset<br>Content/Input/IA_Map.uasset | required |
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -524,6 +526,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 302 | done | claude-warren | "The statue wards the ground: no portal while it stands" |
 | 303 | done | claude-warren | Goblins steal cargo off each other and are eaten as couriers |
 | 304 | done | claude-warren | Fire jumps between houses: building-to-building spread |
+| 305 | done **UNOBSERVED** | claude-warren | The objective set: a percentage of houses, the statue counts, the mill does not |
+| 306 | done | claude-ui | The statue joins the objective list, and completing one says so |
+| 307 | done | claude-warren | The forest closes the map: an impassable treeline along the drawn boundary |
+| 308 | done | claude-warren | Goblins hate water: past waist deep you drown |
 
 <!-- BOARD:END -->
 

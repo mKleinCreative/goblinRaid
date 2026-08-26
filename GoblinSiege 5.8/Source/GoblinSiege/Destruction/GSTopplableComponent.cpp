@@ -23,6 +23,29 @@ void UGSTopplableComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(UGSTopplableComponent, bToppled);
 }
 
+FText UGSTopplableComponent::GetObjectiveDisplayName() const
+{
+	if (!ObjectiveDisplayName.IsEmpty())
+	{
+		return ObjectiveDisplayName;
+	}
+
+	// Derived from the tag leaf, the same way the HUD pluralises burn types: a fifth monument type
+	// should cost a tag and nothing else. Objective.Topple.Statue -> "Statue".
+	if (ObjectiveTypeTag.IsValid())
+	{
+		FString Leaf = ObjectiveTypeTag.ToString();
+		int32 Dot = INDEX_NONE;
+		if (Leaf.FindLastChar(TEXT('.'), Dot))
+		{
+			Leaf = Leaf.RightChop(Dot + 1);
+		}
+		return FText::FromString(Leaf);
+	}
+
+	return NSLOCTEXT("GoblinSiege", "MonumentObjectiveDefault", "Monument");
+}
+
 bool UGSTopplableComponent::WardReaches(const FVector& Spot) const
 {
 	if (bWardsEntireLevel)

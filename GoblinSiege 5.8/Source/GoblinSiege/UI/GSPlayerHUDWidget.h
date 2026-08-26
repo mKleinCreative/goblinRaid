@@ -86,6 +86,76 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> ObjectiveListText;
 
+	/**
+	 * The transient line that says what was just achieved. Michael, 2026-08-25: "work on prompts for
+	 * when an objective gets completed."
+	 *
+	 * BlueprintReadOnly as well as BindWidgetOptional, deliberately - see the StaminaBar comment
+	 * above. A binding a designer might read from the widget graph and cannot is not a missing
+	 * feature, it is a compile error that takes the WHOLE Blueprint down, and this project has
+	 * shipped that twice.
+	 */
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "GoblinSiege|HUD")
+	TObjectPtr<UTextBlock> ObjectivePromptText;
+
+	/** How long an announcement stays on screen. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Prompt", meta = (ClampMin = "0.5"))
+	float ObjectivePromptSeconds = 4.f;
+
+	/**
+	 * The painted plates behind the objective board and the two prompts.
+	 *
+	 * These exist ONLY so the art can be shown and hidden with the thing it backs. A plate is a
+	 * sibling of its text on the canvas, not a parent, so nothing hides it automatically - left to
+	 * itself the announcement banner sits on screen for the whole raid. Optional, like every other
+	 * binding here: a HUD without them still plays, it just draws the text bare.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> ObjectiveBoardPlate;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> AnnouncementPlate;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> InteractPromptPlate;
+
+	/**
+	 * The board starts CLOSED and opens on M. Michael, having played the first art pass: "the UI is
+	 * way too huge, at least the objective marker".
+	 *
+	 * This is deliberately named for the map it is going to become rather than for the board it is
+	 * today - see SetMapOpen. Flip this to true if the board should be up by default.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Map")
+	bool bMapOpenByDefault = false;
+
+public:
+	/**
+	 * Open or close the map panel. Today the panel IS the objective board; M shows and hides it.
+	 *
+	 * ---- THE SEAM, and nothing more than a seam (ticket #311) -------------------------------
+	 * Michael: "we can expand that later to a version of a map, make a stub of that, but don't
+	 * implement anything." So this is the one function a map has to hook, and it is named and
+	 * placed for that - but there is no map here, no widget for one, and no reader of one. When a
+	 * map arrives it becomes another child shown alongside the board inside this call, and the
+	 * input binding, the toggle and the open/closed state do not move.
+	 *
+	 * Named SetMapOpen rather than SetObjectiveBoardOpen because the caller is the M key, and the
+	 * key is the thing that will not be renamed later.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|HUD|Map")
+	void SetMapOpen(bool bOpen);
+
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|HUD|Map")
+	void ToggleMap();
+
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|HUD|Map")
+	bool IsMapOpen() const { return bMapOpen; }
+
+protected:
+	/** Runtime open/closed state; seeded from bMapOpenByDefault at construction. */
+	bool bMapOpen = false;
+
 	/** mm:ss. Switches to the collapse countdown once the portal starts collapsing. */
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> ClockText;
@@ -507,6 +577,13 @@ protected:
 
 	void Refresh(float NewHealth, float MaxHealth);
 	void RebuildObjectiveList();
+
+	UFUNCTION()
+	void HandleObjectiveAnnounced(const FText& Message);
+
+	void HideObjectivePrompt();
+
+	FTimerHandle ObjectivePromptTimer;
 	void RefreshClock();
 	void UnbindRaid();
 
