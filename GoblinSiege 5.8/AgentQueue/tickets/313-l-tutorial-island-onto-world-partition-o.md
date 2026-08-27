@@ -2,13 +2,13 @@
 id: 313
 title: L_Tutorial_Island onto World Partition, objective actors always loaded
 agent: claude-ui
-status: blocked
+status: done
 claimed: 2026-08-26T01:58Z
 build: required
 waiting_on:
-evaluated:
-observed:
-scenario:
+evaluated: 2026-08-26T17:59:28Z
+observed: UNOBSERVED 2026-08-26T17:59:28Z - Parked by Michael after four failed WorldPartitionConvertCommandlet runs; engine asserts at save (UObjectArray.h:1083). Map verified byte-identical to backup and a pre-worldpartition git tag exists, so nothing was damaged. Nothing to observe - the conversion never produced a running map.
+scenario: none - never run
 files: 
   - Content/Maps/L_Tutorial_Island.umap
   - Content/Maps/__ExternalActors__
@@ -106,3 +106,5 @@ If the carrier count comes back below 71, streaming ate objectives and the alway
 failed.
 
 > 2026-08-26T02:20Z Map does not convert: engine asserts at save (UObjectArray.h:1083). Not the environment - retested after the engine install finished, identical crash. Suspect a Blueprint with malformed component parenting. Next step is -ReportOnly to name it. Map verified byte-identical to backup; nothing damaged.
+
+> 2026-08-26T17:59Z Michael 2026-08-26: close it - the push problem it was solving is an annoyance, not a blocker.

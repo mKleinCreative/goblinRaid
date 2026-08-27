@@ -10,6 +10,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Engine/World.h"
+#include "World/GSCorruptionSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSBreakable, Log, All);
@@ -139,6 +140,15 @@ void UGSBreakableComponent::Break(const FVector& ImpactPoint, const FVector& Imp
 	if (!Owner || !Owner->HasAuthority())
 	{
 		return;
+	}
+
+	// World corruption (ruling 40). Called directly, not bound to the delegate above, for the
+	// reason GSTopplableComponent.cpp already documents for scoring: this call site is
+	// first-wins guarded so it cannot double-count, whereas a subscriber can silently be
+	// bound twice - and a direct call survives an actor spawned after BeginPlay.
+	if (UGSCorruptionSubsystem* Corruption = UGSCorruptionSubsystem::Get(this))
+	{
+		Corruption->ReportStructureDestroyed(Owner);
 	}
 
 	bBroken = true;

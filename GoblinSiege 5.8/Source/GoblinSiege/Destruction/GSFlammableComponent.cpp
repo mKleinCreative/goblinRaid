@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
+#include "World/GSCorruptionSubsystem.h"
 #include "Engine/OverlapResult.h"
 #include "CollisionQueryParams.h"
 
@@ -144,6 +145,15 @@ void UGSFlammableComponent::BurnTick()
 	{
 		bIsBurning = false;
 		bBurnedDown = true;
+
+		// World corruption (ruling 40). Anything flammable that burns to the ground is a structure
+		// destroyed - this is the most general of the three hooks, because UGSRaidLibrary::MakeActorFlammable
+		// can attach this component to any actor at runtime. Reported here rather than from
+		// OnBurnedDown: this is the single server-side latch, so it cannot double-count.
+		if (UGSCorruptionSubsystem* Corruption = UGSCorruptionSubsystem::Get(this))
+		{
+			Corruption->ReportStructureDestroyed(GetOwner());
+		}
 		if (UWorld* World = GetWorld())
 		{
 			World->GetTimerManager().ClearTimer(BurnTimerHandle);

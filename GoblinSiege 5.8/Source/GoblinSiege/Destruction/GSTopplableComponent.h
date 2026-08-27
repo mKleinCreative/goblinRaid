@@ -27,6 +27,19 @@
 // That is also why GC_Statue_Warrior ships Chaos_Object_Static. It was authored Dynamic first, and a
 // dynamic collection with collision damage on simply fell over and smashed itself at level start,
 // untouched - which was briefly, and wrongly, recorded as the feature working.
+//
+// ---------------------------------------------------------------------------------------------
+// WHAT THIS CLASS STILL OWNS, AFTER UGSCrumbleComponent (2026-08-25, #317)
+//
+// The release itself - swap, promote, un-anchor, shove a frame later - moved to UGSCrumbleComponent,
+// because a building burning down needs the identical sequence and this file's copy was one of
+// three. Michael named the commonality: "the commonality is they get destroyed, and on the destroyed
+// state after being on fire, or being torn down, they crumble into pieces like the statue."
+//
+// What stays here is everything that makes a topple a TOPPLE rather than a collapse: the rope, the
+// heave, the direction the monument falls, the ward it holds while it stands, and what bringing it
+// down is worth. bToppled therefore no longer needs a RepNotify - it is gameplay state read on the
+// server, and the visuals every client has to see are the crumble component's replicated release.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -34,7 +47,7 @@
 #include "GameplayTagContainer.h"
 #include "GSTopplableComponent.generated.h"
 
-class UGeometryCollectionComponent;
+class UGSCrumbleComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnToppled, AActor*, Toppler);
 
@@ -217,28 +230,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Topple|Score")
 	FGameplayTag DeedTypeTag;
 
+	/**
+	 * Gameplay state, not a visual. No RepNotify on purpose: what a client must SEE is the crumble
+	 * component's replicated release, and this only answers "is the ward still up, has it scored".
+	 *
+	 * It used to be both, and that was the co-op bug - every visual sat behind the authority
+	 * early-return in Topple(), so the idol fell on the host and stood untouched on every client.
+	 */
 	UPROPERTY(Replicated)
 	bool bToppled = false;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	/** The collection this topples. Resolved from the owner; null is survivable and logs. */
-	UGeometryCollectionComponent* ResolveCollection() const;
-
-	/**
-	 * Logs whether the collection ACTUALLY MOVED, half a second after the shove.
-	 *
-	 * Michael asked the right question - "is there a way to check in the logs that the mesh swapped vs
-	 * it actually toppling?" - and the answer was no, which is the whole problem. The old single line
-	 * announced a successful topple the moment the impulse was dispatched, and said exactly that three
-	 * times while the statue stood there kinematic and unmoved. A log that reports intent rather than
-	 * outcome is worse than no log: it actively misdirects.
-	 *
-	 * So this reads the velocity back after the physics has had a chance to run, and says MOVED or
-	 * DID NOT MOVE. The swap is reported separately, because "the mesh changed" and "the monument fell"
-	 * are two different successes and only one of them is the feature.
-	 */
-	void ReportToppleOutcome();
-
-	FTimerHandle ToppleOutcomeTimer;
 };

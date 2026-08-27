@@ -1,5 +1,11 @@
 #include "Destruction/GSBuildingObjective.h"
 #include "Destruction/GSFlammableComponent.h"
+#include "Destruction/GSCrumbleComponent.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
+#include "GeometryCollection/GeometryCollectionObject.h"
+#include "GeometryCollection/GeometryCollection.h"
+#include "GeometryCollection/GeometryCollectionActor.h"
+#include "Kismet/GameplayStatics.h"
 #include "Destruction/GSBurnFXComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -537,6 +543,192 @@ void AGSBuildingObjective::OnRep_Alight()
 }
 
 // ====================================================================== progress
+
+AActor* AGSBuildingObjective::SpawnCollectionProxy(AActor* Piece) const
+{
+	// WHY A SPAWNED ACTOR AND NOT A COMPONENT ON THE PIECE (2026-08-26, after four builds).
+	//
+	// The first version grafted a UGeometryCollectionComponent onto the kit piece, which is a plain
+	// StaticMeshActor. It failed four separate ways, each hiding the next, and every one of them
+	// reported success in the log while doing nothing:
+	//
+	//   1. Static root mobility - SetSimulatePhysics(true) accepted, logged "simulating 0".
+	//   2. Still attached       - driven by the parent transform, "simulating 1" and motionless.
+	//   3. Collision profile    - defaults to Custom, so pieces fell through the landscape.
+	//   4. All three fixed      - 31 of 33 pieces still ended 1.3 km away and below the world.
+	//
+	// Meanwhile the IDENTICAL asset folds correctly in L_CombatArena, where it sits on a plain
+	// AGeometryCollectionActor placed in the editor. The difference is not the asset and not the
+	// release sequence: Chaos builds a collection's proxy once, at registration, from the actor it
+	// belongs to. A collection wants to BE an actor's root, not be bolted onto one.
+	//
+	// So spawn the shape that works and hide the original piece. Deferred spawn matters: the rest
+	// collection must be assigned BEFORE FinishSpawningActor, or the component registers empty and
+	// reports zero transforms until something re-registers it.
+	if (!IsValid(Piece))
+	{
+		return nullptr;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	UStaticMeshComponent* MeshComp = Piece->FindComponentByClass<UStaticMeshComponent>();
+	UStaticMesh* Mesh = MeshComp ? MeshComp->GetStaticMesh() : nullptr;
+	if (!Mesh)
+	{
+		return nullptr;
+	}
+
+	// SM_MERGED_House_Small_03 becomes GC_MERGED_House_Small_03. Anything not following the kit's
+	// SM_ prefix simply gets GC_ prepended, so a one-off mesh can still be given a fracture.
+	FString Base = Mesh->GetName();
+	if (Base.StartsWith(TEXT("SM_")))
+	{
+		Base.RightChopInline(3);
+	}
+	const FString AssetName = FString::Printf(TEXT("GC_%s"), *Base);
+	const FString FullPath = FString::Printf(TEXT("%s/%s.%s"), *CrumbleCollectionFolder, *AssetName, *AssetName);
+
+	// Silent on miss. This fires for every unfractured piece of every building on the map, and a
+	// warning here would bury the one line that matters in CrumblePieces.
+	UGeometryCollection* Collection = LoadObject<UGeometryCollection>(nullptr, *FullPath);
+	if (!Collection)
+	{
+		return nullptr;
+	}
+
+	// REFUSE AN EMPTY COLLECTION. GC_House_Window_C is 10 KB of scaffolding that nothing referenced.
+	// Used anyway it produced the worst possible failure: the swap ran, the log said the collection
+	// was revealed, the intact mesh was hidden, and the player got a hole where a window used to be.
+	if (Collection->NumElements(FGeometryCollection::TransformGroup) <= 1)
+	{
+		UE_LOG(LogGSBuilding, Warning,
+			TEXT("[GoblinSiege] %s skipped %s for piece %s: the asset has no geometry (%d transforms). ")
+			TEXT("It is a stub, not a fracture."),
+			*GetName(), *AssetName, *Piece->GetName(),
+			Collection->NumElements(FGeometryCollection::TransformGroup));
+		return nullptr;
+	}
+
+	const FTransform Xform = Piece->GetActorTransform();
+
+	AGeometryCollectionActor* Proxy = World->SpawnActorDeferred<AGeometryCollectionActor>(
+		AGeometryCollectionActor::StaticClass(), Xform,
+		const_cast<AGSBuildingObjective*>(this), nullptr,
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	if (!Proxy)
+	{
+		return nullptr;
+	}
+
+	if (UGeometryCollectionComponent* GCC = Proxy->GetGeometryCollectionComponent())
+	{
+		GCC->SetRestCollection(Collection);
+
+		// Dormant until released. A collection left at its default Chaos_Object_Dynamic falls over and
+		// shatters itself at level start - #192 recorded that as the feature working before Michael
+		// pointed out he had never touched it.
+		GCC->ObjectType = EObjectStateTypeEnum::Chaos_Object_Static;
+		GCC->SetCollisionProfileName(TEXT("Destructible"));
+		GCC->SetHiddenInGame(true);
+	}
+
+	// Replicated, unlike the StaticMeshActor it stands in for - which never replicated, and so could
+	// never have shown a client anything at all.
+	Proxy->SetReplicates(true);
+
+	UGameplayStatics::FinishSpawningActor(Proxy, Xform);
+
+	if (UGeometryCollectionComponent* GCC = Proxy->GetGeometryCollectionComponent())
+	{
+		GCC->SetSimulatePhysics(false);
+	}
+
+	UE_LOG(LogGSBuilding, Verbose,
+		TEXT("[GoblinSiege] %s spawned a %s proxy for piece %s."),
+		*GetName(), *AssetName, *Piece->GetName());
+
+	return Proxy;
+}
+
+void AGSBuildingObjective::HandleCompleted()
+{
+	Super::HandleCompleted();
+
+	// Server decides; the pieces' own replicated releases carry it to the clients.
+	if (HasAuthority())
+	{
+		CrumblePieces();
+	}
+}
+
+void AGSBuildingObjective::CrumblePieces()
+{
+	int32 Released = 0;
+	int32 NoAsset = 0;
+
+	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
+	{
+		AActor* Piece = Weak.Get();
+		if (!IsValid(Piece))
+		{
+			continue;
+		}
+
+		AActor* Proxy = SpawnCollectionProxy(Piece);
+		if (!Proxy)
+		{
+			++NoAsset;
+			continue;
+		}
+
+		// Retire the standing piece. Collision off as well as hidden: an invisible house you still bump
+		// into reads as the collapse having failed, and the rubble would land on walls that are gone.
+		for (UStaticMeshComponent* M : TInlineComponentArray<UStaticMeshComponent*>(Piece))
+		{
+			if (M)
+			{
+				M->SetHiddenInGame(true);
+				M->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+		}
+
+		UGSCrumbleComponent* Crumble = UGSCrumbleComponent::FindOrAdd(Proxy);
+		if (!Crumble)
+		{
+			continue;
+		}
+
+		// A building gives way; it is not shoved over. Hand the proxy the collapse shape, then pass a
+		// ZERO impulse - the ring replaces it.
+		Crumble->ClusterCrumblePasses = CollapseClusterPasses;
+		Crumble->CollapseShoveCount = CollapseShoveCount;
+		Crumble->CollapseShoveMagnitude = CollapseShoveMagnitude;
+		Crumble->CollapseInwardRatio = CollapseInwardRatio;
+
+		// A house that burned to the ground drops BLACK rubble. The proxy is a freshly spawned
+		// collection with pristine materials - nothing ever burned it - so the burn state has to be
+		// carried across the swap or the wreckage arrives clean. Michael caught this on the windmill
+		// ("it didn't have the char on it") and it is the identical bug here.
+		Crumble->CharAmountOnRelease = 1.f;
+
+		if (Crumble->Crumble(FVector::ZeroVector, Proxy->GetActorLocation()))
+		{
+			++Released;
+		}
+	}
+
+	// One line, and it has to be readable by somebody who has not read this file. "0 of 34" is the
+	// answer to why a house did not fall down, and it points at the missing asset, not at the code.
+	UE_LOG(LogGSBuilding, Log,
+		TEXT("[GoblinSiege] %s burnt out: released %d of %d piece(s); %d have no fracture asset yet ")
+		TEXT("and simply stop where they stand."),
+		*GetName(), Released, Pieces.Num(), NoAsset);
+}
 
 void AGSBuildingObjective::HandlePieceBurnedDown()
 {

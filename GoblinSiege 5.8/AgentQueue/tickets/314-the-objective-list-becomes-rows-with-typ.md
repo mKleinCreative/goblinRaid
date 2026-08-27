@@ -2,7 +2,7 @@
 id: 314
 title: The objective list becomes rows with type and state icons
 agent: claude-ui
-status: review
+status: abandoned
 claimed: 2026-08-26T02:24Z
 build: required
 waiting_on: Michael: the Hill Windmill row clips the board edge - shorten the name, widen the board, or drop a font point?
@@ -71,3 +71,5 @@ character codes so no escaping layer remained.
 <!-- REPLACE: what you changed in response to your own evaluation, and what you
 are deliberately leaving undone. "Nothing changed, and here is why the first pass
 survives scrutiny" is a valid answer; silence is not. -->
+
+> 2026-08-26T17:59Z Michael 2026-08-26: disregard it, it doesn't matter. Left by claude-ui with Refine unwritten and the HUD rows never watched in PIE; abandoned rather than done so the board does not claim a review that nobody did.

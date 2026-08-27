@@ -27,6 +27,18 @@ AGSTorchProjectile::AGSTorchProjectile()
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
+	// A THROWN TORCH IS A LIT TORCH, AND UNTIL NOW NOTHING SAID SO (2026-08-26, #323).
+	//
+	// AGSMillObjective only lights when an actor carrying this tag overlaps its window, and the tag
+	// was referenced in exactly two places in the whole project: the mill's own property, and the
+	// check that reads it. Nothing ever applied it. So the windmill's one gameplay ignition route
+	// tested a condition that could never be true, and the mill could only be lit by a console
+	// command.
+	//
+	// Tagged on the projectile rather than on the held torch on purpose: the mill wants "something
+	// burning arrived through the window", which is the thrown thing, not the one still in a hand.
+	Tags.Add(FName(TEXT("GS.LitTorch")));
+
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
 	CollisionSphere->InitSphereRadius(8.f);
 	CollisionSphere->SetCollisionProfileName(TEXT("BlockAllDynamic"));

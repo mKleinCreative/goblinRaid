@@ -1,6 +1,7 @@
 #include "Destruction/GSDestructibleObjective.h"
 #include "Destruction/GSFlammableComponent.h"
 #include "Destruction/GSBurnFXComponent.h"
+#include "Destruction/GSCrumbleComponent.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
 
 AGSDestructibleObjective::AGSDestructibleObjective()
@@ -13,6 +14,11 @@ AGSDestructibleObjective::AGSDestructibleObjective()
 	// Fracture stays dormant until burn-complete - the objective stands solid while it burns.
 	GeometryCollectionComponent->SetSimulatePhysics(false);
 
+	CrumbleComponent = CreateDefaultSubobject<UGSCrumbleComponent>(TEXT("Crumble"));
+
+	// Kept even though a statue does not burn: this class is the general "finished when it comes
+	// apart" objective, and a burnable one still wants to char while it goes. What was removed is
+	// the burn DECIDING that it is destroyed, not the burn happening at all.
 	FlammableComponent = CreateDefaultSubobject<UGSFlammableComponent>(TEXT("FlammableComponent"));
 
 	// 2026-07-31: destroying this has to be worth having done ten minutes later. Constructed here
@@ -32,13 +38,13 @@ void AGSDestructibleObjective::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (FlammableComponent)
+	if (CrumbleComponent)
 	{
-		FlammableComponent->OnBurnedDown.AddDynamic(this, &AGSDestructibleObjective::HandleBurnedDown);
+		CrumbleComponent->OnCrumbled.AddDynamic(this, &AGSDestructibleObjective::HandleCrumbled);
 	}
 }
 
-void AGSDestructibleObjective::HandleBurnedDown()
+void AGSDestructibleObjective::HandleCrumbled()
 {
 	if (bDestroyed)
 	{
@@ -46,12 +52,8 @@ void AGSDestructibleObjective::HandleBurnedDown()
 	}
 	bDestroyed = true;
 
-	// The collapse moment (design doc §7): burn-complete releases the Chaos simulation. A field
-	// system / BP impulse bound to OnObjectiveDestroyed can add the outward blast for drama.
-	if (GeometryCollectionComponent)
-	{
-		GeometryCollectionComponent->SetSimulatePhysics(true);
-	}
-
+	// No physics work here any more, and that is the point. Releasing the collection is the crumble
+	// component's job and it has already happened by the time this fires; this class only has to say
+	// that the objective is finished.
 	OnObjectiveDestroyed.Broadcast();
 }

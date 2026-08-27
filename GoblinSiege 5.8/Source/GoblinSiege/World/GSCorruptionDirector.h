@@ -146,6 +146,34 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Sky")
 	float CorruptMultiScatteringFactor = 0.25f;
 
+	/**
+	 * OZONE, and it is the reason the first version left a blue rim at the extremes of the sky.
+	 * Michael, 2026-08-26: "the sky went dark orange except for the extreme of the skybox which was
+	 * blue". Driving RayleighScattering red-brown recolours the bulk of the dome but NOT the
+	 * ozone layer, whose absorption defaults to a blue-cyan tint and dominates at the zenith and at
+	 * grazing angles - so the blue survives however red everything else goes. Warm absorption here
+	 * is what closes the dome.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Sky")
+	FLinearColor CorruptOtherAbsorption = FLinearColor(0.45f, 0.26f, 0.14f);
+
+	/**
+	 * Ozone absorption strength at full corruption - an ABSOLUTE target, not a multiple of whatever
+	 * the level authored. It was written as a multiplier first, and L_Tutorial_Island proved that
+	 * wrong: it authors OtherAbsorptionScale at 0.0, so Lerp(0, 0 * 2.0, T) is zero at every
+	 * corruption level and the whole ozone fix was silently inert on that map. Multiplying a
+	 * baseline that is legitimately zero can never lift it.
+	 *
+	 * Engine UIMax for this property is 0.2; 0.06 is a firm but not absurd haze.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Sky",
+		meta = (ClampMin = "0.0", UIMax = "0.2"))
+	float CorruptOtherAbsorptionScale = 0.06f;
+
+	/** Haze colour at full corruption - smoke rather than clean air. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Sky")
+	FLinearColor CorruptMieScattering = FLinearColor(0.05f, 0.032f, 0.024f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Fog")
 	float CorruptFogDensityMultiplier = 6.f;
 
@@ -162,6 +190,16 @@ public:
 	/** Sun intensity multiplier at full corruption - the sun struggles through the smoke. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Sun")
 	float CorruptSunIntensityScale = 0.45f;
+
+	/**
+	 * THE SUN DISC ITSELF, which is a different parameter from the light colour and is why the
+	 * first version lit the world warm while the disc stayed yellow. Michael, 2026-08-26: "the sun
+	 * was the same yellow color". SetLightColor changes what the sun DOES to the scene;
+	 * UDirectionalLightComponent::AtmosphereSunDiskColorScale changes what the sun LOOKS like in
+	 * the sky. Both are needed, and only the second one is visible when you look up.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GoblinSiege|Corruption|Sun")
+	FLinearColor CorruptSunDiskColorScale = FLinearColor(1.0f, 0.15f, 0.04f);
 
 private:
 	void DiscoverActors();
@@ -189,6 +227,10 @@ private:
 	float BaseMieAbsorptionScale = 1.f;
 	float BaseMultiScatteringFactor = 1.f;
 	FLinearColor BaseSkyLuminanceFactor = FLinearColor::White;
+	FLinearColor BaseOtherAbsorption = FLinearColor::White;
+	float BaseOtherAbsorptionScale = 1.f;
+	FLinearColor BaseMieScattering = FLinearColor::White;
+	FLinearColor BaseSunDiskColorScale = FLinearColor::White;
 	float BaseFogDensity = 0.02f;
 	FLinearColor BaseFogInscatteringColor = FLinearColor::White;
 	FLinearColor BaseSunColor = FLinearColor::White;

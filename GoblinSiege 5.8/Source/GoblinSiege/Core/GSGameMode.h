@@ -5,9 +5,30 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "GameplayTagContainer.h"
 #include "GSGameMode.generated.h"
 
 class AGSCharacterBase;
+
+/**
+ * A character died: who, what race, and where. AGSGameMode's FIRST delegate.
+ *
+ * "An NPC was killed at location X" did not exist anywhere in this project before this. Every death
+ * already funnels through HandleGoblinDeath below, but for an AI defender that function returned
+ * without reporting anything to anyone - so a raid could kill the entire garrison and no system
+ * could tell. World corruption (ledger 40-45, 62) is the first consumer; barks, the score screen
+ * and any future corpse-suspicion signal are the obvious next ones.
+ *
+ * NOT a widening of AGSCharacterBase::OnDied. That delegate is per-actor and BlueprintAssignable,
+ * and re-signaturing a BlueprintAssignable dynamic delegate breaks existing Blueprint bindings at
+ * load with no compile error to catch it. A global counter wants one server-side bus, not a
+ * subscription to every pawn.
+ *
+ * Victim is non-const deliberately: UnrealHeaderTool rejects a `const T*` parameter on the UFUNCTION
+ * that binds to this. UGSHordeSubsystem.h documents the same constraint for its own accessors.
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGSOnCharacterKilled,
+	AGSCharacterBase*, Victim, FGameplayTag, VictimRaceTag, FVector, Location);
 
 UCLASS()
 class GOBLINSIEGE_API AGSGameMode : public AGameModeBase
@@ -32,6 +53,14 @@ public:
 	/** Called by AGSCharacterBase::HandleDeath (server). AI defenders just clean up; goblins with
 	 *  a PlayerState spend a life and respawn on a short timer. */
 	void HandleGoblinDeath(AGSCharacterBase* DeadCharacter, AController* Controller);
+
+	/**
+	 * Every death, defender and player alike. Server-only by construction: AGSGameMode does not
+	 * exist on clients, which is why nothing here needs a HasAuthority() check and why nobody
+	 * should "fix" that by adding one or moving this onto the character.
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Raid")
+	FGSOnCharacterKilled OnCharacterKilled;
 
 	/**
 	 * Respawn at the runic site (design doc §1 - "respawn is at the runic site"), falling back to

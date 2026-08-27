@@ -45,9 +45,21 @@ next agent rediscovers it.
     this class is part of Phase 2b** (ruling 27).
   - **ACF's AI machinery is now awake.** `AACFAIController::OnPossess` used to early-return on our
     pawns because they failed `Cast<AACFCharacter>`; they pass now, so its blackboard init runs and it
-    reaches the tree check - hence six `should be assigned with a behavior Tree` warnings. Its
-    `StartTree()` stays quiet ONLY because no ACF BehaviorTree is assigned, and our own
-    `RunBehaviorTree()` calls remain load-bearing. Consequence: ACF's attacker ticketing
+    reaches the tree check - hence six `should be assigned with a behavior Tree` warnings.
+    **CORRECTED 2026-08-27 (#330): the rest of this bullet is now false and it cost a session.** It
+    used to say `StartTree()` stays quiet ONLY because no ACF BehaviorTree is assigned, and that our
+    own `RunBehaviorTree()` calls remain load-bearing. `BP_GSAIController_Militia` now carries
+    `BehaviorTree = BT_Defender`, so ACF's `StartTree()` DOES run - and our `RunBehaviorTree()` at
+    `GSAIControllerBase.cpp:137-152` then runs a SECOND tree on a SECOND
+    `UBehaviorTreeComponent` (ACF never assigns `BrainComponent`, `ACFAIController.cpp:53`), and
+    re-initialises the blackboard to `BB_Human`, invalidating every key ID ACF cached at `:87-97`.
+    **Two trees on two blackboards driving one movement component** is the cause of the patrol
+    misbehaviour chased all of 2026-08-27, not anything to do with locomotion states.
+    Also false, same ticket: `GSCharacterMovementComponent.cpp:18-20` claims the emptied bands make
+    `Super::BeginPlay()` write MaxWalkSpeed to ZERO so the restore at `:23` is not optional. The miss
+    branch at `ACFCharacterMovementComponent.cpp:677-692` is **log-only** - it writes nothing, and
+    `"Locomotion State inexistent"` is a marker, not a cause. `GSAIControllerBase.h:13-16` carries the
+    same stale "load-bearing" claim. Consequence: ACF's attacker ticketing
     (`MaxAttackersPerTarget = 1`) is now one asset assignment away from clamping the horde to one
     attacker - ruling 33's insurance was never implemented and is a live debt.
   - **NOT DONE, do not mistake it for done:** ACF's `StatisticsComp` is present and uninitialised, so

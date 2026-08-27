@@ -4,6 +4,13 @@
 #include "Core/GSGameState.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/BoxComponent.h"
+#include "Destruction/GSCrumbleComponent.h"
+#include "GeometryCollection/GeometryCollectionComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "EngineUtils.h"
 #include "GameFramework/RotatingMovementComponent.h"
 #include "Engine/World.h"
 #include "Engine/OverlapResult.h"
@@ -36,6 +43,22 @@ AGSMillObjective::AGSMillObjective()
 
 	// Rate and updated component are applied in BeginPlay: SetUpdatedComponent on a CDO is
 	// unreliable (movement components resolve against the owner's root during registration).
+	// The way in. Tagged here so the BeginPlay binding picks it up through the same tag lookup a
+	// hand-placed component would have used - no special case, and a level that DOES author its own
+	// tagged window just gets two valid triggers rather than a conflict.
+	WreckFireSystem = TSoftObjectPtr<UNiagaraSystem>(
+		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_SurfaceFire.NS_GS_SurfaceFire")));
+
+	WindowTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("WindowTrigger"));
+	WindowTrigger->SetupAttachment(GetRootComponent());
+	WindowTrigger->ComponentTags.Add(WindowComponentTag);
+	WindowTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	WindowTrigger->SetCollisionResponseToAllChannels(ECR_Overlap);
+	WindowTrigger->SetGenerateOverlapEvents(true);
+	// Never blocks. A torch that bounced off the window instead of going through it would be the
+	// same bug in a new costume.
+	WindowTrigger->SetCollisionObjectType(ECC_WorldDynamic);
+
 	SailSpin = CreateDefaultSubobject<URotatingMovementComponent>(TEXT("SailSpin"));
 	SailSpin->bAutoActivate = true;
 
@@ -90,6 +113,14 @@ void AGSMillObjective::BindWindowVolumes()
 	if (!HasAuthority())
 	{
 		return;
+	}
+
+	// Offset and extent are applied here rather than in the constructor so a designer's edit takes
+	// effect without a recompile.
+	if (WindowTrigger)
+	{
+		WindowTrigger->SetRelativeLocation(WindowTriggerOffset);
+		WindowTrigger->SetBoxExtent(WindowTriggerExtent);
 	}
 
 	TArray<UPrimitiveComponent*> Primitives;
@@ -254,6 +285,13 @@ void AGSMillObjective::Detonate()
 
 	SetStage(EGSMillStage::Detonated);
 
+	// The tower comes down. After SetStage so the char, the stopped sails and the objective all land
+	// first - the sink is the payoff on top of that, not a replacement for it.
+	if (bSinkOnDetonation)
+	{
+		SinkTower();
+	}
+
 	// Take the yard with it: everything flammable in reach catches.
 	UWorld* World = GetWorld();
 	if (World && DetonationIgniteRadius > 0.f)
@@ -381,4 +419,242 @@ void AGSMillObjective::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AGSMillObjective, Stage);
+}
+
+void AGSMillObjective::SinkTower()
+{
+	UWorld* World = GetWorld();
+	if (!World || !HasAuthority())
+	{
+		return;
+	}
+
+	// Find the mill's geometry. See MillGeometryNameFilter: the objective owns no mesh of its own on
+	// this map, so the thing the player sees is a separate actor standing at the same spot.
+	const FVector Here = GetActorLocation();
+	AActor* Geometry = nullptr;
+	float Best = MillGeometrySearchRadius;
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* Other = *It;
+		if (!Other || Other == this)
+		{
+			continue;
+		}
+		UStaticMeshComponent* SMC = Other->FindComponentByClass<UStaticMeshComponent>();
+		UStaticMesh* Mesh = SMC ? SMC->GetStaticMesh() : nullptr;
+		if (!Mesh || !Mesh->GetName().Contains(MillGeometryNameFilter))
+		{
+			continue;
+		}
+		// HORIZONTAL distance, not 3D. A windmill is a vertical stack: its sails sit 4357uu ABOVE the
+		// objective, so a 3D test measured them at 4361uu and threw them away as too far - which is
+		// exactly what happened, logged as "found no sail actor within 2600uu" while the sails stood
+		// there in plain view. What "belongs to this mill" means is footprint, not distance.
+		const float Dist = FVector::Dist2D(Other->GetActorLocation(), Here);
+		if (Dist <= Best)
+		{
+			Best = Dist;
+			Geometry = Other;
+		}
+	}
+
+	if (!Geometry)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] '%s' found no mill geometry matching '%s' within %.0fuu - it will detonate ")
+			TEXT("without sinking."),
+			*GetName(), *MillGeometryNameFilter, MillGeometrySearchRadius);
+		return;
+	}
+
+	// The stump: spawned, revealed, and never released. It is simply the lower 27 pieces of the same
+	// fracture, standing exactly where the tower was.
+	AActor* Stump = UGSCrumbleComponent::SpawnProxyFor(Geometry, CrumbleCollectionFolder, StumpCollectionName);
+	if (Stump)
+	{
+		if (UGeometryCollectionComponent* SGC = Stump->FindComponentByClass<UGeometryCollectionComponent>())
+		{
+			SGC->SetHiddenInGame(false);
+
+			// THE STUMP MUST NOT BE BREAKABLE BY WHAT LANDS ON IT.
+			//
+			// Measured 2026-08-26: the stump spawned correctly as Chaos_Object_Static with no crumble
+			// component, and 25 of its 27 pieces came apart anyway. Collections default to
+			// bEnableDamageFromCollision with thresholds [500000, 50000, 5000], and a 100,000 kg tower
+			// top landing on it clears those by a wide margin - so the falling half was demolishing
+			// the standing half on impact.
+			//
+			// The stump is scenery from the moment it exists. It has already been destroyed once.
+			SGC->SetEnableDamageFromCollision(false);
+			// Charred like everything else that burned - the stump went through the same fire.
+			const int32 Slots = SGC->GetNumMaterials();
+			for (int32 i = 0; i < Slots; ++i)
+			{
+				if (UMaterialInstanceDynamic* MID = SGC->CreateDynamicMaterialInstance(i, nullptr))
+				{
+					MID->SetScalarParameterValue(FName("GS_BurnAmount"), 1.f);
+				}
+			}
+		}
+	}
+
+	AActor* Proxy = UGSCrumbleComponent::SpawnProxyFor(Geometry, CrumbleCollectionFolder, TopCollectionName);
+	if (!Proxy)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] '%s' has no %s collection - author one and the sink starts working with ")
+			TEXT("no code change. Detonating without it."),
+			*GetName(), *TopCollectionName.ToString());
+		return;
+	}
+
+	// Retire the standing mill.
+	for (UStaticMeshComponent* M : TInlineComponentArray<UStaticMeshComponent*>(Geometry))
+	{
+		if (M)
+		{
+			M->SetHiddenInGame(true);
+			M->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
+
+	if (UGSCrumbleComponent* Crumble = UGSCrumbleComponent::FindOrAdd(Proxy))
+	{
+		// NO anchoring. The top collection contains only the pieces that are meant to fall, so there
+		// is nothing to hold back and nothing to get the ordering wrong about.
+		Crumble->KeepAnchoredBelowFraction = 0.f;
+		Crumble->ClusterCrumblePasses = 3;
+		Crumble->CollapseShoveCount = 0;
+		Crumble->CharAmountOnRelease = 1.f;
+		// Straight down, applied at the cap's own centre so it drops rather than tips.
+		FVector TopOrigin, TopExtent;
+		Proxy->GetActorBounds(false, TopOrigin, TopExtent);
+		Crumble->Crumble(FVector(0.f, 0.f, -TopDropImpulse), TopOrigin);
+	}
+
+	if (bDropSails)
+	{
+		DropSails();
+	}
+
+	// "and it all be on fire" - the wreck burns. Spawned around the base rather than attached to the
+	// pieces: the pieces move, and a fire riding a tumbling chunk reads as a firework.
+	if (UNiagaraSystem* Fire = WreckFireSystem.LoadSynchronous())
+	{
+		FVector Origin, Extent;
+		Geometry->GetActorBounds(false, Origin, Extent);
+		const float BaseZ = Origin.Z - Extent.Z;
+		const float Radius = FMath::Min(Extent.X, Extent.Y) * 0.7f;
+		for (int32 i = 0; i < WreckFireCount; ++i)
+		{
+			const float Angle = (2.f * PI * i) / FMath::Max(WreckFireCount, 1);
+			const FVector At(Origin.X + FMath::Cos(Angle) * Radius,
+							 Origin.Y + FMath::Sin(Angle) * Radius,
+							 BaseZ + 150.f);
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Fire, At, FRotator::ZeroRotator,
+														   FVector(3.f, 3.f, 3.f));
+		}
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[GoblinSiege] '%s' sank: '%s' retired, %s standing, %s released, %d fire(s) on the wreck."),
+		*GetName(), *Geometry->GetName(),
+		Stump ? *StumpCollectionName.ToString() : TEXT("<no stump>"),
+		*TopCollectionName.ToString(), WreckFireCount);
+}
+
+void AGSMillObjective::DropSails()
+{
+	UWorld* World = GetWorld();
+	if (!World || !HasAuthority())
+	{
+		return;
+	}
+
+	const FVector Here = GetActorLocation();
+	int32 Dropped = 0;
+
+	for (const FString& Filter : LoosePartNameFilters)
+	{
+		// Nearest match per filter, measured HORIZONTALLY. A windmill is a vertical stack: its sails
+		// sit 4357uu above the objective, so a 3D test measured them as too far away and threw them
+		// out - logged as "found no sail actor" while they stood in plain view.
+		AActor* Part = nullptr;
+		float Best = MillGeometrySearchRadius;
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			AActor* Other = *It;
+			if (!Other || Other == this)
+			{
+				continue;
+			}
+			UStaticMeshComponent* SMC = Other->FindComponentByClass<UStaticMeshComponent>();
+			UStaticMesh* Mesh = SMC ? SMC->GetStaticMesh() : nullptr;
+			if (!Mesh || !Mesh->GetName().Contains(Filter))
+			{
+				continue;
+			}
+			const float Dist = FVector::Dist2D(Other->GetActorLocation(), Here);
+			if (Dist <= Best)
+			{
+				Best = Dist;
+				Part = Other;
+			}
+		}
+
+		if (!Part)
+		{
+			UE_LOG(LogTemp, Log,
+				TEXT("[GoblinSiege] '%s' found no loose part matching '%s' within %.0fuu."),
+				*GetName(), *Filter, MillGeometrySearchRadius);
+			continue;
+		}
+
+		// Fractured, not simulated whole. The sails as a single body were 311 tonnes and 5354uu
+		// across: they flew off the map, ploughed the wreck and shoved the tower. Broken into pieces
+		// none of that is possible.
+		AActor* Proxy = UGSCrumbleComponent::SpawnProxyFor(Part, CrumbleCollectionFolder);
+		if (!Proxy)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] '%s' has no fracture for '%s' - leaving it standing rather than ")
+				TEXT("dropping a single huge body."),
+				*GetName(), *Part->GetName());
+			continue;
+		}
+
+		for (UStaticMeshComponent* M : TInlineComponentArray<UStaticMeshComponent*>(Part))
+		{
+			if (M)
+			{
+				M->SetHiddenInGame(true);
+				M->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+		}
+
+		if (UGSCrumbleComponent* Crumble = UGSCrumbleComponent::FindOrAdd(Proxy))
+		{
+			Crumble->KeepAnchoredBelowFraction = 0.f;
+			Crumble->ClusterCrumblePasses = 3;
+			Crumble->CollapseShoveCount = 0;
+			Crumble->CharAmountOnRelease = 1.f;
+
+			FVector Away = Part->GetActorLocation() - Here;
+			Away.Z = 0.f;
+			Away = Away.GetSafeNormal();
+			if (Away.IsNearlyZero())
+			{
+				Away = GetActorForwardVector();
+			}
+			Crumble->Crumble(Away * SailDropImpulse, Part->GetActorLocation());
+		}
+
+		++Dropped;
+		UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] '%s' dropped loose part '%s' (filter '%s')."),
+			*GetName(), *Part->GetName(), *Filter);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[GoblinSiege] '%s' dropped %d of %d loose part(s)."),
+		*GetName(), Dropped, LoosePartNameFilters.Num());
 }

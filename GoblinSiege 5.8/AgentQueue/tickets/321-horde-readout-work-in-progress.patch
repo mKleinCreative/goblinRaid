@@ -1,0 +1,154 @@
+diff --git a/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp b/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp
+index b47f1c4..8bc3b74 100644
+--- a/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp	
++++ b/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp	
+@@ -12,6 +12,7 @@
+ #include "Components/ACFInventoryComponent.h"
+ #include "Items/ACFItem.h"
+ #include "Horde/GSHordeCommandComponent.h"
++#include "Horde/GSHordeSubsystem.h"
+ #include "Interaction/GSInteractionComponent.h"
+ #include "Interaction/GSInteractableComponent.h"
+ #include "Weapons/GSGrappleHaulComponent.h"
+@@ -709,6 +710,15 @@ void UGSPlayerHUDWidget::BindToRaid()
+ 	BoundDirector = Director;
+ 	BoundPlayerState = PS;
+ 
++	// The horde is a WORLD SUBSYSTEM, not part of the GS/Director/PS trio above, so it binds
++	// separately and is allowed to be absent - a level with no horde still has a working HUD.
++	if (UGSHordeSubsystem* Horde = UGSHordeSubsystem::Get(this))
++	{
++		BoundHorde = Horde;
++		Horde->OnHordePoolChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleHordePoolChanged);
++	}
++	RefreshHorde();
++
+ 	GS->OnRaidClockPhaseChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleRaidClockPhaseChanged);
+ 	GS->OnAlarmPhaseChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleAlarmPhaseChanged);
+ 	PS->OnLivesChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleLivesChanged);
+@@ -743,6 +753,12 @@ void UGSPlayerHUDWidget::UnbindRaid()
+ 		GS->OnAlarmPhaseChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleAlarmPhaseChanged);
+ 	}
+ 
++	if (UGSHordeSubsystem* Horde = BoundHorde.Get())
++	{
++		Horde->OnHordePoolChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHordePoolChanged);
++	}
++	BoundHorde.Reset();
++
+ 	if (AGSPlayerState* PS = BoundPlayerState.Get())
+ 	{
+ 		PS->OnLivesChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleLivesChanged);
+@@ -1199,6 +1215,52 @@ void UGSPlayerHUDWidget::RefreshLivesRow(int32 LivesRemaining)
+ 	}
+ }
+ 
++void UGSPlayerHUDWidget::HandleHordePoolChanged(int32 ReserveRemaining, int32 ActiveCount, int32 ActiveCap)
++{
++	if (HordeIcon)
++	{
++		UTexture2D* Tex = HordeIconTexture.LoadSynchronous();
++		if (Tex)
++		{
++			HordeIcon->SetBrushFromTexture(Tex, false);
++			HordeIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
++		}
++		else
++		{
++			HordeIcon->SetVisibility(ESlateVisibility::Collapsed);
++		}
++	}
++
++	if (!HordeText)
++	{
++		return;
++	}
++
++	HordeText->SetVisibility(ESlateVisibility::HitTestInvisible);
++	HordeText->SetText(FText::FromString(FString::Printf(
++		TEXT("HORDE  %d / %d   (%d)"), ActiveCount, ActiveCap, ReserveRemaining)));
++
++	// At the cap another horn blast summons nothing. Saying so in colour costs nothing and saves
++	// the player spending stamina to find out.
++	HordeText->SetColorAndOpacity(FSlateColor(
++		ActiveCount >= ActiveCap ? HordeAtCapColour : HordeNormalColour));
++}
++
++void UGSPlayerHUDWidget::RefreshHorde()
++{
++	const UGSHordeSubsystem* Horde = BoundHorde.Get();
++	if (!Horde)
++	{
++		// No horde in this level. Collapse rather than show zeros, for the same reason the arrow
++		// count collapses on a character with no ammo concept.
++		if (HordeText) { HordeText->SetVisibility(ESlateVisibility::Collapsed); }
++		if (HordeIcon) { HordeIcon->SetVisibility(ESlateVisibility::Collapsed); }
++		return;
++	}
++
++	HandleHordePoolChanged(Horde->GetReserveRemaining(), Horde->GetActiveCount(), Horde->GetActiveCap());
++}
++
+ void UGSPlayerHUDWidget::HandleLivesChanged(int32 LivesRemaining)
+ {
+ 	RefreshLivesRow(LivesRemaining);
+diff --git a/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.h b/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.h
+index 972d9ad..0f2ba15 100644
+--- a/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.h	
++++ b/GoblinSiege 5.8/Source/GoblinSiege/UI/GSPlayerHUDWidget.h	
+@@ -588,6 +588,33 @@ protected:
+ 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Lives", meta = (ClampMin = "4"))
+ 	float LifeIconSize = 28.f;
+ 
++	// ---------------------------------------------------------------- the horde readout
++
++	/**
++	 * How many goblins are out right now. Michael: "one thing we don't have is a horde
++	 * indicator for how many goblins you have summoned at the moment."
++	 *
++	 * ACTIVE / CAP, with the reserve behind it: the cap is why a fifth blast does nothing, and
++	 * the reserve is the resource that actually runs out over a raid. Showing the active count
++	 * alone would answer the question asked and hide the two numbers that explain it.
++	 */
++	UPROPERTY(meta = (BindWidgetOptional))
++	TObjectPtr<class UTextBlock> HordeText;
++
++	UPROPERTY(meta = (BindWidgetOptional))
++	TObjectPtr<class UImage> HordeIcon;
++
++	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Horde")
++	TSoftObjectPtr<UTexture2D> HordeIconTexture;
++
++	/** Tints the count when the active cap is reached - another blast will do nothing, and the
++	 *  player should be able to see that before they spend the stamina. */
++	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Horde")
++	FLinearColor HordeAtCapColour = FLinearColor(1.f, 0.55f, 0.2f, 1.f);
++
++	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Horde")
++	FLinearColor HordeNormalColour = FLinearColor(1.f, 0.94f, 0.82f, 1.f);
++
+ 	// ------------------------------------------------------------------ Blueprint hooks
+ 
+ 	/** Called on damage so a Blueprint can flash the bar, shake, play a sound - anything that wants
+@@ -668,6 +695,12 @@ protected:
+ 	/** Repaints the skull row for a life count. */
+ 	void RefreshLivesRow(int32 LivesRemaining);
+ 
++	UFUNCTION()
++	void HandleHordePoolChanged(int32 ReserveRemaining, int32 ActiveCount, int32 ActiveCap);
++
++	/** Paints the horde readout from the subsystem's current numbers. */
++	void RefreshHorde();
++
+ 	UFUNCTION()
+ 	void HandleObjectiveAnnounced(const FText& Message);
+ 
+@@ -690,6 +723,8 @@ private:
+ 	UPROPERTY()
+ 	TWeakObjectPtr<UGSRaidDirector> BoundDirector;
+ 
++	TWeakObjectPtr<class UGSHordeSubsystem> BoundHorde;
++
+ 	/** The order component whose crosshair scan tints the reticle (#149). Weak for the same reason
+ 	 *  every other binding here is: the raid director can destroy and respawn the pawn under us. */
+ 	UPROPERTY()

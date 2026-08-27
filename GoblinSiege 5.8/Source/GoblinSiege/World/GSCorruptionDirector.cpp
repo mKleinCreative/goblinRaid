@@ -152,6 +152,9 @@ void AGSCorruptionDirector::CaptureBaselines()
 			BaseMieAbsorptionScale  = C->MieAbsorptionScale;
 			BaseMultiScatteringFactor = C->MultiScatteringFactor;
 			BaseSkyLuminanceFactor  = C->SkyLuminanceFactor;
+			BaseOtherAbsorption     = C->OtherAbsorption;
+			BaseOtherAbsorptionScale = C->OtherAbsorptionScale;
+			BaseMieScattering       = C->MieScattering;
 		}
 	}
 
@@ -170,6 +173,14 @@ void AGSCorruptionDirector::CaptureBaselines()
 		{
 			BaseSunColor = C->GetLightColor();
 			BaseSunIntensity = C->Intensity;
+		}
+
+		// The disc scale lives on the DIRECTIONAL light component specifically, not on the shared
+		// ULightComponent base - the sun disc is an atmosphere concept and only a directional light
+		// can be an atmosphere sun.
+		if (const UDirectionalLightComponent* DC = Cast<UDirectionalLightComponent>(Sun->GetLightComponent()))
+		{
+			BaseSunDiskColorScale = DC->AtmosphereSunDiskColorScale;
 		}
 	}
 
@@ -327,6 +338,16 @@ void AGSCorruptionDirector::ApplyCorruption(float Corruption01)
 			C->SetMieAbsorptionScale(FMath::Lerp(BaseMieAbsorptionScale, BaseMieAbsorptionScale * CorruptMieAbsorptionScale, T));
 			C->SetMultiScatteringFactor(FMath::Lerp(BaseMultiScatteringFactor, CorruptMultiScatteringFactor, T));
 			C->SetSkyLuminanceFactor(FMath::Lerp(BaseSkyLuminanceFactor, BaseSkyLuminanceFactor * CorruptSkyLuminanceFactor, T));
+
+			// Ozone. Without these two the zenith and the far edges keep their blue no matter how
+			// red the Rayleigh goes - that was the "blue at the extreme of the skybox" (#316).
+			C->SetOtherAbsorption(FMath::Lerp(BaseOtherAbsorption, CorruptOtherAbsorption, T));
+			// Absolute target, NOT BaseOtherAbsorptionScale * multiplier: L_Tutorial_Island authors
+			// this at 0.0, and a multiple of zero is zero at every corruption level. See the header.
+			C->SetOtherAbsorptionScale(FMath::Lerp(BaseOtherAbsorptionScale, CorruptOtherAbsorptionScale, T));
+
+			// Haze turns to smoke rather than staying clean white.
+			C->SetMieScattering(FMath::Lerp(BaseMieScattering, CorruptMieScattering, T));
 		}
 	}
 
@@ -350,6 +371,14 @@ void AGSCorruptionDirector::ApplyCorruption(float Corruption01)
 			C->SetLightColor(FMath::Lerp(BaseSunColor, CorruptSunColor, T));
 			C->SetIntensity(FMath::Lerp(BaseSunIntensity, BaseSunIntensity * CorruptSunIntensityScale, T));
 		}
+
+		// And the disc you actually LOOK at. SetLightColor above changes what the sun does to the
+		// scene; this changes what it looks like in the sky. Driving only the first is why the
+		// world lit warm while the sun stayed yellow (#316).
+		if (UDirectionalLightComponent* DC = Cast<UDirectionalLightComponent>(Sun->GetLightComponent()))
+		{
+			DC->SetAtmosphereSunDiskColorScale(FMath::Lerp(BaseSunDiskColorScale, CorruptSunDiskColorScale, T));
+		}
 	}
 }
 
@@ -368,6 +397,9 @@ void AGSCorruptionDirector::RestoreBaselines()
 			C->SetMieAbsorptionScale(BaseMieAbsorptionScale);
 			C->SetMultiScatteringFactor(BaseMultiScatteringFactor);
 			C->SetSkyLuminanceFactor(BaseSkyLuminanceFactor);
+			C->SetOtherAbsorption(BaseOtherAbsorption);
+			C->SetOtherAbsorptionScale(BaseOtherAbsorptionScale);
+			C->SetMieScattering(BaseMieScattering);
 		}
 	}
 
@@ -387,6 +419,11 @@ void AGSCorruptionDirector::RestoreBaselines()
 			C->SetLightColor(BaseSunColor);
 			C->SetIntensity(BaseSunIntensity);
 		}
+
+		if (UDirectionalLightComponent* DC = Cast<UDirectionalLightComponent>(Sun->GetLightComponent()))
+		{
+			DC->SetAtmosphereSunDiskColorScale(BaseSunDiskColorScale);
+		}
 	}
 }
 
@@ -396,7 +433,18 @@ FString AGSCorruptionDirector::DescribeOutputs() const
 
 	if (const ASkyAtmosphere* Sky = SkyAtmosphere.Get())
 	{
-		Out += FString::Printf(TEXT("[GS.Corruption]   SkyAtmosphere       '%s' found\n"), *Sky->GetName());
+		// Ozone is reported because its absence from the driven set was invisible: the sky went
+		// orange and a blue rim survived, with nothing in any log to say which parameter owned it.
+		FString Ozone;
+		if (const USkyAtmosphereComponent* C = Sky->GetComponent())
+		{
+			Ozone = FString::Printf(TEXT("  rayleigh(%.2f,%.2f,%.2f) ozone(%.2f,%.2f,%.2f)x%.2f"),
+				C->RayleighScattering.R, C->RayleighScattering.G, C->RayleighScattering.B,
+				C->OtherAbsorption.R, C->OtherAbsorption.G, C->OtherAbsorption.B,
+				C->OtherAbsorptionScale);
+		}
+		Out += FString::Printf(TEXT("[GS.Corruption]   SkyAtmosphere       '%s' found%s\n"),
+			*Sky->GetName(), *Ozone);
 	}
 	else
 	{

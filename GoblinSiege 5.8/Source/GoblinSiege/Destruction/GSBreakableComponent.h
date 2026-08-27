@@ -23,6 +23,22 @@
 // off to ACF; otherwise it hides the mesh and puffs FX, which is the intended treatment for windows.
 //
 // ---------------------------------------------------------------------------------------------
+// THIS IS NOT UGSCrumbleComponent, AND MERGING THEM WOULD BREAK BOTH (2026-08-25, #317)
+//
+// They look like the same feature and are opposites:
+//
+//   Break (here)  - SHATTER IN PLACE. ACF applies strain NOW and the thing comes apart where it
+//                   stands. Right for a window, a crate, a chest.
+//   Crumble       - RELEASE. Un-pin a dormant collection and let it come apart under its own
+//                   weight, on the way down and on landing. Right for a monument hauled over and a
+//                   building that has burnt through.
+//
+// GSTopplableComponent.h has carried this warning since #193 for the concrete reason: routing a
+// topple through Break() shatters the statue at the top of its lean instead of letting it fall, and
+// the fall is the entire point. A prop may carry both components - smashed it shatters, destroyed
+// it crumbles - but neither may call the other.
+//
+// ---------------------------------------------------------------------------------------------
 // THE ONE THING THAT WILL BITE THE NEXT PERSON
 //
 // ACF NEVER CALLS SetSimulatePhysics. ApplyChaosDestructionAt only applies strain and breaking

@@ -46,6 +46,25 @@ void AGSGameMode::HandleGoblinDeath(AGSCharacterBase* DeadCharacter, AController
 	// what you killed". This function used to hard-code SetLifeSpan(5.f) on both paths below, which
 	// silently overrode that and swept every body off the map five seconds after it fell (2026-08-05:
 	// Michael wants the bodies to stay). Change CorpseLifespan on the character to reinstate a limit.
+
+	// Broadcast FIRST, above both early returns below - and the order is the whole point.
+	//
+	//   * A defender killed after its controller has already been destroyed arrives here with
+	//     Controller == nullptr and returns on the next line.
+	//   * Every AI defender has no AGSPlayerState and returns a few lines after that.
+	//
+	// So a broadcast placed after either guard reports PLAYER deaths only, which is the exact
+	// opposite of what a "how much of the garrison is dead" signal needs. It has taken until now for
+	// anything to want this, which is why the reporting gap survived so long.
+	//
+	// Single-fire is inherited, not re-implemented: AGSCharacterBase::HandleDeath guards on bIsDead
+	// before it ever calls in here, so this cannot double-count a corpse.
+	if (DeadCharacter)
+	{
+		OnCharacterKilled.Broadcast(
+			DeadCharacter, DeadCharacter->GetRaceTag(), DeadCharacter->GetActorLocation());
+	}
+
 	if (!Controller)
 	{
 		return;

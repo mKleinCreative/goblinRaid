@@ -38,7 +38,12 @@ namespace GSCorruptionDebug
 
 	static void Report(const FString& Message)
 	{
-		UE_LOG(LogTemp, Log, TEXT("%s"), *Message);
+		// LogGSCorruption, NOT LogTemp. The first version of this file used LogTemp and the entire
+		// dump was invisible in Saved/Logs/MyProject.log while showing perfectly on screen - so the
+		// instrument could only be read over someone's shoulder, which defeats the point of having
+		// one. Every other line this feature emits already uses the feature category; this was the
+		// odd one out, and it broke the exact use it exists for.
+		UE_LOG(LogGSCorruption, Log, TEXT("%s"), *Message);
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Orange, Message);

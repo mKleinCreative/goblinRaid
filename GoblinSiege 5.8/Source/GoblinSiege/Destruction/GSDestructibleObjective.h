@@ -1,11 +1,19 @@
-// Destructible objective: Chaos fracture gated behind burn-complete - the collapse moment
-// (design doc 7). Tagged "Objective.Statue" so AGSObjective_ToppleStatue counts what it finds.
+// Destructible objective: a thing that is finished when it comes apart.
 //
-// WARNING (2026-08-18, queue #189): this class is now the STATUE objective per queue #156, and
-// GDD 2.8 says "The statue is the one target that doesn't burn: it has to be brought down, stone
-// on stone." The fracture here is still gated behind UGSFlammableComponent::OnBurnedDown, so as
-// written a statue completes by burning. That contradicts 2.8. The rename in #189 was scoped to
-// names only; changing the completion trigger is a behaviour change and wants its own ticket.
+// #189's WARNING IS NOW RESOLVED (2026-08-25, #317). This class used to gate its fracture behind
+// UGSFlammableComponent::OnBurnedDown, so a statue completed by BURNING - contradicting GDD 2.8,
+// "The statue is the one target that doesn't burn: it has to be brought down, stone on stone."
+// Michael settled it: "we don't want to burn statues, we break them with a grapple, we break and
+// destroy buildings with a torch. the commonality is they get destroyed."
+//
+// So the burn trigger is gone. This objective is now finished by the CRUMBLE, whatever caused it -
+// a rope on a monument, a torch on a building. It listens rather than decides, which is why the
+// binding is to UGSCrumbleComponent::OnCrumbled and not to any particular way of dying.
+//
+// The old fracture code here was also simply broken, and had been since it was written: no
+// authority guard, SetSimulatePhysics with no ObjectType, and no RemoveAllAnchors - two of the
+// three traps its own module documents at length. It never worked, in single player, before co-op
+// was ever a question. UGSCrumbleComponent owns that sequence now, in one place.
 // Reconstructed 2026-07-19.
 #pragma once
 
@@ -16,6 +24,7 @@
 class UGSFlammableComponent;
 class UGSBurnFXComponent;
 class UGeometryCollectionComponent;
+class UGSCrumbleComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnObjectiveDestroyed);
 
@@ -36,10 +45,16 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** Bound to the crumble, not to any one cause of it. Fires on every machine, so bDestroyed and
+	 *  the objective delegate land on clients too without either being replicated. */
 	UFUNCTION()
-	void HandleBurnedDown();
+	void HandleCrumbled();
 
-	/** The fractured objective mesh - dormant (no simulation) until the burn completes. */
+	/** Owns the release: swap, promote to dynamic, un-anchor, shove. See UGSCrumbleComponent. */
+	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Objective")
+	TObjectPtr<UGSCrumbleComponent> CrumbleComponent;
+
+	/** The fractured objective mesh - dormant (no simulation) until it is released. */
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Objective")
 	TObjectPtr<UGeometryCollectionComponent> GeometryCollectionComponent;
 
@@ -56,5 +71,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "GoblinSiege|Objective")
 	TObjectPtr<UGSBurnFXComponent> BurnFXComponent;
 
+	/** Not replicated, and it does not need to be: HandleCrumbled runs on every machine because the
+	 *  release that triggers it is what replicates. */
 	bool bDestroyed = false;
 };

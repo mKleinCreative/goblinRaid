@@ -212,11 +212,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 312 | review (waiting on: BUILT CLEAN 2026-08-25 18:52 (exit 0, 53s, zero errors; only pre-existing C4996 AbilityTags warnings in GSGA_Block/GSGA_Interact). NOT YET OBSERVED - needs Michael in PIE: GS.Burn.IgniteAll, then GS.Corruption.Dump repeatedly and watch the objective term climb and the sky darken with nobody touching GS.Corruption.Set.) | claude-corruption | World corruption 2/6 - objectives, destruction, clock and horde presence drive the scalar | Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp<br>Source/GoblinSiege/Destruction/GSBreakableComponent.cpp<br>Source/GoblinSiege/Destruction/GSTopplableComponent.cpp<br>Source/GoblinSiege/Destruction/GSFlammableComponent.cpp<br>Source/GoblinSiege/Raid/GSScoreSubsystem.h<br>Source/GoblinSiege/Raid/GSScoreSubsystem.cpp | none |
-| 313 | blocked | claude-ui | L_Tutorial_Island onto World Partition, objective actors always loaded | Content/Maps/L_Tutorial_Island.umap<br>Content/Maps/__ExternalActors__ | required |
-| 314 | review (waiting on: Michael: the Hill Windmill row clips the board edge - shorten the name, widen the board, or drop a font point?) | claude-ui | The objective list becomes rows with type and state icons | Source/GoblinSiege/UI/GSPlayerHUDWidget.h<br>Source/GoblinSiege/UI/GSPlayerHUDWidget.cpp<br>Source/GoblinSiege/UI/GSObjectiveRowWidget.h<br>Source/GoblinSiege/UI/GSObjectiveRowWidget.cpp<br>Content/UI/WBP_GSPlayerHUD.uasset<br>Content/UI/WBP_GSObjectiveRow.uasset | required |
+| 331 | queued | unassigned | Defenders never start patrolling: TargetLocation seeds to homeLocation so the first MoveTo is a no-op | - | none |
 
-**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -533,6 +531,25 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 309 | done | claude-corruption | World corruption 1/6 - the scalar, the sky, and a two-ended post-process grade from blown-out to gritty |
 | 310 | done | claude-ui | The generated HUD art gets real alpha and comes into the project |
 | 311 | done | claude-ui | M opens the objective board, with a seam for the map it becomes |
+| 312 | done | claude-corruption | World corruption 2/6 - objectives, destruction, clock and horde presence drive the scalar |
+| 313 | done **UNOBSERVED** | claude-ui | L_Tutorial_Island onto World Partition, objective actors always loaded |
+| 314 | abandoned | claude-ui | The objective list becomes rows with type and state icons |
+| 315 | done | claude-corruption | Corruption instrument: dump lines go to LogGSCorruption not LogTemp, and the objectives line shows its per-carrier working |
+| 316 | done | claude-corruption | The corrupted sky loses its blue and the sun goes red: ozone absorption and AtmosphereSunDiskColorScale |
+| 317 | done | claude-crumble | One destroyed state, three ways in: UGSCrumbleComponent unifies topple, burn-down and smash |
+| 318 | done | claude-audio | Footsteps: surface-aware Blueprint notifies on the goblin locomotion set |
+| 319 | abandoned | unassigned | Weapon-switch GUI stops working after respawning from a fire death |
+| 320 | done | claude-corruption | 67 houses stop swamping the objectives term: weight per TYPE not per instance, plus the ozone zero-baseline bug and the 71-carrier tick cost |
+| 321 | abandoned | claude-ui | A horde readout: how many goblins are out, against the cap and the reserve |
+| 322 | done | claude-crumble | Clean up the treeline: trees climb the moved walls and their roots float in mid air |
+| 323 | done | claude-crumble | The windmill can actually be lit: window trigger, lit-torch tag, and it counts as an objective |
+| 324 | done | claude-crumble | The windmill sinks instead of detonating: anchored base, burning top half comes down |
+| 325 | done | claude-corruption | Stage 3a - AGSGameMode gets its first delegate: OnCharacterKilled, so a defender death is reportable at all |
+| 326 | abandoned | unassigned | The windmill has no cap in game: SM_RoofTIles2 renders in the editor and not at runtime |
+| 327 | done | claude-corruption | Stage 3b - human kills drive corruption, and civilians corrupt more than soldiers (ruling 62) |
+| 328 | done | claude-crumble | Treeline generator: regenerate the GS_ForestWall treeline as a repeatable level-building command |
+| 329 | done | claude-crumble | Road network as splines: GS_Road/GS_Junction actors, ACF spline-following, and a Road Tools panel |
+| 330 | done | claude-crumble | Defenders AI content moves onto ACF: ACF blackboard, ACF behaviour tree, ACF patrol/combat components |
 
 <!-- BOARD:END -->
 

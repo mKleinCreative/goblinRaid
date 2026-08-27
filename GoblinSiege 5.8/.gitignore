@@ -52,6 +52,13 @@ Content/*
 !Content/Python/
 !Content/Data/
 
+# 2026-08-27 (#329/#330): the SAME class of bug a FOURTH time. Content/EditorTools/ holds
+# EUW_GSRoadTools and EUW_GSMarkerTools - the road-drawing and marker-tagging panels. They are
+# authored tooling (each button is a wired ExecutePythonCommand graph), they took a session to
+# build, and they were sitting untracked. Same reasoning as Content/Python above: losing the tool
+# is worse than losing an asset, because the tool is what rebuilds the asset.
+!Content/EditorTools/
+
 # 2026-08-21 (#249): the SAME class of bug a third time. Content/Audio/ held the
 # three hand-authored horn SoundWaves - the only project-authored audio in the
 # project - and was untracked, so a clean checkout lost them silently. It now

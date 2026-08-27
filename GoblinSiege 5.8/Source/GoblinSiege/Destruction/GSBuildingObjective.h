@@ -39,6 +39,8 @@
 #include "GSBuildingObjective.generated.h"
 
 class UGSFlammableComponent;
+class UGeometryCollectionComponent;
+class UGSCrumbleComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
@@ -148,6 +150,69 @@ protected:
 
 	UFUNCTION()
 	void HandlePieceBurnedDown();
+
+	/**
+	 * A burnt-out building comes down.
+	 *
+	 * Michael, 2026-08-24: "we break and destroy buildings with a torch ... on the destroyed state
+	 * after being on fire ... they crumble into pieces like the statue." Completion IS the destroyed
+	 * state for a building, so this is where the crumble belongs - not on any one piece burning out.
+	 *
+	 * No impulse: nothing shoved this house, it burnt through and gave way, so it goes straight down
+	 * under its own weight. That is the difference between a building collapsing and an idol being
+	 * hauled over, and it is the whole reason UGSCrumbleComponent takes the shove as a parameter
+	 * rather than owning one.
+	 */
+	virtual void HandleCompleted() override;
+
+	/**
+	 * Release every adopted piece that has a fracture asset, and say how many did not.
+	 *
+	 * Silent per piece and loud once per building, on purpose. Almost every kit piece has no geometry
+	 * collection today and that is the expected state, not an error - warning thirty times per house
+	 * would train everyone to filter the category out, which is exactly how the old topple log came
+	 * to announce success three times while the statue stood there unmoved. One line that says "8 of
+	 * 34" is the instrument; thirty that say "no collection" is noise.
+	 */
+	void CrumblePieces();
+
+	/**
+	 * Find this piece's fracture asset by naming convention, attaching it if it is not already there.
+	 *
+	 * A house on this map is a placed StaticMeshActor out of a modular kit - there is no Blueprint to
+	 * hand-wire a collection onto, and 55 merged houses across 41 distinct meshes is not a hand job.
+	 * So the mesh name IS the lookup: SM_MERGED_House_Small_03 -> GC_MERGED_House_Small_03 in
+	 * CrumbleCollectionFolder. Same reasoning as every other filter in this class - the kit carries no
+	 * metadata to ask, and a naming convention is the only signal the art actually carries.
+	 *
+	 * Returns null, silently, when no collection has been authored for that mesh. That is the normal
+	 * state of this kit and is what lets houses be fractured ONE AT A TIME instead of all 41 before
+	 * anything works.
+	 *
+	 * The collection is created HIDDEN and Chaos_Object_Static - dormant. A collection left at its
+	 * default Chaos_Object_Dynamic falls over and shatters itself at level start, which #192 recorded
+	 * as the feature working before Michael pointed out he had never touched it.
+	 */
+	AActor* SpawnCollectionProxy(AActor* Piece) const;
+
+	/** Where fracture assets live. Mesh SM_Foo resolves to GC_Foo in here. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Crumble")
+	FString CrumbleCollectionFolder = TEXT("/Game/Destruction");
+
+	// Collapse shape, handed to each piece's UGSCrumbleComponent. Defaults are what Michael and I
+	// tuned live in PIE on 2026-08-26 against a 32-chunk merged house; see that component's header
+	// for what each one buys and what it looked like when it was wrong.
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Crumble", meta = (ClampMin = "0", ClampMax = "8"))
+	int32 CollapseClusterPasses = 3;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Crumble", meta = (ClampMin = "0", ClampMax = "16"))
+	int32 CollapseShoveCount = 7;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Crumble", meta = (ClampMin = "0.0"))
+	float CollapseShoveMagnitude = 5000000.f;
+
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Crumble", meta = (ClampMin = "0.0", ClampMax = "2.0"))
+	float CollapseInwardRatio = 0.6f;
 
 	/** A piece caught. Spawns the close-up flame on it, up to MaxFireFX. */
 	UFUNCTION()

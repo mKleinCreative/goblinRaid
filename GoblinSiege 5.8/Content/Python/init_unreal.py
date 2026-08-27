@@ -28,6 +28,29 @@ def _start(delta_seconds):
     except Exception as e:
         unreal.log_warning("[GoblinSiege] init_unreal: MCP server start failed: %s" % e)
 
+    # Tools -> Goblin Siege -> Treeline. Deferred with the rest: ToolMenus is not built yet
+    # when Content/Python is scanned, so registering at import time silently does nothing.
+    try:
+        import gs_treeline
+        if gs_treeline.register_menu():
+            unreal.log("[GoblinSiege] init_unreal: Treeline menu registered (Tools > Goblin Siege).")
+    except Exception as e:
+        unreal.log_warning("[GoblinSiege] init_unreal: treeline menu failed: %s" % e)
+
+    try:
+        import gs_roads
+        if gs_roads.register_menu():
+            unreal.log("[GoblinSiege] init_unreal: Roads menu registered (Tools > Goblin Siege).")
+    except Exception as e:
+        unreal.log_warning("[GoblinSiege] init_unreal: roads menu failed: %s" % e)
+
+    try:
+        import gs_markers
+        if gs_markers.register_menu():
+            unreal.log("[GoblinSiege] init_unreal: Markers menu registered (Tools > Goblin Siege).")
+    except Exception as e:
+        unreal.log_warning("[GoblinSiege] init_unreal: markers menu failed: %s" % e)
+
     if _handle is not None:
         unreal.unregister_slate_post_tick_callback(_handle)
         _handle = None

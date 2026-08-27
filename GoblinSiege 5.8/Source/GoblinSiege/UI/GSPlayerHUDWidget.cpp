@@ -12,6 +12,7 @@
 #include "Components/ACFInventoryComponent.h"
 #include "Items/ACFItem.h"
 #include "Horde/GSHordeCommandComponent.h"
+#include "Horde/GSHordeSubsystem.h"
 #include "Interaction/GSInteractionComponent.h"
 #include "Interaction/GSInteractableComponent.h"
 #include "Weapons/GSGrappleHaulComponent.h"
@@ -709,6 +710,15 @@ void UGSPlayerHUDWidget::BindToRaid()
 	BoundDirector = Director;
 	BoundPlayerState = PS;
 
+	// The horde is a WORLD SUBSYSTEM, not part of the GS/Director/PS trio above, so it binds
+	// separately and is allowed to be absent - a level with no horde still has a working HUD.
+	if (UGSHordeSubsystem* Horde = UGSHordeSubsystem::Get(this))
+	{
+		BoundHorde = Horde;
+		Horde->OnHordePoolChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleHordePoolChanged);
+	}
+	RefreshHorde();
+
 	GS->OnRaidClockPhaseChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleRaidClockPhaseChanged);
 	GS->OnAlarmPhaseChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleAlarmPhaseChanged);
 	PS->OnLivesChanged.AddDynamic(this, &UGSPlayerHUDWidget::HandleLivesChanged);
@@ -742,6 +752,12 @@ void UGSPlayerHUDWidget::UnbindRaid()
 		GS->OnRaidClockPhaseChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleRaidClockPhaseChanged);
 		GS->OnAlarmPhaseChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleAlarmPhaseChanged);
 	}
+
+	if (UGSHordeSubsystem* Horde = BoundHorde.Get())
+	{
+		Horde->OnHordePoolChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHordePoolChanged);
+	}
+	BoundHorde.Reset();
 
 	if (AGSPlayerState* PS = BoundPlayerState.Get())
 	{
@@ -1197,6 +1213,52 @@ void UGSPlayerHUDWidget::RefreshLivesRow(int32 LivesRemaining)
 			SkullSlot->SetVerticalAlignment(VAlign_Center);
 		}
 	}
+}
+
+void UGSPlayerHUDWidget::HandleHordePoolChanged(int32 ReserveRemaining, int32 ActiveCount, int32 ActiveCap)
+{
+	if (HordeIcon)
+	{
+		UTexture2D* Tex = HordeIconTexture.LoadSynchronous();
+		if (Tex)
+		{
+			HordeIcon->SetBrushFromTexture(Tex, false);
+			HordeIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			HordeIcon->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	if (!HordeText)
+	{
+		return;
+	}
+
+	HordeText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	HordeText->SetText(FText::FromString(FString::Printf(
+		TEXT("HORDE  %d / %d   (%d)"), ActiveCount, ActiveCap, ReserveRemaining)));
+
+	// At the cap another horn blast summons nothing. Saying so in colour costs nothing and saves
+	// the player spending stamina to find out.
+	HordeText->SetColorAndOpacity(FSlateColor(
+		ActiveCount >= ActiveCap ? HordeAtCapColour : HordeNormalColour));
+}
+
+void UGSPlayerHUDWidget::RefreshHorde()
+{
+	const UGSHordeSubsystem* Horde = BoundHorde.Get();
+	if (!Horde)
+	{
+		// No horde in this level. Collapse rather than show zeros, for the same reason the arrow
+		// count collapses on a character with no ammo concept.
+		if (HordeText) { HordeText->SetVisibility(ESlateVisibility::Collapsed); }
+		if (HordeIcon) { HordeIcon->SetVisibility(ESlateVisibility::Collapsed); }
+		return;
+	}
+
+	HandleHordePoolChanged(Horde->GetReserveRemaining(), Horde->GetActiveCount(), Horde->GetActiveCap());
 }
 
 void UGSPlayerHUDWidget::HandleLivesChanged(int32 LivesRemaining)

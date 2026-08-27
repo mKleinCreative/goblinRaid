@@ -588,6 +588,33 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Lives", meta = (ClampMin = "4"))
 	float LifeIconSize = 28.f;
 
+	// ---------------------------------------------------------------- the horde readout
+
+	/**
+	 * How many goblins are out right now. Michael: "one thing we don't have is a horde
+	 * indicator for how many goblins you have summoned at the moment."
+	 *
+	 * ACTIVE / CAP, with the reserve behind it: the cap is why a fifth blast does nothing, and
+	 * the reserve is the resource that actually runs out over a raid. Showing the active count
+	 * alone would answer the question asked and hide the two numbers that explain it.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UTextBlock> HordeText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UImage> HordeIcon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Horde")
+	TSoftObjectPtr<UTexture2D> HordeIconTexture;
+
+	/** Tints the count when the active cap is reached - another blast will do nothing, and the
+	 *  player should be able to see that before they spend the stamina. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Horde")
+	FLinearColor HordeAtCapColour = FLinearColor(1.f, 0.55f, 0.2f, 1.f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|HUD|Horde")
+	FLinearColor HordeNormalColour = FLinearColor(1.f, 0.94f, 0.82f, 1.f);
+
 	// ------------------------------------------------------------------ Blueprint hooks
 
 	/** Called on damage so a Blueprint can flash the bar, shake, play a sound - anything that wants
@@ -669,6 +696,12 @@ protected:
 	void RefreshLivesRow(int32 LivesRemaining);
 
 	UFUNCTION()
+	void HandleHordePoolChanged(int32 ReserveRemaining, int32 ActiveCount, int32 ActiveCap);
+
+	/** Paints the horde readout from the subsystem's current numbers. */
+	void RefreshHorde();
+
+	UFUNCTION()
 	void HandleObjectiveAnnounced(const FText& Message);
 
 	void HideObjectivePrompt();
@@ -689,6 +722,8 @@ private:
 
 	UPROPERTY()
 	TWeakObjectPtr<UGSRaidDirector> BoundDirector;
+
+	TWeakObjectPtr<class UGSHordeSubsystem> BoundHorde;
 
 	/** The order component whose crosshair scan tints the reticle (#149). Weak for the same reason
 	 *  every other binding here is: the raid director can destroy and respawn the pawn under us. */

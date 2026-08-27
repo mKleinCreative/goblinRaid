@@ -1,10 +1,10 @@
 #include "Destruction/GSTopplableComponent.h"
 
-#include "GeometryCollection/GeometryCollectionComponent.h"
-#include "Components/StaticMeshComponent.h"
+#include "Destruction/GSCrumbleComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Raid/GSScoreSubsystem.h"
 #include "Engine/World.h"
+#include "World/GSCorruptionSubsystem.h"
 #include "TimerManager.h"
 #include "HAL/IConsoleManager.h"
 #include "UObject/UObjectIterator.h"
@@ -65,12 +65,6 @@ bool UGSTopplableComponent::WardReaches(const FVector& Spot) const
 	return FVector::DistSquared2D(Monument->GetActorLocation(), Spot) <= FMath::Square(WardRadius);
 }
 
-UGeometryCollectionComponent* UGSTopplableComponent::ResolveCollection() const
-{
-	AActor* Owner = GetOwner();
-	return Owner ? Owner->FindComponentByClass<UGeometryCollectionComponent>() : nullptr;
-}
-
 bool UGSTopplableComponent::Topple(AActor* Toppler, const FVector& PullDirection, const FVector& AnchorPoint)
 {
 	// A monument comes down once. Not defensive - the haul ticks every frame and would otherwise
@@ -86,61 +80,6 @@ bool UGSTopplableComponent::Topple(AActor* Toppler, const FVector& PullDirection
 		return false;
 	}
 
-	UGeometryCollectionComponent* Collection = ResolveCollection();
-	if (!Collection || !Collection->GetRestCollection())
-	{
-		// Survivable and worth saying: a topplable with no collection is a statue that can be hauled
-		// at forever and never fall, which from the player's side is indistinguishable from the rope
-		// not working.
-		UE_LOG(LogGSTopple, Warning,
-			TEXT("[GoblinSiege] '%s' has a UGSTopplableComponent but no geometry collection with a rest ")
-			TEXT("collection - hauling it over will do nothing. Assign one on the prop."),
-			*Owner->GetName());
-		return false;
-	}
-
-	bToppled = true;
-
-	// ---- the swap ------------------------------------------------------------------------------
-	// Retire the intact statue and bring the collection on in its place. Order matters only in that
-	// both happen in the same frame, so the player never sees two statues or none.
-	bool bSwapped = false;
-	for (UStaticMeshComponent* Mesh : TInlineComponentArray<UStaticMeshComponent*>(Owner))
-	{
-		if (Mesh && Mesh->GetFName() == IntactMeshComponentName)
-		{
-			Mesh->SetHiddenInGame(true);
-			// Collision off as well as hidden: an invisible statue you still bump into reads as the
-			// monument having failed to fall, and the debris would land on a wall that is not there.
-			Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			bSwapped = true;
-			break;
-		}
-	}
-
-	UE_LOG(LogGSTopple, Log, TEXT("[GoblinSiege] '%s' SWAP: intact mesh '%s' %s."),
-		*Owner->GetName(), *IntactMeshComponentName.ToString(),
-		bSwapped ? TEXT("hidden - collection revealed")
-				 : TEXT("NOT FOUND, so nothing was hidden and the statue is still standing over the debris"));
-
-	Collection->SetHiddenInGame(false);
-
-	// BOTH of these, and the order matters. Measured live in PIE on 2026-08-19 after three topples
-	// that logged success and moved nothing:
-	//
-	//   SetSimulatePhysics(true) does NOT change ObjectType. The component then reports
-	//   is_simulating_physics == true while remaining Chaos_Object_Kinematic - and a kinematic body
-	//   ignores impulses by definition. Every impulse was applied to something that could not respond,
-	//   silently, with a log line claiming the statue had been toppled.
-	//
-	// Setting ObjectType to Dynamic first and THEN enabling simulation produced immediate linear
-	// (18.7, 64.9, 84.1) and angular (32.6, 5.7, 59.5) velocity from the identical impulse.
-	//
-	// The monument rests Kinematic - it has a physics proxy so it can be woken, but it does not fall
-	// under gravity while standing. Chaos_Object_Static would leave nothing to wake at all.
-	Collection->ObjectType = EObjectStateTypeEnum::Chaos_Object_Dynamic;
-	Collection->SetSimulatePhysics(true);
-
 	// Push along the pull, with a little lift so it goes OVER rather than skidding. Applied at the
 	// rope's anchor - high up on a statue - so the force has a moment arm and the thing rotates about
 	// its base. Applied at the centre of mass it would simply slide.
@@ -151,49 +90,37 @@ bool UGSTopplableComponent::Topple(AActor* Toppler, const FVector& PullDirection
 	}
 	Direction = (Direction + FVector::UpVector * ToppleLift).GetSafeNormal();
 
-	// ONE FRAME LATER, and this is the whole difference between a statue that falls and one that
-	// stands there reporting success.
+	// ---- hand the release over -----------------------------------------------------------------
+	// The swap, the promotion to dynamic, the anchors and the one-frame defer all used to live here,
+	// and three of the four were found the hard way on 2026-08-19. They now live in
+	// UGSCrumbleComponent, because a building burning down needs the identical sequence and a second
+	// copy of it is a second copy to get wrong - the copy in AGSDestructibleObjective was missing two
+	// of the four steps and had never worked.
 	//
-	// Measured 2026-08-19: promoting to Dynamic and applying the impulse in the SAME frame produced
-	// "OUTCOME: DID NOT MOVE - linear 0 uu/s, angular 0 deg/s, state 4, simulating 1" - the component
-	// already reporting itself dynamic and simulating, with the impulse simply gone. Chaos does not
-	// switch the proxy's object state until the next physics tick, so an impulse dispatched before
-	// that lands on a body which is still kinematic, and a kinematic body discards it silently.
+	// What stays here is what makes this a TOPPLE rather than a collapse: the direction comes from the
+	// rope, and the shove lands at the anchor rather than the centre of mass.
 	//
-	// The earlier hand test that DID move the statue only worked because the promotion and the impulse
-	// happened in two separate Python calls - a frame apart - which is exactly the accident this
-	// reproduces deliberately.
-	const FVector Shove = Direction * ToppleImpulse;
-	const FVector ShoveAt = AnchorPoint;
-	if (UWorld* World = GetWorld())
+	// FindOrAdd rather than a required component, so a monument placed as a plain StaticMeshActor
+	// works without anybody hand-wiring it.
+	UGSCrumbleComponent* Crumble = UGSCrumbleComponent::FindOrAdd(Owner);
+	if (Crumble)
 	{
-		World->GetTimerManager().SetTimerForNextTick(
-			FTimerDelegate::CreateWeakLambda(this, [this, Shove, ShoveAt]()
-			{
-				if (UGeometryCollectionComponent* Late = ResolveCollection())
-				{
-					// THE ONE THAT ACTUALLY MATTERED, found by measurement on 2026-08-19 after four
-					// wrong guesses (Static, Kinematic, MaxSimulatedLevel, a one-frame defer).
-					//
-					// The collection's particles are ANCHORED. An anchored geometry collection is
-					// pinned in place no matter what else is true of it - it reported
-					// is_active=true, object_type=Dynamic, simulating=true, root_broken=false, and
-					// still would not move or even fall under gravity. Removing the anchors and
-					// applying the SAME impulse produced linear 185.9 uu/s and angular 61.9 deg/s
-					// immediately.
-					//
-					// Every property flipped before this was already correct. Nothing was ever going
-					// to move an anchored collection, which is why each fix "worked" and changed
-					// nothing.
-					Late->RemoveAllAnchors();
-					Late->AddImpulseAtLocation(Shove, ShoveAt);
-				}
-			}));
+		// Carried across rather than dropped. The two default to the same name, so this changes
+		// nothing on the statue - but a monument that authored a different one before the crumble
+		// component existed must not silently stop swapping its mesh, and a swap that does not
+		// happen looks exactly like a topple that did not work.
+		Crumble->IntactMeshComponentName = IntactMeshComponentName;
 	}
-	else
+
+	if (!Crumble || !Crumble->Crumble(Direction * ToppleImpulse, AnchorPoint))
 	{
-		Collection->AddImpulseAtLocation(Shove, ShoveAt);
+		// Refused - almost always no geometry collection, which Crumble has already logged by name.
+		// The monument stays standing and bToppled stays false, so the haul can be tried again rather
+		// than the rope going dead on a statue that never moved.
+		return false;
 	}
+
+	bToppled = true;
 
 	UE_LOG(LogGSTopple, Log,
 		TEXT("[GoblinSiege] '%s' toppled by '%s' - impulse %.0f along (%.2f, %.2f, %.2f) at the rope anchor."),
@@ -201,11 +128,12 @@ bool UGSTopplableComponent::Topple(AActor* Toppler, const FVector& PullDirection
 		Toppler ? *Toppler->GetName() : TEXT("<none>"),
 		ToppleImpulse, Direction.X, Direction.Y, Direction.Z);
 
-	// Half a second later, say whether any of that actually did anything.
-	if (UWorld* World = GetWorld())
+	// World corruption (ruling 40). Deliberately OUTSIDE the score block below: a toppled idol
+	// still turns the land even on a map with no score subsystem, and nesting it there would make
+	// corruption silently depend on scoring being present.
+	if (UGSCorruptionSubsystem* Corruption = UGSCorruptionSubsystem::Get(this))
 	{
-		World->GetTimerManager().SetTimer(ToppleOutcomeTimer,
-			FTimerDelegate::CreateWeakLambda(this, [this]() { ReportToppleOutcome(); }), 0.5f, false);
+		Corruption->ReportStructureDestroyed(Owner);
 	}
 
 	// ---- score it ------------------------------------------------------------------------------
@@ -239,54 +167,25 @@ bool UGSTopplableComponent::Topple(AActor* Toppler, const FVector& PullDirection
 	return true;
 }
 
-void UGSTopplableComponent::ReportToppleOutcome()
-{
-	UGeometryCollectionComponent* Collection = ResolveCollection();
-	AActor* Owner = GetOwner();
-	if (!Collection || !Owner)
-	{
-		return;
-	}
-
-	const FVector Linear = Collection->GetPhysicsLinearVelocity();
-	const FVector Angular = Collection->GetPhysicsAngularVelocityInDegrees();
-	const bool bMoved = Linear.SizeSquared() > 1.f || Angular.SizeSquared() > 1.f;
-
-	UE_LOG(LogGSTopple, Log,
-		TEXT("[GoblinSiege] '%s' OUTCOME: %s - linear %.0f uu/s, angular %.0f deg/s, state %d, simulating %d."),
-		*Owner->GetName(),
-		bMoved ? TEXT("MOVED") : TEXT("DID NOT MOVE"),
-		Linear.Size(), Angular.Size(),
-		static_cast<int32>(Collection->ObjectType),
-		Collection->IsSimulatingPhysics() ? 1 : 0);
-}
-
 void UGSTopplableComponent::ResetTopple()
 {
 	AActor* Owner = GetOwner();
-	if (!Owner || !Owner->HasAuthority())
+	if (!Owner)
 	{
 		return;
 	}
 
-	bToppled = false;
-
-	if (UGeometryCollectionComponent* Collection = ResolveCollection())
+	if (Owner->HasAuthority())
 	{
-		// Back to inert-and-hidden, in the reverse order Topple() brought it on.
-		Collection->SetSimulatePhysics(false);
-		Collection->ObjectType = EObjectStateTypeEnum::Chaos_Object_Kinematic;
-		Collection->SetHiddenInGame(true);
+		bToppled = false;
 	}
 
-	for (UStaticMeshComponent* Mesh : TInlineComponentArray<UStaticMeshComponent*>(Owner))
+	// The mesh swap, the collection and the physics state all belong to the crumble component now, so
+	// standing a monument back up is its inverse and not a second hand-written one. Not authority-
+	// gated on its side, deliberately - see UGSCrumbleComponent::ResetCrumble.
+	if (UGSCrumbleComponent* Crumble = Owner->FindComponentByClass<UGSCrumbleComponent>())
 	{
-		if (Mesh && Mesh->GetFName() == IntactMeshComponentName)
-		{
-			Mesh->SetHiddenInGame(false);
-			Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			break;
-		}
+		Crumble->ResetCrumble();
 	}
 
 	UE_LOG(LogGSTopple, Log, TEXT("[GoblinSiege] '%s' stood back up."), *Owner->GetName());
