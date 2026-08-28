@@ -30,6 +30,19 @@
  * A DEFERRAL, NOT A REJECTION: ruling 27 says move speed becomes ACF locomotion states, and Phase 2b
  * does that with the ARS attribute migration so slow-composition is decided once. Deleting this
  * class is part of that work.
+ *
+ * THE DISARM IS NOT GLOBAL ANY MORE (2026-08-27, #334). The reason above is a PLAYER problem - the
+ * player sprints by writing MaxWalkSpeed, so ACF's bands have to stop fighting that write. AI never
+ * sprints, and emptying its bands cost us a feature ACF ships: AACFAIController maps AI state to
+ * locomotion state (LocomotionStateByAIState) and SetCurrentAIState calls UpdateLocomotionState on
+ * every transition, so a guard can WALK on AIState.Patrol and RUN on AIState.Combat for free. With
+ * the bands emptied that lookup resolves to nothing and MaxWalkSpeed stays pinned at whatever the
+ * Blueprint authored - which is why every defender jogged everywhere at a flat 450uu/s.
+ *
+ * So the disarm is now opt-out per Blueprint. Leave bDisarmLocomotionStates TRUE for the player;
+ * clear it on AI whose bands you have authored. Measured live in PIE on BP_CastleGuard01_C_1:
+ * with bands authored, SetLocomotionState(EWalk) -> MaxWalkSpeed 280.1, (EJog) -> 606.3, which are
+ * the ground speeds of the retargeted PowerfulSword walk and run clips.
  */
 UCLASS()
 class GOBLINSIEGE_API UGSCharacterMovementComponent : public UACFCharacterMovementComponent
@@ -38,4 +51,15 @@ class GOBLINSIEGE_API UGSCharacterMovementComponent : public UACFCharacterMoveme
 
 public:
 	virtual void BeginPlay() override;
+
+	/**
+	 * Empty ACF's LocomotionStates in BeginPlay, disarming its state machine so nothing rewrites
+	 * MaxWalkSpeed behind a direct speed write.
+	 *
+	 * TRUE (default) is the player's case - see the class comment. Set FALSE on AI that should use
+	 * ACF's locomotion states instead; those Blueprints must author their own LocomotionStates
+	 * bands, because an empty band table makes GetCharacterMaxSpeedByState find nothing.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Goblin Siege|Locomotion")
+	bool bDisarmLocomotionStates = true;
 };

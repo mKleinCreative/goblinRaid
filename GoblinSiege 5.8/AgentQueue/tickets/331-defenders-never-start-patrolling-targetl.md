@@ -2,7 +2,7 @@
 id: 331
 title: Defenders never start patrolling: TargetLocation seeds to homeLocation so the first MoveTo is a no-op
 agent: unassigned
-status: queued
+status: active
 claimed: 2026-08-27T22:13Z
 build: none
 waiting_on:

@@ -10,10 +10,23 @@
 //
 // AACFAIController brings its own BehaviorTree, Blackboard, Commands, Targeting, CombatBehaviour and
 // ThreatManager components, and - easy to miss - replaces the path-following component with a
-// UCrowdFollowingComponent in its constructor. Its OnPossess early-returns on a non-AACFCharacter
-// pawn, which ours are until Phase 2, so ACF's blackboard init and StartTree do not run yet. OUR
-// OnPossess overrides call RunBehaviorTree() themselves after Super, which is the only reason the
-// trees still start - that is load-bearing, not redundant.
+// UCrowdFollowingComponent in its constructor.
+//
+// CORRECTED 2026-08-27 (#339). This comment used to end: "Its OnPossess early-returns on a
+// non-AACFCharacter pawn, which ours are until Phase 2, so ACF's blackboard init and StartTree do
+// not run yet. OUR OnPossess overrides call RunBehaviorTree() themselves after Super, which is the
+// only reason the trees still start - that is load-bearing, not redundant."
+//
+// ALL OF THAT IS FALSE SINCE PHASE 2A and it cost a session (#330). Our pawns derive from
+// AACFCharacter now, so the cast SUCCEEDS and ACF's OnPossess runs its blackboard init and
+// StartTree in full. A RunBehaviorTree() call after Super is therefore NOT load-bearing - it is
+// actively harmful: ACF never assigns BrainComponent (ACFAIController.cpp:53), so the engine
+// allocates a SECOND UBehaviorTreeComponent and re-initialises the blackboard, invalidating every
+// key ID ACF cached. Two trees on two blackboards drove one movement component.
+//
+// The archetype RunBehaviorTree below survives only because DA_Race_Human's Militia archetype has
+// its BehaviorTree CLEARED, so the branch never fires for guards. Assigning a tree there again
+// brings the two-tree bug straight back. See AGENT_STATE.md BUILT 2026-08-21.
 #include "ACFAIController.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "GSAIControllerBase.generated.h"

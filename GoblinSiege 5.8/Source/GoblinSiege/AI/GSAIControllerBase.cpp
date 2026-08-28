@@ -1,4 +1,6 @@
 #include "AI/GSAIControllerBase.h"
+
+#include "Components/ACFAIPatrolComponent.h"
 #include "AI/GSAISteeringComponent.h"
 #include "Characters/GSCharacterBase.h"
 #include "Characters/GSEnemyCharacter.h"
@@ -157,6 +159,38 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 	// a horde goblin does not have. Allied goblins run a single fixed companion BT instead, and
 	// since #069 that is owned by AGSHordeAIController::CompanionBehaviorTree rather than by a
 	// Blueprint subclass of this class. Nothing here needs to know about them.
+
+	// #331 - SEED THE PATROL. ACF's patrol loop is not self-starting. UACFAIPatrolComponent's own
+	// header states the contract: "Call StartPatrolLoop() once the owning pawn has a valid
+	// AACFAIController", and the only callers ACF ships are its ROUTINE tasks
+	// (UACFPatrolSplinePathTask, UACFFollowSplinePathTask, UACFRandomPatrolAroundPointTask), each of
+	// which sets the path, sets the AI state and starts the loop together.
+	//
+	// Our guards are PLACED IN THE LEVEL with PathToFollow authored on the component, so they never
+	// run a routine and nothing ever made that call. That - not the behaviour tree - is why every
+	// defender stood still. Do NOT "fix" this by rewriting BT_Defender's patrol branch: that branch
+	// is a faithful copy of ACF's own ACFBT (verified 2026-08-27 by walking both trees; ACF_HorseBT
+	// has the same shape), so changing it would be diverging from ACF, not adopting it.
+	//
+	// Measured in PIE on L_Tutorial_Island, 2026-08-27, before this call existed: all 7 placed
+	// guards reported IsPatrolLoopActive() == false; one StartPatrolLoop(true) each and 5 of 7 were
+	// walking their GS_Road splines on the next sample. StartPatrolLoop also binds
+	// HandleMoveCompleted, which is what re-requests a waypoint after every completed move.
+	if (InPawn)
+	{
+		if (UACFAIPatrolComponent* Patrol = InPawn->FindComponentByClass<UACFAIPatrolComponent>())
+		{
+			// A spline patroller with no path would just fail TryGetNextWaypoint forever. Random
+			// patrollers need no path - they read the controller's home location instead.
+			const bool bHasRoute = Patrol->GetPatrolType() != EPatrolType::EFollowSpline
+				|| Patrol->GetPathToFollow() != nullptr;
+
+			if (bHasRoute)
+			{
+				Patrol->StartPatrolLoop(true);
+			}
+		}
+	}
 }
 
 void AGSAIControllerBase::OnUnPossess()

@@ -80,9 +80,21 @@ explained; a working tree that is noisier than when you started is part of the t
 
 # Building
 
-**`.\Build-GoblinSiege.ps1`** — the gated entry point. Refuses to run while the editor is open,
+**`Build-GoblinSiege.ps1`** — the gated entry point. Refuses to run while the editor is open,
 checks the build gate, and knows about the stranded-UBT and phantom-lock failures that have cost
 days here. Use it.
+
+**It lives at the REPO ROOT, not in `GoblinSiege 5.8`** — which is the directory this file tells you
+to start your session in, so the path is not what you expect:
+
+```powershell
+cd "D:\goblinRaid\GoblinSiege 5.8"     # where you start
+..\Build-GoblinSiege.ps1                # the build script is one level UP
+```
+
+Written down 2026-08-27 because `.\Build-GoblinSiege.ps1` was the only form given here, an agent
+read it as "in the directory I was told to start in", and lost time hunting a script that is not
+there. `ls *.ps1` inside `GoblinSiege 5.8` returns nothing.
 
 `-IgnoreQueue` skips the gate — only when Michael says so. These bypass it entirely and should
 not be used while other agents are working: `Plugins/VibeUE/BuildAndLaunchGame.ps1` (a separate

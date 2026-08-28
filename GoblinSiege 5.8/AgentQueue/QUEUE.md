@@ -212,9 +212,16 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 331 | queued | unassigned | Defenders never start patrolling: TargetLocation seeds to homeLocation so the first MoveTo is a no-op | - | none |
+| 331 | active **STALE 2.5h** | unassigned | Defenders never start patrolling: TargetLocation seeds to homeLocation so the first MoveTo is a no-op | - | none |
+| 333 | review | claude-anims | Human locomotion + attacks move onto CombatMasterBundle PowerfulSword (retarget Manny_UE5 -> SK_Human) | Content/Characters/Humans/Retarget/RTG_Manny_To_Human.uasset<br>Content/Characters/Humans/Anims/CMB<br>Content/Characters/Humans/Anims/BS_GS_Locomotion_Hu.uasset<br>Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Light.uasset<br>Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Heavy.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkF.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkB.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkL.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkR.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunF.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunB.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunL.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunR.uasset | none |
+| 334 | review (waiting on: run-half unobserved: needs a real fight in PIE to see AIState.Combat drive the Jog band) | claude-anims | Locomotion states: stop disarming ACF bands for AI so Patrol walks and Combat runs | Source/GoblinSiege/Characters/GSCharacterMovementComponent.h<br>Source/GoblinSiege/Characters/GSCharacterMovementComponent.cpp<br>Content/Blueprints/Adversaries/BP_CastleGuard01.uasset<br>Content/Blueprints/Adversaries/BP_CastleGuard02.uasset<br>Content/AI/BP_GSAIController_Militia.uasset | required |
+| 335 | review (waiting on: Michael: needs an EDITOR RESTART (ini is read at startup), then one Python round-trip to read the CDOs back - GetGameUserSettings class name must be AUT_GameSettings_BP_C not GameUserSettings, GetTheme non-null, GetDefaultSoundClasses six SC_GS_* entries in order. Nothing here has run.) | claude-frontend | Front-end stage 1: the ruling, and ACF UI config reaches the project | docs/goblin-siege-gdd.md<br>docs/decisions-ledger.md<br>Config/DefaultPlugins.ini<br>Config/DefaultEngine.ini<br>Config/DefaultGame.ini<br>Config/DefaultInput.ini<br>Config/DefaultGameUserSettings.ini | none |
+| 337 | review (waiting on: NOT COMPILED, and DA_Corruption_Default is not authored yet - the next build will run the missing-asset warning path, which is the expected result. Needs: editor-closed build, then an editor session to create the asset at /Game/Data/World/, then PIE to confirm the Tuning from... log line replaces the No corruption tuning asset warning.) | claude-corruption | Stage 4 - UGSCorruptionDataAsset: weights, knees, curves and both grade ends leave C++ | Source/GoblinSiege/World/GSCorruptionDataAsset.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDirector.h<br>Source/GoblinSiege/World/GSCorruptionDirector.cpp | required |
+| 338 | review (waiting on: NOT COMPILED - gate closed by 331/333/334/335/337. Then PIE and type GS.Corruption.Debug 1: a coloured bar and the per-term lines should sit on screen and MOVE as things burn, without typing Dump.) | claude-corruption | GS.Corruption.Debug - the live on-screen bar the plan specified and stage 1 never built | Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp | required |
+| 339 | blocked (waiting on: NOT COMPILED - session ended before the build. See AgentQueue/HANDOFF-2026-08-27-B.md) | claude-anims | #331 fix: call ACF StartPatrolLoop on possess so placed guards seed their own patrol | Source/GoblinSiege/AI/GSAIControllerBase.h<br>Source/GoblinSiege/AI/GSAIControllerBase.cpp | required |
+| 340 | queued | claude-skills | Mine ACF FullExample for wiring our 40 skill packs do not cover, emit GS-specific skills | .claude/skills | none |
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 8 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -550,6 +557,8 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 328 | done | claude-crumble | Treeline generator: regenerate the GS_ForestWall treeline as a repeatable level-building command |
 | 329 | done | claude-crumble | Road network as splines: GS_Road/GS_Junction actors, ACF spline-following, and a Road Tools panel |
 | 330 | done | claude-crumble | Defenders AI content moves onto ACF: ACF blackboard, ACF behaviour tree, ACF patrol/combat components |
+| 332 | done | claude-corruption | World corruption handoff: fold stages 0-3 into AGENT_STATE so the next session does not rediscover them |
+| 336 | abandoned | claude-corruption | Stage 4 - UGSCorruptionDataAsset: weights, knees, curves and both grade ends leave C++ |
 
 <!-- BOARD:END -->
 
