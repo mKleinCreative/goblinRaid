@@ -2,9 +2,11 @@
 #include "Characters/GSPlayerCharacter.h"
 #include "Characters/GSStaminaComponent.h"
 #include "Combat/GSGameplayTags.h"
+#include "Combat/GSGE_MoveSpeedScalar.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
 
 // The dodge path had NO instrument at all. #178 shipped four directional rolls, every static check
@@ -77,6 +79,29 @@ void UGSGA_DodgeRoll::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	{
 		const AGSPlayerCharacter* PlayerAvatar = Cast<AGSPlayerCharacter>(Avatar);
 		const FVector DodgeDir = PlayerAvatar ? PlayerAvatar->GetDodgeDirection() : Avatar->GetActorForwardVector();
+
+		// Friction goes to zero BEFORE the launch, so the impulse is not already being eaten on the
+		// frame it is applied (#345).
+		SuppressFriction(Avatar);
+
+		// And the speed CEILING comes off before the launch too, for the same reason: walking mode
+		// re-clamps velocity toward MaxWalkSpeed (measured at 470 on the player), so without this
+		// the launch is throttled within a frame no matter how large DodgeSpeed is.
+		if (UAbilitySystemComponent* SpeedASC = GetAbilitySystemComponentFromActorInfo())
+		{
+			if (RollSpeedCapMultiplier > 1.f)
+			{
+				FGameplayEffectContextHandle Context = SpeedASC->MakeEffectContext();
+				Context.AddSourceObject(this);
+				const FGameplayEffectSpecHandle Spec = SpeedASC->MakeOutgoingSpec(
+					UGSGE_MoveSpeedScalar::StaticClass(), 1.f, Context);
+				if (Spec.IsValid())
+				{
+					Spec.Data->SetSetByCallerMagnitude(GSTags::Data_MoveSpeedScalar, RollSpeedCapMultiplier);
+					RollSpeedHandle = SpeedASC->ApplyGameplayEffectSpecToSelf(*Spec.Data);
+				}
+			}
+		}
 
 		Avatar->LaunchCharacter(DodgeDir * DodgeSpeed, true, false);
 
@@ -176,6 +201,76 @@ UAnimMontage* UGSGA_DodgeRoll::PickDirectionalMontage(const ACharacter* Avatar, 
 	// .Get() on both arms: mixing a raw UAnimMontage* with a TObjectPtr in one conditional is
 	// ambiguous under MSVC (C2445).
 	return Chosen ? Chosen : DodgeMontageForward.Get();
+}
+
+void UGSGA_DodgeRoll::SuppressFriction(ACharacter* Avatar)
+{
+	if (!bSuppressFrictionDuringRoll || !Avatar)
+	{
+		return;
+	}
+	UCharacterMovementComponent* Move = Avatar->GetCharacterMovement();
+	if (!Move)
+	{
+		return;
+	}
+
+	// Cache once. A second suppress without an intervening restore would otherwise store the
+	// already-zeroed values and the restore would make the zero permanent - the same compounding
+	// bug UGSGA_SwordLight::ApplyMoveSpeedScale documents for MaxWalkSpeed.
+	if (CachedGroundFriction < 0.f)
+	{
+		CachedGroundFriction = Move->GroundFriction;
+		CachedBrakingDeceleration = Move->BrakingDecelerationWalking;
+	}
+
+	Move->GroundFriction = 0.f;
+	Move->BrakingDecelerationWalking = 0.f;
+	FrictionAvatar = Avatar;
+}
+
+void UGSGA_DodgeRoll::RestoreFriction()
+{
+	if (CachedGroundFriction < 0.f)
+	{
+		return; // never suppressed, or already restored
+	}
+
+	if (ACharacter* Avatar = FrictionAvatar.Get())
+	{
+		if (UCharacterMovementComponent* Move = Avatar->GetCharacterMovement())
+		{
+			Move->GroundFriction = CachedGroundFriction;
+			Move->BrakingDecelerationWalking = CachedBrakingDeceleration;
+		}
+	}
+
+	CachedGroundFriction = -1.f;
+	CachedBrakingDeceleration = -1.f;
+	FrictionAvatar = nullptr;
+}
+
+void UGSGA_DodgeRoll::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility, bool bWasCancelled)
+{
+	// Every exit runs through here - the timed finish, the montage-length finish, a cancel from
+	// death or an interrupt - which is exactly why the restore lives here and not in
+	// OnDodgeFinished. A cancelled roll that kept zero friction would slide forever, and one that
+	// kept the speed cap lifted would leave the goblin permanently sprinting.
+	RestoreFriction();
+
+	if (RollSpeedHandle.IsValid())
+	{
+		if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+		{
+			ASC->RemoveActiveGameplayEffect(RollSpeedHandle);
+		}
+		RollSpeedHandle = FActiveGameplayEffectHandle();
+	}
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 void UGSGA_DodgeRoll::OnDodgeFinished()

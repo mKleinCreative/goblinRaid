@@ -29,6 +29,93 @@ old tickets at run start** — fold anything durable into BUILT / DECISIONS / FA
 next agent rediscovers it.
 
 ## BUILT
+- 2026-08-30 **The real reason the mill was hard to exterior-ignite: fields were stealing the hit
+  (#366 + #367, watched).** #361/#362 (below) were real, necessary fixes but didn't fully explain
+  why exterior ignition still felt unreliable - two sessions of theories (reach/height, then
+  collision) went nowhere. Michael asked for instrumentation instead of another guess:
+  `UE_LOG` added to `AGSTorchProjectile::OnProjectileHit` printing every hit and which
+  `AGSBurnObjectiveBase` claimed it (#366). One test run showed the actual bug immediately: torches
+  that visibly landed on the mill's own tower - and separately one that hit an unrelated house -
+  were BOTH being claimed by `GSFieldFireObjective_0`. `AGSBurnObjectiveBase::FindObjectiveAtLocation`
+  returns the FIRST objective (arbitrary `TActorIterator` order) whose `ContainsWorldLocation`
+  matches, and a field's version of that check is a coarse rectangle over its whole grid with no
+  idea a structure sits inside it. Independently confirmed by Michael before the fix even built:
+  the mill only ignited once its overlapping field objective had already COMPLETED (completed
+  objectives are skipped by the lookup) - an accidental, unintended dependency.
+  Fix (#367): `FindObjectiveAtLocation` now runs structures first, fields only as a fallback when
+  no structure claims the point. `AGSFieldFireObjective`/`AGSMillObjective`/`AGSBuildingObjective`
+  themselves untouched - purely a dispatch-priority fix in the shared base. Verified live: torched
+  the mill while a field was still actively burning (previously-broken exact scenario) - "it burns
+  now before the Field." **Lesson for next time a fix "should work" but doesn't fully land**: this
+  is the second time this session a plausible, well-reasoned fix (#362) turned out to be necessary
+  but not sufficient, with the actual remaining blocker somewhere the reasoning hadn't looked -
+  instrumentation beat a third round of theorizing. The `TORCH HIT` diagnostic log lines are left in
+  place (cheap, Warning-level, marked temporary) rather than stripped immediately.
+
+- 2026-08-30 **Windmill roof (`SM_RoofTIles`) was invisible always, not just from a distance (#365,
+  watched, both mills).** Root cause: the roof's three material instances (`MI_TowerRoofTiles`,
+  `MI_TowerWood`, `MI_TowerSpear`) all inherit `dithered_lod_transition = true` from their shared
+  master `M_Props_Master` - a property whose own doc string says it's for the foliage system. The
+  roof is placed as a plain `StaticMeshActor` (ground mill) or a `ChildActorComponent`-spawned one
+  (hill mill), never as foliage/HISM, so the shader never gets the per-instance dither data it
+  expects and renders fully dithered-out. Fixed with an instance-level `base_property_overrides`
+  override on the three affected instances only; the shared master is untouched. Found by
+  elimination after every other property (geometry, position, visibility, scale, blend mode, WPO,
+  ground-coverage switches, textures, compile errors) checked out clean - swapping the whole
+  material to `DefaultMaterial` was the first thing that actually changed anything. **Also
+  confirmed NOT caused by anything this session touched** - reverted the level to the last commit
+  and it was still broken, and a subagent sweep of every burn/crumble/fracture C++ file found zero
+  references to this mesh or property. `MaterialInstanceBasePropertyOverrides.to_dict()` returns
+  `{}` even when correctly set - verify via the individual named fields instead; see the CLAUDE.md
+  gotcha.
+
+- 2026-08-30 **Mill exterior fire, actually fixed (#361 + #362, watched with the correct repro).**
+  #361 retired the "stone base, no purchase" rule by rewriting `IgniteAtLocation` to call
+  `IgniteInterior()` - and was closed `done` on evidence (Michael watched both mills burn
+  cinematically) that turned out to have tested the WRONG path: both mills that session were lit via
+  the window-overlap route, not the exterior torch route #361 claimed to fix. **`IgniteAtLocation`'s
+  body was never the gate** - `AGSTorchProjectile::OnProjectileHit` only calls it on whatever
+  `AGSBurnObjectiveBase::FindObjectiveAtLocation` returns, which depends entirely on
+  `ContainsWorldLocation` answering true, and the base class's version unconditionally returns false.
+  `AGSMillObjective` never overrode it - documented in three separate comments as the actual
+  "windows only" mechanism, all of which #361 left unread. #362 added the override (true within the
+  resolved geometry actor's bounds, padded 300uu) and corrected the three stale comments. **Verified
+  correctly this time**: Michael threw an actual torch at the specific mill that had failed before
+  and watched it catch and collapse. Lesson for next time: "a human watched it" still has to be
+  watching the SPECIFIC path a change claims to fix, not an adjacent success - isolate what actually
+  triggered ignition before calling it verified.
+  - Separately, same session: `UGSBurnFXComponent` gained `SetCharTargetActor(AActor*)` so its
+    char/MID cache can target a DIFFERENT actor than its owner - the mill's `MillMesh`/`SailMesh` are
+    empty placeholders, the real geometry is a separate `StaticMeshActor` resolved at runtime (see
+    #360). `AGSMillObjective::BeginPlay` now resolves and caches it once (`CachedMillGeometry`,
+    shared by `ContainsWorldLocation` and `SinkTower` too) and redirects char to it. Confirmed
+    working in the same verified test.
+  - **Two leaked-PowerShell-process memory incidents hit this session** (one crashed the Epic Games
+    Launcher via OOM) - both were MY OWN timed-out background tool calls still running/buffering, not
+    an engine/content leak. `Get-Process powershell | Sort WorkingSet64 -Descending` before chasing
+    an in-engine memory leak after a string of timed-out MCP calls. Written up in
+    `GoblinSiege 5.8/CLAUDE.md`'s Editor Python gotchas section.
+  - **Follow-ups opened, not fixed:** (1) some `AGSBuildingObjective` clusters appear to count as more
+    than one building and spawn multiple full-size fires each (Michael observed this live during a
+    full-map burn) - worth a ticket on per-cluster fire/smolder instance count. (2) the mill still
+    logs a stale "has a UGSBurnFXComponent but no UGSFlammableComponent - it will never char" warning
+    at BeginPlay that is no longer true - cosmetic, worth a wording/gating pass. (3) `SM_RoofTIles`
+    (and presumably the tower base) has a much shorter authored max-draw-distance than the sail mesh,
+    so from across the map only the sail is visible - not a bug, just an inconsistency worth tuning if
+    the windmill should read as a landmark from farther out. (4) `AGSMillObjective::DropSails`'s loose-
+    part name matching (`LoosePartNameFilters`) still uses case-SENSITIVE `Contains`, unlike
+    `SinkTower`'s fixed `ContainsWorldLocation`/geometry search - same class of bug as #360, not yet
+    known to have bitten anyone, worth the same `ESearchCase::IgnoreCase` fix opportunistically.
+
+- 2026-08-27 **WORLD CORRUPTION, STAGES 0-3 OF 6 - the land turns as you raid** (#296/#309/#312/#315/#316/#320/#325/#327, all watched). Ledger rulings **40-45** (2026-08-21) and **62** (2026-08-24). Un-iceboxes #252 - see the 2026-08-23 icebox note below, now superseded.
+  - **`UGSCorruptionSubsystem`** (`World/`, `Config = Game`, 10 Hz, one timer): a constant-rate follower (`FInterpConstantTo`, never `FInterpTo` - an exponential settles a big step and a small one in the same time, which is backwards for "lurch on an objective, creep on a kill") over five weighted terms. Monotonic high-water ratchet. Public shape deliberately mirrors `AGSGameState`'s alarm meter (`GetCorruption01`, `OnCorruptionStageChanged(New, Old)`).
+  - **All five drivers live**: objectives 0.45 · kills 0.20 · structures 0.15 · clock 0.10 · horde 0.10, plus a razed floor at 0.85. 1.00 is reachable from gameplay alone.
+  - **`AGSCorruptionDirector`** (found-or-spawned, never placement-dependent): captures the level's authored sky/fog/sun values as baselines and lerps FROM them; spawns an `ExponentialHeightFog` and its own unbound `APostProcessVolume` (prio 1000, `BlendWeight` fixed at 1) when the map has none. Restores baselines on teardown so a PIE stop does not leave the editor sky red.
+  - **The grade is two-ended and live at all times** (Michael, 2026-08-25): clean = bloom 3.0 / threshold -0.5 / exposure +0.75, gritty = bloom 0.35 / threshold +1.2 / grain 0.6 / sat 0.55. **The `BloomThreshold` sweep is the best thing in it** - as the world darkens, only genuinely hot pixels bloom, so *the fires the player set* become the only things in frame that glow. A tuning pass that flattens that curve loses it.
+  - **`AGSGameMode::OnCharacterKilled`** (#325) is that class's FIRST delegate. Broadcast as the first statement of `HandleGoblinDeath`, **above both early returns** - a defender whose controller is already destroyed returns on `!Controller`, and every AI defender returns on the missing `AGSPlayerState`, so a broadcast placed after either reports PLAYER deaths only. Before this, killing the entire garrison reported to nothing.
+  - **Civilians corrupt more than soldiers** (ruling 62): `Weighted = Soldiers + Civilians x GS.Corruption.CivilianWeight` (2.5). Discriminator is `AGSEnemyCharacter::GetArchetypeRowName() == "Civilian"` - a `DA_Race_Human` row key, NOT a class-name match. Watched: 2 soldiers + 1 civilian = 4.5 weighted, meter 0.02 -> 0.06 unforced.
+  - **`GS.Corruption.Set / .Release / .Step / .Dump / .Refresh`**, cvars `.RiseRate .FallRate .RatchetFraction .CivilianWeight`.
+
 - 2026-08-21 **ACF PHASE 2A: `AGSCharacterBase : AACFCharacter`, ONE ASC** (#223, watched). Our ASC is
   gone; ACF's `ActionsComp` is the only one, cached under the old member name so ~20 call sites were
   untouched. `UGSAttributeSetBase` stays a default subobject of the ACTOR, which is how the ASC adopts
@@ -687,6 +774,74 @@ next agent rediscovers it.
 
 ## NEXT
 
+### World corruption - ICEBOXED 2026-08-27 (#342), stages 5-6 remain
+
+> **Parked by Michael. Do not pick this up without him saying so.** Stages 0-4 are BUILT and watched
+> (see the entry at the top of this file) - this is a working feature stopped four-sixths through,
+> not an abandoned one. **The full handover is `AgentQueue/ICEBOX.md`.** Nothing was reverted, all
+> corruption tickets closed properly, and the board is clear of them, so this holds no build gate.
+>
+> **Two things that will look like faults and are not.** Every run logs `No corruption tuning asset
+> at '/Game/Data/World/DA_Corruption_Default...'` - the asset is not authored yet and the warning is
+> the designed fallback, not a break. And the four `UCurveFloat` slots on that asset are declared but
+> unconsumed by the director.
+>
+> **`GS.Corruption.Debug 0|1` closed UNOBSERVED (#338)**: it registers and logs `live overlay ON`,
+> but nobody has looked at the screen with it enabled, and the bar draws through on-screen debug
+> messages that no log can confirm. If it draws nothing, suspect the line filter - it string-matches
+> `DescribeState()`'s wording.
+>
+> The design plan stays machine-local at `C:/Users/Michael/.claude/plans/i-want-you-to-abstract-newell.md`
+> by ruling; **this file and the icebox are the durable record.** Two passages in that plan are stale
+> - stage 6's audio predates #249's mixer spine, and stage 4 split into class-vs-asset.
+
+### World corruption, stages 4-6 - superseded by the icebox note above (written 2026-08-27, #332)
+
+**Read first:** the plan is `C:/Users/Michael/.claude/plans/i-want-you-to-abstract-newell.md`; the
+rulings are `docs/decisions-ledger.md` 40-45 and 62. Stages 0-3 are BUILT (top of this file).
+
+**Stage 4 - `DA_Corruption_Default` + curves.** Tuning leaves C++. Precedent: `GSWeaponDataAsset` ->
+`Content/Data/Weapons/DA_Weapon_*`. Carries the five weights, both soft knees, the razed floor, the
+type-weight map, both `FGSCorruptionGrade` ends, and the civilian multiplier. **Two numbers in it are
+knowingly unfounded and must be set from a watched raid, not from a fresh guess:**
+- `KillSoftKnee` = 12, drafted against ruling 19's 15-defender pool BEFORE the 2026-08-23 roster
+  ruling made castle guards Militia with *"a decent amount of them"*. Counting the roster from
+  `.umap` files gives reference counts, not instances - it needs the editor or a full raid.
+- `GS.Corruption.CivilianWeight` = 2.5. Ruling 62 says "more"; it deliberately does not say how much.
+
+**Stage 5 - `MPC_GSCorruption` + the ground.** No MPC exists in the project (verified: an earlier
+survey claiming ~20 Dreamscape materials reference one was reading `ParameterCollectionInfos`, a
+field serialized into every `UMaterial`, which hits 172 files). **The `CollectionParameter` node into
+`M_GS_Crop_Master` must be hand-authored** - assume Python cannot be trusted with a material graph,
+same risk class as the 2D blendspace. Do NOT edit the Dreamscape landscape masters: marketplace
+content, shared across three maps, and ground char already routes through `GS_BurnMask`.
+
+**Stage 6 - ash, embers, ambience.** `Content/VolcanoEnvironmentVFX/VFX/Niagara/NS_AtmosphereAsh` and
+`NS_AtmosphereEmbers`; **their user-parameter names are unknown until someone opens them** - a
+read-and-report step, not a guess. Ambience routes through #249's mixer spine (`Content/Audio/Mix/`).
+Ship the GDD 12.1 row and the `features.json` entry TOGETHER - `check_gdd.py` pins ids to 1-20+5b and
+fails on both `missing` and `extra`.
+
+**Debts, small, fold into stage 4:**
+- The kill log line is `Verbose`, so a real kill leaves no trace in the file. Raise to `Log` - this
+  cost a round trip on 2026-08-27 where a working hook could not be told from a dead one.
+- A failed `Cast<AGSEnemyCharacter>` is silent: any human that is not one counts as a soldier.
+- `ObjectiveRecomputeIntervalSeconds` is not in `DefaultGame.ini` (C++ default 0.5 applies).
+- Corruption hooks the three callers UPSTREAM of `UGSCrumbleComponent` rather than `OnCrumbled`.
+  #317 made Crumble the unified destroyed state; `GSBuildingObjective.cpp:684` crumbles directly and
+  is not counted. Not broken - buildings feed the objectives term - but the wrong shape.
+
+**Open design question nobody has answered:** with per-TYPE weighting, burning one house of 67 moves
+the term by almost nothing. Should razing an entire street feel like an achievement? Today it reads
+mainly through the structures term, which has its own knee.
+
+**Deferred by ruling, not forgotten:** `MD_GS_Corruption` post-process material; Epic's `DaySequence`
+(`UDaySequenceModifierComponent::SetUserBlendWeight` is literally this feature's output stage -
+revisit when a hand-authored level exists, it needs an `ADaySequenceActor` per level); the co-op
+replicated byte; cross-raid persistence (note `IALSSavableInterface` is actor-shaped, so a
+`UWorldSubsystem` cannot be saved by ALS - the float would have to move onto the director).
+
+
 *Refreshed 2026-08-06. Every `missing:` symbol below was re-checked against the tree that day; an
 item whose symbols all now exist was removed rather than left to rot. Three were: **interact
 framework** (u=10.0 — all four components exist in `Interaction/` and `Weapons/Abilities/`)
@@ -726,6 +881,10 @@ below as priority; it is grouped by kind. The first item is the only one anyone 
 - ~~[EDITOR] **`BP_GS_Arrow` subclass**~~ — **RESOLVED 2026-08-09 (#096).** The arrow WAS seen flying wrong (head down, launched from its own middle). Cause found by measuring the asset: `GS_Arrow` is 59.5uu long, its long axis is **+Z**, and its pivot is at the **tail**, while the actor's +X follows velocity — so with the identity default the shaft rendered at 90° to its own flight path. Corrected in the C++ constructor (`Pitch -90`, `X -59.5`), verified live at 0.0° shaft-vs-travel with the head on the collision sphere. A Blueprint subclass is no longer needed to make arrows look right, only to make them look *different*.
 
 ## FAILED
+- 2026-08-27 **A TERM CAN BE CORRECTLY WEIGHTED AND STILL WRONG IN AGGREGATE.** Corruption's objective term weighted each carrier by type (Mill 1.00, House 0.15) and normalised by total weight. Correct per instance; on `L_Tutorial_Island` 67 houses x 0.15 = 10.05 of a 13.40 total, so **houses were 75% of the term** - GDD 12.1 row 12's complaint reappearing one level up. Fixed by averaging within a type and weighting the four TYPE averages (houses -> 6%). **It was closed as verified twice before this surfaced**, on `GS_BurnTest`, which has three objectives and could never have shown it. **Test driver maths on the map with the most objects, not the tidiest one.**
+- 2026-08-27 **THE SUN HAS TWO COLOURS AND THE SKY HAS TWO BLUES.** `SetLightColor` changes what the sun DOES to the scene; `UDirectionalLightComponent::AtmosphereSunDiskColorScale` changes what it LOOKS like in the sky. `RayleighScattering` recolours the dome; ozone (`OtherAbsorption`) keeps its blue-cyan at the zenith regardless. Driving one of each pair produces a world that looks half-corrupted and reports as fully working. Only a human looking up caught it.
+- 2026-08-27 **A MULTIPLIER CANNOT LIFT A ZERO BASELINE.** Ozone strength was `Lerp(Base, Base * 2.0, T)`; `L_Tutorial_Island` authors `OtherAbsorptionScale` at 0.0, so the whole ozone fix was silently inert there. Absolute targets for anything a level may legitimately author at zero.
+- 2026-08-27 **AN INSTRUMENT THAT ONLY PRINTS TO SCREEN IS HALF AN INSTRUMENT.** `GS.Corruption.Dump` logged to `LogTemp` and never reached `MyProject.log`, so it could only be read over Michael's shoulder. Log to the feature's own category. The same shape bit twice more: the dump printed a status (`SkyAtmosphere found`) where it needed a VALUE, and the kill line is still `Verbose`. **Print the number, not the state.**
 
 - 2026-08-21 **THE SAME TICK TRAP AS #135, FROM THE OTHER DIRECTION - THIS TIME THE BASE CLASS DID
   IT** (#223, ACF Phase 2a). `AACFCharacter`'s constructor sets
@@ -1106,6 +1265,13 @@ not re-open these as defects.
   the source was not a third party's mark.
 
 ## Iceboxed, 2026-08-23 — #249 (audio spine) and #252 (world corruption)
+
+> **SUPERSEDED for #252 as of 2026-08-27.** The blocking question below - *do civilian kills corrupt
+> the world as much as knight kills?* - was put to Michael and answered: **civilians count MORE**
+> (ruling 62). Corruption was re-filed as **#296** and has since shipped stages 0-3; see the BUILT
+> entry at the top of this file. #249's spine did land and is what stage 6's ambience should route
+> through, rather than the bare `UAudioComponent` the corruption plan describes.
+
 
 Michael's ruling: park both, do not work them. Their board status is `abandoned` **only so they stop
 holding the build gate shut** — nothing was reverted and all of their work is committed in `main`.

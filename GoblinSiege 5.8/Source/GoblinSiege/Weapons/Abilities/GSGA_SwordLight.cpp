@@ -9,11 +9,19 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GameFramework/Character.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/OverlapResult.h"
 #include "Components/ACFDamageHandlerComponent.h"
+// CollisionsManager reaches us transitively: it is a PUBLIC dependency of AscentCombatFramework,
+// which AIFramework carries, so no Build.cs change is needed for this include.
+#include "ACMCollisionsFunctionLibrary.h"
 #include "Combat/GSDamageTypes.h"
+#include "Combat/GSHitCameraShake.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -129,6 +137,17 @@ UGSGA_SwordLight::UGSGA_SwordLight()
 	// "is a hit coming". UBTTask_Block reads it to avoid raising a guard in the middle of its own
 	// swing; the Windup child below is what a defender actually reacts to.
 	ActivationOwnedTags.AddTag(GSTags::State_Attacking);
+
+	// The asset tag ACF's combat behaviour addresses this ability BY (#353). The UACFAbilitySet
+	// resolves Actions.Defender.Melee to this class at grant time; #343 reused State.Attacking for
+	// that job as a stopgap because it was the only registered tag already here. Both tags are kept
+	// on the CDO - State.Attacking still describes what the character is doing and other code reads
+	// it; this one is purely the AI's handle on the verb. SetAssetTags, not the deprecated
+	// AbilityTags member (C4996 in 5.8).
+	FGameplayTagContainer AssetTags;
+	AssetTags.AddTag(GSTags::State_Attacking);
+	AssetTags.AddTag(GSTags::Actions_Defender_Melee);
+	SetAssetTags(AssetTags);
 
 	ActivationBlockedTags.AddTag(GSTags::State_Dead);
 	ActivationBlockedTags.AddTag(GSTags::State_Dodging);
@@ -251,11 +270,49 @@ void UGSGA_SwordLight::RunStage()
 	// combo can accelerate or plant harder as it chains.
 	ApplyMoveSpeedScale(S.MoveSpeedScale);
 
-	if (S.Montage)
+	// ---- PICK THE ANIMATION, THEN MAKE IT FIT (#349) ------------------------------------------
+	//
+	// Variety without a combo: one attack that does not look identical every time. The primary
+	// Montage and every entry in MontageVariants are equally likely, so leaving the array empty
+	// keeps the old single-animation behaviour exactly.
+	// Decide this BEFORE the montage starts: once a root-motion montage is playing it owns the
+	// character's movement, and in the air that means gravity stops.
+	SuppressRootMotionIfAirborne();
+
+	if (UAnimMontage* Chosen = PickStageMontage(S))
 	{
 		if (ACharacter* Char = Cast<ACharacter>(Avatar))
 		{
-			Char->PlayAnimMontage(S.Montage, S.MontagePlayRate);
+			float Rate = S.MontagePlayRate;
+
+			// Fit the animation to the stage rather than letting the stage cut the animation off.
+			// AM_HU_Atk_Light is 1.32s against a stage that ran 0.90s, so a third of the swing was
+			// never rendered - and with variants of different lengths (A1 1.32s, C1 1.50s) no single
+			// fixed rate can fit both. Deriving it per swing is the only way both finish cleanly.
+			const float StageSeconds = S.WindupSeconds + S.DamageWindowSeconds + S.RecoverySeconds;
+			const float Len = Chosen->GetPlayLength();
+			if (S.bFitMontageToStage && StageSeconds > KINDA_SMALL_NUMBER && Len > KINDA_SMALL_NUMBER)
+			{
+				Rate = Len / StageSeconds;
+			}
+
+			// PlayAnimMontage returns 0 on a skeleton mismatch and says nothing about it. The swing
+			// is timer-driven, so a refused montage still deals full damage - an invisible hit that
+			// nothing downstream can notice. Say so instead.
+			const float Played = Char->PlayAnimMontage(Chosen, Rate);
+			if (Played <= 0.f)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GS.Combat] '%s' refused to play on %s (skeleton mismatch?) - the swing "
+						 "will still hit, invisibly."),
+					*Chosen->GetName(), *GetNameSafe(Avatar));
+			}
+			else if (GSCombatDebugEnabled())
+			{
+				UE_LOG(LogTemp, Log,
+					TEXT("[GS.Combat] %s swings '%s' (%.2fs) at rate %.2f to fill a %.2fs stage"),
+					*GetNameSafe(Avatar), *Chosen->GetName(), Len, Rate, StageSeconds);
+			}
 		}
 	}
 
@@ -316,6 +373,131 @@ void UGSGA_SwordLight::OpenDamageWindow()
 	World->GetTimerManager().SetTimer(SweepTimer, this, &UGSGA_SwordLight::DoSweep, SweepIntervalSeconds, true);
 	World->GetTimerManager().SetTimer(WindowTimer, this, &UGSGA_SwordLight::CloseDamageWindow,
 		GetStage().DamageWindowSeconds, false);
+}
+
+void UGSGA_SwordLight::SuppressRootMotionIfAirborne()
+{
+	ACharacter* Char = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	if (!Char || bRootMotionSuppressed)
+	{
+		return;
+	}
+
+	const UCharacterMovementComponent* Move = Char->GetCharacterMovement();
+	if (!Move || !Move->IsFalling())
+	{
+		return;   // grounded: keep the authored root motion, it is the lunge
+	}
+
+	USkeletalMeshComponent* Mesh = Char->GetMesh();
+	UAnimInstance* Anim = Mesh ? Mesh->GetAnimInstance() : nullptr;
+	if (!Anim)
+	{
+		return;
+	}
+
+	CachedRootMotionMode = Anim->RootMotionMode;
+	Anim->SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
+	bRootMotionSuppressed = true;
+
+	if (GSCombatDebugEnabled())
+	{
+		UE_LOG(LogTemp, Log,
+			TEXT("[GS.Combat] %s swings while airborne - root motion ignored so gravity keeps working"),
+			*GetNameSafe(Char));
+	}
+}
+
+void UGSGA_SwordLight::RestoreRootMotionMode()
+{
+	if (!bRootMotionSuppressed)
+	{
+		return;
+	}
+	bRootMotionSuppressed = false;
+
+	ACharacter* Char = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	USkeletalMeshComponent* Mesh = Char ? Char->GetMesh() : nullptr;
+	if (UAnimInstance* Anim = Mesh ? Mesh->GetAnimInstance() : nullptr)
+	{
+		Anim->SetRootMotionMode(CachedRootMotionMode);
+	}
+}
+
+UAnimMontage* UGSGA_SwordLight::PickStageMontage(const FGSSwingStage& S) const
+{
+	// The primary Montage is one of the candidates, not a fallback - otherwise adding a single
+	// variant would silently halve how often the original animation is seen.
+	TArray<UAnimMontage*> Candidates;
+	if (S.Montage)
+	{
+		Candidates.Add(S.Montage);
+	}
+	for (const TObjectPtr<UAnimMontage>& M : S.MontageVariants)
+	{
+		if (M)
+		{
+			Candidates.Add(M);
+		}
+	}
+
+	if (Candidates.Num() == 0)
+	{
+		return nullptr;   // a stage with no animation still swings and still hits, by design
+	}
+	return Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+}
+
+bool UGSGA_SwordLight::ResolveImpact(AActor* Target, const FVector& SweepOrigin, FHitResult& OutHit) const
+{
+	const AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!Target || !Avatar)
+	{
+		return false;
+	}
+
+	// Trace from the sweep centre THROUGH the target rather than stopping at its origin: a ray that
+	// ends exactly at the actor location can terminate inside the capsule before it ever reaches the
+	// mesh, which returns a hit with no bone - the very thing this function exists to recover.
+	const FVector ToTarget = Target->GetActorLocation() - SweepOrigin;
+	const FVector Dir = ToTarget.GetSafeNormal();
+	if (Dir.IsNearlyZero())
+	{
+		return false;
+	}
+	const FVector TraceStart = SweepOrigin;
+	const FVector TraceEnd = Target->GetActorLocation() + Dir * 150.f;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(GSSwordImpact), /*bTraceComplex*/ true, Avatar);
+	// The material matters: without it PlayImpactEffect has nothing to pick an effect from and every
+	// surface sounds the same.
+	Params.bReturnPhysicalMaterial = true;
+
+	// ---- TRACE THE MESH COMPONENT, NOT A COLLISION CHANNEL --------------------------------------
+	//
+	// MEASURED: the character mesh answers ECC_Visibility with ECR_IGNORE, so the obvious
+	// ActorLineTraceSingle(..., ECC_Visibility, ...) can NEVER hit it - the first version of this
+	// function did exactly that and logged "trace missed the mesh, bone='None'" on a hit that had
+	// plainly connected. Channel responses are the wrong instrument here anyway: the overlap has
+	// already decided this target is hit, so the only question left is WHERE, and asking the mesh
+	// whether it wants to answer a visibility query is beside the point.
+	//
+	// LineTraceComponent goes straight at the component's physics asset and ignores channel
+	// responses, which is what returns a per-bone hit.
+	if (const ACharacter* TargetChar = Cast<ACharacter>(Target))
+	{
+		if (USkeletalMeshComponent* Mesh = TargetChar->GetMesh())
+		{
+			if (Mesh->LineTraceComponent(OutHit, TraceStart, TraceEnd, Params))
+			{
+				return true;
+			}
+		}
+	}
+
+	// Non-character targets (breakables, props) still get a channel trace against their own
+	// components - they have no physics asset to interrogate.
+	return Target->ActorLineTraceSingle(OutHit, TraceStart, TraceEnd, ECC_Visibility, Params);
 }
 
 void UGSGA_SwordLight::DoSweep()
@@ -422,25 +604,56 @@ void UGSGA_SwordLight::DoSweep()
 		// no Damage.Sword tag exists yet; logged in the decision queue.
 		const float SwingDamage = bBrokeGuard ? S.Damage * S.GuardBreakDamageScale : S.Damage;
 
+		// ---- THE REAL IMPACT (#349) ----------------------------------------------------------
+		//
+		// Try for an actual contact point, normal, bone and physical material. This used to be a
+		// fabricated hit at the target's actor location - the old comment here admitted as much -
+		// and that fabrication is why melee could never place impact FX or tell a head from an arm.
+		//
+		// The synthesised hit is KEPT as the fallback, not deleted: a capsule-only target, or a mesh
+		// the ray grazes past, must still take the damage the overlap already granted. Cosmetics may
+		// degrade; a connected swing may not stop connecting.
+		const FVector ShotDirection =
+			(Target->GetActorLocation() - Avatar->GetActorLocation()).GetSafeNormal();
+
+		FHitResult Hit;
+		const bool bRealImpact = ResolveImpact(Target, Origin, Hit);
+		if (!bRealImpact)
+		{
+			Hit = FHitResult();
+			Hit.ImpactPoint = Target->GetActorLocation();
+			Hit.Location = Hit.ImpactPoint;
+			Hit.ImpactNormal = -ShotDirection;
+			Hit.Normal = Hit.ImpactNormal;
+			Hit.HitObjectHandle = FActorInstanceHandle(Target);
+		}
+
+		if (GSCombatDebugEnabled())
+		{
+			UE_LOG(LogTemp, Log,
+				TEXT("[GS.Combat] %s hit %s%s bone='%s' at (%.0f,%.0f,%.0f)"),
+				*GetNameSafe(Avatar), *GetNameSafe(Target),
+				bRealImpact ? TEXT("") : TEXT(" [SYNTHESISED - trace missed the mesh]"),
+				*Hit.BoneName.ToString(),
+				Hit.ImpactPoint.X, Hit.ImpactPoint.Y, Hit.ImpactPoint.Z);
+		}
+
+		// Per-material impact VFX and sound, placed at the real contact point. ACF picks the effect
+		// from the damage type plus the physical material under the blade, which is exactly what
+		// ResolveImpact just recovered - and what the fabricated hit could never supply.
+		if (bRealImpact)
+		{
+			UACMCollisionsFunctionLibrary::PlayImpactEffect(
+				UGSDamageType_Axe::StaticClass(), Hit, Avatar);
+		}
+
 		if (GSUseACFDamage > 0)
 		{
 			if (UACFDamageHandlerComponent* Handler =
 					Target->FindComponentByClass<UACFDamageHandlerComponent>())
 			{
-				// The sweep is an overlap, so there is no real impact point to hand over. Synthesise
-				// one: the target's location, with the normal pointing back at the attacker. ACF
-				// reads hitDirection for the ragdoll impulse and for which hit reaction to play, so
-				// a zero vector here would make every corpse fall the same way.
-				const FVector ShotDirection =
-					(Target->GetActorLocation() - Avatar->GetActorLocation()).GetSafeNormal();
-
-				FHitResult Hit;
-				Hit.ImpactPoint = Target->GetActorLocation();
-				Hit.Location = Hit.ImpactPoint;
-				Hit.ImpactNormal = -ShotDirection;
-				Hit.Normal = Hit.ImpactNormal;
-				Hit.HitObjectHandle = FActorInstanceHandle(Target);
-
+				// ACF reads hitDirection for the ragdoll impulse and for which hit reaction to play,
+				// so a zero vector here would make every corpse fall the same way.
 				const FPointDamageEvent DamageEvent(SwingDamage, Hit, ShotDirection,
 					UGSDamageType_Axe::StaticClass());
 
@@ -467,6 +680,74 @@ void UGSGA_SwordLight::DoSweep()
 		if (AGSCharacterBase* AttackerChar = Cast<AGSCharacterBase>(Avatar))
 		{
 			AttackerChar->NotifyDealtDamage(Target);
+		}
+
+		// ---- WAS IT DEFLECTED? (#355) ------------------------------------------------------
+		//
+		// The damage calc has just run (inside ApplyGameplayEffectSpecToTarget above) and, if the
+		// blow hit plate head-on, it set State.LastHitDeflected on US. Read it now and clear it
+		// now, on the same frame, so it can never leak into the next swing's verdict. This is the
+		// one signal that lets "my hit was refused" look different from "my hit did nothing" -
+		// which is the whole of why Michael's knight read as a sponge.
+		bool bDeflected = false;
+		if (SourceASC && SourceASC->HasMatchingGameplayTag(GSTags::State_LastHitDeflected))
+		{
+			bDeflected = true;
+			SourceASC->SetLooseGameplayTagCount(GSTags::State_LastHitDeflected, 0);
+		}
+
+		// ---- HITSTOP (#353) ----------------------------------------------------------------
+		//
+		// Both parties freeze for a few frames on contact, scaled by the weight of the blow. The
+		// numbers are per-stage data so a light, a heavy and a guard-break can each land
+		// differently, and the whole thing is off when a stage authors 0.
+		//
+		// A DEFLECTED blow gets the attacker's stop but NOT the victim's: the plate absorbed it, so
+		// the knight should barely register while the attacker's blade sticks on the steel. That
+		// asymmetry is most of the cue. Here rather than in the damage exec calculation because only
+		// the SWING knows both ends of the hit and which stage it was.
+		if (S.HitstopSeconds > 0.f)
+		{
+			const float Hold = bBrokeGuard ? S.HitstopSeconds * S.GuardBreakHitstopScale : S.HitstopSeconds;
+			if (AGSCharacterBase* AttackerChar = Cast<AGSCharacterBase>(Avatar))
+			{
+				AttackerChar->ApplyHitstop(Hold, S.HitstopScale);
+			}
+			if (!bDeflected)
+			{
+				if (AGSCharacterBase* VictimChar = Cast<AGSCharacterBase>(Target))
+				{
+					VictimChar->ApplyHitstop(Hold, S.HitstopScale);
+				}
+			}
+		}
+
+		// ---- CAMERA SHAKE (#355) -----------------------------------------------------------
+		//
+		// The attacker's own camera, so only a player-controlled attacker ever has one to shake.
+		// A deflect uses the LIGHT shake regardless of stage weight - a heavy that bounces off
+		// plate should feel like it bounced, not like it landed.
+		if (S.bCameraShakeOnHit)
+		{
+			if (const APawn* AttackerPawn = Cast<APawn>(Avatar))
+			{
+				if (APlayerController* PC = Cast<APlayerController>(AttackerPawn->GetController()))
+				{
+					if (PC->PlayerCameraManager)
+					{
+						const TSubclassOf<UCameraShakeBase> ShakeClass = (S.bHeavyShake && !bDeflected)
+							? TSubclassOf<UCameraShakeBase>(UGSHitCameraShake_Heavy::StaticClass())
+							: TSubclassOf<UCameraShakeBase>(UGSHitCameraShake_Light::StaticClass());
+						PC->PlayerCameraManager->StartCameraShake(ShakeClass);
+					}
+				}
+			}
+		}
+
+		if (bDeflected && GSCombatDebugEnabled())
+		{
+			UE_LOG(LogTemp, Log, TEXT("[GS.Combat] %s's blow was DEFLECTED by %s's plate - attacker-only stop, light shake"),
+				*GetNameSafe(Avatar), *GetNameSafe(Target));
 		}
 
 		if (bShowDebug)
@@ -618,6 +899,11 @@ void UGSGA_SwordLight::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	// character permanently slowed after a swing that got interrupted.
 	ClearAllTimers();
 	RestoreMoveSpeed();
+
+	// And a leaked root-motion mode would be worse than either: the character would ignore root
+	// motion for every animation afterwards, so grounded attacks would quietly lose their lunge for
+	// the rest of the raid. Unconditional - it no-ops when the swing never suppressed anything.
+	RestoreRootMotionMode();
 
 	// A swing cancelled DURING its windup must not strand the telegraph on the actor - every
 	// defender in earshot would hold a guard against a hit that is never coming, and on a corpse it

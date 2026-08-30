@@ -7,6 +7,9 @@
 #include "Combat/GSRaceDataAsset.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/BlackboardData.h"
+#include "AI/GSAIDebug.h"
+#include "EngineUtils.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
@@ -145,10 +148,52 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 			{
 				if (UBehaviorTree* BT = Archetype->BehaviorTree.LoadSynchronous())
 				{
-					RunBehaviorTree(BT);
-					if (UBlackboardComponent* BB = GetBlackboardComponent())
+					// ---- DO NOT SWAP ACF'S BLACKBOARD OUT FROM UNDER IT (#346/#347) ------------
+					//
+					// Super::OnPossess is AACFAIController::OnPossess, and it caches blackboard key
+					// INDICES - targetActorKey, homeDistanceKey and eight more - by name against
+					// whatever blackboard its own BehaviorTree declares (ACFAIController.cpp:88-97,
+					// against ACFAIBB, 13 keys). Those cached indices are integers, not names.
+					//
+					// RunBehaviorTree() here re-initialises the blackboard component with a
+					// DIFFERENT asset. If that asset is smaller, every cached index above its size
+					// becomes a read off the end of the array, and ACF's own perception handler
+					// dereferences one on the very first stimulus:
+					//
+					//   Array index out of bounds: 11 into an array of size 5
+					//   UBlackboardComponent::GetValue<UBlackboardKeyType_Float>()
+					//   AACFAIController::HandlePerceptionUpdated_Implementation()  [:169]
+					//
+					// Index 11 in ACFAIBB is HomeDistance, a Float - which is exactly the type in
+					// that callstack. BB_Human has 5 keys. So a Knight or Archer row pointing at
+					// BT_Militia / BT_Archer takes the editor down the moment anything sees anything.
+					//
+					// This crashed the editor twice on 2026-08-28 and the data has already drifted
+					// back once after being cleared by hand, which is why the check lives HERE and
+					// not in the data. A mismatched tree is refused and named; it is never run.
+					const UBlackboardData* ArchetypeBB = BT->BlackboardAsset;
+					const UBlackboardComponent* ExistingBB = GetBlackboardComponent();
+					const UBlackboardData* ACFBB = ExistingBB ? ExistingBB->GetBlackboardAsset() : nullptr;
+
+					if (ACFBB && ArchetypeBB && ArchetypeBB != ACFBB)
 					{
-						BB->SetValueAsObject(TEXT("SelfArchetypeOwner"), InPawn);
+						UE_LOG(LogTemp, Error,
+							TEXT("[GoblinSiege] REFUSED to run '%s' on %s (archetype row '%s'): it "
+								 "declares blackboard '%s' but this controller is already running "
+								 "'%s'. Swapping it would invalidate the blackboard key indices "
+								 "AACFAIController cached in OnPossess and crash on the first "
+								 "perception update. Clear BehaviorTree on that archetype row, or "
+								 "give the tree ACF's blackboard."),
+							*BT->GetName(), *InPawn->GetName(), *Enemy->GetArchetypeRowName().ToString(),
+							*GetNameSafe(ArchetypeBB), *GetNameSafe(ACFBB));
+					}
+					else
+					{
+						RunBehaviorTree(BT);
+						if (UBlackboardComponent* BB = GetBlackboardComponent())
+						{
+							BB->SetValueAsObject(TEXT("SelfArchetypeOwner"), InPawn);
+						}
 					}
 				}
 			}
@@ -176,6 +221,16 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 	// guards reported IsPatrolLoopActive() == false; one StartPatrolLoop(true) each and 5 of 7 were
 	// walking their GS_Road splines on the next sample. StartPatrolLoop also binds
 	// HandleMoveCompleted, which is what re-requests a waypoint after every completed move.
+	// A fight next to a guard was invisible to it: ACF's alerting is group-gated and our defenders
+	// have no group, and nothing in this project makes a noise. See the header for the measurement.
+	if (AGSCharacterBase* Damageable = Cast<AGSCharacterBase>(InPawn))
+	{
+		if (!Damageable->OnDamaged.IsAlreadyBound(this, &AGSAIControllerBase::HandlePawnDamagedAlertAllies))
+		{
+			Damageable->OnDamaged.AddDynamic(this, &AGSAIControllerBase::HandlePawnDamagedAlertAllies);
+		}
+	}
+
 	if (InPawn)
 	{
 		if (UACFAIPatrolComponent* Patrol = InPawn->FindComponentByClass<UACFAIPatrolComponent>())
@@ -190,6 +245,76 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 				Patrol->StartPatrolLoop(true);
 			}
 		}
+	}
+}
+
+void AGSAIControllerBase::HandlePawnDamagedAlertAllies(AActor* Attacker, float Damage)
+{
+	APawn* Self = GetPawn();
+	if (!IsValid(Attacker) || !Self || AllyAlertRadius <= 0.f)
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const FVector Origin = Self->GetActorLocation();
+	const float RadiusSq = AllyAlertRadius * AllyAlertRadius;
+	int32 Woken = 0;
+
+	// O(controllers), not O(actors): the iterator walks the controller list, which is the handful of
+	// AI in the level rather than the nine thousand actors on Tutorial Island.
+	for (TActorIterator<AGSAIControllerBase> It(const_cast<UWorld*>(World)); It; ++It)
+	{
+		AGSAIControllerBase* Other = *It;
+		if (!Other || Other == this)
+		{
+			continue;
+		}
+
+		APawn* OtherPawn = Other->GetPawn();
+		AGSCharacterBase* OtherChar = Cast<AGSCharacterBase>(OtherPawn);
+		if (!OtherChar || !OtherChar->IsAlive())
+		{
+			continue;
+		}
+
+		// Only wake our own side, and only for something they would actually fight. Without both
+		// tests a wounded guard would point his neighbours at another guard.
+		const AGSCharacterBase* SelfChar = Cast<AGSCharacterBase>(Self);
+		if (SelfChar && OtherChar->IsHostileTo(SelfChar))
+		{
+			continue; // hostile to us, so not an ally
+		}
+		if (!OtherChar->IsHostileTo(Attacker))
+		{
+			continue; // the attacker is not their enemy either
+		}
+
+		if (FVector::DistSquared(OtherPawn->GetActorLocation(), Origin) > RadiusSq)
+		{
+			continue;
+		}
+
+		// Already busy with someone: do not yank an engaged guard off his own fight.
+		if (Other->GetTarget())
+		{
+			continue;
+		}
+
+		Other->SetTarget(Attacker);
+		++Woken;
+	}
+
+	if (Woken > 0 && GSAIDebug::IsLogging())
+	{
+		GSAIDebug::Log(Self, FString::Printf(
+			TEXT("hit by %s - woke %d ally/allies within %.0fuu"),
+			*GetNameSafe(Attacker), Woken, AllyAlertRadius));
 	}
 }
 

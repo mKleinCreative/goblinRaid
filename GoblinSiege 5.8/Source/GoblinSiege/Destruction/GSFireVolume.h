@@ -185,8 +185,10 @@ protected:
 	 * OFF by default now that we use a purpose-built marketplace system.
 	 *
 	 * The radius-based rescale existed to stretch a hand-tuned torch flame across a bigger volume.
-	 * N_MeteorSpawn is authored at the size Michael actually liked on screen, so rescaling it would
-	 * only move it away from that. Turn on only for systems authored at FireSystemAuthoredRadius.
+	 * FireSystem (NS_Fire_Big as of 2026-08-29, formerly N_MeteorSpawn) is used at native scale -
+	 * both had no verified authored-radius number to rescale against, so native is the only size
+	 * either was ever confirmed to look right at. Turn on only for a system authored at
+	 * FireSystemAuthoredRadius, with that radius actually known.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|FX")
 	bool bAutoScaleFXToRadius = false;
@@ -245,9 +247,14 @@ protected:
 	FLinearColor LightColour = FLinearColor(1.f, 0.42f, 0.12f, 1.f);
 
 	/** 9000 blew out the scene with 10 volumes lit at once - firelight should warm the ground,
-	 *  not act as area lighting. */
+	 *  not act as area lighting. Cut from 4800 to 2400 on the NS_Fire_Big swap (#358, 2026-08-29):
+	 *  that value was tuned against N_MeteorSpawn's own authored brightness, and against the real
+	 *  fire texture the same intensity reads as light overpowering flame - Michael watched it live
+	 *  and called it "too much light not enough flame, it blows out the effect." Re-tune by eye if
+	 *  a future flame swap changes the balance again; this number is relative to whatever
+	 *  FireSystem currently is, not an absolute. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|FX")
-	float LightIntensity = 4800.f;
+	float LightIntensity = 2400.f;
 
 	/** Multiplied by DamageRadius - firelight should reach well past the flames themselves. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|FX")

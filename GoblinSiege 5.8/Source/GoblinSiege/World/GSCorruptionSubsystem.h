@@ -56,6 +56,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogGSCorruption, Log, All);
 
 class AGSCorruptionDirector;
 class AGSCharacterBase;
+class UGSCorruptionDataAsset;
 
 /** The display value, every time it changes. For HUD tints, bark triggers, anything continuous. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnCorruptionChanged, float, Corruption01);
@@ -246,6 +247,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Corruption")
 	FSoftClassPath CorruptionDirectorClassPath;
 
+	/**
+	 * The tuning asset (stage 4). Soft path with a C++ default so the feature works on a fresh clone
+	 * with no ini entry; an absent asset is a WARNING and the C++ defaults stand, never a silent
+	 * zeroing - a missing data asset must not look like a broken feature.
+	 *
+	 * Structural values (this path, the tick interval, the director class) stay in Config because a
+	 * subsystem has no CDO. Everything a designer judges by eye or by feel lives in the asset.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Corruption")
+	FSoftObjectPath CorruptionDataPath = FSoftObjectPath(TEXT("/Game/Data/World/DA_Corruption_Default.DA_Corruption_Default"));
+
 private:
 	/**
 	 * Last computed value of each term, kept ONLY so GS.Corruption.Dump can show its working. A term
@@ -305,7 +317,14 @@ private:
 
 	/** Takes a float because kills are WEIGHTED (a civilian is worth more than one). */
 	static float SoftKnee(float Count, float Knee);
-	static float ObjectiveTypeWeight(const FGameplayTag& TypeTag);
+	/** Non-static since #337: the weights come from the tuning asset when one is loaded. */
+	float ObjectiveTypeWeight(const FGameplayTag& TypeTag) const;
+
+	/** Copies the asset's values over the C++/Config defaults. Logs exactly what it overrode. */
+	void ApplyTuningAsset();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGSCorruptionDataAsset> TuningData;
 
 	/**
 	 * Bound to AGSGameMode::OnCharacterKilled. UFUNCTION because a dynamic multicast delegate can

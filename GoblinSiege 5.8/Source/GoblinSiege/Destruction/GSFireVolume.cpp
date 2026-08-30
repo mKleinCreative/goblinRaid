@@ -49,9 +49,36 @@ AGSFireVolume::AGSFireVolume()
 	// NS_GS_SmokeColumn, which were a torch flame retuned into a ground fire - always a
 	// compromise, and one I couldn't judge because there's no screenshot route from the agent.
 	//
-	// N_MeteorSpawn is the PEAK look, not the resting state: SetFireIntensity ramps toward it.
-	FireSystem = TSoftObjectPtr<UNiagaraSystem>(
-		FSoftObjectPath(TEXT("/Game/RPG-MagicVFXFire/VFX/Niagara/N_MeteorSpawn.N_MeteorSpawn")));
+	// UPDATED 2026-08-29: N_MeteorSpawn (RPG-MagicVFXFire) was a magic/meteor effect standing in
+	// for fire - it happened to read as flame-shaped but was never authored as one. Replaced with
+	// NS_Fire_Big from Michael's new Free_Fire (Vefects) pack. Picked over the Small/Medium tiers
+	// in that same pack because it's the pack's OWN example configuration: Vefects_Free_Fire's
+	// BP_Fire actor ships with exactly this system at native scale 1.0, paired with SFX_FireBig_L -
+	// i.e. it is the author's stated "this is what a fire looks like" reference, not a guess from
+	// the name alone. bAutoScaleFXToRadius stays OFF for the same reason it was off for
+	// N_MeteorSpawn (see below): there is no reliable authored-radius number to rescale against -
+	// NS_Fire_Big/Medium/Small's FixedBounds are all an identical, uneditied +-100 box, so bounds
+	// cannot distinguish the tiers either. Native scale is therefore the only size this system has
+	// been verified to look right at.
+	//
+	// FINDING, not fixed here: ONE FireSystem field renders at the SAME native size whether this
+	// volume is a small torch-impact fire (~140uu DamageRadius) or a pooled field volume up to
+	// ~320uu (see MaxFireVolumes above) - true before this change and still true after it. A
+	// deliberate size-tier system (NS_Fire_Small/Medium/Big switched by DamageRadius) would need a
+	// second field or an enum, which is a bigger structural change than a default swap and wants
+	// its own ticket, not a silent expansion of this one.
+	//
+	// N_MeteorSpawn's replacement is the PEAK look, not the resting state: SetFireIntensity ramps
+	// toward it - that arc behaviour is unchanged by this swap.
+	// TEST SWAP (2026-08-30, #370): Michael's own Niagara Fluids prototype, in place of the
+	// sprite-based NS_Fire_Big, to see whether a genuinely simulated fluid reads as connected mass
+	// rather than a row of stamped instances - "still looks like rows of fires" was the verdict on
+	// the sprite version even after scale + per-instance seed randomization (both kept, harmless
+	// either way). Revert to NS_Fire_Big below if this doesn't hold up.
+	FireSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
+		TEXT("/Game/VFX/NG_GS_SurfaceFireLiquid.NG_GS_SurfaceFireLiquid")));
+	// FireSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
+	// 	TEXT("/Game/Vefects/Free_Fire/Shared/Particles/NS_Fire_Big.NS_Fire_Big")));
 	SmokeSystem = TSoftObjectPtr<UNiagaraSystem>(
 		FSoftObjectPath(TEXT("/Game/VolcanoEnvironmentVFX/VFX/Niagara/NS_FlameSmoke.NS_FlameSmoke")));
 	EmberSystem = TSoftObjectPtr<UNiagaraSystem>(
@@ -158,6 +185,15 @@ void AGSFireVolume::ApplyFireFX()
 		return;
 	}
 
+	// Break the "stamp" read (2026-08-30, Michael watching a burn front: "still looks like separate
+	// patches"). A pooled volume plays the exact same Niagara system as every other one, so with no
+	// per-instance variation, identical emission patterns lined up along a front read as repeated
+	// copies rather than one irregular mass, however much they overlap. RandRange rather than a
+	// position-derived seed on purpose: pooled volumes are REPOSITIONED as the front moves (not
+	// respawned), so re-rolling on every activation means a volume gets a fresh pattern each time it
+	// relocates, instead of two volumes that happen to land near each other converging on similar
+	// seeds.
+	FireFX->SetRandomSeedOffset(FMath::RandRange(0, MAX_int32 - 1));
 	FireFX->SetAsset(System);
 	FireFX->Activate(true);
 
@@ -170,6 +206,9 @@ void AGSFireVolume::ApplyFireFX()
 		}
 		else if (UNiagaraSystem* Smoke = SmokeSystem.LoadSynchronous())
 		{
+			// Independent seed from the flame's - smoke and flame should not look synchronized to
+			// each other any more than two neighbouring fires should look synchronized.
+			SmokeFX->SetRandomSeedOffset(FMath::RandRange(0, MAX_int32 - 1));
 			SmokeFX->SetAsset(Smoke);
 			RefreshSmokeScale();
 			SmokeFX->Activate(true);
@@ -185,6 +224,7 @@ void AGSFireVolume::ApplyFireFX()
 		}
 		else if (UNiagaraSystem* Embers = EmberSystem.LoadSynchronous())
 		{
+			EmberFX->SetRandomSeedOffset(FMath::RandRange(0, MAX_int32 - 1));
 			EmberFX->SetAsset(Embers);
 			EmberFX->Activate(true);
 		}
@@ -227,6 +267,22 @@ void AGSFireVolume::ConfigurePooled(float InDamageRadius, bool bInEnableSmoke, b
 	bEnableLight = bInEnableLight;
 
 	SetDamageRadius(InDamageRadius);
+
+	// Pooled volumes sit along a burn front where individual cells are only 270uu apart (see
+	// AGSFieldFireObjective::CellSize), but NS_Fire_Big renders at a fixed ~200uu native diameter
+	// regardless of DamageRadius (bAutoScaleFXToRadius is OFF by class default - see the FireSystem
+	// comment above, and its own note: "ONE FireSystem field renders at the SAME native size
+	// whether this volume is a small torch-impact fire... or a pooled field volume"). Neighbouring
+	// patches along the front were never actually touching, which is exactly what Michael flagged:
+	// "It looks like a series of smaller fires than one big fire that's spreading."
+	//
+	// Scoped to pooled instances only (this function), not the shared class default - a torch's own
+	// single fire stays at the size already tuned and approved ("torch flame looks good!"). 85uu
+	// against this field's 170uu FireVolumeRadius gives a 2x scale, ~400uu visual diameter -
+	// comfortably wider than the 270uu cell spacing so adjacent lit cells overlap instead of
+	// leaving gaps.
+	bAutoScaleFXToRadius = true;
+	FireSystemAuthoredRadius = 85.f;
 }
 
 void AGSFireVolume::SetLightEnabled(bool bNewEnabled)

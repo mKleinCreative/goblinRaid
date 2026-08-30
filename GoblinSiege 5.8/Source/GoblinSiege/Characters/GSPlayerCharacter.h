@@ -89,14 +89,32 @@ protected:
 	void Input_Dodge(const FInputActionValue& Value);
 
 	/** Light and heavy share one button (2026-08-03 ruling: tap for light, hold 1.5s for heavy).
-	 *  Pressed starts the charge timer; Released fires the light UNLESS the charge already
-	 *  matured into a heavy. The light therefore resolves on RELEASE, which is the unavoidable
-	 *  cost of putting two attacks on one key - a press cannot know yet whether it is a tap. */
+	 *  Pressed fires the light IMMEDIATELY and starts the charge timer; Released only tidies up.
+	 *
+	 *  THE LIGHT USED TO RESOLVE ON RELEASE (#345), and that single fact was most of what made
+	 *  melee feel mushy: press-to-contact was "however long the player held the button" plus
+	 *  WindupSeconds, so the swing appeared to lag the input by an amount the player themselves
+	 *  varied. The old comment here called release-resolution "the unavoidable cost of putting two
+	 *  attacks on one key". It is avoidable: the press starts a light, and the hold upgrades the
+	 *  FOLLOW-UP rather than the swing already in flight, so nothing has to be predicted and no
+	 *  visible animation is ever cancelled. */
 	void Input_AttackPressed(const FInputActionValue& Value);
 	void Input_AttackReleased(const FInputActionValue& Value);
 
 	/** Fired by the charge timer at HeavyHoldSeconds, while the button is still down. */
 	void TriggerHeavyAttack();
+
+	/** The running light swing, or null when nothing is swinging. One lookup shared by the combo
+	 *  buffer and the heavy hand-off, so "which instance owns the chain" is answered in one place. */
+	class UGSGA_SwordLight* FindActiveSwing() const;
+
+	/** Delivers a heavy queued mid-swing once the light ability that was in flight ends. Bound to
+	 *  the ASC's OnAbilityEnded in BeginPlay.
+	 *
+	 *  Why a queue rather than activating the heavy on the spot: the heavy is a DIFFERENT ability
+	 *  class from the light, so GAS would happily run both at once and the player would get two
+	 *  overlapping damage windows out of one button. */
+	void HandleAbilityEnded(const struct FAbilityEndedData& EndedData);
 
 	/** True when the attack button should draw the bow instead of swinging - ranged mode with a bow
 	 *  ability actually assigned. The null check is deliberate: without it, swapping to ranged on a
@@ -333,9 +351,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input")
 	TObjectPtr<UInputAction> HeavyAttackAction;
 
-	/** How long the attack button must be held before it becomes a heavy. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input", meta = (ClampMin = "0.2"))
-	float HeavyHoldSeconds = 1.5f;
+	/**
+	 * How long the attack button must be held before the follow-up becomes a heavy.
+	 *
+	 * 0.35s, down from 1.5s (#345). The old value was chosen when the light resolved on release, so
+	 * the hold had to be long enough that a normal tap could never reach it. Now the light has
+	 * already gone out by the time this timer is running, the threshold only has to be longer than
+	 * a deliberate tap - and 1.5s of nothing happening is what made the heavy read as "not bound to
+	 * anything". Keep it comfortably below the light chain's own stage length or the heavy will
+	 * always arrive as the third swing rather than the second.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Input", meta = (ClampMin = "0.1"))
+	float HeavyHoldSeconds = 0.35f;
 
 	/** Hold to guard. Bound to Started and Completed/Canceled - the guard is up exactly as long as
 	 *  the button is down. */
@@ -643,6 +670,11 @@ private:
 	bool bAttackHeld = false;
 	bool bHeavyFiredThisHold = false;
 
+	/** Set when the charge matured while a light swing was still in flight; the heavy is delivered
+	 *  by HandleAbilityEnded when that swing finishes. Cleared on every fresh press, so a new input
+	 *  supersedes an undelivered heavy rather than stacking behind it. */
+	bool bHeavyQueuedThisHold = false;
+
 	// ---- aim camera runtime state ----------------------------------------------------------
 	/** 0 = hip, 1 = aiming. Advanced linearly by AimBlendSeconds and eased on read. */
 	float CameraAimAlpha = 0.f;
@@ -655,7 +687,7 @@ private:
 
 public:
 	/** 0..1 while the attack button is held, reaching 1 at HeavyHoldSeconds. Broadcast so a HUD
-	 *  can draw a charge ring - without some feedback, a 1.5s threshold is pure guesswork for the
+	 *  can draw a charge ring - without some feedback the threshold is pure guesswork for the
 	 *  player, and "I held it and got a light attack" is the complaint that follows. */
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Combat")
 	FGSOnHeavyChargeChanged OnHeavyChargeChanged;

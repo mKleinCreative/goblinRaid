@@ -24,6 +24,8 @@
 class UGSWeaponDataAsset;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UNiagaraComponent;
+class UNiagaraSystem;
 
 // EGSWeaponSlot LIVED HERE until #274. It is now four gameplay tags - GSTags::WeaponSlot_Torch /
 // _Bow / _Sword / _Grapple, declared in Combat/GSGameplayTags.h.
@@ -180,6 +182,10 @@ public:
 	/** The readied-torch prop, or null. Non-null does not mean visible - check IsTorchReadied(). */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
 	UStaticMeshComponent* GetHeldTorchMesh() const { return HeldTorchMeshComponent; }
+
+	/** The readied-torch's flame, or null - unset HeldTorchFlameSystem is a legal, silent state. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Weapon|Torch")
+	UNiagaraComponent* GetHeldTorchFlameFX() const { return HeldTorchFlameFXComponent; }
 
 	/**
 	 * Show/hide the torch in the goblin's off hand. Called by UGSGA_TorchToss around its throw
@@ -368,6 +374,14 @@ protected:
 	 */
 	void AttachWeaponMeshToSocket(UStaticMeshComponent* MeshComp, FName SocketName, const FTransform& Offset);
 
+	/** Niagara mirror of EnsureWeaponMeshComponent - same lazy-create/reuse/resolve-failed-latch
+	 *  contract, for FX systems rather than meshes (currently just the held torch's flame). */
+	UNiagaraComponent* EnsureWeaponFXComponent(TObjectPtr<UNiagaraComponent>& Slot,
+		const TSoftObjectPtr<UNiagaraSystem>& SoftSystem, bool& bResolveFailedLatch, const TCHAR* SlotLabel);
+
+	/** Niagara mirror of AttachWeaponMeshToSocket - same socket-validated snap-then-offset contract. */
+	void AttachWeaponFXToSocket(UNiagaraComponent* FXComp, FName SocketName, const FTransform& Offset);
+
 	/** Destroys all four mesh components. Called from EndPlay and whenever the weapon is cleared. */
 	void DestroyWeaponMeshes();
 
@@ -400,6 +414,10 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> HeldTorchMeshComponent;
+
+	/** The held torch's flame. Built and torn down in lockstep with HeldTorchMeshComponent. */
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> HeldTorchFlameFXComponent;
 
 	/** The war-horn. Built lazily on the first blast and kept, like the torch - a goblin that never
 	 *  blows one never pays for it. */
@@ -514,6 +532,7 @@ private:
 	bool bRangedMeshResolveFailed = false;
 	bool bQuiverMeshResolveFailed = false;
 	bool bHeldTorchMeshResolveFailed = false;
+	bool bHeldTorchFlameResolveFailed = false;
 	bool bHornMeshResolveFailed = false;
 
 	/**

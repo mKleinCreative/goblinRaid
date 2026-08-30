@@ -60,10 +60,13 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Chaos/ChaosNotifyHandlerInterface.h"
 #include "GSCrumbleComponent.generated.h"
 
 class UGeometryCollectionComponent;
 class UStaticMeshComponent;
+class UGSFlammableComponent;
+class UGameplayEffect;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnCrumbled);
 
@@ -160,6 +163,17 @@ public:
 	 *  sound, and anything that wants to react to the collapse rather than cause it. */
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Crumble")
 	FGSOnCrumbled OnCrumbled;
+
+	/**
+	 * Auto-crumble the instant a sibling UGSFlammableComponent finishes burning down. OFF by
+	 * default and must stay that way for the general case - a statue crumbles from a rope pull,
+	 * never from fire, and this component serves both. An actor that has both components and wants
+	 * "burns down -> comes apart" (a building, or a standalone burnable prop with no dedicated
+	 * objective actor to hand-wire the bind itself) turns this on instead of duplicating what
+	 * AGSBuildingObjective::HandlePieceBurnedDown already does per-piece.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble")
+	bool bAutoCrumbleOnBurnedDown = false;
 
 	/**
 	 * The intact mesh to retire, by component name. Leave unset and it resolves automatically at
@@ -272,6 +286,46 @@ public:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Collapse", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float CharAmountOnRelease = 0.f;
 
+	// ------------------------------------------------------------------ collision damage
+	//
+	// OFF by default, same rule as the collapse shape above: a monument's rubble has never hurt
+	// anyone and must not start silently just because this component exists on it. Michael, 2026-08-30:
+	// "can we have it so the flying geometry causes death?" - a released piece with enough weight
+	// and speed behind it (the mill's cap alone gets a 400,000 impulse) should be a real hazard, the
+	// way it would be if a real tower actually came down on you.
+
+	/** Let released pieces deal damage to whatever they land on. The class comment names the whole
+	 *  mechanism this switches on. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Damage")
+	bool bEnableDamageFromCollision = false;
+
+	/**
+	 * Damage per collision, SetByCaller through the same exec calc every other hazard in this
+	 * project rides (armor mitigation, race matchup, friendly-fire scalar all fall out for free -
+	 * see AGSFireVolume::ApplyFireDamageTo, the pattern this mirrors). Left high enough that a
+	 * piece with real weight behind it - the sort of collapse this component exists to produce -
+	 * reads as lethal in one hit rather than a bruise, without hand-authoring an instant-kill path
+	 * that would bypass armor/mitigation the rest of the damage system respects.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Damage", meta = (ClampMin = "0.0",
+		EditCondition = "bEnableDamageFromCollision"))
+	float DebrisDamage = 500.f;
+
+	/**
+	 * Below this impulse magnitude, a collision is rubble settling, not a piece falling ON
+	 * something - debris finishing its tumble against its neighbours must not tick damage forever.
+	 * Measured against this component's own impulses: a straggler sweep or a gentle settle lands
+	 * well under this; a piece still carrying real fall speed clears it easily.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Damage", meta = (ClampMin = "0.0",
+		EditCondition = "bEnableDamageFromCollision"))
+	float MinImpulseToDamage = 20000.f;
+
+	/** UGSGE_WeaponDamage by default - a generic instant-damage GE that bakes no Damage.* tag of
+	 *  its own (see that class's header), exactly what a hazard supplying its own tag needs. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Damage", meta = (EditCondition = "bEnableDamageFromCollision"))
+	TSubclassOf<UGameplayEffect> DebrisDamageEffectClass;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
@@ -280,8 +334,23 @@ protected:
 	UFUNCTION()
 	void OnRep_Release();
 
+	/** Bound to a sibling UGSFlammableComponent::OnBurnedDown when bAutoCrumbleOnBurnedDown is on.
+	 *  Zero impulse: a burnt-out thing gives way under its own weight, it isn't shoved - same
+	 *  reasoning as AGSBuildingObjective::HandleCompleted. */
+	UFUNCTION()
+	void HandleBurnedDown();
+
 	/** The four steps. Runs identically on the server and on every client. */
 	void ApplyRelease();
+
+	/**
+	 * Bound to the released collection's OnChaosPhysicsCollision when bEnableDamageFromCollision is
+	 * on. Server-only (damage application must be authoritative, same rule as every other hazard);
+	 * every client still simulates the collision locally for the visual, they just don't apply the
+	 * GameplayEffect.
+	 */
+	UFUNCTION()
+	void HandlePieceCollision(const FChaosPhysicsCollisionInfo& CollisionInfo);
 
 	/**
 	 * The ring of downward-and-inward shoves that makes a building fold rather than topple.

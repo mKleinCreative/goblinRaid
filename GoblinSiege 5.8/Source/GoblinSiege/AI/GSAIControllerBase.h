@@ -102,6 +102,35 @@ public:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 
+	/**
+	 * Wakes nearby allies when this pawn is attacked, so a fight is not invisible to the guard
+	 * standing next to it (#346).
+	 *
+	 * WHY THIS EXISTS RATHER THAN ACF'S OWN ALERTING. ACF already propagates exactly this, but every
+	 * path is gated on a group: AACFAIController::HandlePawnDamaged does
+	 * `if (GroupOwner && GroupOwner->GetAlertOtherTeamMembers() ...) GroupOwner->SetInBattle(...)`
+	 * (ACFAIController.cpp:719, and the same shape at :649 for target acquisition). Goblin Siege's
+	 * defenders are PLACED IN THE LEVEL individually and have no UACFGroupAIComponent - measured live,
+	 * Group=None on every defender controller - so both branches are dead code here.
+	 *
+	 * AND NOTHING MAKES A SOUND. There is no MakeNoise, no ReportNoiseEvent and no hearing sense
+	 * anywhere in Source/GoblinSiege, so a fight is literally imperceptible: a defender reacts only
+	 * to what it personally SEES. Its neighbour being cut down produces no signal at all.
+	 *
+	 * This is the small version of the fix. Noise is IN by ruling 9 and is the designed answer; when
+	 * it lands, this should be reconsidered rather than left to double up with it.
+	 *
+	 * Deliberately mirrors UGSHordeSubsystem's threat sweep, which already does this for ALLIED
+	 * goblins - same idea, other side of the fight.
+	 */
+	UFUNCTION()
+	void HandlePawnDamagedAlertAllies(AActor* Attacker, float Damage);
+
+	/** Radius in which an attacked defender wakes its neighbours. 1200 matches the horde's own
+	 *  AutoThreatRadius, so both sides of a fight notice each other at the same distance. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|AI", meta = (ClampMin = "0.0"))
+	float AllyAlertRadius = 1200.f;
+
 	/** True when GS.Combat.FaceTarget is on, i.e. when the steering component owns yaw for engaged
 	 *  agents.
 	 *

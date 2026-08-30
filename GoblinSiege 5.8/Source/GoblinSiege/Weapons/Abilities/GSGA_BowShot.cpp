@@ -26,15 +26,21 @@ UGSGA_BowShot::UGSGA_BowShot()
 
 	ArrowProjectileClass = AGSArrowProjectile::StaticClass();
 
-	// No asset tags. There is deliberately nothing to put in them: this project's tag set has no
-	// Ability.* namespace, and State.Aiming - the only near-fit - is a LOOSE tag owned by
-	// AGSPlayerCharacter::UpdateRotationMode describing the character, not a label for this ability.
-	// Borrowing it here would make a CancelAbilities(State.Aiming) call cancel a shot in flight, and
-	// that is the kind of coupling that is invisible until the day something adds that call.
+	// The asset tag is what ACF's combat behaviour addresses this ability BY (#353). An AI archer's
+	// UACFCombatBehaviorDataAsset triggers Actions.Defender.Ranged, and the UACFAbilitySet resolves
+	// that tag to this class - so without it the bow is unreachable to any ACF-driven AI, which is
+	// exactly why archers stopped shooting when the defenders moved onto ACF's tree (#330).
 	//
-	// Recorded here because the obvious way to add tags later is the AbilityTags member, and that is
-	// deprecated in 5.8 (C4996): use SetAssetTags(). GSGA_Block and GSGA_Interact still use the old
-	// member and are already on the migration list (AGENT_STATE.md) - do not add a third.
+	// The old comment here explained why there were NO asset tags: the only near-fit was
+	// State.Aiming, a LOOSE tag describing the character, and borrowing it would have let a
+	// CancelAbilities(State.Aiming) cancel a shot in flight. That reasoning still holds - which is
+	// why this is an Actions.* tag that nothing else will ever cancel by, not a State.* tag.
+	//
+	// SetAssetTags, not the deprecated AbilityTags member (C4996 in 5.8). GSGA_Block and
+	// GSGA_Interact still use the old member and are on the migration list - do not add a third.
+	FGameplayTagContainer AssetTags;
+	AssetTags.AddTag(GSTags::Actions_Defender_Ranged);
+	SetAssetTags(AssetTags);
 
 	ActivationBlockedTags.AddTag(GSTags::State_Dead);
 	ActivationBlockedTags.AddTag(GSTags::State_Dodging);

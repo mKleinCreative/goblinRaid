@@ -454,7 +454,47 @@ public:
 	 *  always zero and the left/right flinch variants are unreachable dead code. */
 	void SetPendingDamageInstigator(AActor* InInstigator) { PendingDamageInstigator = InInstigator; }
 
+	/**
+	 * Hitstop (#353): freeze THIS character for a few frames so a landed blow has weight.
+	 *
+	 * Called on both parties of a hit - the attacker, so the swing sticks on contact instead of
+	 * sailing through; the victim, so the impact reads as an impact and not as a health bar moving.
+	 * Fighting games, God of War and Monster Hunter all do exactly this and it is the single largest
+	 * feel change available for the cost. Before #353 this project had no impact layer at all:
+	 * zero TimeDilation anywhere in Source.
+	 *
+	 * RE-ENTRANT BY DESIGN. Two hits can land on one character in one frame (a three-goblin
+	 * pile-on, or a heavy landing during a light's stop), and the naive version - "set dilation,
+	 * timer restores it" - fails both ways: the second call would cache the already-frozen value as
+	 * "normal" and restore INTO the freeze, stranding the character in slow motion for the raid.
+	 * So the original speed is cached exactly once, per freeze, and a second call while frozen only
+	 * ever EXTENDS the current stop (keeping the longer of the two), never re-caches.
+	 *
+	 * @param Seconds  How long to hold, in WALL-CLOCK seconds - see RestoreTimeDilation for why that
+	 *                 distinction is load-bearing.
+	 * @param Scale    Dilation during the hold. 0 is a true freeze; ~0.05 keeps a hint of motion so
+	 *                 the pose does not read as a dropped frame.
+	 */
+	void ApplyHitstop(float Seconds, float Scale = 0.05f);
+
 private:
+	/** Puts CustomTimeDilation back to whatever it was before the freeze and disarms itself.
+	 *
+	 *  Scheduled on the WORLD timer manager, deliberately. That manager advances on the unscaled
+	 *  world DeltaSeconds (LevelTick.cpp:1816), whereas CustomTimeDilation scales only this actor's
+	 *  own tick (Actor.h:796). An ability task or a per-actor delay would therefore be slowed by the
+	 *  very dilation it exists to end - at Scale 0 it would never fire, and the freeze would be
+	 *  permanent. The world manager runs on wall-clock time regardless of what the actor is doing,
+	 *  which is the only clock that can be trusted to end a freeze. */
+	void RestoreTimeDilation();
+
+	FTimerHandle HitstopTimer;
+
+	/** -1 means "not frozen", which is also the reset value - so a restore that runs without a
+	 *  matching apply cannot write a garbage dilation, and a second apply can tell it is re-entering
+	 *  rather than starting. The same guard shape as UGSGA_SwordLight::CachedMaxWalkSpeed. */
+	float CachedTimeDilation = -1.f;
+
 	float LastHitReactTime = -1000.f;
 
 	/** Attacker for the damage event currently being applied. Consumed and cleared by

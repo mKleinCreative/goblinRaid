@@ -635,8 +635,17 @@ protected:
 	 * Damage cost per volume is one overlap query every 0.5 s, so this is cheap; the real cost is
 	 * 10 Niagara components + 10 unshadowed point lights. Drop it back if profiling complains.
 	 */
+	// Raised from 10 to 16 (its own ClampMax ceiling) on 2026-08-30 alongside the pooled-volume
+	// scale-to-overlap fix in AGSFireVolume::ConfigurePooled - Michael, watching a live burn: "still
+	// looks like separate patches." The scale fix alone made each existing flame bigger, but with a
+	// burning band that can be several cells deep across an 8-column field, 10 volumes were still
+	// covering only a fraction of the simultaneously-burning ground - most of the visibly-burning
+	// area had NO flame on it at all, which no amount of per-flame scaling fixes. This and the scale
+	// change are meant to land together; raise the ClampMax above if 16 still leaves visible gaps on
+	// a wide field, but check actual coverage first (log/screenshot) before assuming more volume is
+	// the fix rather than the scale.
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Damage", meta = (ClampMin = "1", ClampMax = "16"))
-	int32 MaxFireVolumes = 10;
+	int32 MaxFireVolumes = 16;
 
 	/**
 	 * How many of those volumes get a POINT LIGHT (2026-07-31, Q-33). The rest run flames, embers

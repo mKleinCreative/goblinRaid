@@ -9,6 +9,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
 #include "Alarm/GSAlarmTypes.h"
+// Needed as a full include rather than a forward declare: UGSEffectsDispatcherComponent below
+// derives from it, and a subclass needs the complete type.
+#include "ACMEffectsDispatcherComponent.h"
 #include "GSGameState.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnAlarmChanged, float, Alarm01);
@@ -16,6 +19,28 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnHordeWaveTriggered, EGSReinforc
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnDistrictRazedChanged, bool, bRazed);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnAlarmPhaseChanged, EGSAlarmPhase, NewPhase, EGSAlarmPhase, OldPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnRaidClockPhaseChanged, EGSRaidClockPhase, NewPhase);
+
+/**
+ * ACF's effects dispatcher, with our FX table baked in (#351).
+ *
+ * WHY A SUBCLASS AND NOT JUST THE ACF COMPONENT. `UACMEffectsDispatcherComponent::ImpactFXs` is
+ * `EditDefaultsOnly` and **protected**, with no setter - so the owning GameState cannot assign it
+ * from outside, and there is no GameState Blueprint in this project to author it as data. A
+ * subclass can touch a protected member, which makes this three lines of ordinary C++ instead of a
+ * reflection lookup by property name that would break silently the day ACF renames the field.
+ *
+ * ACF finds the dispatcher with `FindComponentByClass<UACMEffectsDispatcherComponent>()`
+ * (`ACMCollisionsFunctionLibrary.cpp:20`), and that matches a subclass, so nothing on ACF's side
+ * needs to know this exists.
+ */
+UCLASS()
+class GOBLINSIEGE_API UGSEffectsDispatcherComponent : public UACMEffectsDispatcherComponent
+{
+	GENERATED_BODY()
+
+public:
+	UGSEffectsDispatcherComponent();
+};
 
 UCLASS()
 class GOBLINSIEGE_API AGSGameState : public AGameStateBase
@@ -36,6 +61,19 @@ protected:
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|ACF")
 	TObjectPtr<class UACFTeamManagerComponent> TeamManagerComponent;
+
+	/**
+	 * ACF's impact-FX dispatcher (#351). Same reasoning as the team manager above: ACF finds it with
+	 * `GameState->FindComponentByClass<UACMEffectsDispatcherComponent>()`
+	 * (`ACMCollisionsFunctionLibrary.cpp:20`), so it does not care what this class derives from.
+	 *
+	 * Without it, `UACMCollisionsFunctionLibrary::PlayImpactEffect` logs
+	 * *"Missing Effects Dispatcher Component in GAME STATE!"* and returns - which is exactly what
+	 * #349 hit: melee had just gained a real contact point, normal, bone and physical material, and
+	 * every impact call still played nothing at all. The data was right and there was no consumer.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GoblinSiege|ACF")
+	TObjectPtr<class UACMEffectsDispatcherComponent> EffectsDispatcherComponent;
 
 public:
 	AGSGameState();

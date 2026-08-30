@@ -290,6 +290,11 @@ void AGSPlayerCharacter::BeginPlay()
 		{
 			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(GrappleThrowAbilityClass, 1, INDEX_NONE, this));
 		}
+
+		// The heavy hand-off (#345). Bound once here rather than polled: the only moment a queued
+		// heavy may be released is the frame the light chain actually ends, and OnAbilityEnded is
+		// the one event that knows it. See HandleAbilityEnded for why the heavy waits at all.
+		AbilitySystemComponent->OnAbilityEnded.AddUObject(this, &AGSPlayerCharacter::HandleAbilityEnded);
 	}
 }
 
@@ -831,17 +836,9 @@ void AGSPlayerCharacter::Input_Attack(const FInputActionValue& Value)
 	}
 
 	// Already swinging: hand the press to the running instance as a buffered follow-up.
-	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities())
+	if (UGSGA_SwordLight* Swing = FindActiveSwing())
 	{
-		if (!Spec.IsActive() || !Spec.Ability || !Spec.Ability->IsA(SwordLightAbilityClass))
-		{
-			continue;
-		}
-		if (UGSGA_SwordLight* Swing = Cast<UGSGA_SwordLight>(Spec.GetPrimaryInstance()))
-		{
-			Swing->BufferComboInput();
-			return;
-		}
+		Swing->BufferComboInput();
 	}
 }
 
@@ -999,11 +996,25 @@ void AGSPlayerCharacter::Input_AttackPressed(const FInputActionValue& Value)
 
 	bAttackHeld = true;
 	bHeavyFiredThisHold = false;
+	bHeavyQueuedThisHold = false;
 	AttackPressedTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
 
+	// ---- THE SWING GOES OUT NOW (#345) ---------------------------------------------------------
+	//
+	// This is the whole fix for "mushy timing". The light used to be issued from
+	// Input_AttackReleased, so press-to-contact was the player's own hold duration plus
+	// FGSSwingStage::WindupSeconds - a lag the player varied themselves and could never learn.
+	// Firing here makes the swing start on the mouse-down, which is the only moment the player
+	// actually associates with the input.
+	//
+	// A second press while this one is running is NOT a second swing: Input_Attack hands it to the
+	// running instance as a buffered combo input. So tap-tap-tap is the chain, exactly as before.
+	Input_Attack(Value);
+
 	// The heavy fires ON the threshold while the button is still down, rather than waiting for
-	// release. Holding past 1.5s and then having to let go before anything happens feels like the
-	// input was dropped; firing at the moment the charge completes is what makes the hold legible.
+	// release. Holding past the threshold and then having to let go before anything happens feels
+	// like the input was dropped; firing at the moment the charge completes is what makes the hold
+	// legible.
 	GetWorldTimerManager().SetTimer(HeavyChargeTimer, this,
 		&AGSPlayerCharacter::TriggerHeavyAttack, HeavyHoldSeconds, false);
 }
@@ -1051,24 +1062,74 @@ void AGSPlayerCharacter::Input_AttackReleased(const FInputActionValue& Value)
 
 	GetWorldTimerManager().ClearTimer(HeavyChargeTimer);
 	bAttackHeld = false;
+	bHeavyFiredThisHold = false;
 	AttackPressedTime = -1.f;
 	OnHeavyChargeChanged.Broadcast(0.f);
 
-	// A release after the heavy already went off is just the end of that input, not a second
-	// attack. Without this guard every heavy would be chased by a light swing.
-	if (bHeavyFiredThisHold)
-	{
-		bHeavyFiredThisHold = false;
-		return;
-	}
+	// ---- RELEASE NO LONGER ATTACKS (#345) ------------------------------------------------------
+	//
+	// The light went out on the PRESS, so there is nothing left to resolve here - this handler now
+	// only stops the charge timer and clears the charge ring. It used to call Input_Attack, which
+	// is what made the swing wait for the button to come up.
+	//
+	// bHeavyQueuedThisHold is deliberately NOT cleared. Once the player has held past the
+	// threshold they have earned the heavy, and taking it away because they let go while the light
+	// was still recovering would read as the input being eaten. It is delivered by
+	// HandleAbilityEnded, or dropped by the next press.
+}
 
-	Input_Attack(Value);
+UGSGA_SwordLight* AGSPlayerCharacter::FindActiveSwing() const
+{
+	if (!AbilitySystemComponent || !SwordLightAbilityClass)
+	{
+		return nullptr;
+	}
+	for (const FGameplayAbilitySpec& Spec : AbilitySystemComponent->GetActivatableAbilities())
+	{
+		if (!Spec.IsActive() || !Spec.Ability || !Spec.Ability->IsA(SwordLightAbilityClass))
+		{
+			continue;
+		}
+		if (UGSGA_SwordLight* Swing = Cast<UGSGA_SwordLight>(Spec.GetPrimaryInstance()))
+		{
+			return Swing;
+		}
+	}
+	return nullptr;
 }
 
 void AGSPlayerCharacter::TriggerHeavyAttack()
 {
 	bHeavyFiredThisHold = true;
 	OnHeavyChargeChanged.Broadcast(1.f);
+
+	// The light fired on the press, so by the time this timer matures a swing is almost always
+	// still in flight. Activating the heavy here would NOT be refused - it is a different ability
+	// class from the light - and the player would get two overlapping damage windows from one
+	// button. Queue it instead and let HandleAbilityEnded deliver it the moment the light is done.
+	if (FindActiveSwing())
+	{
+		bHeavyQueuedThisHold = true;
+		return;
+	}
+
+	Input_HeavyAttack(FInputActionValue());
+}
+
+void AGSPlayerCharacter::HandleAbilityEnded(const FAbilityEndedData& EndedData)
+{
+	if (!bHeavyQueuedThisHold || !SwordLightAbilityClass)
+	{
+		return;
+	}
+	// Only the light chain hands off to a heavy. Any other ability ending here is unrelated - a
+	// dodge, an interact, the horn - and must not consume the queued heavy.
+	if (!EndedData.AbilityThatEnded || !EndedData.AbilityThatEnded->IsA(SwordLightAbilityClass))
+	{
+		return;
+	}
+
+	bHeavyQueuedThisHold = false;
 	Input_HeavyAttack(FInputActionValue());
 }
 

@@ -48,6 +48,7 @@ cost no code change and took the design document out of a tool's private folder.
 | v1.1 | 2026-08-21 | #296 | **World corruption added** — the land visibly turns as you raid. One global monotonic 0..1 scalar drives sky, fog, sun, grade, world materials, VFX and ambience. Added to the §12.4 IN column; §1 pillar reworded; the wayfinding consequence amended, since corruption is now what "the environment does the leading" actually means. Rulings 40–45; ruling 62 (2026-08-24) adds that **civilian kills corrupt more than soldiers'**. Re-filed under #296 — #252 was abandoned without its edits being reverted. |
 | v1.2 | 2026-08-24 | #277 | **Finite arrows added** — the player carries a quiver that empties, refilled by walking over a bundle or a dead archer. Torches stay infinite and AI archers never run dry; weapons are not lootable. Added to the §12.4 IN column. Rulings 46-52. |
 | v1.3 | 2026-08-24 | #285 | **Sneaking cut from the demo.** The crouch-and-confirm stealth core, noise, takedowns, corpse-suspicion and the coin toss all leave the slice; the demo is a straight raid. **Removes the stealth core from the §12.4 "Never cut" line** - the only entry ever taken off it - and notes why in place. The bucket brigade stays deferred. Rulings 56-58. |
+| v1.4 | 2026-08-27 | #335 | **The game gets a front end** — title screen, pause menu, settings (Video · Audio · Gameplay/Accessibility · Controls) and credits, on a dedicated menu level, built on **ACF's UI stack** (`AscentUITools` + `AscentUINavigationSystem` on CommonUI) rather than hand-rolled UMG. Added to the §12.4 IN column. Also settles that **there is no save game** — a raid is atomic, you extract or you earn nothing — which puts mid-raid saving in the CUT column. Rulings 70–72. |
 | — | 2026-08-14 | #158 | Re-exported 168 → 272 lines; four-rung grading replaced "Scaffolded"; control map corrected; five live defects recorded |
 | — | 2026-08-04 | — | First export, describing what was *designed* rather than what was built |
 
@@ -493,10 +494,11 @@ used to describe all of them as though they were built.*
 | Noise + world SFX (9, 10) | Bark VO — text and subtitles only (10) | Vault and mantle |
 | The Warren, on `N_ChaosRune2` (18) | Per-raid map generation | Breach set · wood economy (tier-2) |
 | The finite 15-defender pool + Highpurse Keep (19) | Livestock beyond one species | The Brute and both Shamans |
-| The grapple as a core verb (12) | | |
+| The grapple as a core verb (12) | Saving a raid in progress — extract, or earn nothing (72) | |
 | World corruption — the land turns as you raid (40) | | |
 | Windmill Stage 1 Ablaze (7) | | |
 | Finite arrows — a player-only quiver (46) | | |
+| The front end — menu, pause, settings, credits, on ACF's UI stack (70, 71) | | |
 
 **Two consequences that follow from the deferrals rather than being chosen.** Deferring the
 watchtower, bell and well **removes three scoring lines** from §10 and the bucket-brigade counterplay

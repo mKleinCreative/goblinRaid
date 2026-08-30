@@ -83,13 +83,20 @@ _MixamoStaging/
 # Fab plugin copied into the project - reinstallable from Fab
 Plugins/Marketplace/
 
-# 2026-08-13 (#150): ACF's 40 author-written Claude skill packs, copied out of the
-# plugin into .claude/skills by Tools/Register-ACFSkills.ps1 so sessions can see them.
-# Same reasoning as Plugins/Marketplace above - it is marketplace content, and it is
-# regenerable. The GENERATOR is versioned; its output is not. Re-run the script after
-# an ACF update. Hand-written project skills, if any are ever added, would need a
-# negation here.
-.claude/skills/
+# 2026-08-13 (#150): ACF's 40 author-written Claude skill packs are copied out of the
+# plugin into .claude/skills by Tools/Register-ACFSkills.ps1. That directory USED to be
+# ignored here as regenerable marketplace content.
+#
+# UN-IGNORED 2026-08-28 (#340/#341, Michael's call). It is no longer only marketplace
+# content. The #340 workflow wrote 9 project-specific `gs-*` packs that nothing can
+# regenerate, and project findings have since been written INTO the ACF-derived packs -
+# e.g. the every-other-waypoint claim in gs-ai-patrol-advancers and ai-framework was
+# refuted in PIE and corrected by hand. Ignoring the directory meant hours of mining and
+# hard-won corrections sat one Register-ACFSkills.ps1 run from deletion, unversioned.
+#
+# CONSEQUENCE: re-running Register-ACFSkills.ps1 after an ACF update will overwrite the
+# ACF-derived packs and clobber any hand corrections in them. That now shows up as a git
+# diff instead of vanishing silently - read the diff before committing it.
 
 # Local secrets - never commit (Anthropic API key for the content pipeline)
 .env

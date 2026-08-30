@@ -17,10 +17,12 @@ UGSBurnFXComponent::UGSBurnFXComponent()
 	// are indistinguishable from per-frame ones and cost nothing on a village full of props.
 	PrimaryComponentTick.bCanEverTick = false;
 
-	// Soft path, deliberately: NS_GS_Smolder does not exist yet. This has to run correctly today
-	// on every burnable in the hamlet and simply not draw smoke - see AGSFireVolume::FireSystem.
-	SmolderSystem = TSoftObjectPtr<UNiagaraSystem>(
-		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_Smolder.NS_GS_Smolder")));
+	// Soft path, same degrade-not-crash rule as every other FX reference in this project - see
+	// AGSFireVolume::FireSystem. P_SmolderSmoke_Converted (2026-08-29) - Michael's own Niagara
+	// conversion (Cascade To Niagara Converter plugin) of DreamscapeFarmlands' P_SmolderSmoke, so
+	// the look stays purpose-built for smouldering debris while keeping this project Niagara-only.
+	SmolderSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
+		TEXT("/Game/DreamscapeSeries/DreamscapeFarmlands/Particles/P_SmolderSmoke_Converted.P_SmolderSmoke_Converted")));
 }
 
 void UGSBurnFXComponent::BeginPlay()
@@ -66,8 +68,11 @@ void UGSBurnFXComponent::BeginPlay()
 
 void UGSBurnFXComponent::CacheMaterialInstances()
 {
-	AActor* Owner = GetOwner();
-	if (!Owner)
+	// CharTargetActor, when set, redirects char to a different actor's meshes entirely - see
+	// SetCharTargetActor. Falls back to the owner, which is every user of this component except
+	// the mill.
+	AActor* Target = CharTargetActor.IsValid() ? CharTargetActor.Get() : GetOwner();
+	if (!Target)
 	{
 		return;
 	}
@@ -75,7 +80,7 @@ void UGSBurnFXComponent::CacheMaterialInstances()
 	// UMeshComponent is the common base of StaticMesh, SkeletalMesh AND InstancedStaticMesh, so one
 	// pass covers hand-placed props, characters and the generator's instanced scatter alike.
 	TArray<UMeshComponent*> MeshComps;
-	Owner->GetComponents<UMeshComponent>(MeshComps);
+	Target->GetComponents<UMeshComponent>(MeshComps);
 
 	BurnMIDs.Reset();
 
@@ -119,6 +124,12 @@ void UGSBurnFXComponent::HandleIgnited()
 
 	World->GetTimerManager().SetTimer(BurnFXTimerHandle, this,
 		&UGSBurnFXComponent::BurnFXTick, FXTickInterval, true);
+
+	// Smoke starts the moment this catches, not only once it has fully burned down - a building
+	// that is actively on fire needs to read as on fire from outside, same reasoning as the
+	// position fix in SpawnSmolder(). SpawnSmolder() is itself idempotent (early-outs if SmolderFX
+	// already exists), so this and the burn-down call in HandleBurnedDown() cannot double-spawn.
+	SpawnSmolder();
 
 	// Push once immediately so a re-ignited half-burned prop doesn't visibly pop on the first tick.
 	BurnFXTick();
@@ -245,6 +256,17 @@ void UGSBurnFXComponent::SetBurnAmount(float NewValue01)
 	ApplyToMaterials(CurrentBurnAmount);
 }
 
+void UGSBurnFXComponent::SetCharTargetActor(AActor* NewTarget)
+{
+	CharTargetActor = NewTarget;
+
+	// Re-cache against the new target immediately, then re-push whatever char level this component
+	// already reached - a caller that resolves its geometry mid-fuse (the mill can't know it at
+	// construction) should not have to wait for the next BurnFXTick to see the redirect take effect.
+	CacheMaterialInstances();
+	ApplyToMaterials(CurrentBurnAmount);
+}
+
 void UGSBurnFXComponent::SpawnSmolder()
 {
 	AActor* Owner = GetOwner();
@@ -262,21 +284,31 @@ void UGSBurnFXComponent::SpawnSmolder()
 	UNiagaraSystem* System = SmolderSystem.LoadSynchronous();
 	if (!System)
 	{
-		// Degrade to "burnt but no smoke" - the char alone still reads. Warning only, never fatal:
-		// NS_GS_Smolder is not authored yet and the raid has to be playable today.
+		// Degrade to "burnt but no smoke" - the char alone still reads. Warning only, never fatal.
 		UE_LOG(LogTemp, Warning,
 			TEXT("[GoblinSiege] %s burned down but has no smolder Niagara system (%s) - no lingering smoke."),
 			*Owner->GetName(), *SmolderSystem.ToString());
 		return;
 	}
 
-	SmolderFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+	// Spawned at the CENTRE of the actor's bounds, in WORLD space - not at the root component's own
+	// origin (a house's pivot sits at ground level, or wherever the kit piece was authored, which
+	// reads as "no smoke visible from outside" the same way a top-only spawn once did) and not at
+	// the top either. Michael, 2026-08-29, watching the plume once it was actually visible: it is
+	// large enough on its own to billow up past the roofline from a source INSIDE the structure -
+	// sourcing it from the top instead made a big cloud look like it was floating above the house
+	// rather than pouring out of it. GetActorBounds' Origin is already the bounding box's centre.
+	FVector Origin = FVector::ZeroVector;
+	FVector BoxExtent = FVector::ZeroVector;
+	Owner->GetActorBounds(/*bOnlyCollidingComponents=*/ false, Origin, BoxExtent);
+	const FVector SpawnLocation = Origin;
+
+	SmolderFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		Owner->GetWorld(),
 		System,
-		AttachRoot,
-		NAME_None,
-		FVector::ZeroVector,
+		SpawnLocation,
 		FRotator::ZeroRotator,
-		EAttachLocation::KeepRelativeOffset,
+		FVector(1.0),
 		/*bAutoDestroy=*/ false,
 		/*bAutoActivate=*/ true);
 
@@ -285,16 +317,17 @@ void UGSBurnFXComponent::SpawnSmolder()
 		return;
 	}
 
+	// Attach AFTER spawn so it still tracks the actor (a pooled/repositioned owner, or rubble that
+	// settles after crumbling) without inheriting the root's rotation - smoke should rise straight
+	// up regardless of which way a collapsed house happens to be lying.
+	SmolderFX->AttachToComponent(AttachRoot, FAttachmentTransformRules::KeepWorldTransform);
+
 	// A haycart and a windmill both wear this component, so the plume has to be proportionate or
 	// one of them gets a bonfire's worth of smoke. Same correction as
 	// AGSFireVolume::FireSystemAuthoredRadius: measured footprint over the authored footprint.
 	float FinalScale = SmolderScale;
 	if (SmolderAuthoredRadius > 0.f)
 	{
-		FVector Origin = FVector::ZeroVector;
-		FVector BoxExtent = FVector::ZeroVector;
-		Owner->GetActorBounds(/*bOnlyCollidingComponents=*/ false, Origin, BoxExtent);
-
 		// static_cast because FVector is double-precision under LWC, so FMath::Max returns a
 		// double here and initialising a float from it is a narrowing conversion warning.
 		const float FootprintRadius = static_cast<float>(FMath::Max(BoxExtent.X, BoxExtent.Y));
@@ -304,7 +337,7 @@ void UGSBurnFXComponent::SpawnSmolder()
 		}
 	}
 
-	SmolderFX->SetRelativeScale3D(FVector(FinalScale));
+	SmolderFX->SetWorldScale3D(FVector(FinalScale));
 
 	// Forever by default: a razed place must still read as razed at raid end, not quietly tidy
 	// itself up while the player is off burning the next field.

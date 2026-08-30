@@ -171,6 +171,16 @@ void AGSTorchProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 
 	bStuck = true;
 
+	// DIAGNOSTIC (#366, temporary): what did the torch actually hit? Added because a mill-exterior
+	// throw was reported hard to land, with a live theory that the torch is colliding with
+	// something OTHER than the mill's own geometry before ever reaching it. This prints on every
+	// single throw, so grep the log for "TORCH HIT" after a test pass rather than guessing blind.
+	UE_LOG(LogTemp, Warning,
+		TEXT("[GoblinSiege] TORCH HIT: actor='%s' component='%s' impact=(%.0f, %.0f, %.0f)"),
+		OtherActor ? *OtherActor->GetName() : TEXT("<none>"),
+		OtherComp ? *OtherComp->GetName() : TEXT("<none>"),
+		Hit.ImpactPoint.X, Hit.ImpactPoint.Y, Hit.ImpactPoint.Z);
+
 	// "Sticks on impact" - freeze in place and ride along with whatever we hit.
 	ProjectileMovement->StopMovementImmediately();
 	ProjectileMovement->ProjectileGravityScale = 0.f;
@@ -194,12 +204,23 @@ void AGSTorchProjectile::OnProjectileHit(UPrimitiveComponent* HitComp, AActor* O
 		// LANDSCAPE, and the field objective's cells are data with no collision of their own. So
 		// ask the objectives whether any of them owns this impact point.
 		//
-		// The mill answers false by design and is unreachable this way - it wants a torch through
-		// a window, which its own overlap volumes handle.
+		// The mill used to answer false unconditionally here (window-only) - retired 2026-08-30,
+		// #361/#362. It now accepts a torch anywhere on its own resolved geometry; see
+		// AGSMillObjective::ContainsWorldLocation. What actually gates whether IgniteAtLocation is
+		// reached for ANY objective is ContainsWorldLocation, not that function's own body - see
+		// AGSBurnObjectiveBase's header comment on both, which #362 exists to explain in full.
 		if (AGSBurnObjectiveBase* Objective =
 			AGSBurnObjectiveBase::FindObjectiveAtLocation(this, Hit.ImpactPoint))
 		{
+			// DIAGNOSTIC (#366, temporary).
+			UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] TORCH HIT: objective found at impact point: '%s'"),
+				*Objective->GetName());
 			Objective->IgniteAtLocation(Hit.ImpactPoint);
+		}
+		else
+		{
+			// DIAGNOSTIC (#366, temporary).
+			UE_LOG(LogTemp, Warning, TEXT("[GoblinSiege] TORCH HIT: no burn objective claims this impact point."));
 		}
 
 		// ---------------------------------------------------------------- buildings (2026-08-05)

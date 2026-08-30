@@ -23,8 +23,15 @@ class GOBLINSIEGE_API UGSFlammableComponent : public UActorComponent
 public:
 	UGSFlammableComponent();
 
+	/**
+	 * InSpreadGeneration is how many chain-spread hops removed this ignition is from an original,
+	 * player/objective-caused fire (0). Every caller outside this component's own TrySpread() wants
+	 * the default - a torch, a mill detonation, a debug command are all "the origin," not a hop -
+	 * so existing zero-arg call sites are unaffected. Only TrySpread() ever passes non-zero, and
+	 * only on the actor IT is igniting. See SpreadChanceDecayPerHop/MaxSpreadGenerations.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Fire")
-	void Ignite();
+	void Ignite(int32 InSpreadGeneration = 0);
 
 	/** Firefighting defenders (BTTask_Firefight) and rain-of-the-future call this. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Fire")
@@ -135,9 +142,36 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Fire|Spread")
 	float SpreadAttemptInterval = 1.5f;
 
-	/** Per-attempt chance so spread reads as organic rather than a uniform expanding disc. */
+	/** Per-attempt chance so spread reads as organic rather than a uniform expanding disc. This is
+	 *  the GENERATION-0 (origin) chance; each successive chain hop is multiplied by
+	 *  SpreadChanceDecayPerHop, see below. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Fire|Spread", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float SpreadChance = 0.5f;
+
+	/**
+	 * Diminishing returns per chain-spread hop (Michael's own proposal, 2026-08-29 - "a diminishing
+	 * returns chance to have fire jump from object to object"), added 2026-08-30 after unbounded
+	 * spread walked a wheat-field fire across open grass toward the village.
+	 *
+	 * Without this, SpreadChance=0.5 retried every SpreadAttemptInterval for the whole
+	 * BurnDurationSeconds gives ~8 attempts per burning object - a neighbour within SpreadRadius
+	 * has (1 - (1-0.5)^8) ≈ 99.6% odds of catching regardless of how far that neighbour already is
+	 * from the original ignition. Effective chance at generation N is
+	 * SpreadChance * SpreadChanceDecayPerHop^N, so a fire's reach past its own origin tapers off
+	 * instead of marching indefinitely through anything flammable spaced under SpreadRadius apart.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Fire|Spread", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SpreadChanceDecayPerHop = 0.55f;
+
+	/**
+	 * Hard stop, independent of chance. A component at or past this many hops from the original
+	 * ignition never attempts to spread further, however lucky the rolls - decay alone asymptotes
+	 * toward zero chance but never actually reaches it, and repeated attempts over a long enough
+	 * burn (or a long enough chain of short-lived tinder) could still crawl arbitrarily far without
+	 * a floor. This is that floor.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Fire|Spread", meta = (ClampMin = "0"))
+	int32 MaxSpreadGenerations = 4;
 
 	/** Neighbours at or above this resistance never catch from spread, regardless of roll. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Fire|Spread", meta = (ClampMin = "0.0", ClampMax = "1.0"))
@@ -178,4 +212,9 @@ protected:
 
 	float SecondsSinceSpreadAttempt = 0.f;
 	FTimerHandle BurnTimerHandle;
+
+	/** How many chain-spread hops this ignition is from an origin fire. Set once, in Ignite(), from
+	 *  whatever generation the caller passes (0 for every caller except TrySpread() itself). Not
+	 *  replicated - purely a server-side spread-pass concern, like SecondsSinceSpreadAttempt. */
+	int32 SpreadGeneration = 0;
 };

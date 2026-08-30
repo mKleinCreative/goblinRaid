@@ -75,6 +75,124 @@ thing that unblocks stage 1.**
 
 ---
 
+## World corruption - stages 5 and 6 (iceboxed 2026-08-27)
+
+Michael's call: park it. **Stages 0-4 are BUILT, watched, and closed** - this is not the #252 icebox
+warmed over, it is a working feature stopped four-sixths of the way through. Read the BUILT entry at
+the top of `AGENT_STATE.md` before assuming anything here is unfinished.
+
+**AGENT_STATE.md is the durable record**, by ruling. The 504-line design plan still exists at
+`C:/Users/Michael/.claude/plans/i-want-you-to-abstract-newell.md` - machine-local, outside git, and
+deliberately left there. Two passages in it are STALE and AGENT_STATE has the corrections: stage 6's
+audio (it predates #249's mixer spine and describes a bare `UAudioComponent`), and stage 4 (which
+split into "class shipped" and "asset not yet authored").
+
+**Nothing was reverted and nothing is unbuilt.** Every corruption ticket closed properly; the code
+compiled in the 18:15 build on 2026-08-27 and ran. The board is clear of corruption tickets, so it is
+not holding the build gate.
+
+### What actually remains
+
+**Stage 4 is 90% done and the last 10% needs an editor, not a programmer.**
+`UGSCorruptionDataAsset` exists and loads. `DA_Corruption_Default` does **not** exist yet, so every
+run logs `No corruption tuning asset at '/Game/Data/World/DA_Corruption_Default...'` and falls back
+to C++ defaults - **that warning is the designed behaviour, not a fault.** Creating the asset is a
+content task. Two numbers in it are knowingly unfounded and want a watched raid, not a fresh guess:
+- `KillSoftKnee` = 12, sized against ruling 19's 15-defender pool BEFORE the 2026-08-23 roster ruling
+  made castle guards Militia with *"a decent amount of them"*.
+- `CivilianKillWeight` = 2.5. Ruling 62 fixed the DIRECTION (civilians corrupt more) and deliberately
+  not the magnitude.
+
+The four `UCurveFloat` response slots on the asset are **declared and unconsumed** - the director
+does not evaluate them yet. Shipping the slots without the wiring was deliberate and is recorded.
+
+**Stage 5 - `MPC_GSCorruption` and the ground.** Untouched. The plan's write-up is still accurate.
+The one piece that must be hand-authored is the `CollectionParameter` node into `M_GS_Crop_Master` -
+assume Python cannot be trusted with a material graph, same risk class as the 2D blendspace. Do not
+edit the Dreamscape landscape masters: marketplace content, shared across three maps, and ground char
+already routes through `GS_BurnMask`.
+
+**Stage 6 - ash, embers, ambience.** Untouched. `NS_AtmosphereAsh` / `NS_AtmosphereEmbers` in
+`Content/VolcanoEnvironmentVFX/` - **their user-parameter names are unknown until someone opens
+them.** Ambience routes through #249's spine (`Content/Audio/Mix/`), NOT the bare `UAudioComponent`
+the plan describes. The GDD 12.1 row and the `features.json` entry must ship TOGETHER: `check_gdd.py`
+pins ids to 1-20 + 5b and fails on both `missing` and `extra`.
+
+### Unproven, and it owes a line
+
+**#338 closed UNOBSERVED.** `GS.Corruption.Debug 0|1` registers its ticker and logs `live overlay
+ON`, but the bar draws through on-screen debug messages that no log can confirm. **Nobody has looked
+at the screen with it enabled.** If it turns out to draw nothing, the likely cause is the line filter
+- it string-matches `DescribeState()`'s wording, so a reword silently empties the overlay.
+
+### Debts carried, none blocking
+
+- The kill log line is `Verbose`, so a real kill leaves no trace in the file. On 2026-08-27 that cost
+  a round trip: a working hook could not be told from a dead one.
+- A failed `Cast<AGSEnemyCharacter>` is silent - any human that is not one counts as a soldier.
+- `ObjectiveRecomputeIntervalSeconds` and `CorruptionDataPath` are not in `DefaultGame.ini` (C++
+  defaults apply; `#335` held that file at the time).
+- Corruption hooks the three callers UPSTREAM of `UGSCrumbleComponent` rather than its `OnCrumbled`.
+  #317 made Crumble the unified destroyed state; `GSBuildingObjective.cpp:684` crumbles directly and
+  is not counted. Not broken - buildings feed the objectives term - but the wrong shape.
+
+### The open design question
+
+With per-TYPE weighting, burning one house of 67 moves the objectives term by almost nothing. Should
+razing an entire street feel like an achievement? Today it reads mainly through the structures term,
+which has its own knee. Nobody has decided this.
+
+## #356 - Horn blast raise: slerp arm ramp into confirmed frame-29 hold pose (iceboxed 2026-08-29)
+
+**Agent:** claude-anim. **Parked at:** `blocked`, ~2.9h open.
+**Where the work is: UNCOMMITTED.** Unlike every other entry in this file, this one is NOT in
+`main` - `git status` shows both files still modified in the working tree. Read this file for
+context, but do not assume the described state is on disk in `main`; verify against the actual
+asset before resuming.
+**Files:** `Content/Characters/ScoutV2/Anims_LocoSet/A_GS_HornBlow_Gob.uasset`,
+`Content/Characters/ScoutV2/Montages/AM_GS_HornBlast_Intro.uasset`.
+**Ticket:** `AgentQueue/tickets/356-*.md` - its body is the authoritative blow-by-blow (three
+separate rounds of fixes, each one caught wrong by Michael watching live).
+
+**Done, in the working tree, not yet committed:**
+
+1. Left-arm raise (8 bones: `l_clavicle`, `l_upperarm`, `l_upperarmtwist01/02`, `l_forearm`,
+   `l_forearmtwist01/02`, `l_hand`) re-keyed as a quaternion slerp instead of the leftover
+   `A_MX_Taunt_Battlecry_Gob` flourish motion the source clip carried.
+2. `AM_GS_HornBlast_Intro`'s `blend_out_time` shrunk 0.25s -> 0.05s, to stop an auto-blend-out-to-
+   idle dip between the Intro and Loop montages (confirmed real via `AnimMontageService`, not
+   guessed).
+3. Michael manually posed and keyed a corrected arm position directly in the editor ("Add Key",
+   which lays down an ADDITIVE track) - this pose is the real ground truth for the eventual fix,
+   and per-frame-diff it lands the hand ~43 units from `socket_mouth` (down from ~150-164 units
+   before), the closest approach at **frame 50**.
+
+**What is left, and why it stalled:**
+
+1. **"Flatten the loop at frame 50" did not work.** Three different technical approaches
+   (`apply_bone_rotation` per-frame loop, the same API's native frame-RANGE mode, and an isolated
+   single-bone/single-script test) all reported `success: true` but produced smooth interpolation
+   on read-back instead of a flat plateau. Root cause unconfirmed - working theory is the asset's
+   `ACLAnimBoneCompressionSettings` compression (13:1 ratio, error thresholds at 0.0) is
+   reprocessing repeated `apply_bone_rotation` calls rather than landing them as independent keys,
+   but this was never verified. **Do not assume the Python tooling can pin a flat hold on this
+   asset without checking that theory first.**
+2. **"The beginning is snapping" (Michael's second report) is unresolved** and was never
+   root-caused past a hypothesis (Intro's raise not arriving at the same value Loop holds at,
+   post-additive-key). The one clean fix that DID work earlier in the ticket (re-ramping the raise
+   to arrive exactly at the hold value by frame 24) has not been redone against the NEW frame-50
+   target.
+3. `socket_mouth` (the real ground-truth mouth position, added by Michael on `GOB_Scout_v2_Skeleton`
+   after his own placed marker + this position disagreed) is the correct reference for any future
+   attempt - use it directly rather than re-deriving an estimate.
+4. Likely resume path Michael suggested but never executed: flatten frames 24-48 by hand in the
+   editor (he now knows where "Add Key" lives), since the Python-side flatten is the piece that's
+   actually broken.
+
+**Never observed working end-to-end.** Every round of this ticket was watched live by Michael and
+found wrong in a NEW way each time (neck clipping, double-start, still-snapping) - there is no
+point at which the raise-to-hold-to-lower sequence has read as correct.
+
 ## #269 - closed UNOBSERVED (not iceboxed, recorded here because it owes a line)
 
 ACF Phase 3 scoping - why the project carried an unused `UACFEquipmentComponent` since Phase 2a

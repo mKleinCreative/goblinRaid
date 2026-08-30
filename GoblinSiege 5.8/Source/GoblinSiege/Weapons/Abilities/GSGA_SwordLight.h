@@ -41,8 +41,47 @@ struct FGSSwingStage
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> Montage = nullptr;
 
+	/**
+	 * Alternative animations for this same swing, picked at random alongside Montage.
+	 *
+	 * THIS IS VARIETY, NOT A COMBO. A combo is a chain of DIFFERENT stages with different damage and
+	 * different timing, advanced by input; this is one attack that does not look identical every
+	 * time. Michael asked for exactly that distinction - "I don't want the full combo, I want this
+	 * attack" and then "varying it up to use this attack sometimes".
+	 *
+	 * Variants may be different lengths. The stage's own timings stay authoritative and the play
+	 * rate is derived per swing so whichever animation is chosen finishes exactly as the stage does
+	 * - see RunStage. That means a longer variant plays slightly faster rather than being cut off,
+	 * which is the failure this whole pass was fixing.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TArray<TObjectPtr<UAnimMontage>> MontageVariants;
+
+	/**
+	 * Play rate for Montage, used only when bFitMontageToStage is false.
+	 *
+	 * When fitting is on this is ignored: the rate is computed from the chosen animation's length so
+	 * it lands on the stage's own duration.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (ClampMin = "0.1"))
 	float MontagePlayRate = 1.5f;
+
+	/**
+	 * Scale the chosen animation so it fills exactly windup + damage window + recovery.
+	 *
+	 * OFF by default, and that default is deliberate. Fitting is REQUIRED wherever MontageVariants
+	 * are used - A1 is 1.32s and C1 is 1.50s, so no single fixed rate can fit both and one of them
+	 * would always be wrong - but turning it on globally silently retimes every other attack in the
+	 * project against stage numbers that were tuned for a different montage entirely.
+	 *
+	 * That is not hypothetical: with this defaulted ON, the Knight was measured playing
+	 * AM_KN_Atk_Stab (1.50s) at rate 1.67 to squeeze into its untouched 0.90s stage - a swing sped
+	 * up by two thirds. The player's axe chain would have been retimed the same way, and Michael had
+	 * just said the player's attack was fine. An opt-in flag changes only the abilities that ask for
+	 * it; an opt-out flag changes everything and waits to be noticed.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	bool bFitMontageToStage = false;
 
 	/** Press-to-contact. Set it so the damage window straddles the montage's swing apex - the
 	 *  apex can be measured rather than guessed by sampling the sword arm's angular speed. */
@@ -133,6 +172,38 @@ struct FGSSwingStage
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat",
 		meta = (ClampMin = "1.0", EditCondition = "bBreaksGuard"))
 	float GuardBreakDamageScale = 1.f;
+
+	// ---- Hitstop (#353) ----------------------------------------------------------------------
+	// Both parties freeze for a few frames on contact. Per-stage so a light, a heavy and a
+	// guard-break each land with their own weight; 0 disables it for the stage.
+
+	/** Wall-clock seconds both attacker and victim are held on contact. 0.06 is a light tap; a
+	 *  heavy wants roughly double. Above ~0.15 it starts to read as lag rather than impact. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hitstop", meta = (ClampMin = "0.0", ClampMax = "0.5"))
+	float HitstopSeconds = 0.06f;
+
+	/** Time dilation during the hold. 0 is a dead freeze; 0.05 keeps a whisper of motion so the
+	 *  pose does not read as a dropped frame. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hitstop", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float HitstopScale = 0.05f;
+
+	/** Multiplier on HitstopSeconds when this hit actually broke a guard. A kick that rips a shield
+	 *  open should land harder than the same kick into empty air. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hitstop", meta = (ClampMin = "1.0", EditCondition = "bBreaksGuard"))
+	float GuardBreakHitstopScale = 2.f;
+
+	// ---- Camera shake (#355) -------------------------------------------------------------------
+	// The PLAYER's camera only - a shake on an AI's camera is a shake on nothing. Which class plays
+	// is chosen by weight: bHeavyShake picks the larger, longer, rolling shake.
+
+	/** Play a camera shake on the attacker's own camera when this stage connects. Off for stages
+	 *  that should feel like a tap rather than a blow. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hitstop")
+	bool bCameraShakeOnHit = true;
+
+	/** Use the heavy shake class instead of the light one. Set on heavy and guard-break stages. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hitstop", meta = (EditCondition = "bCameraShakeOnHit"))
+	bool bHeavyShake = false;
 };
 
 UCLASS()
@@ -191,6 +262,60 @@ private:
 	 *  for the stagger window. Returns true only if there was actually a guard to break, which is
 	 *  what lets the caller decide whether the damage scale applies. */
 	bool BreakGuard(AActor* Target, UAbilitySystemComponent* TargetASC, const FGSSwingStage& S);
+
+	/**
+	 * Recovers a REAL impact for a target the overlap already accepted: contact point, surface
+	 * normal, the bone that was struck and the physical material.
+	 *
+	 * WHY THIS EXISTS (#349). The damage window is an OverlapMultiByObjectType, and an overlap
+	 * carries none of that - no impact point, no normal, no bone, no material. Until now the code
+	 * fabricated a hit from the target's actor location and said so in its own comment. Three
+	 * things were impossible as a direct result:
+	 *
+	 *   - impact FX could not be placed (they would spawn at the victim's feet, on no material);
+	 *   - nothing could tell a head from an arm, so no hit-location feedback and no dismemberment;
+	 *   - ACF's hit reactions and ragdoll impulse were fed a synthetic direction.
+	 *
+	 * The overlap stays as the CANDIDATE FINDER - it is cheap, and it already carries the arc, race,
+	 * dead and invulnerable gating that decides whether a hit counts at all. This only upgrades the
+	 * DATA for a target already accepted, so no hit can be lost by adding it.
+	 *
+	 * Returns false when the trace finds nothing - a capsule-only target, or a mesh the ray misses at
+	 * this angle. Callers MUST fall back to the synthesised hit rather than dropping the hit: a swing
+	 * that connected must never stop dealing damage because its cosmetic trace missed.
+	 */
+	bool ResolveImpact(AActor* Target, const FVector& SweepOrigin, FHitResult& OutHit) const;
+
+	/** Chooses this swing's animation from Montage plus MontageVariants, all equally likely. Null
+	 *  when the stage has no animation at all, which is a valid setup - the swing still hits. */
+	UAnimMontage* PickStageMontage(const FGSSwingStage& S) const;
+
+	/**
+	 * Stops root motion driving the character for this swing, and remembers to put it back.
+	 *
+	 * WHY (#350). The attack animations carry root motion - `A_GOB_DA_Combo_C1/C2/C3_RM` all have
+	 * `bEnableRootMotion` - and a root-motion montage makes the character root-motion-driven for its
+	 * whole duration. On the ground that is the authored lunge and it is wanted. **In the air it
+	 * overrides gravity, so the goblin stops falling and hangs there** - Michael: "when you jump, it
+	 * freezes you in mid air". That is the same failure #128 recorded and fixed by stripping root
+	 * motion; the CombatMasterBundle retargets reintroduced it.
+	 *
+	 * Suppressing it only WHILE FALLING keeps the grounded swing exactly as authored and turns the
+	 * air attack into a real verb rather than a freeze - which is the point: a goblin that can hit
+	 * you on the way past is the mobility the design keeps promising.
+	 */
+	void SuppressRootMotionIfAirborne();
+
+	/** Restores whatever root-motion mode SuppressRootMotionIfAirborne replaced. Safe to call twice
+	 *  and safe when suppression never ran, so every EndAbility path can call it unconditionally. */
+	void RestoreRootMotionMode();
+
+	/** Set only while this swing suppressed root motion, so a restore cannot clobber a mode the
+	 *  ability never touched. */
+	bool bRootMotionSuppressed = false;
+
+	/** What the anim instance was using before we changed it. */
+	TEnumAsByte<ERootMotionMode::Type> CachedRootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;
 
 	void CloseDamageWindow();
 	void FinishRecovery();

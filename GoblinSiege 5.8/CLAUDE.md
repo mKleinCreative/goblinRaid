@@ -426,6 +426,18 @@ builds that should take under a minute. Machine has 32 GB RAM; close browsers du
   0**. An instance with `DiffuseColorMap` correctly set and the weight unset renders as flat white and
   reads exactly like a missing texture. **Set the matching `*MapWeight` to 1.0.** (Cost most of #099;
   the texture, the UVs and the mesh were all fine the whole time.)
+- **If the editor was CLOSED when your session started, the `unreal` MCP never attaches** - and it does
+  not retry when you later launch the editor. `ToolSearch` keeps returning nothing and it reads as
+  "the MCP is broken". You do not need to restart your session: VibeUE serves plain HTTP MCP on
+  `127.0.0.1:8000` at the route **`/mcp`** (a bare `/` returns `route_handler_not_found`). POST
+  `initialize`, read the **`Mcp-Session-Id`** response header, and send it on every later call or you
+  get *"Missing required Mcp-Session-Id header"*. `execute_python_code`, `call_tool` and the discovery
+  tools are all reachable that way. Note `call_tool`'s image results come back as a JSON string with
+  the PNG under `returnValue.image.data`, not as an MCP image block - decode it yourself. (2026-08-27)
+- **`CaptureViewport` grabs the EDITOR viewport, not the PIE game view**, and it needs explicit
+  `captureTransform` AND `annotations` arguments despite both being documented optional. On-screen
+  debug text (`GEngine->AddOnScreenDebugMessage`) does NOT appear in it, nor in `HighResShot` - any
+  debug overlay drawn that way can only be verified by a human looking at the PIE window. (2026-08-27)
 - **`unreal.Rotator(a, b, c)` is `(roll, pitch, yaw)`.** `Rotator(0, 180, 0)` is pitch 180, not yaw
   180 - it stands a placed character on its head. For a yaw, write `Rotator(0, 0, yaw)`. (Confirmed:
   `unreal.Rotator(1,2,3)` reports `pitch=2 yaw=3 roll=1`.)
@@ -436,6 +448,59 @@ builds that should take under a minute. Machine has 32 GB RAM; close browsers du
   (`z=0` and `z=length`) into world space and measure BOTH. A tip-pivot needs a translation of
   `-(MeshLength * Scale)` along `Rotation.RotateVector(0,0,1)`; rotation alone can never fix it,
   because the pivot is what sits on the socket.
+- **A `PowerShell`/`Bash` call that hits its tool timeout is moved to background, not killed** - the
+  underlying process (e.g. `Invoke-RestMethod` still waiting on a slow VibeUE HTTP call) keeps running
+  and buffering. THREE such orphaned PowerShell processes reached **~24 GB combined working set**
+  after a session sent several `execute_python_code` calls that hung behind a heavy PIE load, and the
+  editor's own in-app Cache/Memory panel then reported **critical memory pressure at 0.73 GB
+  available** system-wide - which read exactly like an engine/content problem (leaking Niagara smolder
+  systems from a full-map burn was the first suspect) and was actually three stray shell processes.
+  **Check `Get-Process powershell | Sort WorkingSet64 -Descending` before chasing an in-engine memory
+  leak** when things get sluggish after a string of timed-out MCP calls; `Stop-Process -Force` on the
+  bloated PIDs (never the PID matching `$PID` in your own live shell) fixes it immediately - freed
+  25 GB in one pass here. (2026-08-30)
+- **`tools/call` on the raw HTTP MCP endpoint only reaches `execute_python_code` and the discovery
+  tools - NOT the Epic engine toolset tools by their bare name.** `{"name":"CaptureViewport", ...}`
+  returns `Unknown tool: CaptureViewport` over this surface even though `call_tool` (the actual MCP
+  tool your session normally has) can reach it. From the HTTP fallback, route through
+  `execute_python_code` instead: `unreal.ToolsetRegistry.execute_tool("EditorToolset.EditorAppToolset",
+  "CaptureViewport", json.dumps({"captureTransform": False, "annotations": False}))`, then
+  base64-decode `result["returnValue"]["image"]["data"]` and write it to a file yourself - there is no
+  MCP image block over this path. (2026-08-30)
+- **`unreal.EditorAssetLibrary.save_loaded_asset`/`save_asset` return `False` even when the save
+  genuinely succeeds.** Editing a Material's graph via `MaterialEditingLibrary` (create/connect
+  expressions), then calling either save function, printed `False` every time in this build -
+  `only_if_is_dirty=True` or `=False`, `EditorAssetLibrary` or `get_editor_subsystem(EditorAssetSubsystem)`,
+  didn't matter. The save was NOT actually failing: the engine log showed a real `LogFileHelpers:
+  Saving Package` -> `LogSavePackage: Moving output files...` -> `.tmp` renamed over the `.uasset`
+  every single time, and the file's on-disk `LastWriteTime`/size changed to match. **Trust the log
+  and the file, never the Python return value**, for this specific call. (Separately and for real:
+  the FIRST couple of save attempts in one session genuinely didn't stick - reloading fresh afterward
+  showed the pre-edit graph, cause not fully root-caused, possibly a stale in-memory object from an
+  earlier `load_asset` in a different script execution. If a material edit isn't showing up after a
+  "successful" save, don't trust that either - reload fresh via a NEW script and check node count/
+  connections directly, the way `GSMillObjective`'s `#360` gotcha already says to for other assets.)
+  (2026-08-30)
+- **A mesh that is invisible everywhere - up close and far, not just distance-culled - and where
+  every ordinary check (geometry, position/bounds, visibility flags, materials assigned, blend mode,
+  compile errors) comes back clean: check `dithered_lod_transition` on its materials.** This bit the
+  windmill roof (`SM_RoofTIles`, #365) - inherited `true` from a shared master material
+  (`M_Props_Master`) whose own doc string says the property is "for use with the foliage system."
+  The mesh was placed as a plain `StaticMeshActor` (and separately as a `ChildActorComponent`-spawned
+  one), never as foliage/HISM, so the shader never got the per-instance dither data it expects and
+  rendered as permanently, fully dithered-out. Fixed with an INSTANCE-level
+  `base_property_overrides` (`override_dithered_lod_transition=true`, `dithered_lod_transition=false`)
+  on just the affected material instances - leave the shared master alone if other content
+  legitimately uses it as foliage. Isolate which material is at fault by swapping ONE slot back to
+  the real material at a time (with the others on `DefaultMaterial`) rather than guessing from
+  section count - a broken property here can take down an entire multi-material mesh at once, not
+  just the section using the bad slot, so per-slot elimination is what actually narrows it down.
+  **`MaterialInstanceBasePropertyOverrides.to_dict()` returns `{}` even when an override IS
+  correctly set** - verify via `get_editor_property` on the individual named field
+  (`override_dithered_lod_transition`, `dithered_lod_transition`), never via `to_dict()` for this
+  struct. Mutating the struct object in place and reassigning it did not persist; construct a FRESH
+  `unreal.MaterialInstanceBasePropertyOverrides()`, set fields on that, then assign the fresh struct
+  to the instance. (2026-08-30)
 
 ## BuildAndLaunchGame.ps1 on this machine
 

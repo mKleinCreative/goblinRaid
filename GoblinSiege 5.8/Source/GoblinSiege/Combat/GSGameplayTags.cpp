@@ -23,6 +23,9 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Horn, "State.Horn", "Blowing the war-horn - blocks a second blast until it finishes.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Attacking, "State.Attacking", "A swing is in flight - windup, damage window or recovery. Too coarse to react to; see the Windup child.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Attacking_Windup, "State.Attacking.Windup", "THE TELEGRAPH. Present for exactly the swing's windup. The only channel by which an AI may learn a hit is coming.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Actions_Defender_Melee, "Actions.Defender.Melee", "ACF action tag: what a defender's combat behaviour triggers to swing. Resolved to an ability by the UACFAbilitySet, not by name.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Actions_Defender_Ranged, "Actions.Defender.Ranged", "ACF action tag: what an archer's combat behaviour triggers to loose an arrow.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_LastHitDeflected, "State.LastHitDeflected", "Momentary: the last hit this character dealt was turned aside by plate. Set by the damage calc, read and cleared by the swing on the same frame.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Recoil, "State.Recoil", "Your swing was turned aside by a guard. Cannot attack or block for the window - this is what makes a block an opening rather than just cheaper damage.");
 
 	// Interaction verbs (GDD §8). Data, not subclasses - see GSGameplayTags.h.

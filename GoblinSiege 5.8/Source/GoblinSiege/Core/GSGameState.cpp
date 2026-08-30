@@ -1,9 +1,35 @@
 #include "Core/GSGameState.h"
 #include "ACFTeamsConfigDataAsset.h"
+#include "ACMImpactsFXDataAsset.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/ACFTeamManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
+
+UGSEffectsDispatcherComponent::UGSEffectsDispatcherComponent()
+{
+	// The dispatcher alone plays nothing: it needs a table mapping damage type + physical material
+	// to a sound and a particle. DA_GS_ImpactFX carries one entry per GS damage type with NO
+	// material set, which ACF treats as the default for every unlisted surface - so a hit on
+	// anything makes a sound instead of silence, and per-material entries can be layered on later
+	// without touching this code.
+	//
+	// Hardcoded path with a LOUD failure, matching the teams config in AGSGameState: a renamed asset
+	// should say so at startup rather than degrading quietly into a combat system with no impacts,
+	// which is the exact failure mode #349 spent a build discovering.
+	static ConstructorHelpers::FObjectFinder<UACMImpactsFXDataAsset> ImpactFX(
+		TEXT("/Game/Data/Effects/DA_GS_ImpactFX.DA_GS_ImpactFX"));
+	if (ImpactFX.Succeeded())
+	{
+		ImpactFXs = ImpactFX.Object;   // protected on ACF's component; reachable because we derive
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[GoblinSiege] DA_GS_ImpactFX NOT FOUND - melee will resolve real hits and play no "
+				 "impact sound or particle at all."));
+	}
+}
 
 AGSGameState::AGSGameState()
 {
@@ -30,6 +56,16 @@ AGSGameState::AGSGameState()
 			TEXT("[GoblinSiege] DA_GSTeams NOT FOUND - every ACF team attitude will fall back to "
 				 "Neutral, which means nothing is hostile to anything."));
 	}
+
+	// ---- IMPACT FX (#351) ----------------------------------------------------------------------
+	//
+	// ACF looks this up by class on the GameState, exactly like the team manager above, and
+	// FindComponentByClass matches our subclass. Until this existed, every melee impact called
+	// PlayImpactEffect and got "Missing Effects Dispatcher Component in GAME STATE!" - the call was
+	// correct and completely inert. The FX table is assigned inside the subclass, because ACF's
+	// ImpactFXs is protected.
+	EffectsDispatcherComponent = CreateDefaultSubobject<UGSEffectsDispatcherComponent>(
+		TEXT("ACF Effects Dispatcher"));
 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = 0.1f; // alarm doesn't need per-frame precision

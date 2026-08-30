@@ -25,7 +25,15 @@ void UGSAttributeSetBase::PreAttributeChange(const FGameplayAttribute& Attribute
 	else if (Attribute == GetMoveSpeedMultiplierAttribute())
 	{
 		// Roots clamp to a floor rather than 0 so stacked slows never hard-freeze a character.
-		NewValue = FMath::Clamp(NewValue, 0.1f, 3.f);
+		//
+		// CEILING RAISED 3 -> 6 (#348). The floor is the interesting half of this clamp and is
+		// unchanged; the ceiling was silently capping the dodge. UGSGA_DodgeRoll lifts the walk
+		// speed for the roll through this attribute, and a multiplier of 6 or 12 both landed here
+		// and came out as 3 - measured live as MaxWalkSpeed 470 -> 1410 twice, from two different
+		// requested values, which is what gave the clamp away. Nothing else in the project asks for
+		// more than 3, so this widens a ceiling nobody else is touching rather than changing any
+		// existing behaviour.
+		NewValue = FMath::Clamp(NewValue, 0.1f, 6.f);
 	}
 }
 

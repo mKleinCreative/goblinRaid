@@ -117,8 +117,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Objective")
 	FText GetObjectiveDisplayName() const { return ObjectiveDisplayName; }
 
-	/** The player's torch lands here. Subclasses decide what that means - the mill deliberately
-	 *  refuses exterior fire and overrides this to do nothing. */
+	/** The player's torch lands here. Subclasses decide what that means - a kitbashed building
+	 *  refuses fire on its walls and overrides this to do nothing there (see AGSBuildingObjective).
+	 *  This is only ever REACHED for a given actor if ContainsWorldLocation (below) says yes first -
+	 *  see that function's comment; #362 is the record of what happens when a subclass changes this
+	 *  body without checking that. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Objective")
 	virtual void IgniteAtLocation(const FVector& WorldLocation);
 
@@ -127,7 +130,11 @@ public:
 	 *
 	 * A torch thrown into wheat hits the LANDSCAPE, not the field actor, so hit-actor lookup alone
 	 * can never light a field. The torch instead asks every burn objective whether the impact point
-	 * belongs to it. The mill answers false on purpose - it is reachable through its windows only.
+	 * belongs to it. THIS is the actual gate on whether IgniteAtLocation is ever called for a given
+	 * objective - not that function's own body. A kitbashed building answers false for its walls on
+	 * purpose (see AGSBuildingObjective); a subclass that wants to accept fire from anywhere on its
+	 * own geometry, like the mill, has to override this to say so, or FindObjectiveAtLocation below
+	 * will never select it no matter what IgniteAtLocation does (#362).
 	 */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Objective")
 	virtual bool ContainsWorldLocation(const FVector& WorldLocation) const;

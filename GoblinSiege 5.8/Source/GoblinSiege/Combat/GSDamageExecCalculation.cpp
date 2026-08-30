@@ -5,6 +5,7 @@
 #include "Characters/GSCharacterBase.h"
 #include "Characters/GSEnemyCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Engine/Engine.h"
 #include "GameFramework/Pawn.h"
 #include "HAL/IConsoleManager.h"
@@ -64,12 +65,22 @@ static FAutoConsoleVariableRef CVarGSPlateArc(
 		 "arc on purpose: a shield is aimed, a breastplate simply faces where the man faces."),
 	ECVF_Cheat);
 
-static float GSPlateFrontalScalar = 0.3f;
+// 0.3 -> 0.6 (Michael's ruling, #345). At 0.3 a player light attack on a knight's front was
+// 25 x 0.3 - 6 = 1.5 against 75 health: FIFTY swings to kill him head-on, where a flank skips the
+// plate entirely and does it in three. The counter was right and the number made it academic -
+// nobody flanks because the front is expensive, they flank because the front is impossible, and a
+// health bar that will not move reads as a broken hit rather than as armour. 0.6 gives 25 x 0.6 - 6
+// = 9, so roughly nine frontal swings against three from the side: flanking stays clearly correct
+// and the front stays clearly worse, which is what the design actually asks for.
+//
+// This is a FEEL number, not a balance derivation - it is a cvar so it can be dialled live.
+static float GSPlateFrontalScalar = 0.6f;
 static FAutoConsoleVariableRef CVarGSPlateFrontal(
 	TEXT("GS.Combat.PlateFrontalScalar"),
 	GSPlateFrontalScalar,
 	TEXT("Damage multiplier for a frontal hit on an armoured target, applied BEFORE flat armour. "
-		 "0.3 makes a 25-damage dagger land for ~1.5 on a knight - it bounces, which is the point."),
+		 "0.6 makes a 25-damage swing land for ~9 on a knight; 0.3 made it ~1.5, which read as a "
+		 "hit that did nothing at all."),
 	ECVF_Cheat);
 
 // MITIGATION MAY NEVER ZERO A HIT (Michael's ruling 2026-08-09).
@@ -316,6 +327,23 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 				// The dagger rush. Scalar FIRST, then the flat armour, so plate compounds against a
 				// frontal attack instead of merely subtracting from it.
 				FinalDamage = FMath::Max(0.f, DamageAfterRace * GSPlateFrontalScalar - Armor);
+
+				// ---- TELL THE SWING IT WAS DEFLECTED (#355) --------------------------------------
+				//
+				// This is the whole reason Michael's knight read as a sponge: the plate did its job
+				// and nothing said so. A frontal hit and a flank hit produced the identical impact,
+				// so "go around him" was invisible - the player saw a health bar refusing to move
+				// and concluded the hit had failed rather than been refused.
+				//
+				// A loose tag on the ATTACKER, not a callback into the ability: this calc is running
+				// inside UGSGA_SwordLight::DoSweep's loop (see NotifyAttackWasBlocked for the same
+				// hazard), so the swing reads the tag after ApplyGameplayEffectSpecToTarget returns
+				// and clears it itself. Set-not-add, because it is a verdict, not a stack.
+				if (UAbilitySystemComponent* AttackerASC =
+						UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Spec.GetContext().GetInstigator()))
+				{
+					AttackerASC->SetLooseGameplayTagCount(GSTags::State_LastHitDeflected, 1);
+				}
 			}
 			else if (Armor > 0.f)
 			{
@@ -349,6 +377,9 @@ void UGSDamageExecCalculation::Execute_Implementation(const FGameplayEffectCusto
 		const TCHAR* PlateOutcome = TEXT("");
 		if (LoggedArmor > 0.f && !bSkipArmor)
 		{
+			// The facing dot is printed alongside the verdict (#355). "flank" on a blow the tester
+			// swore was frontal cost three PIE runs to diagnose - the target had re-faced toward a
+			// patrol waypoint inside the windup. With the number in the line, that reads instantly.
 			PlateOutcome = (DamageTypeTag == GSTags::Damage_Bow) ? TEXT("PLATE-GAPS(bow) ")
 				: (bStraightOn ? TEXT("PLATE-FRONT ") : TEXT("PLATE-GAPS(flank) "));
 		}

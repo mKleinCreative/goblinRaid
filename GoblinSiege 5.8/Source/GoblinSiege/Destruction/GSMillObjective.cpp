@@ -97,6 +97,99 @@ void AGSMillObjective::BeginPlay()
 			SailSpin->Deactivate();
 		}
 	}
+
+	// Resolve and cache the mill's REAL geometry once (2026-08-30, #362). Both the char redirect
+	// below and ContainsWorldLocation (which every torch hit in the level consults) need it;
+	// caching here means a torch hit doesn't re-run the level-wide search. Best-effort only - if
+	// nothing resolves yet (a level that streams its geometry actor in after the objective),
+	// ContainsWorldLocation lazily retries, SinkTower's own search still runs independently at
+	// detonation, and the mill simply chars nothing in the meantime, same as before this change.
+	CachedMillGeometry = ResolveMillGeometry();
+
+	// Redirect char to the resolved geometry. MillMesh/SailMesh are empty placeholders on both
+	// placed mills - see MillGeometryNameFilter - so without this, BurnFXComponent chars zero
+	// populated material slots: SetBurnAmount ticks 0->1 correctly and produces no visible effect
+	// at all.
+	if (BurnFXComponent && CachedMillGeometry.IsValid())
+	{
+		BurnFXComponent->SetCharTargetActor(CachedMillGeometry.Get());
+	}
+}
+
+bool AGSMillObjective::ContainsWorldLocation(const FVector& WorldLocation) const
+{
+	// The base class answers false unconditionally, and THAT - not IgniteAtLocation's own body -
+	// was what actually enforced "reachable through windows only": AGSTorchProjectile only calls
+	// IgniteAtLocation once AGSBurnObjectiveBase::FindObjectiveAtLocation has already found an
+	// objective whose ContainsWorldLocation answers true. Retiring IgniteAtLocation alone (2026-08-30)
+	// left this override missing and every exterior hit was still refused here, silently, before it
+	// ever reached the ignition code - the exact bug #362 exists to record.
+	if (!CachedMillGeometry.IsValid())
+	{
+		// Lazy retry: BeginPlay may have run before a streamed-in geometry actor existed.
+		CachedMillGeometry = ResolveMillGeometry();
+	}
+
+	AActor* Geometry = CachedMillGeometry.Get();
+	if (!Geometry)
+	{
+		return false;
+	}
+
+	FVector Origin, Extent;
+	Geometry->GetActorBounds(/*bOnlyCollidingComponents=*/false, Origin, Extent);
+
+	// Padded well past the mesh's own silhouette - a torch clipping the tower's edge rather than
+	// its exact surface should still count, the same generosity WindowTriggerExtent already gives
+	// the interior route (a 950x950x400 band, not a pinpoint window).
+	const FVector Padded = Extent + FVector(300.f);
+	const FVector Delta = (WorldLocation - Origin).GetAbs();
+	return Delta.X <= Padded.X && Delta.Y <= Padded.Y && Delta.Z <= Padded.Z;
+}
+
+AActor* AGSMillObjective::ResolveMillGeometry() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	// Find the mill's geometry. See MillGeometryNameFilter: the objective owns no mesh of its own on
+	// this map, so the thing the player sees is a separate actor standing at the same spot.
+	const FVector Here = GetActorLocation();
+	AActor* Geometry = nullptr;
+	float Best = MillGeometrySearchRadius;
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* Other = *It;
+		if (!Other || Other == this)
+		{
+			continue;
+		}
+		UStaticMeshComponent* SMC = Other->FindComponentByClass<UStaticMeshComponent>();
+		UStaticMesh* Mesh = SMC ? SMC->GetStaticMesh() : nullptr;
+		// IgnoreCase: see MillGeometryNameFilter's header comment - a case-sensitive Contains here
+		// silently found nothing on either placed mill for as long as the filter's casing happened
+		// not to match the art's, and "quietly refused to sink" produces no symptom a player would
+		// think to report as a typo.
+		if (!Mesh || !Mesh->GetName().Contains(MillGeometryNameFilter, ESearchCase::IgnoreCase))
+		{
+			continue;
+		}
+		// HORIZONTAL distance, not 3D. A windmill is a vertical stack: its sails sit 4357uu ABOVE the
+		// objective, so a 3D test measured them at 4361uu and threw them away as too far - which is
+		// exactly what happened, logged as "found no sail actor within 2600uu" while the sails stood
+		// there in plain view. What "belongs to this mill" means is footprint, not distance.
+		const float Dist = FVector::Dist2D(Other->GetActorLocation(), Here);
+		if (Dist <= Best)
+		{
+			Best = Dist;
+			Geometry = Other;
+		}
+	}
+
+	return Geometry;
 }
 
 void AGSMillObjective::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -151,12 +244,12 @@ void AGSMillObjective::OnWindowOverlap(UPrimitiveComponent* /*OverlappedComponen
 
 void AGSMillObjective::IgniteAtLocation(const FVector& /*WorldLocation*/)
 {
-	// Deliberate no-op. Stone base, sails out of reach: exterior fire does not take the mill.
-	// Announce the refusal so it reads as a rule rather than a dud.
-	if (Stage == EGSMillStage::Intact)
-	{
-		OnExteriorIgnitionRefused.Broadcast();
-	}
+	// Exterior-fire-immune rule retired 2026-08-30 - a torch anywhere on the mill starts the same
+	// fuse the window-interior route does. WorldLocation is unused because IgniteInterior doesn't
+	// need it either (idempotent, single fuse for the whole actor) - if a future ruling wants the
+	// hit LOCATION to matter (which face caught, say), that is new state, not something to
+	// retrofit onto this call.
+	IgniteInterior();
 }
 
 void AGSMillObjective::IgniteInterior()
@@ -430,34 +523,10 @@ void AGSMillObjective::SinkTower()
 	}
 
 	// Find the mill's geometry. See MillGeometryNameFilter: the objective owns no mesh of its own on
-	// this map, so the thing the player sees is a separate actor standing at the same spot.
-	const FVector Here = GetActorLocation();
-	AActor* Geometry = nullptr;
-	float Best = MillGeometrySearchRadius;
-	for (TActorIterator<AActor> It(World); It; ++It)
-	{
-		AActor* Other = *It;
-		if (!Other || Other == this)
-		{
-			continue;
-		}
-		UStaticMeshComponent* SMC = Other->FindComponentByClass<UStaticMeshComponent>();
-		UStaticMesh* Mesh = SMC ? SMC->GetStaticMesh() : nullptr;
-		if (!Mesh || !Mesh->GetName().Contains(MillGeometryNameFilter))
-		{
-			continue;
-		}
-		// HORIZONTAL distance, not 3D. A windmill is a vertical stack: its sails sit 4357uu ABOVE the
-		// objective, so a 3D test measured them at 4361uu and threw them away as too far - which is
-		// exactly what happened, logged as "found no sail actor within 2600uu" while the sails stood
-		// there in plain view. What "belongs to this mill" means is footprint, not distance.
-		const float Dist = FVector::Dist2D(Other->GetActorLocation(), Here);
-		if (Dist <= Best)
-		{
-			Best = Dist;
-			Geometry = Other;
-		}
-	}
+	// this map, so the thing the player sees is a separate actor standing at the same spot. Reuses
+	// BeginPlay's cache (also read by ContainsWorldLocation) rather than searching a third time;
+	// falls back to a fresh search if the cache was never filled (streamed-in geometry actor).
+	AActor* Geometry = CachedMillGeometry.IsValid() ? CachedMillGeometry.Get() : ResolveMillGeometry();
 
 	if (!Geometry)
 	{
@@ -527,6 +596,10 @@ void AGSMillObjective::SinkTower()
 		Crumble->ClusterCrumblePasses = 3;
 		Crumble->CollapseShoveCount = 0;
 		Crumble->CharAmountOnRelease = 1.f;
+		// A 400,000-impulse stone cap coming down should be lethal, the way it would be for real
+		// (2026-08-30, Michael: "can we have it so the flying geometry causes death?"). Defaults
+		// (500 damage, 20,000 impulse floor) are well clear of this drop's own force.
+		Crumble->bEnableDamageFromCollision = true;
 		// Straight down, applied at the cap's own centre so it drops rather than tips.
 		FVector TopOrigin, TopExtent;
 		Proxy->GetActorBounds(false, TopOrigin, TopExtent);
@@ -639,6 +712,7 @@ void AGSMillObjective::DropSails()
 			Crumble->ClusterCrumblePasses = 3;
 			Crumble->CollapseShoveCount = 0;
 			Crumble->CharAmountOnRelease = 1.f;
+			Crumble->bEnableDamageFromCollision = true;
 
 			FVector Away = Part->GetActorLocation() - Here;
 			Away.Z = 0.f;

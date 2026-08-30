@@ -23,15 +23,63 @@ protected:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 
+	/** Restores the movement values bSuppressFrictionDuringRoll zeroed. Overridden rather than
+	 *  cleaning up in OnDodgeFinished so a cancelled roll - death, interrupt - restores them too. */
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		bool bReplicateEndAbility, bool bWasCancelled) override;
+
 	UFUNCTION()
 	void OnDodgeFinished();
 
 	/** Roll speed in cm/s, applied as a single launch impulse toward the dodge direction (design
 	 *  doc: "committed recovery" - no steering once you commit). A root-motion dodge montage can
 	 *  replace this launch once the Scout's animation set exists (character-design-log open item);
-	 *  this is a functional placeholder, not a final-feel implementation. */
+	 *  this is a functional placeholder, not a final-feel implementation.
+	 *
+	 *  Raised 900 -> 1500 in #345. Michael: "dodge doesn't seem to cover enough distance." Speed was
+	 *  only half the cause - see bSuppressFrictionDuringRoll, which is what actually lets the
+	 *  impulse carry. Tune the two together; ACF's own UACFDirectionalDodgeAction uses a
+	 *  DodgeLength of 600uu as a reference for how far a roll should go. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Dodge")
-	float DodgeSpeed = 900.f;
+	float DodgeSpeed = 1500.f;
+
+	/**
+	 * Hold ground friction and braking at zero for the roll, restoring them when the ability ends.
+	 *
+	 * THIS, NOT DodgeSpeed, IS WHY THE ROLL WAS SHORT. LaunchCharacter sets a velocity; the
+	 * movement component then bleeds it off against GroundFriction (8 by default) and
+	 * BrakingDecelerationWalking (2048), so almost all of a 900uu/s impulse was gone within a
+	 * couple of frames and the roll read as a hop. "DodgeSpeed x DodgeDurationSeconds" was never
+	 * the distance travelled - it was an upper bound the character never reached.
+	 *
+	 * Restored in EndAbility rather than in OnDodgeFinished, because a roll cancelled by death or
+	 * an interrupt must put friction back too - a character left at zero friction slides for the
+	 * rest of the raid.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Dodge")
+	bool bSuppressFrictionDuringRoll = true;
+
+	/**
+	 * MoveSpeedMultiplier applied for the roll, so the launch is not re-clamped to walking speed.
+	 *
+	 * MEASURED, NOT GUESSED (#345). The roll was short because CharacterMovementComponent re-clamps
+	 * velocity toward MaxWalkSpeed every frame in walking mode. The player's MaxWalkSpeed is
+	 * **470**, so a 1500, 2400 or 4800 DodgeSpeed all produced the same ~470uu/s roll - raising
+	 * DodgeSpeed did essentially nothing, which is exactly what Michael reported twice.
+	 *
+	 * 6.0 lifts the ceiling to ~2820uu/s for the roll's duration, which is what finally makes
+	 * DodgeSpeed the real dial. Tune DISTANCE with DodgeSpeed; this only has to be high enough not
+	 * to be the limiting factor.
+	 *
+	 * Applied as a UGSGE_MoveSpeedScalar rather than a write to MaxWalkSpeed, per the standing rule:
+	 * a cache-and-restore of MaxWalkSpeed cannot stack, and AGSPlayerCharacter::ApplyMoveSpeed is
+	 * the single place speed is derived from the attribute. Removed by handle in EndAbility, beside
+	 * the friction restore, so a cancelled roll cannot leave the character permanently fast.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Dodge", meta = (ClampMin = "1.0"))
+	float RollSpeedCapMultiplier = 6.f;
 
 	/** i-frame + roll-motion window (design doc: 0.22s i-frames). ActivationOwnedTags (constructor)
 	 *  keeps State.Dodging active for exactly this long, which is what blocks movement input
@@ -119,4 +167,26 @@ private:
 	/** Chooses among the four montages by projecting the world-space dodge direction into actor
 	 *  space. Returns null when nothing is assigned, which leaves the old launch-only behaviour. */
 	UAnimMontage* PickDirectionalMontage(const class ACharacter* Avatar, const FVector& WorldDodgeDir) const;
+
+	/** Zeroes ground friction and braking, remembering what they were. No-op unless
+	 *  bSuppressFrictionDuringRoll. */
+	void SuppressFriction(class ACharacter* Avatar);
+
+	/** Puts back exactly what SuppressFriction cached, then disarms itself. Safe to call twice and
+	 *  safe to call when suppression never ran - the same reasoning as
+	 *  UGSGA_SwordLight::RestoreMoveSpeed, which restores rather than recomputes so a buff applied
+	 *  mid-roll survives. */
+	void RestoreFriction();
+
+	/** -1 means "nothing cached", which is also the reset value, so a restore without a matching
+	 *  suppress cannot zero the character's friction. */
+	float CachedGroundFriction = -1.f;
+	float CachedBrakingDeceleration = -1.f;
+
+	/** The speed-cap effect, removed by handle in EndAbility. Same shape as UGSGA_Block's
+	 *  BlockSlowHandle. */
+	FActiveGameplayEffectHandle RollSpeedHandle;
+
+	/** The avatar whose movement was altered. Held weakly: the roll can outlive its character. */
+	TWeakObjectPtr<class ACharacter> FrictionAvatar;
 };

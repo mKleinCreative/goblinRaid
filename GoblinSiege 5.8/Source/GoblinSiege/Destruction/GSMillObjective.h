@@ -1,13 +1,12 @@
-// The windmill: the objective that has to be SOLVED rather than merely torched (design doc §6.3).
-// Stone base, no purchase, and exterior fire alone won't take it - the goblin has to put a torch
-// through an upper window into the flour dust inside, at which point the mill is on a fuse.
-// Written 2026-07-28 for Block C.
+// The windmill objective (design doc §6.3). Written 2026-07-28 for Block C.
 //
-// Sequence: Intact -> (torch through window) -> Smouldering [dust builds] -> Detonated -> state swap.
+// Sequence: Intact -> (lit) -> Smouldering [dust builds] -> Detonated -> state swap.
 //
-// The refusal is the teaching moment. Throwing fire at the outside does nothing mechanically but
-// DOES fire OnExteriorIgnitionRefused, so the bark system can have the goblin mutter about the
-// stone and the player learns to look up. A silent no-op would just read as a bug.
+// EXTERIOR-FIRE-IMMUNE RULE RETIRED 2026-08-30 (Michael: "it's outdated"). This class used to
+// refuse any torch that landed outside - "stone base, no purchase" - and only light through the
+// WindowTrigger into the interior dust. IgniteAtLocation is no longer a no-op: it starts the same
+// fuse IgniteInterior does. OnExteriorIgnitionRefused (the bark hook for the old refusal) is
+// removed with it - nothing ever bound to it, so there was no behaviour to preserve.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -40,10 +39,27 @@ public:
 	AGSMillObjective();
 
 	/**
-	 * Exterior fire. Does NOT light the mill - stone doesn't take, and the sails are too high to
-	 * reach from the ground. Broadcasts the refusal so the goblin can say so out loud.
+	 * Exterior fire. Used to be a deliberate no-op ("stone doesn't take") - retired 2026-08-30.
+	 * Now just starts the same fuse IgniteInterior does; a torch anywhere on the mill lights it.
+	 *
+	 * NOT SUFFICIENT ON ITS OWN. AGSTorchProjectile only calls this when
+	 * AGSBurnObjectiveBase::FindObjectiveAtLocation resolves to the mill at all, which depends
+	 * entirely on ContainsWorldLocation (below) answering true. The retirement above went out for a
+	 * full session while ContainsWorldLocation still unconditionally returned the base class's
+	 * false - the exact case ContainsWorldLocation's own header comment named as its purpose - so
+	 * every exterior hit was refused before this function was ever reached. See #362.
 	 */
 	virtual void IgniteAtLocation(const FVector& WorldLocation) override;
+
+	/**
+	 * Does an exterior torch hit land on the mill? Retired alongside IgniteAtLocation (#362): the
+	 * mill used to answer false unconditionally (inherited from the base class), which is what
+	 * actually enforced "reachable through windows only" - IgniteAtLocation's own body was never the
+	 * gate. Now true for any point within the resolved geometry actor's padded bounds - see
+	 * ResolveMillGeometry, whose result this reuses via CachedMillGeometry rather than re-searching
+	 * the level on every torch hit.
+	 */
+	virtual bool ContainsWorldLocation(const FVector& WorldLocation) const override;
 
 	/**
 	 * The real verb: a lit torch has passed through a window and into the flour dust. Starts the
@@ -58,10 +74,6 @@ public:
 	/** Seconds until detonation, or 0 if not lit / already gone. Drives the audio build. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Mill")
 	float GetSecondsToDetonation() const;
-
-	/** Bark hook: "Won't take. Stone don't burn." */
-	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Mill")
-	FGSOnMillSimple OnExteriorIgnitionRefused;
 
 	/** The fuse is lit - dust glow, interior light, rising rumble. */
 	UPROPERTY(BlueprintAssignable, Category = "GoblinSiege|Mill")
@@ -86,6 +98,24 @@ protected:
 	void Detonate();
 	void SetStage(EGSMillStage NewStage);
 	void TickBuildup();
+
+	/**
+	 * Finds the separate StaticMeshActor that is the mill's actual visible geometry - see
+	 * MillGeometryNameFilter. Shared by SinkTower (which needs it to sink the tower) and BeginPlay
+	 * (which needs it to redirect BurnFXComponent's char target, since MillMesh/SailMesh are empty
+	 * placeholders on both placed mills). Returns null if nothing within MillGeometrySearchRadius
+	 * matches - callers already handle that as "detonate/char without it" rather than a hard error.
+	 */
+	AActor* ResolveMillGeometry() const;
+
+	/**
+	 * Cache of ResolveMillGeometry's result (#362). Set in BeginPlay; `mutable` so
+	 * ContainsWorldLocation - const, and called on every torch hit against every burn objective in
+	 * the level - can also lazily fill it if BeginPlay ran before the geometry actor existed (a
+	 * streamed-in level) without needing a non-const path. SinkTower reuses it too rather than
+	 * searching a third time.
+	 */
+	mutable TWeakObjectPtr<AActor> CachedMillGeometry;
 
 	UFUNCTION()
 	void OnWindowOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -303,9 +333,18 @@ protected:
 	 * off. So that mill would have grabbed the sails, found no GC_Windmill_Sail, and quietly refused
 	 * to sink - while the ground mill worked, because there the tower happens to be the nearer of the
 	 * two. One working example proved nothing.
+	 *
+	 * SECOND BUG ON TOP OF THE FIRST (2026-08-30): the fix above still typed "Windmill_Base" with a
+	 * lowercase i, but the actual placed mesh - named correctly two paragraphs up in this very
+	 * comment - is "SM_WIndmill_Base", capital I. FString::Contains is case-SENSITIVE by default, so
+	 * this never matched anything, ever, on either mill: SinkTower logged its "found no mill geometry"
+	 * warning and both windmills detonated without sinking. One working example (the farm house, a
+	 * completely different code path) proved nothing here either - nobody had watched a windmill's own
+	 * completion, only assumed the class-level fix above was sufficient. Corrected the casing AND
+	 * switched the match to ESearchCase::IgnoreCase so a future art rename can't silently reopen this.
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Mill|Sink")
-	FString MillGeometryNameFilter = TEXT("Windmill_Base");
+	FString MillGeometryNameFilter = TEXT("WIndmill_Base");
 
 	/** 2600 rather than 1500: the hill mill's tower is 2213uu from its objective. Measured, not padded. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Mill|Sink", meta = (ClampMin = "0.0"))

@@ -1,6 +1,7 @@
 #include "World/GSCorruptionSubsystem.h"
 
 #include "World/GSCorruptionDirector.h"
+#include "World/GSCorruptionDataAsset.h"
 
 #include "Combat/GSGameplayTags.h"
 #include "Characters/GSEnemyCharacter.h"
@@ -86,6 +87,8 @@ void UGSCorruptionSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		return;
 	}
 
+	ApplyTuningAsset();
+
 	// Complain, never renormalise. A silent correction would hide the typo that caused it, and the
 	// symptom of a bad sum is "the world never finishes turning", which nobody attributes to an ini.
 	const float WeightSum = WeightObjectives + WeightKills + WeightStructures + WeightClock + WeightHorde;
@@ -166,6 +169,52 @@ UGSCorruptionSubsystem* UGSCorruptionSubsystem::Get(const UObject* WorldContextO
 	return World ? World->GetSubsystem<UGSCorruptionSubsystem>() : nullptr;
 }
 
+void UGSCorruptionSubsystem::ApplyTuningAsset()
+{
+	if (CorruptionDataPath.IsNull())
+	{
+		return;
+	}
+
+	TuningData = Cast<UGSCorruptionDataAsset>(CorruptionDataPath.TryLoad());
+	if (!TuningData)
+	{
+		// A WARNING and the C++ defaults stand. Never a silent zeroing: a missing tuning asset must
+		// not be indistinguishable from a broken feature, which is the failure this whole feature
+		// keeps rediscovering.
+		UE_LOG(LogGSCorruption, Warning,
+			TEXT("No corruption tuning asset at '%s' - running on C++ defaults. Every number is still ")
+			TEXT("live, but changing one now needs a rebuild."), *CorruptionDataPath.ToString());
+		return;
+	}
+
+	// Copy over the Config/C++ defaults rather than reading through the pointer everywhere. One
+	// place to look when a number is not what you expected, and no downstream code had to change.
+	WeightObjectives          = TuningData->WeightObjectives;
+	WeightKills               = TuningData->WeightKills;
+	WeightStructures          = TuningData->WeightStructures;
+	WeightClock               = TuningData->WeightClock;
+	WeightHorde               = TuningData->WeightHorde;
+	StructureSoftKnee         = TuningData->StructureSoftKnee;
+	KillSoftKnee              = TuningData->KillSoftKnee;
+	RazedFloor01              = TuningData->RazedFloor01;
+	CivilianArchetypeRowName  = TuningData->CivilianArchetypeRowName;
+
+	// The civilian multiplier SEEDS the cvar rather than replacing it. The asset is the source of
+	// truth at load; the cvar stays live so it can still be dragged mid-playtest, which is the whole
+	// reason it was a cvar - ruling 62 fixed the direction, not the magnitude, and the magnitude is
+	// still unfounded. Whatever a raid settles on gets written back into the asset, not the code.
+	GSCorruptionCivilianWeight = TuningData->CivilianKillWeight;
+
+	UE_LOG(LogGSCorruption, Log,
+		TEXT("Tuning from '%s': weights %.2f/%.2f/%.2f/%.2f/%.2f, knees kill %.0f structure %.0f, ")
+		TEXT("razed floor %.2f, %d objective type weights."),
+		*TuningData->GetName(),
+		WeightObjectives, WeightKills, WeightStructures, WeightClock, WeightHorde,
+		KillSoftKnee, StructureSoftKnee, RazedFloor01,
+		TuningData->ObjectiveTypeWeights.Num());
+}
+
 void UGSCorruptionSubsystem::EnsureDirector()
 {
 	UWorld* World = GetWorld();
@@ -207,6 +256,16 @@ void UGSCorruptionSubsystem::EnsureDirector()
 	Params.ObjectFlags |= RF_Transient;
 	Director = World->SpawnActor<AGSCorruptionDirector>(DirectorClass, FTransform::Identity, Params);
 
+	// The look travels with the tuning asset too, so a designer retunes both ends in one place.
+	if (AGSCorruptionDirector* D = Director.Get())
+	{
+		if (TuningData)
+		{
+			D->CleanGrade = TuningData->CleanGrade;
+			D->GrittyGrade = TuningData->GrittyGrade;
+		}
+	}
+
 	if (!Director.IsValid())
 	{
 		UE_LOG(LogGSCorruption, Error,
@@ -243,8 +302,23 @@ float UGSCorruptionSubsystem::SoftKnee(float Count, float Knee)
 	return (Knee > KINDA_SMALL_NUMBER) ? (N / (N + Knee)) : 0.f;
 }
 
-float UGSCorruptionSubsystem::ObjectiveTypeWeight(const FGameplayTag& TypeTag)
+float UGSCorruptionSubsystem::ObjectiveTypeWeight(const FGameplayTag& TypeTag) const
 {
+	// The tuning asset wins when one is loaded. An unlisted tag falls back to the asset's default
+	// weight, and only then to the hardcoded table below - deliberately never to zero, because a
+	// mis-tagged objective should be CHEAP, not invisible.
+	if (TuningData)
+	{
+		if (const float* Found = TuningData->ObjectiveTypeWeights.Find(TypeTag))
+		{
+			return *Found;
+		}
+		if (TuningData->ObjectiveTypeWeights.Num() > 0)
+		{
+			return TuningData->DefaultObjectiveTypeWeight;
+		}
+	}
+
 	// THE FIX FOR RULING 42's SECOND HALF. UGSScoreSubsystem::GetDeeds() cannot drive this because
 	// any burn objective pays deeds and a hamlet has ~30 houses (GDD 12.1 row 12) - burning houses
 	// would darken the sky faster than detonating the mill. Weighting by TYPE is what stops that.

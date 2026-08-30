@@ -102,13 +102,18 @@ void AGSBurnObjectiveBase::SetObjectiveIdentity(FGameplayTag InTypeTag, FText In
 
 void AGSBurnObjectiveBase::IgniteAtLocation(const FVector& /*WorldLocation*/)
 {
-	// Base does nothing. Subclasses that accept exterior fire override; the mill deliberately
-	// does not (design doc §6.3 - "exterior fire alone won't take it").
+	// Base does nothing. Only reached at all when ContainsWorldLocation (below) says yes - a
+	// subclass overriding this alone, without also overriding ContainsWorldLocation, changes
+	// nothing about what a torch can reach (#362).
 }
 
 bool AGSBurnObjectiveBase::ContainsWorldLocation(const FVector& /*WorldLocation*/) const
 {
-	// Default: an objective owns no ground. The mill relies on this - it is window-only.
+	// Default: an objective owns no ground, and is therefore unreachable by a torch that doesn't
+	// land squarely on a piece carrying its own UGSFlammableComponent. A subclass overrides this to
+	// claim any ground of its own - see AGSMillObjective::ContainsWorldLocation for the mill's
+	// resolved-geometry-bounds version, added in #362 after IgniteAtLocation alone turned out not to
+	// be enough.
 	return false;
 }
 
@@ -128,13 +133,42 @@ AGSBurnObjectiveBase* AGSBurnObjectiveBase::FindObjectiveAtLocation(
 
 	// Objectives are a handful of actors per level, so a direct iteration beats maintaining a
 	// registry that has to survive PIE restarts and seamless travel.
+	//
+	// TWO PASSES, STRUCTURES BEFORE FIELDS (2026-08-30, #366). A field's ContainsWorldLocation is a
+	// coarse axis-aligned rectangle over its whole grid footprint - it has no idea a mill or a
+	// building happens to sit inside that rectangle, and TActorIterator's order is arbitrary, so
+	// whichever objective the level happens to construct first used to win. Measured live: a torch
+	// that visibly hit the windmill's own tower mesh - and a separate torch that hit a house -
+	// were BOTH claimed by the wheat field they happened to be standing inside, because the field
+	// was checked (and matched) before the structure ever got asked. A torch landing on a specific
+	// structure's own geometry should always resolve to that structure; the field is a diffuse,
+	// open-ground fallback and should only ever win when nothing more specific claims the point.
+	AGSBurnObjectiveBase* FieldFallback = nullptr;
 	for (TActorIterator<AGSBurnObjectiveBase> It(World); It; ++It)
 	{
 		AGSBurnObjectiveBase* Objective = *It;
-		if (Objective && !Objective->IsComplete() && Objective->ContainsWorldLocation(WorldLocation))
+		if (!Objective || Objective->IsComplete() || !Objective->ContainsWorldLocation(WorldLocation))
 		{
-			return Objective;
+			continue;
 		}
+
+		if (Objective->GetObjectiveType() == EGSBurnObjectiveType::Field)
+		{
+			// Keep the first field match as a fallback, but keep looking - a structure elsewhere
+			// in iteration order still gets first refusal on this point.
+			if (!FieldFallback)
+			{
+				FieldFallback = Objective;
+			}
+			continue;
+		}
+
+		return Objective;
+	}
+
+	if (FieldFallback)
+	{
+		return FieldFallback;
 	}
 
 	return nullptr;

@@ -23,9 +23,10 @@
 // ---------------------------------------------------------------------------------------------
 // THE IGNITION RULE (the whole point of the feature)
 //
-// A stone-and-plaster house does not catch because you held a torch to its outside wall. Like the
-// windmill - which refuses exterior fire and is reachable only through its windows - a building has
-// exactly two ways in:
+// A stone-and-plaster house does not catch because you held a torch to its outside wall. Unlike the
+// windmill (whose exterior-fire-immune rule was retired 2026-08-30, #361/#362 - it now takes a
+// torch anywhere on its own geometry), a building still refuses its walls. It has exactly two ways
+// in:
 //
 //   1. A WINDOW. Break it and the torch goes through. See UGSBreakableComponent.
 //   2. THE ROOF. Thatch and beams, lit from above.

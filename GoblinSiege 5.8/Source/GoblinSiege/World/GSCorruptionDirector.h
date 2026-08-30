@@ -42,6 +42,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Engine/Scene.h"
+#include "World/GSCorruptionDataAsset.h"
 #include "GSCorruptionDirector.generated.h"
 
 class ASkyAtmosphere;
@@ -50,54 +51,9 @@ class ADirectionalLight;
 class ASkyLight;
 class APostProcessVolume;
 
-/**
- * One end of the post-process arc. Both ends are EditAnywhere so a BP subclass - or stage 4's
- * DA_Corruption_Default - can retune the whole look without a rebuild, which is the standing rule
- * for anything judged by eye.
- */
-USTRUCT(BlueprintType)
-struct FGSCorruptionGrade
-{
-	GENERATED_BODY()
+// FGSCorruptionGrade moved to GSCorruptionDataAsset.h in #337 - it is data, both this actor and
+// the data asset need it, and neither owns it.
 
-	/** Clean 3.0 (hazy glow over everything) -> gritty 0.35 (only hot things glow). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float BloomIntensity = 1.f;
-
-	/** Clean -0.5 (everything blooms) -> gritty 1.2 (only fire blooms). See the header. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float BloomThreshold = 0.f;
-
-	/** Clean +0.75 (overexposed) -> gritty -0.4 (murky). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float AutoExposureBias = 0.f;
-
-	/** Master multiplier only (the W of the FVector4). Clean 1.05 lush -> gritty 0.55 ashen. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float Saturation = 1.f;
-
-	/** Clean 0.90 milky -> gritty 1.25 crushed. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float Contrast = 1.f;
-
-	/** Clean 1.08 lifted blacks -> gritty 0.92 deep blacks. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float Gamma = 1.f;
-
-	/** RGB tint. Clean neutral -> gritty warm ash (1.05, 0.92, 0.85). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	FLinearColor Gain = FLinearColor::White;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float FilmGrain = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float Vignette = 0.f;
-
-	/** Chromatic aberration - clean lens 0 -> dirty lens 0.8. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grade")
-	float SceneFringe = 0.f;
-};
 
 UCLASS()
 class GOBLINSIEGE_API AGSCorruptionDirector : public AActor

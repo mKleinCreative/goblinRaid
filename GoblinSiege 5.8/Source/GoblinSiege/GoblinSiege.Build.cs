@@ -45,6 +45,11 @@ public class GoblinSiege : ModuleRules
 			// AnimGraphRuntime reasoning below, and deliberately so.
 			"AIFramework",
 
+			// The hit camera shakes (#355) derive from UPerlinNoiseCameraShakePattern, which lives in
+			// the EngineCameras PLUGIN rather than core Engine. Named here so the include resolves
+			// and the constructor links; it is an engine-default plugin so needs no .uproject entry.
+			"EngineCameras",
+
 			// AscentCombatFramework is named EXPLICITLY, and the paragraph above is wrong about why
 			// it did not need to be (#166, 2026-08-17). A transitive dependency gives you the INCLUDE
 			// PATHS, so `#include "Components/ACFDestructableComponent.h"` compiles happily - and then

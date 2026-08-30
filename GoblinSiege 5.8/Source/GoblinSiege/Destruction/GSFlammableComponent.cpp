@@ -88,7 +88,7 @@ void UGSFlammableComponent::OnRep_BurnedDown()
 	}
 }
 
-void UGSFlammableComponent::Ignite()
+void UGSFlammableComponent::Ignite(int32 InSpreadGeneration)
 {
 	// FireResistance >= 1 means "doesn't burn" (stone barracks path). A thing that already
 	// finished burning is ash and stays ash.
@@ -98,6 +98,7 @@ void UGSFlammableComponent::Ignite()
 	}
 
 	bIsBurning = true;
+	SpreadGeneration = InSpreadGeneration;
 	SecondsSinceSpreadAttempt = 0.f;
 	OnIgnited.Broadcast();
 
@@ -205,6 +206,14 @@ void UGSFlammableComponent::TrySpread()
 		return;
 	}
 
+	// Hard stop, independent of the decayed chance below - see MaxSpreadGenerations. A fire this
+	// many hops from its origin does not attempt to spread further at all, so a chain has a
+	// guaranteed maximum reach regardless of how the dice land upstream.
+	if (SpreadGeneration >= MaxSpreadGenerations)
+	{
+		return;
+	}
+
 	TArray<FOverlapResult> Overlaps;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(GSFireSpread), false, Owner);
 	Params.bReturnPhysicalMaterial = false;
@@ -258,12 +267,15 @@ void UGSFlammableComponent::TrySpread()
 			continue;
 		}
 
-		// Then the roll, biased by how flammable the neighbour is: thatch catches far more
-		// eagerly than damp timber.
-		const float Chance = SpreadChance * (1.f - Neighbour->GetFireResistance());
+		// Then the roll, biased by how flammable the neighbour is (thatch catches far more eagerly
+		// than damp timber) AND by how many hops this fire already is from its origin - diminishing
+		// returns, so a chain tapers off instead of marching indefinitely through anything
+		// flammable spaced under SpreadRadius apart (see SpreadChanceDecayPerHop).
+		const float GenerationDecay = FMath::Pow(SpreadChanceDecayPerHop, static_cast<float>(SpreadGeneration));
+		const float Chance = SpreadChance * GenerationDecay * (1.f - Neighbour->GetFireResistance());
 		if (FMath::FRand() <= Chance)
 		{
-			Neighbour->Ignite();
+			Neighbour->Ignite(SpreadGeneration + 1);
 		}
 	}
 }

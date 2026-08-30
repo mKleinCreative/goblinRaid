@@ -67,6 +67,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Fire|Smolder")
 	void SpawnSmolder();
 
+	/**
+	 * Char a DIFFERENT actor's meshes instead of this component's own owner.
+	 *
+	 * Written for AGSMillObjective (2026-08-30): the objective owns MillMesh/SailMesh, but both are
+	 * empty placeholder components - the mill's actual visible geometry is a separate, dynamically-
+	 * resolved StaticMeshActor placed on the level (see SinkTower's own geometry search). Without
+	 * this, CacheMaterialInstances() finds zero populated material slots on the owner and char is
+	 * driven correctly (SetBurnAmount ticks 0->1, logged and confirmed) while producing no visible
+	 * effect at all - the "warning, not a crash" degrade path silently doing exactly what it is
+	 * supposed to do, for an actor it was never actually wrong to warn about.
+	 *
+	 * Re-caches immediately, because by the time an owning actor's own BeginPlay body runs (after
+	 * its `Super::BeginPlay()` call) this component's BeginPlay - and therefore its first
+	 * CacheMaterialInstances() - has ALREADY run. A caller that resolves its real geometry actor at
+	 * runtime (the mill can't know it at construction) has to be able to redirect after the fact,
+	 * not just at construction time.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Fire|FX")
+	void SetCharTargetActor(AActor* NewTarget);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -141,9 +161,8 @@ protected:
 	// --------------------------------------------------------------- smolder
 
 	/**
-	 * The "this place is burnt" marker. Soft path exactly like AGSFireVolume::FireSystem: the asset
-	 * does not exist yet, and a missing one has to degrade to "no smoke plus a warning" rather than
-	 * a load failure that takes the owning actor down with it.
+	 * The "this place is burnt" marker. Soft path, same degrade-not-crash rule as
+	 * AGSFireVolume::FireSystem: a missing/unresolvable asset costs the smoke, not the actor.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder")
 	TSoftObjectPtr<UNiagaraSystem> SmolderSystem;
@@ -200,6 +219,11 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UGSFlammableComponent> FlammableComp;
+
+	/** Set via SetCharTargetActor(). Null (the default) means "char the owner", which is correct
+	 *  for every drop-on-anything user of this component - only the mill currently overrides it. */
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> CharTargetActor;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> BurnMIDs;

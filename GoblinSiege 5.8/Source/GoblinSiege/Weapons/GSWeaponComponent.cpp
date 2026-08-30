@@ -5,6 +5,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SkinnedAsset.h" // GetSkinnedAsset() in the missing-socket log line names the mesh
 #include "GameFramework/Character.h"
@@ -483,6 +485,7 @@ void UGSWeaponComponent::EquipWeapon(UGSWeaponDataAsset* NewWeapon)
 	bRangedMeshResolveFailed = false;
 	bQuiverMeshResolveFailed = false;
 	bHeldTorchMeshResolveFailed = false;
+	bHeldTorchFlameResolveFailed = false;
 	WarnedMissingSockets.Reset();
 
 	// Stats and abilities FIRST, visuals second, and that order is deliberate: the mesh work below
@@ -781,6 +784,8 @@ void UGSWeaponComponent::SetTorchReadied(bool bNewReadied)
 	{
 		EnsureWeaponMeshComponent(HeldTorchMeshComponent, EquippedWeapon->HeldTorchMesh,
 			bHeldTorchMeshResolveFailed, TEXT("held torch"));
+		EnsureWeaponFXComponent(HeldTorchFlameFXComponent, EquippedWeapon->HeldTorchFlameSystem,
+			bHeldTorchFlameResolveFailed, TEXT("held torch flame"));
 	}
 
 	if (HeldTorchMeshComponent)
@@ -792,6 +797,21 @@ void UGSWeaponComponent::SetTorchReadied(bool bNewReadied)
 		{
 			AttachWeaponMeshToSocket(HeldTorchMeshComponent, EquippedWeapon->HeldTorchSocket,
 				EquippedWeapon->HeldTorchMeshOffset);
+		}
+	}
+
+	if (HeldTorchFlameFXComponent)
+	{
+		// Deactivate rather than destroy, matching the mesh above - same prop, same reasoning.
+		if (bTorchReadied && EquippedWeapon)
+		{
+			AttachWeaponFXToSocket(HeldTorchFlameFXComponent, EquippedWeapon->HeldTorchSocket,
+				EquippedWeapon->HeldTorchFlameOffset);
+			HeldTorchFlameFXComponent->Activate(true);
+		}
+		else
+		{
+			HeldTorchFlameFXComponent->Deactivate();
 		}
 	}
 }
@@ -880,6 +900,8 @@ void UGSWeaponComponent::RebuildWeaponMeshes()
 	{
 		EnsureWeaponMeshComponent(HeldTorchMeshComponent, EquippedWeapon->HeldTorchMesh,
 			bHeldTorchMeshResolveFailed, TEXT("held torch"));
+		EnsureWeaponFXComponent(HeldTorchFlameFXComponent, EquippedWeapon->HeldTorchFlameSystem,
+			bHeldTorchFlameResolveFailed, TEXT("held torch flame"));
 	}
 
 	// Same for a horn that is up when the weapon changes. Rarer than the torch case - you cannot
@@ -961,6 +983,20 @@ void UGSWeaponComponent::RefreshWeaponMeshPlacement()
 		AttachWeaponMeshToSocket(HeldTorchMeshComponent, EquippedWeapon->HeldTorchSocket,
 			EquippedWeapon->HeldTorchMeshOffset);
 		HeldTorchMeshComponent->SetVisibility(bTorchReadied, true);
+	}
+
+	if (HeldTorchFlameFXComponent)
+	{
+		AttachWeaponFXToSocket(HeldTorchFlameFXComponent, EquippedWeapon->HeldTorchSocket,
+			EquippedWeapon->HeldTorchFlameOffset);
+		if (bTorchReadied)
+		{
+			HeldTorchFlameFXComponent->Activate(true);
+		}
+		else
+		{
+			HeldTorchFlameFXComponent->Deactivate();
+		}
 	}
 }
 
@@ -1082,6 +1118,95 @@ void UGSWeaponComponent::AttachWeaponMeshToSocket(UStaticMeshComponent* MeshComp
 	MeshComp->SetRelativeTransform(Offset);
 }
 
+UNiagaraComponent* UGSWeaponComponent::EnsureWeaponFXComponent(TObjectPtr<UNiagaraComponent>& Slot,
+	const TSoftObjectPtr<UNiagaraSystem>& SoftSystem, bool& bResolveFailedLatch, const TCHAR* SlotLabel)
+{
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return nullptr;
+	}
+
+	// Same contract as EnsureWeaponMeshComponent: unset is legal and silent (most weapon FX slots
+	// will never be authored), only a set-but-unresolvable path warns.
+	if (SoftSystem.IsNull())
+	{
+		if (Slot)
+		{
+			Slot->DestroyComponent();
+			Slot = nullptr;
+		}
+		return nullptr;
+	}
+
+	if (bResolveFailedLatch)
+	{
+		return nullptr;
+	}
+
+	UNiagaraSystem* System = SoftSystem.LoadSynchronous();
+	if (!System)
+	{
+		bResolveFailedLatch = true;
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] %s: the %s FX system (%s) could not be loaded - this goblin will "
+				 "carry that prop with no flame. Everything else about the weapon is unaffected."),
+			*Owner->GetName(), SlotLabel, *SoftSystem.ToString());
+		if (Slot)
+		{
+			Slot->DestroyComponent();
+			Slot = nullptr;
+		}
+		return nullptr;
+	}
+
+	if (!Slot)
+	{
+		Slot = NewObject<UNiagaraComponent>(Owner);
+		if (!Slot)
+		{
+			return nullptr;
+		}
+		Slot->bAutoActivate = false; // caller decides when the flame is lit, same as mesh visibility
+		Slot->SetIsReplicated(false); // cosmetic, rebuilt locally on every machine from the data asset
+		Slot->RegisterComponent();    // must precede AttachToComponent for a runtime-created component
+	}
+
+	Slot->SetAsset(System);
+	return Slot;
+}
+
+void UGSWeaponComponent::AttachWeaponFXToSocket(UNiagaraComponent* FXComp, FName SocketName,
+	const FTransform& Offset)
+{
+	if (!FXComp)
+	{
+		return;
+	}
+
+	ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+	USkeletalMeshComponent* OwnerMesh = OwnerCharacter ? OwnerCharacter->GetMesh() : nullptr;
+	if (!OwnerMesh)
+	{
+		return;
+	}
+
+	// Socket validation mirrors AttachWeaponMeshToSocket, but does NOT re-warn: the mesh on the same
+	// socket already logged it once via WarnedMissingSockets, and a second identical warning from
+	// the flame attaching a frame later would just be noise about the same missing socket.
+	const bool bSocketExists = !SocketName.IsNone() && OwnerMesh->DoesSocketExist(SocketName);
+	USceneComponent* AttachParent = bSocketExists ? Cast<USceneComponent>(OwnerMesh)
+												  : OwnerCharacter->GetRootComponent();
+	if (!AttachParent)
+	{
+		return;
+	}
+
+	FXComp->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetIncludingScale,
+		bSocketExists ? SocketName : NAME_None);
+	FXComp->SetRelativeTransform(Offset);
+}
+
 void UGSWeaponComponent::DestroyWeaponMeshes()
 {
 	// Explicit rather than a loop over an array: four named slots is fewer moving parts than a
@@ -1090,6 +1215,7 @@ void UGSWeaponComponent::DestroyWeaponMeshes()
 	if (RangedMeshComponent)    { RangedMeshComponent->DestroyComponent();    RangedMeshComponent = nullptr; }
 	if (QuiverMeshComponent)    { QuiverMeshComponent->DestroyComponent();    QuiverMeshComponent = nullptr; }
 	if (HeldTorchMeshComponent) { HeldTorchMeshComponent->DestroyComponent(); HeldTorchMeshComponent = nullptr; }
+	if (HeldTorchFlameFXComponent) { HeldTorchFlameFXComponent->DestroyComponent(); HeldTorchFlameFXComponent = nullptr; }
 	if (HornMeshComponent)      { HornMeshComponent->DestroyComponent();      HornMeshComponent = nullptr; }
 
 	bTorchReadied = false;

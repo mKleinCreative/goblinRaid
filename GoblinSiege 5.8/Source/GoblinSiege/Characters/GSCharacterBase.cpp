@@ -4,6 +4,8 @@
 #include "ACFStatisticsSet.h"
 #include "Components/ACFDamageHandlerComponent.h"
 #include "Components/ACFTeamComponent.h"
+// ApplyMoveSpeed reads the current locomotion band off this rather than a stale BeginPlay snapshot.
+#include "Components/ACFCharacterMovementComponent.h"
 #include "Combat/GSACFDamageCalculation.h"
 #include "ACFAttributeSet.h"
 #include "ACFPrimaryAttributeSet.h"
@@ -300,10 +302,91 @@ void AGSCharacterBase::ApplyMoveSpeed()
 		return;
 	}
 
-	// UGSAttributeSetBase::PreAttributeChange clamps this to [0.1, 3.0], so a stack of slows can
-	// never hard-freeze a character.
-	MoveComp->MaxWalkSpeed = BaseWalkSpeed * AbilitySystemComponent->GetNumericAttribute(
+	// UGSAttributeSetBase::PreAttributeChange clamps this to [0.1, 6.0], so a stack of slows can
+	// never hard-freeze a character and the dodge's speed lift has headroom.
+	const float Multiplier = AbilitySystemComponent->GetNumericAttribute(
 		UGSAttributeSetBase::GetMoveSpeedMultiplierAttribute());
+
+	// ---- WHOSE NUMBER IS THE BASE? (#352) ------------------------------------------------------
+	//
+	// BaseWalkSpeed is a ONE-TIME snapshot taken in BeginPlay. For a character whose ACF locomotion
+	// bands are armed that snapshot is not just stale, it is actively wrong: ACF applies its
+	// DefaultState (EJog) during init, so the snapshot captures the JOG speed - 606.3 on the guards -
+	// and then every ApplyMoveSpeed overwrites whatever band the AI state machine just selected.
+	//
+	// #334 armed the bands and proved the state machine works (AIState.Wait drove MaxWalkSpeed to 0,
+	// which only the EIdle band can do), but Patrol and Combat both still measured 606.3 - patrol was
+	// indistinguishable from combat. This is that defect: ACF wrote Walk 280.1 and we immediately
+	// overwrote it with a jog snapshot.
+	//
+	// So when bands exist, the CURRENT BAND is the base and the multiplier modifies it. ACF owns the
+	// walk/jog/sprint decision; the attribute owns slows and buffs. Two authorities, one field, and a
+	// clear order of precedence instead of a race.
+	//
+	// The player is unaffected: UGSCharacterMovementComponent disarms its bands by default
+	// (bDisarmLocomotionStates, #334), so LocomotionStates is empty, this branch is skipped, and the
+	// snapshot path behaves exactly as before - including the dodge's speed-cap lift.
+	float Base = BaseWalkSpeed;
+	if (UACFCharacterMovementComponent* ACFMove = Cast<UACFCharacterMovementComponent>(MoveComp))
+	{
+		// "Are the bands armed?" asked WITHOUT touching LocomotionStates, which is protected.
+		// GetCharacterMaxSpeedByState returns 0 for a state that is not in the table, and a real
+		// Jog band is never 0 - so a positive Jog speed means the table exists. On a disarmed
+		// character every state answers 0 and we fall through to the snapshot, which is exactly the
+		// old behaviour.
+		const bool bBandsArmed = ACFMove->GetCharacterMaxSpeedByState(ELocomotionState::EJog) > 0.f;
+		if (bBandsArmed)
+		{
+			// TARGET, not CURRENT. `GetCurrentLocomotionState()` is driven by `HandleStateChanged`,
+			// which sits downstream of `UpdateLocomotion` - and that is gated on the mesh having a
+			// UACFAnimInstance (ACFCharacterMovementComponent.cpp:189). No Goblin Siege AnimBP is
+			// one (`ABP_Human` is a plain Engine.AnimInstance, gs-locomotion-bands SKILL.md §2), so
+			// `currentLocomotionState` is frozen at EIdle forever. Reading it here would resolve to
+			// the Idle band, 0, and pin MaxWalkSpeed to zero - every armed character standing still
+			// for the rest of the raid. `targetLocomotionState` is what `UpdateMaxSpeed` actually
+			// keeps current, and it is what selected the speed in the first place.
+			Base = ACFMove->GetCharacterMaxSpeedByState(ACFMove->GetTargetLocomotionState());
+		}
+	}
+
+	MoveComp->MaxWalkSpeed = Base * Multiplier;
+}
+
+void AGSCharacterBase::ApplyHitstop(float Seconds, float Scale)
+{
+	UWorld* World = GetWorld();
+	if (!World || Seconds <= 0.f)
+	{
+		return;
+	}
+
+	const bool bAlreadyFrozen = CachedTimeDilation >= 0.f;
+	if (!bAlreadyFrozen)
+	{
+		// First entry: this is the value we will put back. Cached exactly once per freeze - see the
+		// header for what happens if a second hit re-caches the frozen value as "normal".
+		CachedTimeDilation = CustomTimeDilation;
+	}
+
+	CustomTimeDilation = FMath::Max(0.f, Scale);
+
+	// A second hit during a stop EXTENDS it rather than restarting it: keep whichever restore is
+	// later. Restarting would make a flurry feel like one long freeze that never quite ends;
+	// ignoring the second hit would let a heavy landing mid-stop end early. The world timer is the
+	// only clock here that is not itself being dilated.
+	const float Remaining = bAlreadyFrozen ? World->GetTimerManager().GetTimerRemaining(HitstopTimer) : 0.f;
+	World->GetTimerManager().SetTimer(HitstopTimer, this, &AGSCharacterBase::RestoreTimeDilation,
+		FMath::Max(Seconds, Remaining), false);
+}
+
+void AGSCharacterBase::RestoreTimeDilation()
+{
+	if (CachedTimeDilation < 0.f)
+	{
+		return; // never frozen, or already restored
+	}
+	CustomTimeDilation = CachedTimeDilation;
+	CachedTimeDilation = -1.f;
 }
 
 bool AGSCharacterBase::IsHostileTo(const AActor* Other) const

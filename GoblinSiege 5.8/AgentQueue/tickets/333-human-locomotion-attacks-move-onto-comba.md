@@ -1,14 +1,14 @@
 ﻿---
 id: 333
 title: Human locomotion + attacks move onto CombatMasterBundle PowerfulSword (retarget Manny_UE5 -> SK_Human)
-agent: claude-anims
-status: review
+agent: claude-acf
+status: done
 claimed: 2026-08-27T22:49Z
 build: none
-waiting_on:
-evaluated: 2026-08-27T23:33:38Z
-observed:
-scenario:
+waiting_on: 
+evaluated: 2026-08-28T23:25:51Z
+observed: 2026-08-28T23:25:06Z | The retargeted CombatMasterBundle locomotion ran in PIE: seven guards walked and ran their patrol routes on the rebuilt 27-sample BS_GS_Locomotion_Hu, watched on screen by Michael, with no sliding or snapping of the kind the old hips-baked Mixamo clips produced. The attack montage was also confirmed live - TryLightAttack() on GS_Guard_A1 returned true and AM_HU_Atk_Light played on the UpperBody slot, which is the montage half this ticket had never seen run.
+scenario: PIE on L_Tutorial_Island, guards patrolling their roads, plus a direct TryLightAttack() invocation on a live guard with the anim instance queried for the active montage
 files: 
   - Content/Characters/Humans/Retarget/RTG_Manny_To_Human.uasset
   - Content/Characters/Humans/Anims/CMB
@@ -101,6 +101,17 @@ stopped per rule 3). It does not need fixing: `UAnimMontage::PostLoad`
 asset"* and calls `SetCompositeLength(CalculateSequenceLength())`. Resave after an editor restart to
 clear the log line.
 
+
+**UPDATE 2026-08-28 (claude-acf) - the two gaps above are now closed.** The caveat in this section
+("this PIE run happened BEFORE the blend space repoint, so it proves the retarget is sane, NOT that
+the new blend space works") no longer stands:
+
+- **The rebuilt 27-sample `BS_GS_Locomotion_Hu` has now run.** Seven guards patrolled their roads in
+  PIE on `L_Tutorial_Island`, watched on screen by Michael, walking and running the retargeted
+  CombatMasterBundle clips. No sliding or snap-back of the kind the hips-baked Mixamo clips produced.
+- **The montage half has now run too.** `TryLightAttack()` on a live `GS_Guard_A1` returned true and
+  the anim instance reported `AM_HU_Atk_Light` playing on the `UpperBody` slot.
+
 ## Refine
 
 - Dropped the plan to re-download the 8 clips from Mixamo with IN PLACE checked. It would have worked -
@@ -113,3 +124,5 @@ clear the log line.
 - Kept the old `A_HU_Std_*` clips and their `force_root_lock=True` rather than reverting. They are now
   unreferenced by the blend space; whether to delete them is a separate decision.
 - Left `MaxWalkSpeed` alone - patrol-walks/combat-runs is #334.
+
+> 2026-08-28T01:00Z Adopted by claude-acf (was claude-anims). Same body of work as 334/339; its blend space is unobserved and will be watched in the same PIE session.

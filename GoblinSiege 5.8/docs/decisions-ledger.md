@@ -18,6 +18,51 @@ dated, citable list.
 
 ---
 
+## 2026-08-27 — the game gets a front end, and it is ACF's
+
+Michael, asked how a main menu and the options screens should be built (#335). Three rulings, and
+the first of them reverses an answer this session had already given.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 70 | **The project gets a front end** — title screen, pause menu, settings (Video · Audio · Gameplay/Accessibility · Controls) and credits, on a dedicated menu level. Added to GDD §12.4's IN column | Closes the gap `AGENT_STATE.md:875` recorded and never fixed: *"a finished raid produced one log line and no screen, no pause, no restart."* It also moves `GameDefaultMap` off the `L_CombatArena` test map, which GDD §12.2 block D already required |
+| 71 | **It is built on ACF's UI stack** — `AscentUITools` + `AscentUINavigationSystem` on CommonUI — **not** hand-rolled UMG. Menus are spawned by `UI.Widget.*` tag through `UANSUIPlayerSubsystem`, never by widget class | ACF ships the main menu, pause menu, tabbed settings shell, all four settings pages, **a complete key-rebinding screen**, and the whole styled base-widget kit (button/slider/checkbox/spinner/combo/popup). Extends ruling 2026-08-12 (ACF adoption) to the last hand-rolled island in the project. **Key rebinding goes back into scope on the strength of it** — it was cut on 2026-08-26 as the most expensive screen to build, and it turns out to be a tab to switch on |
+| 72 | **There is no save game. A raid is atomic: you extract, or you fail and earn nothing** | No Continue, no save slots, no load flow — so ACF's `AscentSaveSystem` is linked but unused (it must stay linked: `AACFCharacter` implements `IALSSavableInterface` and our derived class needs the thunks — `GoblinSiege.Build.cs:69-77`). `UGSSaveGame` is unaffected and keeps doing the one thing it does: personal bests across sessions. Settings persist via `UPROPERTY(config)`, which is not a save game |
+
+**What ruling 71 costs, recorded before it bites.** ACF ships its plugin config in its own
+`Config/DefaultPlugins.ini`, and **those values do not reach a project's config hierarchy.** This
+project has paid for that once already: #228 found that an unreplicated
+`[/Script/AscentGASRuntime.ACFGASDeveloperSettings]` block left `HealthAttribute` empty, which meant
+`UACFGASStatisticsComponent::BindHealthDelegate` bound to nothing and **nothing in the game could
+die**. The UI blocks are still missing and fail the same way — silently, and nothing like their
+cause. `WidgetRegistryAsset` unset makes every `SpawnWidgetByTag` return null;
+`GameUserSettingsClassName` unset makes every settings widget's cast fail so the audio and gameplay
+tabs do nothing at all. **Replicating that config is stage 1 of the work and is verified by reading
+the CDOs back at runtime, not by reading the ini.**
+
+**Two ACF defects found while planning this, recorded so nobody rediscovers them.**
+
+1. **No widget-registry asset ships anywhere.** The `ui-navigation` skill says to duplicate
+   `DA_ACFWidgetRegistry` from `/Game/FullSample/`, but FullSample is not installed here, and a
+   content grep for `ANSUIWidgetRegistryDataAsset` across the entire plugin returns zero instances.
+   The registry must be **authored from scratch**; ACF's shipped ini value is a dangling reference.
+2. **`UAUTUIFunctionLibrary::SetSoundClassVolume` writes into the `USoundClass` asset** —
+   `TargetClass->Properties.Volume = NewVolume;`, no sound mix, no override — so ACF's audio sliders
+   dirty the sound assets in the editor and cannot be layered or reverted. **We keep ACF's widgets
+   and replace its application**, pushing volumes through `SetSoundMixClassOverride` on
+   `SMix_GS_Base`, which #249 built for exactly this. Note also that `AudioVolumeLevels` is a bare
+   `TArray<float>` indexed **positionally** against `AUTDeveloperSettings.DefaultSoundClasses` — so
+   the order of that ini array is a load-bearing contract and reordering it silently reassigns every
+   saved volume.
+
+**What this does NOT decide.** Gamepad navigation is keyboard/mouse-first for now — ACF's stack makes
+that a later switch rather than a rewrite. The raid HUD (`WBP_GSPlayerHUD`, 2,089 lines) is **docked
+onto `UI.Layer.HUD` unchanged**, not re-authored onto `UAUT*` widgets; that restyle is a later,
+optional pass. And ACF's `ANS_RadialMenu` / `UAUTRadialMenu` are noted as prior art for the two
+hand-built wheels (#039–#041) — icebox, not this work.
+
+---
+
 ## 2026-08-24 — atrocity corrupts faster than battle (world corruption, cont.)
 
 Michael, asked whether a civilian death should turn the land as much as a soldier's now that

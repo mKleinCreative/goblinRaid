@@ -212,16 +212,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 331 | active **STALE 2.5h** | unassigned | Defenders never start patrolling: TargetLocation seeds to homeLocation so the first MoveTo is a no-op | - | none |
-| 333 | review | claude-anims | Human locomotion + attacks move onto CombatMasterBundle PowerfulSword (retarget Manny_UE5 -> SK_Human) | Content/Characters/Humans/Retarget/RTG_Manny_To_Human.uasset<br>Content/Characters/Humans/Anims/CMB<br>Content/Characters/Humans/Anims/BS_GS_Locomotion_Hu.uasset<br>Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Light.uasset<br>Content/Characters/Humans/Anims_Combat/AM_HU_Atk_Heavy.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkF.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkB.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkL.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_WalkR.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunF.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunB.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunL.uasset<br>Content/Characters/Humans/Anims/A_HU_Std_RunR.uasset | none |
-| 334 | review (waiting on: run-half unobserved: needs a real fight in PIE to see AIState.Combat drive the Jog band) | claude-anims | Locomotion states: stop disarming ACF bands for AI so Patrol walks and Combat runs | Source/GoblinSiege/Characters/GSCharacterMovementComponent.h<br>Source/GoblinSiege/Characters/GSCharacterMovementComponent.cpp<br>Content/Blueprints/Adversaries/BP_CastleGuard01.uasset<br>Content/Blueprints/Adversaries/BP_CastleGuard02.uasset<br>Content/AI/BP_GSAIController_Militia.uasset | required |
-| 335 | review (waiting on: Michael: needs an EDITOR RESTART (ini is read at startup), then one Python round-trip to read the CDOs back - GetGameUserSettings class name must be AUT_GameSettings_BP_C not GameUserSettings, GetTheme non-null, GetDefaultSoundClasses six SC_GS_* entries in order. Nothing here has run.) | claude-frontend | Front-end stage 1: the ruling, and ACF UI config reaches the project | docs/goblin-siege-gdd.md<br>docs/decisions-ledger.md<br>Config/DefaultPlugins.ini<br>Config/DefaultEngine.ini<br>Config/DefaultGame.ini<br>Config/DefaultInput.ini<br>Config/DefaultGameUserSettings.ini | none |
-| 337 | review (waiting on: NOT COMPILED, and DA_Corruption_Default is not authored yet - the next build will run the missing-asset warning path, which is the expected result. Needs: editor-closed build, then an editor session to create the asset at /Game/Data/World/, then PIE to confirm the Tuning from... log line replaces the No corruption tuning asset warning.) | claude-corruption | Stage 4 - UGSCorruptionDataAsset: weights, knees, curves and both grade ends leave C++ | Source/GoblinSiege/World/GSCorruptionDataAsset.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.h<br>Source/GoblinSiege/World/GSCorruptionSubsystem.cpp<br>Source/GoblinSiege/World/GSCorruptionDirector.h<br>Source/GoblinSiege/World/GSCorruptionDirector.cpp | required |
-| 338 | review (waiting on: NOT COMPILED - gate closed by 331/333/334/335/337. Then PIE and type GS.Corruption.Debug 1: a coloured bar and the per-term lines should sit on screen and MOVE as things burn, without typing Dump.) | claude-corruption | GS.Corruption.Debug - the live on-screen bar the plan specified and stage 1 never built | Source/GoblinSiege/World/GSCorruptionDebugCommands.cpp | required |
-| 339 | blocked (waiting on: NOT COMPILED - session ended before the build. See AgentQueue/HANDOFF-2026-08-27-B.md) | claude-anims | #331 fix: call ACF StartPatrolLoop on possess so placed guards seed their own patrol | Source/GoblinSiege/AI/GSAIControllerBase.h<br>Source/GoblinSiege/AI/GSAIControllerBase.cpp | required |
-| 340 | queued | claude-skills | Mine ACF FullExample for wiring our 40 skill packs do not cover, emit GS-specific skills | .claude/skills | none |
+| 370 | active | claude-fire | Fire visual: scale pooled field fire volumes to overlap along the burn front | Source/GoblinSiege/Destruction/GSFireVolume.cpp | none |
+| 371 | active | claude-fire | Raise field MaxFireVolumes to close visible gaps between fire patches | Source/GoblinSiege/Destruction/GSFieldFireObjective.h | none |
 
-**BUILD GATE: CLOSED - 8 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -557,8 +551,47 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 328 | done | claude-crumble | Treeline generator: regenerate the GS_ForestWall treeline as a repeatable level-building command |
 | 329 | done | claude-crumble | Road network as splines: GS_Road/GS_Junction actors, ACF spline-following, and a Road Tools panel |
 | 330 | done | claude-crumble | Defenders AI content moves onto ACF: ACF blackboard, ACF behaviour tree, ACF patrol/combat components |
+| 331 | done | claude-acf | Defenders never start patrolling: TargetLocation seeds to homeLocation so the first MoveTo is a no-op |
 | 332 | done | claude-corruption | World corruption handoff: fold stages 0-3 into AGENT_STATE so the next session does not rediscover them |
+| 333 | done | claude-acf | Human locomotion + attacks move onto CombatMasterBundle PowerfulSword (retarget Manny_UE5 -> SK_Human) |
+| 334 | done | claude-acf | Locomotion states: stop disarming ACF bands for AI so Patrol walks and Combat runs |
+| 335 | done **UNOBSERVED** | claude-frontend | Front-end stage 1: the ruling, and ACF UI config reaches the project |
 | 336 | abandoned | claude-corruption | Stage 4 - UGSCorruptionDataAsset: weights, knees, curves and both grade ends leave C++ |
+| 337 | done | claude-acf | Stage 4 - UGSCorruptionDataAsset: weights, knees, curves and both grade ends leave C++ |
+| 338 | done | claude-acf | GS.Corruption.Debug - the live on-screen bar the plan specified and stage 1 never built |
+| 339 | done | claude-acf | #331 fix: call ACF StartPatrolLoop on possess so placed guards seed their own patrol |
+| 340 | done | claude-skills | Mine ACF FullExample for wiring our 40 skill packs do not cover, emit GS-specific skills |
+| 341 | done | claude-acf | Fix GS_Road C_13: spline points float above the navmesh so 5 guards deadlock on point [2] |
+| 342 | done | claude-corruption | Icebox world corruption: free the gate, record where stages 4-6 stand and what is unbuilt in the tree |
+| 343 | done | claude-combat | Defenders cannot attack: ACF CombatBehaviour unconfigured after #330 (BT_Militia/BT_Archer orphaned) |
+| 344 | done | claude-combat | Defender ability set: humans need an ACF AbilitySet so CanExecuteAbility resolves (supplement to 343) |
+| 345 | done | claude-combat | Rune stage 1: light attack fires on press, heavy moves to a short hold, dodge travels and grants i-frames, plate deflect reads as a deflect |
+| 346 | done | claude-combat | Editor crashes on Play: Knight/Archer/Brawler archetype rows still assign BT_Militia/BT_Archer, whose 5-key BB_Human collides with ACF's cached 13-key blackboard indices |
+| 347 | done | claude-combat | Guard AGSAIControllerBase::OnPossess against swapping ACF's blackboard out from under its cached key indices (supplement to 346) |
+| 348 | done | claude-combat | Raise the MoveSpeedMultiplier ceiling from 3 to 6 so the dodge roll can exceed 3x walk speed (supplement to 345) |
+| 349 | done | claude-combat | Rune stage 2: real melee hit detection - replace the overlap sweep with a swept trace carrying bone name, impact point and physical material |
+| 350 | done | claude-combat | Attacking in mid-air freezes the goblin: root-motion montages override gravity - ignore root motion while falling so jump-attacks work |
+| 351 | done | claude-combat | Impact FX: add UACMEffectsDispatcherComponent to AGSGameState and author an impacts FX data asset so PlayImpactEffect has something to play through |
+| 352 | done | claude-combat | Locomotion bands: ApplyMoveSpeed clobbers the band with a stale BaseWalkSpeed snapshot, and Knight/Archer/Civilian still disarm their bands entirely |
+| 353 | done | claude-combat | Rune stage 2: hitstop - a brief time-dilation dip on attacker and victim when a swing connects, scaled by the weight of the blow |
+| 354 | done | claude-combat | Archers do not shoot: they share the melee-only combat behaviour, so give them native Actions.Defender.* tags, a ranged behaviour asset and their own controller |
+| 355 | done | claude-combat | Rune stage 2 close-out: camera shake on the player's landed hits, and a deflect cue when a knight's plate turns a blow aside |
+| 356 | abandoned | claude-anim | Horn blast raise: slerp arm ramp into confirmed frame-29 hold pose |
+| 357 | done | claude-fire | Held-torch flame: attach TorchFire Niagara to HeldTorchMeshComponent |
+| 358 | done | claude-fire2 | Fire ground work: replace N_MeteorSpawn with a real fire system |
+| 359 | done | claude-fire | Wire GS_CrumbleDemo_House to burn and crumble; add UGSCrumbleComponent auto-crumble-on-burn |
+| 360 | done | claude-fire | Windmill sink fails silently: MillGeometryNameFilter case-sensitive mismatch against SM_WIndmill_Base |
+| 361 | done | claude-fire | Mill: exterior-fire-immune rule retired, char redirected to real geometry |
+| 362 | done | claude-fire | Mill exterior fire still unreachable: ContainsWorldLocation never overridden |
+| 363 | done | claude-fire | Wheat burn char: fix disconnected CharMask, add height-based chaff/stalk mask |
+| 364 | done | claude-fire | Fire spread: add diminishing-returns hop decay + hard cap to stop unbounded chain spread |
+| 365 | done | claude-fire | Windmill draw distance: base/roof/sail cull inconsistently, roof invisible from a distance |
+| 366 | done | claude-fire | Instrument AGSTorchProjectile::OnProjectileHit to diagnose mill exterior-ignite difficulty |
+| 367 | done | claude-fire | Field objectives were intercepting torch hits meant for structures - fix FindObjectiveAtLocation priority |
+| 368 | done | claude-fire | Debris damage: released crumble pieces can kill on high-impulse collision |
+| 369 | done | claude-fire | Wire debris damage on to mill/building crumble |
+| 372 | abandoned | claude-fire | Fire visual: per-instance random seed offset to break the stamped-copy look |
+| 373 | abandoned | claude-fire | Test swap: Niagara Fluids fire system for field fire volumes |
 
 <!-- BOARD:END -->
 

@@ -19,6 +19,7 @@
 class UGameplayEffect;
 class UGameplayAbility;
 class UStaticMesh;
+class UNiagaraSystem;
 
 UCLASS(BlueprintType)
 class GOBLINSIEGE_API UGSWeaponDataAsset : public UPrimaryDataAsset
@@ -263,6 +264,19 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
 	FTransform HeldTorchMeshOffset;
+
+	/**
+	 * The flame at the head of the held torch. Soft and optional, same degrade-not-crash rule as
+	 * every other FX reference in this project (see AGSFireVolume::FireSystem): a missing system
+	 * costs the flame, not the torch - the mesh alone is still a legible held prop.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
+	TSoftObjectPtr<UNiagaraSystem> HeldTorchFlameSystem;
+
+	/** Offset from HeldTorchSocket to the flame. Separate from HeldTorchMeshOffset on purpose - the
+	 *  flame sits at the torch's burning tip, which is almost never the mesh's own pivot. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GoblinSiege|Weapon|Visual")
+	FTransform HeldTorchFlameOffset;
 
 	/**
 	 * The war-horn prop (GDD 2.3 "universal kit, every class").

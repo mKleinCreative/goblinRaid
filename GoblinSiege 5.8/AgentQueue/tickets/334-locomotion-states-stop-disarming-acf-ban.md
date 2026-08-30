@@ -1,14 +1,14 @@
 ﻿---
 id: 334
 title: Locomotion states: stop disarming ACF bands for AI so Patrol walks and Combat runs
-agent: claude-anims
-status: review
+agent: claude-acf
+status: done
 claimed: 2026-08-27T23:26Z
 build: required
-waiting_on: run-half unobserved: needs a real fight in PIE to see AIState.Combat drive the Jog band
-evaluated: 2026-08-28T00:40:25Z
-observed: 2026-08-28T00:20:51Z | Guards patrol at a 280.1uu/s cap instead of the old flat 450 - GS.AI.LogLocomotion 8 reported maxspd 280 on three moving guards, and MaxWalkSpeed followed AIState.Patrol to the Walk band on its own via ACF UpdateLocomotionState, with LocomotionStates surviving BeginPlay (was empty before the build)
-scenario: PIE L_Tutorial_Island, 7 placed castle guards patrolling GS_Road splines after StartPatrolLoop, post-build with disarm_locomotion_states=false on both guard BPs
+waiting_on: 
+evaluated: 2026-08-28T23:25:58Z
+observed: 2026-08-28T22:11:29Z | RUN HALF OBSERVED at last, in a real fight (GS.Horde.SpawnTest then GS.Raid.GotoActor to bring goblins to the guards). Three guards moved Patrol->Combat->Wait: A1 Combat@253s, A2 @259s, A3 @266s. The state machine works. BUT the band reads 606.3 in BOTH Patrol and Combat, so patrol is indistinguishable from combat. Wait->spd 0 DID apply, which proves LocomotionStateByAIState itself is working and pins the fault on the BaseWalkSpeed=606.3 jog snapshot: Patrol writes Walk 280.1 and ApplyMoveSpeed immediately overwrites it with BaseWalkSpeed x multiplier.
+scenario: PIE on L_Tutorial_Island, 22:09, tick sampler recording every AI-state change with the movement components MaxWalkSpeed at that instant, across all 7 guards for ~70s of live combat
 files: 
   - Source/GoblinSiege/Characters/GSCharacterMovementComponent.h
   - Source/GoblinSiege/Characters/GSCharacterMovementComponent.cpp
@@ -83,6 +83,27 @@ a state change is inferred from reading `ACFAIController.cpp`, not watched.
 a crash. Do not call it to repopulate bands; set the `LocomotionStates` array directly, which is
 `BlueprintReadWrite`.
 
+
+**UPDATE 2026-08-28 (claude-acf) - compiled, and the run half is now OBSERVED.** The refusal above
+("nothing has been compiled... no guard has been seen walking on patrol and running in combat") is
+superseded:
+
+- Built into the 18:15 DLL. `bDisarmLocomotionStates` exists and is cleared on both guard Blueprints.
+- **Real fight watched** (`GS.Horde.SpawnTest` + `GS.Raid.GotoActor` to bring goblins to the guards):
+  three guards moved Patrol -> Combat -> Wait. A1 Combat@253s, A2 @259s, A3 @266s.
+- **The map DOES select the band on a state change** - the thing this section said was inferred from
+  reading `ACFAIController.cpp` rather than watched. `AIState.Wait` drove `MaxWalkSpeed` to **0**,
+  which only the `EIdle` band can do.
+- **But Patrol and Combat both read 606.3**, so patrol is indistinguishable from combat. Cause
+  isolated: `GSCharacterBase::BeginPlay` (`:235-237`) snapshots `BaseWalkSpeed` AFTER ACF applies
+  `DefaultState` EJog, capturing 606.3, and `ApplyMoveSpeed` (`:305`) then overwrites Patrol's Walk
+  280.1 with `BaseWalkSpeed x multiplier`. Wait's 0 survives only because nothing re-triggers
+  `ApplyMoveSpeed` after it.
+
+**Closing as observed on Michael's call.** The band-selection mechanism this ticket set out to turn on
+is working; the remaining `BaseWalkSpeed` ordering defect is a separate C++ fix and needs its own
+ticket and a build.
+
 ## Refine
 
 - Chose the opt-out flag over "skip the disarm when the owner is AI-controlled" because at `BeginPlay`
@@ -96,3 +117,5 @@ a crash. Do not call it to repopulate bands; set the `LocomotionStates` array di
   cannot close until it is built AND a guard has been watched walking a patrol and breaking into a run.
 - Untouched but noted: `GSAIControllerBase.h:13-16` still carries the same stale "our RunBehaviorTree
   calls remain load-bearing" claim, false since Phase 2a. Not mine to edit under this ticket.
+
+> 2026-08-28T01:00Z Adopted by claude-acf (was claude-anims). Michael reassigned: this session has the 40 ACF skill packs listed, the previous one did not.

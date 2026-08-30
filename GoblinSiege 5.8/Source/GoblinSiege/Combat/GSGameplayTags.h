@@ -97,6 +97,31 @@ namespace GSTags
 	 *  montage edit per weapon per skeleton. The per-stage WindupSeconds already IS this window. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking_Windup);
 
+	// ---- ACF action tags for AI (#353) --------------------------------------------------------
+	//
+	// ACF drives an AI's attacks by TAG: UACFCombatBehaviourComponent picks an FActionChances row
+	// and calls TriggerAction(ActionTag), and UACFAbilitySet resolves that tag to an ability class
+	// by stamping it as a dynamic spec source tag at grant time. The tag is the whole contract.
+	//
+	// #343 reused State.Attacking for this because it was the only registered tag GA_HU_SwordLight
+	// already carried, and it worked - but it was a stopgap. State.* tags describe what a character
+	// IS DOING; these describe what an AI may be TOLD TO DO, and conflating them meant the bow could
+	// never be addressed at all (there was no second State.* tag to borrow). ACF's own sample uses an
+	// Actions.* namespace for exactly this, but declares those tags only in the sample project, so
+	// Actions.Attack and friends resolve to nothing here. These are ours.
+	//
+	// Native rather than ini so they exist without an editor restart cycle and cannot be silently
+	// dropped by a config merge - the same reasoning as every other tag in this file.
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Actions_Defender_Melee);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Actions_Defender_Ranged);
+
+	/** Momentary: the last hit this character DEALT was turned aside by plate (#355). Held for one
+	 *  frame by the damage calculation so the swing that caused it can read the verdict back after
+	 *  ApplyGameplayEffectSpecToTarget returns - the calc runs INSIDE the swing's sweep loop and may
+	 *  not call back into the ability, so a loose tag is the channel. Same shape as State.Recoil for
+	 *  a blocked swing, minus the punish: plate refuses the blow, it does not open the attacker. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_LastHitDeflected);
+
 	/** Your swing was turned aside by a guard, and you are open.
 	 *
 	 *  Applied to the ATTACKER when UGSDamageExecCalculation resolves a hit as blocked. Blocks both

@@ -716,6 +716,12 @@ void AGSBuildingObjective::CrumblePieces()
 		// ("it didn't have the char on it") and it is the identical bug here.
 		Crumble->CharAmountOnRelease = 1.f;
 
+		// A collapsing roof/wall should be able to kill, same reasoning as the mill's falling cap
+		// (2026-08-30, Michael: "can we have it so the flying geometry causes death?"). This ring's
+		// own shove magnitude (CollapseShoveMagnitude, default 5,000,000) is well clear of
+		// UGSCrumbleComponent's damage floor.
+		Crumble->bEnableDamageFromCollision = true;
+
 		if (Crumble->Crumble(FVector::ZeroVector, Proxy->GetActorLocation()))
 		{
 			++Released;

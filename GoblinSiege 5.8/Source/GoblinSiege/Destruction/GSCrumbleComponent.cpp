@@ -14,6 +14,12 @@
 #include "TimerManager.h"
 #include "HAL/IConsoleManager.h"
 #include "UObject/UObjectIterator.h"
+#include "Destruction/GSFlammableComponent.h"
+#include "Combat/GSGE_WeaponDamage.h"
+#include "Combat/GSGameplayTags.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "GameplayEffect.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSCrumble, Log, All);
 
@@ -21,6 +27,12 @@ UGSCrumbleComponent::UGSCrumbleComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+
+	// C++ default, same reasoning as AGSFireVolume::FireDamageEffectClass - a hazard's damage GE is
+	// not worth a content asset a designer could silently unassign, and a C++ default can't go
+	// missing from a content folder. UGSGE_WeaponDamage bakes no Damage.* tag of its own by design
+	// (see its header) - HandlePieceCollision supplies Damage.Blast, same as any other non-fire hit.
+	DebrisDamageEffectClass = UGSGE_WeaponDamage::StaticClass();
 }
 
 void UGSCrumbleComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -55,6 +67,26 @@ void UGSCrumbleComponent::BeginPlay()
 			TEXT("the actor (or bStaticMeshReplicateMovement on a StaticMeshActor)."),
 			*Owner->GetName());
 	}
+
+	if (bAutoCrumbleOnBurnedDown)
+	{
+		if (UGSFlammableComponent* Flammable = Owner->FindComponentByClass<UGSFlammableComponent>())
+		{
+			Flammable->OnBurnedDown.AddDynamic(this, &UGSCrumbleComponent::HandleBurnedDown);
+		}
+		else
+		{
+			UE_LOG(LogGSCrumble, Warning,
+				TEXT("[GoblinSiege] '%s' has bAutoCrumbleOnBurnedDown set but no UGSFlammableComponent ")
+				TEXT("- nothing will ever call Crumble()."),
+				*Owner->GetName());
+		}
+	}
+}
+
+void UGSCrumbleComponent::HandleBurnedDown()
+{
+	Crumble(FVector::ZeroVector, FVector::ZeroVector);
 }
 
 UGeometryCollectionComponent* UGSCrumbleComponent::ResolveCollection() const
@@ -416,6 +448,17 @@ void UGSCrumbleComponent::ApplyRelease()
 	Collection->ObjectType = EObjectStateTypeEnum::Chaos_Object_Dynamic;
 	Collection->SetSimulatePhysics(true);
 
+	// Debris damage (2026-08-30). Opted in per-instance, off by default like the whole collapse
+	// shape above - see bEnableDamageFromCollision. Bound here, once, at release: pieces are inert
+	// (Static, no collision events) until this exact moment, so there is nothing to notify on
+	// before now, and binding once at release rather than in BeginPlay keeps a component that never
+	// crumbles at zero per-frame cost.
+	if (bEnableDamageFromCollision)
+	{
+		Collection->SetNotifyRigidBodyCollision(true);
+		Collection->OnChaosPhysicsCollision.AddDynamic(this, &UGSCrumbleComponent::HandlePieceCollision);
+	}
+
 	// DETACH, OR IT CANNOT MOVE NO MATTER WHAT ELSE IS TRUE.
 	//
 	// A collection attached to a parent scene component has its transform driven by the ATTACHMENT,
@@ -537,6 +580,77 @@ void UGSCrumbleComponent::ApplyRelease()
 			Shove.Size(), ShoveAt.X, ShoveAt.Y, ShoveAt.Z);
 
 	UE_LOG(LogGSCrumble, Log, TEXT("[GoblinSiege] '%s' released %s."), *Owner->GetName(), *How);
+}
+
+void UGSCrumbleComponent::HandlePieceCollision(const FChaosPhysicsCollisionInfo& CollisionInfo)
+{
+	// Authoritative only - every client still sees and feels the collision physically (that part is
+	// simulated locally, same as the rest of this component's multiplayer story - see the class
+	// comment), it just does not independently apply the GameplayEffect.
+	AActor* Owner = GetOwner();
+	if (!Owner || !Owner->HasAuthority())
+	{
+		return;
+	}
+
+	// Below this, a collision is rubble settling against its own neighbours, not a piece landing ON
+	// something - see MinImpulseToDamage's own comment for why that distinction has to exist at all.
+	if (CollisionInfo.AccumulatedImpulse.Size() < MinImpulseToDamage)
+	{
+		return;
+	}
+
+	UPrimitiveComponent* OtherComp = CollisionInfo.OtherComponent;
+	AActor* OtherActor = OtherComp ? OtherComp->GetOwner() : nullptr;
+	if (!OtherActor || OtherActor == Owner)
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OtherActor);
+	if (!TargetASC)
+	{
+		return; // no ASC - other debris, world geometry, non-GAS actors simply aren't damageable
+	}
+
+	if (TargetASC->HasMatchingGameplayTag(GSTags::State_Dead)
+		|| TargetASC->HasMatchingGameplayTag(GSTags::State_Invulnerable))
+	{
+		return;
+	}
+
+	if (!DebrisDamageEffectClass)
+	{
+		return;
+	}
+
+	FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+	Context.AddInstigator(Owner, Owner);
+
+	const FGameplayEffectSpecHandle SpecHandle =
+		TargetASC->MakeOutgoingSpec(DebrisDamageEffectClass, 1.f, Context);
+	if (!SpecHandle.IsValid())
+	{
+		return;
+	}
+
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (!Spec)
+	{
+		return;
+	}
+
+	// Blast, not a dedicated Damage.Debris tag - falling masonry is blunt-force trauma, and
+	// GSDamageExecCalculation already treats Damage.Blast as armor-bypassing, which is exactly right
+	// for a stone block rather than a slash or a puncture. See UGSDamageExecCalculation.
+	Spec->AddDynamicAssetTag(GSTags::Damage_Blast);
+	Spec->SetSetByCallerMagnitude(GSTags::Damage_Blast, DebrisDamage);
+
+	TargetASC->ApplyGameplayEffectSpecToSelf(*Spec);
+
+	UE_LOG(LogGSCrumble, Log,
+		TEXT("[GoblinSiege] '%s' debris hit '%s' for %.0f (impulse %.0f)."),
+		*Owner->GetName(), *OtherActor->GetName(), DebrisDamage, CollisionInfo.AccumulatedImpulse.Size());
 }
 
 void UGSCrumbleComponent::ApplyCollapseRing(UGeometryCollectionComponent* Collection)
