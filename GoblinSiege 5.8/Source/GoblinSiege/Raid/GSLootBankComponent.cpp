@@ -3,6 +3,7 @@
 #include "Raid/GSScoreSubsystem.h"
 #include "Interaction/GSCarryComponent.h"
 #include "Interaction/GSInteractableComponent.h"
+#include "Horde/GSHordeGoblin.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 
@@ -32,10 +33,11 @@ int32 UGSLootBankComponent::BankFromOverlap(AActor* Arriving)
 	}
 
 	// Pawn first. See the header: a courier is both a pawn and a loose actor, and the loose path
-	// would happily swallow the goblin.
+	// would happily swallow the goblin. Both banking paths run - a goblin can arrive carrying cargo
+	// AND holding a nonzero personal purse at the same time, and both are real points.
 	if (APawn* Pawn = Cast<APawn>(Arriving))
 	{
-		return BankCarriedLoot(Pawn);
+		return BankCarriedLoot(Pawn) + BankPersonalPurse(Pawn);
 	}
 	return BankLooseActor(Arriving);
 }
@@ -70,9 +72,72 @@ int32 UGSLootBankComponent::BankCarriedLoot(APawn* Pawn)
 	// PutDown, never a bare Destroy: going straight to Destroy leaves the carrier's attach, its
 	// move-speed effect and its replicated CarriedActor all pointing at a dead actor. PutDown is the
 	// one path that unwinds all of it. CommitBank does the destroying afterwards.
+	//
+	// PutDown()'s RestoreCarriedCollision re-enables Cargo's collision while it is still sitting
+	// inside THIS component's own trigger volume, which can synchronously re-fire this component's
+	// overlap handler for that same actor - reentrant, before this call ever reaches CommitBank
+	// below. That reentrant call takes the BankLooseActor path (the actor is already detached) and
+	// destroys Cargo a frame early, which is why the IsValid check below is load-bearing and not
+	// defensive: without it a single delivered item banked itself twice (2026-08-30, "40 banked
+	// across 2 items" for one sack).
 	Carry->PutDown();
 
+	if (!IsValid(Cargo))
+	{
+		return 0;
+	}
+
 	return CommitBank(Cargo, Value);
+}
+
+int32 UGSLootBankComponent::BankPersonalPurse(APawn* Pawn)
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || !Owner->HasAuthority() || !IsValid(Pawn))
+	{
+		return 0;
+	}
+
+	AGSHordeGoblin* Goblin = Cast<AGSHordeGoblin>(Pawn);
+	if (!Goblin)
+	{
+		return 0;
+	}
+
+	const int32 Value = Goblin->BankPersonalPurse();
+	if (Value <= 0)
+	{
+		return 0;
+	}
+
+	// Own scoring block rather than routing through CommitBank: CommitBank's log line and
+	// unconditional Cargo->Destroy() are written for a physical loot ACTOR, and there is no actor
+	// here to destroy - the goblin itself is very much still alive and still walking around.
+	if (UWorld* World = GetWorld())
+	{
+		if (UGSScoreSubsystem* Score = World->GetSubsystem<UGSScoreSubsystem>())
+		{
+			Score->AddLoot(Value);
+		}
+		else
+		{
+			UE_LOG(LogGSLootBank, Error,
+				TEXT("[GoblinSiege] %s made it home with a personal purse of %d but found no UGSScoreSubsystem - the points are gone."),
+				*Goblin->GetName(), Value);
+			return 0;
+		}
+	}
+
+	PointsBankedHere += Value;
+	++ItemsBankedHere;
+
+	UE_LOG(LogGSLootBank, Log,
+		TEXT("[GoblinSiege] %s made it back to the %s and banked its personal purse for %d loot. %d banked here across %d item(s)."),
+		*Goblin->GetName(), *BankLabel, Value, PointsBankedHere, ItemsBankedHere);
+
+	OnLootBanked.Broadcast(Goblin, Value);
+
+	return Value;
 }
 
 int32 UGSLootBankComponent::BankLooseActor(AActor* Actor)

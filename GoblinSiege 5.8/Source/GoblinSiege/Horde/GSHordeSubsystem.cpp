@@ -6,12 +6,16 @@
 #include "Characters/GSCharacterBase.h"
 #include "Combat/GSEngagementComponent.h"
 #include "Combat/GSGameplayTags.h"
+#include "Destruction/GSBreakableComponent.h"
+#include "Interaction/GSInteractableComponent.h"
 #include "Raid/GSRaidMarker.h"
 #include "Raid/GSRaidLibrary.h"
 #include "Raid/GSRunicSite.h"
 #include "Raid/GSWarren.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "Engine/OverlapResult.h"
+#include "CollisionShape.h"
 #include "EngineUtils.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
@@ -934,6 +938,87 @@ AController* UGSHordeSubsystem::FindSummonerFor(const AGSHordeGoblin* Goblin) co
 	return nullptr;
 }
 
+bool UGSHordeSubsystem::IsStillLootable(const AActor* Candidate) const
+{
+	if (!IsValid(Candidate))
+	{
+		return false;
+	}
+
+	// THE SAME TWO TESTS UGSHordeCommandComponent::ResolveOrderSubject applies when the player aims
+	// directly at something (a carryable, OR an unbroken breakable container) - not narrowed to
+	// carryable alone. A direct aim at a crate already resolved it as a valid Subject before this
+	// search existed; excluding crates HERE just meant the area search silently ignored the exact
+	// thing Michael pointed near and only worked if he landed the narrow aim trace precisely on it,
+	// which is the "loot whatever's nearby, which they're not right now" bug (2026-08-30).
+	const UGSInteractableComponent* Interactable = Candidate->FindComponentByClass<UGSInteractableComponent>();
+	const bool bIsCarryableHit = Interactable && Interactable->IsCarryable();
+
+	// NOT "unbroken" alone - a real regression caught 2026-08-30 night: the instant
+	// UBTTask_SmashOrderTarget broke a barrel open, this went from true to false (the barrel is no
+	// longer unbroken), GetOrderSubjectFor dropped the goblin's own claim mid-sequence, OrderVerb
+	// degraded to None via the revert-to-Follow fix, and UBTTask_LootInPlace never got a chance to
+	// run - a goblin visibly smashed its target and then just stopped, with no loot ever collected.
+	// A container is still legitimately "in progress" for the goblin currently working it either
+	// BEFORE it is broken (still needs smashing) or AFTER, for as long as it remains available (not
+	// yet looted - LootInPlace's own CompleteInteraction is what finally sets bIsAvailable false).
+	// Only that second state change is what should end a claim.
+	const UGSBreakableComponent* Breakable = Candidate->FindComponentByClass<UGSBreakableComponent>();
+	const bool bIsUnbrokenContainerHit = Breakable && !Breakable->IsBroken();
+	const bool bIsBrokenButNotYetLootedHit = Breakable && Breakable->IsBroken() && Interactable && Interactable->IsAvailable();
+
+	return bIsCarryableHit || bIsUnbrokenContainerHit || bIsBrokenButNotYetLootedHit;
+}
+
+AActor* UGSHordeSubsystem::FindNearestLootable(const FVector& Location, const TSet<TWeakObjectPtr<AActor>>& Exclude) const
+{
+	const UWorld* World = GetWorld();
+	if (!World || LootSearchRadius <= 0.f)
+	{
+		return nullptr;
+	}
+
+	// SAME object types UGSHordeCommandComponent::TraceForOrder queries by, for the same reason its
+	// own comment gives: querying by OBJECT TYPE rather than sweeping ECC_Visibility cannot be
+	// blocked by the landscape (WorldStatic, not in this query), which is the exact bug that made
+	// every aimed Attack/Loot read as "the trace found bare ground" before that fix landed. A local
+	// carryable search with the same failure mode would be the same bug wearing a new radius.
+	FCollisionObjectQueryParams SubjectTypes;
+	SubjectTypes.AddObjectTypesToQuery(ECC_Pawn);
+	SubjectTypes.AddObjectTypesToQuery(ECC_WorldDynamic);
+	SubjectTypes.AddObjectTypesToQuery(ECC_PhysicsBody);
+
+	TArray<FOverlapResult> Overlaps;
+	World->OverlapMultiByObjectType(Overlaps, Location, FQuat::Identity, SubjectTypes,
+		FCollisionShape::MakeSphere(LootSearchRadius));
+
+	AActor* Nearest = nullptr;
+	float NearestDistSq = TNumericLimits<float>::Max();
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		AActor* Candidate = Overlap.GetActor();
+		if (!IsValid(Candidate) || Exclude.Contains(TWeakObjectPtr<AActor>(Candidate)))
+		{
+			continue;
+		}
+
+		if (!IsStillLootable(Candidate))
+		{
+			continue;
+		}
+
+		const float DistSq = FVector::DistSquared(Location, Candidate->GetActorLocation());
+		if (DistSq < NearestDistSq)
+		{
+			NearestDistSq = DistSq;
+			Nearest = Candidate;
+		}
+	}
+
+	return Nearest;
+}
+
 const FGSHordeOrder* UGSHordeSubsystem::FindOrderFor(const AGSHordeGoblin* Goblin) const
 {
 	if (ActiveOrders.Num() == 0)
@@ -1069,6 +1154,26 @@ void UGSHordeSubsystem::IssueOrder(AController* Summoner, EGSHordeOrder Verb, AA
 		return;
 	}
 
+	// LOOT SEARCHES THE AREA BEFORE GIVING UP (2026-08-30, design ticket #379). Michael: "goblins
+	// under my control will look around the area I pointed to, for anything they can loot." A Loot
+	// order whose aim trace found bare ground is no longer refused outright - it searches
+	// LootSearchRadius of Location for the nearest carryable first, and only falls through to the
+	// refusal below if that search also comes up empty. This is Shape A from the design ticket
+	// (nearest-in-radius, reusing 100% of the existing single-subject order machinery unchanged -
+	// the resolved Subject flows into the exact same marker/ActiveOrders/logging path as if the
+	// player had aimed at it directly) rather than Shape B (each goblin foraging independently):
+	// Shape B needed a claim/reservation mechanism the design ticket flagged as unbuilt, and,
+	// separately discovered while implementing this, there is no BT task anywhere that makes a
+	// goblin actually interact with/carry a Loot order's subject once it arrives - Loot currently
+	// only plants a marker and walks the warband to the location, for the aimed-at-directly case
+	// exactly as much as for this one. That is a real, larger gap this change does not attempt to
+	// close blind - it is not a regression this change introduces, since it was already true before
+	// tonight for the case that already "worked".
+	if (Verb == EGSHordeOrder::Loot && !IsValid(Subject))
+	{
+		Subject = FindNearestLootable(Location);
+	}
+
 	// ATTACK AND LOOT ARE VERBS ABOUT A THING. Refuse one that has no thing.
 	//
 	// Michael, watching the first build 2026-08-12: "there's no way to give it anything to attack -
@@ -1085,9 +1190,11 @@ void UGSHordeSubsystem::IssueOrder(AController* Summoner, EGSHordeOrder Verb, AA
 	if ((Verb == EGSHordeOrder::Attack || Verb == EGSHordeOrder::Loot) && !IsValid(Subject))
 	{
 		UE_LOG(LogGSHorde, Warning,
-			TEXT("Ignored a %s order: it needs something to point at and the trace found bare ground. "
-			     "Aim at a defender (Attack) or a carryable (Loot)."),
-			*UEnum::GetDisplayValueAsText(Verb).ToString());
+			TEXT("Ignored a %s order: it needs something to point at and the trace found bare ground%s."),
+			*UEnum::GetDisplayValueAsText(Verb).ToString(),
+			Verb == EGSHordeOrder::Loot
+				? *FString::Printf(TEXT(", and nothing carryable was within %.0fuu of where you aimed"), LootSearchRadius)
+				: TEXT(" - aim at a defender"));
 		return;
 	}
 
@@ -1273,7 +1380,69 @@ EGSHordeOrder UGSHordeSubsystem::GetOrderVerbFor(AGSHordeGoblin* Goblin) const
 AActor* UGSHordeSubsystem::GetOrderSubjectFor(AGSHordeGoblin* Goblin) const
 {
 	const FGSHordeOrder* Order = FindOrderFor(Goblin);
-	return Order ? Order->Subject.Get() : nullptr;
+	if (!Order)
+	{
+		LootClaims.Remove(Goblin);
+		return nullptr;
+	}
+
+	// ONLY LOOT FORAGES INDEPENDENTLY. Attack/Hold share one Subject on purpose - the whole warband
+	// piling onto the one guard you pointed at is the correct read of "get 'em", and there is no
+	// "claim" concept for a living target's health total the way there is for a pile of separate loot.
+	if (Order->Verb != EGSHordeOrder::Loot)
+	{
+		LootClaims.Remove(Goblin);
+		return Order->Subject.Get();
+	}
+
+	// STICKY: once a goblin has committed to a nearby lootable, keep sending it there every refresh
+	// rather than re-rolling and risking a mid-walk retarget. Only re-search once the claim goes stale
+	// - the item this goblin was after got looted (by it or by someone else) or destroyed.
+	if (TWeakObjectPtr<AActor>* Existing = LootClaims.Find(Goblin))
+	{
+		AActor* Claimed = Existing->Get();
+		if (IsStillLootable(Claimed))
+		{
+			return Claimed;
+		}
+		LootClaims.Remove(Goblin);
+	}
+
+	// AREA-FORAGE (#379 Shape B, 2026-08-30 morning). Michael: "loot everything within a radius...
+	// it makes it more interactive to see your group of goblins giggling as they smash and loot" -
+	// each goblin under this Loot order searches for its OWN nearest UNCLAIMED item near the order's
+	// location, instead of the whole warband sharing whatever the player's aim first resolved.
+	TSet<TWeakObjectPtr<AActor>> Claimed;
+	Claimed.Reserve(LootClaims.Num());
+	for (const TPair<TWeakObjectPtr<AGSHordeGoblin>, TWeakObjectPtr<AActor>>& Pair : LootClaims)
+	{
+		if (Pair.Value.IsValid())
+		{
+			Claimed.Add(Pair.Value);
+		}
+	}
+
+	AActor* Found = FindNearestLootable(Order->Location, Claimed);
+	if (!Found)
+	{
+		// Nothing left UNCLAIMED nearby - fall back to the order's own resolved Subject (if any) so a
+		// lone goblin, or one late to a small cluster, still has something to do rather than every
+		// goblin past the first idling the moment the search radius runs dry. When there is genuinely
+		// only one item in range this is exactly today's single-target behaviour, unchanged.
+		//
+		// Still gated by IsStillLootable - the Subject the player originally aimed at is exactly as
+		// capable of having been smashed-and-looted out from under this goblin as anything the area
+		// search would have found, and trusting it unconditionally is how a goblin ends up circling a
+		// spent crate forever once nothing else is left to claim.
+		AActor* Subject = Order->Subject.Get();
+		Found = IsStillLootable(Subject) ? Subject : nullptr;
+	}
+
+	if (Found)
+	{
+		LootClaims.Add(Goblin, Found);
+	}
+	return Found;
 }
 
 FVector UGSHordeSubsystem::GetOrderLocationFor(AGSHordeGoblin* Goblin) const

@@ -502,7 +502,16 @@ void UGSInteractionComponent::RefreshFocus()
 
 void UGSInteractionComponent::SetFocus(UGSInteractableComponent* NewFocus)
 {
-	if (FocusedInteractable.Get() == NewFocus)
+	// A DEAD FOCUS AND NO FOCUS BOTH READ AS Get() == nullptr, and the naive comparison below cannot
+	// tell them apart - so when the focused interactable was destroyed (the food prop eating itself
+	// via K2_DestroyActor, a looted chest despawning, anything) the very next scan compares
+	// nullptr == nullptr, short-circuits, and OnFocusChanged never fires. The HUD prompt is driven by
+	// that broadcast, so it was left showing "Eat the food" forever - fixed only by accident, the next
+	// time a DIFFERENT interactable became focus and finally produced a real inequality. IsExplicitlyNull
+	// is false and IsValid is false only in exactly this "was pointing at something that is now gone"
+	// state, so force the broadcast through in that one case even though NewFocus is also null.
+	const bool bFocusDied = !FocusedInteractable.IsExplicitlyNull() && !FocusedInteractable.IsValid();
+	if (!bFocusDied && FocusedInteractable.Get() == NewFocus)
 	{
 		return;
 	}

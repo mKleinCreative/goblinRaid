@@ -138,6 +138,20 @@ void AGSHordeGoblin::HandleDeath()
 	Super::HandleDeath();
 }
 
+int32 AGSHordeGoblin::ConsumeLootSackDropValue()
+{
+	// Recoverable, not auto-banked (2026-08-30, Michael, reversing the instant-bank version this
+	// replaced: "I didn't want it to bank on death, I want it to drop its potential points on the
+	// ground so you have to go pick it up or have another goblin pick it up"). Just return the purse
+	// and let AGSCharacterBase::HandleDeath hand it to SpawnLootSack, same as the player/guard death
+	// drop - InitialiseAsCarryable sets bIsCarryable=true on the spawned pouch, so it is already a
+	// legal Loot-order target for area-forage the same as any other carryable, and needs no changes
+	// of its own for another goblin to pick it up.
+	const int32 Value = PersonalPurse;
+	PersonalPurse = 0;
+	return Value;
+}
+
 void AGSHordeGoblin::HandleDamagedForFrenzy(AActor* Attacker, float Damage)
 {
 	if (UGSHordeSubsystem* Horde = UGSHordeSubsystem::Get(this))

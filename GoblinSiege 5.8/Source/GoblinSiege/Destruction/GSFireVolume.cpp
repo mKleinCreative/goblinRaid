@@ -2,6 +2,7 @@
 #include "Destruction/GSFlammableComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "Combat/GSGE_FireDamage.h"
+#include "Combat/GSGE_Burning.h"
 #include "Characters/GSEnemyCharacter.h"
 #include "Core/GSGameState.h"
 #include "Components/SphereComponent.h"
@@ -42,6 +43,7 @@ AGSFireVolume::AGSFireVolume()
 	FireLight->bUseInverseSquaredFalloff = false;            // gentler, more controllable reach
 
 	FireDamageEffectClass = UGSGE_FireDamage::StaticClass();
+	BurningStatusEffectClass = UGSGE_Burning::StaticClass();
 
 	// Soft path, deliberately: if the asset is ever renamed or missing, fire still burns and still
 	// damages - it just isn't drawn. A hard reference would make that a load failure instead.
@@ -70,15 +72,18 @@ AGSFireVolume::AGSFireVolume()
 	//
 	// N_MeteorSpawn's replacement is the PEAK look, not the resting state: SetFireIntensity ramps
 	// toward it - that arc behaviour is unchanged by this swap.
-	// TEST SWAP (2026-08-30, #370): Michael's own Niagara Fluids prototype, in place of the
-	// sprite-based NS_Fire_Big, to see whether a genuinely simulated fluid reads as connected mass
-	// rather than a row of stamped instances - "still looks like rows of fires" was the verdict on
-	// the sprite version even after scale + per-instance seed randomization (both kept, harmless
-	// either way). Revert to NS_Fire_Big below if this doesn't hold up.
+	// TEST SWAP (2026-08-30, #370) REVERTED (2026-08-30, #370/#371): tried Michael's own Niagara
+	// Fluids prototype in place of the sprite-based NS_Fire_Big, to see whether a genuinely
+	// simulated fluid reads as connected mass rather than a row of stamped instances - "still looks
+	// like rows of fires" was the verdict on the sprite version even after scale + per-instance
+	// seed randomization. Verdict on the fluid version, watching it live: STILL rows, even as a
+	// simulated fluid. That result is the reason the pooled-per-volume approach was abandoned
+	// rather than tuned further - the row read was never about render technology, it was N
+	// independently-bounded instances in a line. See
+	// AGSFieldFireObjective::bConsolidateFireVisual for what replaced it. Back to NS_Fire_Big here
+	// since the fluid swap bought nothing and there is no reason to carry its extra cost.
 	FireSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
-		TEXT("/Game/VFX/NG_GS_SurfaceFireLiquid.NG_GS_SurfaceFireLiquid")));
-	// FireSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
-	// 	TEXT("/Game/Vefects/Free_Fire/Shared/Particles/NS_Fire_Big.NS_Fire_Big")));
+		TEXT("/Game/Vefects/Free_Fire/Shared/Particles/NS_Fire_Big.NS_Fire_Big")));
 	SmokeSystem = TSoftObjectPtr<UNiagaraSystem>(
 		FSoftObjectPath(TEXT("/Game/VolcanoEnvironmentVFX/VFX/Niagara/NS_FlameSmoke.NS_FlameSmoke")));
 	EmberSystem = TSoftObjectPtr<UNiagaraSystem>(
@@ -171,31 +176,39 @@ void AGSFireVolume::FlickerTick()
 
 void AGSFireVolume::ApplyFireFX()
 {
-	if (!FireFX)
+	// bEnableFireFX (2026-08-30, #370/#371): the field's consolidated wide visual draws the flame
+	// instead when this is off - see ConfigurePooled's bInEnableFireFX. Everything below the flame
+	// block (smoke, embers, light) is untouched by this flag; only the FireFX component itself is
+	// suppressed, and it is left deactivated rather than never-configured so a live toggle back to
+	// true still has an asset ready to Activate().
+	if (FireFX && bEnableFireFX)
 	{
-		return;
+		UNiagaraSystem* System = FireSystem.LoadSynchronous();
+		if (!System)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[GoblinSiege] %s has no fire Niagara system (%s) - it will burn invisibly."),
+				*GetName(), *FireSystem.ToString());
+		}
+		else
+		{
+			// Break the "stamp" read (2026-08-30, Michael watching a burn front: "still looks like
+			// separate patches"). A pooled volume plays the exact same Niagara system as every other
+			// one, so with no per-instance variation, identical emission patterns lined up along a
+			// front read as repeated copies rather than one irregular mass, however much they
+			// overlap. RandRange rather than a position-derived seed on purpose: pooled volumes are
+			// REPOSITIONED as the front moves (not respawned), so re-rolling on every activation
+			// means a volume gets a fresh pattern each time it relocates, instead of two volumes that
+			// happen to land near each other converging on similar seeds.
+			FireFX->SetRandomSeedOffset(FMath::RandRange(0, MAX_int32 - 1));
+			FireFX->SetAsset(System);
+			FireFX->Activate(true);
+		}
 	}
-
-	UNiagaraSystem* System = FireSystem.LoadSynchronous();
-	if (!System)
+	else if (FireFX)
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("[GoblinSiege] %s has no fire Niagara system (%s) - it will burn invisibly."),
-			*GetName(), *FireSystem.ToString());
-		return;
+		FireFX->Deactivate();
 	}
-
-	// Break the "stamp" read (2026-08-30, Michael watching a burn front: "still looks like separate
-	// patches"). A pooled volume plays the exact same Niagara system as every other one, so with no
-	// per-instance variation, identical emission patterns lined up along a front read as repeated
-	// copies rather than one irregular mass, however much they overlap. RandRange rather than a
-	// position-derived seed on purpose: pooled volumes are REPOSITIONED as the front moves (not
-	// respawned), so re-rolling on every activation means a volume gets a fresh pattern each time it
-	// relocates, instead of two volumes that happen to land near each other converging on similar
-	// seeds.
-	FireFX->SetRandomSeedOffset(FMath::RandRange(0, MAX_int32 - 1));
-	FireFX->SetAsset(System);
-	FireFX->Activate(true);
 
 	// ---- smoke ----------------------------------------------------------
 	if (SmokeFX)
@@ -246,7 +259,8 @@ void AGSFireVolume::ApplyFireFX()
 	}
 }
 
-void AGSFireVolume::ConfigurePooled(float InDamageRadius, bool bInEnableSmoke, bool bInEnableLight)
+void AGSFireVolume::ConfigurePooled(float InDamageRadius, bool bInEnableSmoke, bool bInEnableLight,
+	bool bInEnableFireFX)
 {
 	// Must be called before BeginPlay (between SpawnActorDeferred and FinishSpawning).
 	bAutoExpire = false;
@@ -265,6 +279,10 @@ void AGSFireVolume::ConfigurePooled(float InDamageRadius, bool bInEnableSmoke, b
 	// scene for one frame and then being switched off. See the header for why 10 flame patches
 	// wanting only 3 lights is the correct reading of burn-types spec §3.4.
 	bEnableLight = bInEnableLight;
+
+	// 2026-08-30 (#370/#371): and likewise the flame itself, when the field's consolidated wide
+	// visual is drawing it instead - see ApplyFireFX and AGSFieldFireObjective::bConsolidateFireVisual.
+	bEnableFireFX = bInEnableFireFX;
 
 	SetDamageRadius(InDamageRadius);
 
@@ -399,12 +417,94 @@ void AGSFireVolume::DamageTick()
 	TArray<AActor*> OverlappingActors;
 	DamageSphere->GetOverlappingActors(OverlappingActors, APawn::StaticClass());
 
+	TSet<AActor*> StillOverlapping;
+	StillOverlapping.Reserve(OverlappingActors.Num());
+
 	for (AActor* Actor : OverlappingActors)
 	{
 		// Friendly fire is intentionally ON (design doc §4) - no ally/goblin exclusion here, only
 		// the FriendlyFireScalar applied inside ApplyFireDamageTo.
 		ApplyFireDamageTo(Actor);
+
+		StillOverlapping.Add(Actor);
+
+		if (bCanIgniteBurningStatus)
+		{
+			if (UAbilitySystemComponent* TargetASC =
+					UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Actor))
+			{
+				ApplyBurningStatus(Actor, TargetASC);
+			}
+		}
 	}
+
+	// Prune exposure for anything this tick did NOT find overlapping - see BurningExposureSeconds's
+	// comment on why a pawn stepping out even briefly has to lose its progress rather than keep it.
+	for (auto It = BurningExposureSeconds.CreateIterator(); It; ++It)
+	{
+		AActor* Actor = It->Key.Get();
+		if (!Actor || !StillOverlapping.Contains(Actor))
+		{
+			It.RemoveCurrent();
+		}
+	}
+}
+
+void AGSFireVolume::ApplyBurningStatus(AActor* Target, UAbilitySystemComponent* TargetASC)
+{
+	if (!Target || !TargetASC || !BurningStatusEffectClass)
+	{
+		return;
+	}
+
+	// Same legality gate ApplyFireDamageTo uses - a target already ruled out of taking contact
+	// damage this tick should not be accumulating toward catching fire either.
+	if (TargetASC->HasMatchingGameplayTag(GSTags::State_Dead)
+		|| TargetASC->HasMatchingGameplayTag(GSTags::State_Invulnerable))
+	{
+		return;
+	}
+
+	// Already on fire: nothing more to accumulate, and re-applying here would stand up a SECOND
+	// Infinite UGSGE_Burning instance on top of the first (GAS does not dedupe by class on its own)
+	// if the pawn is standing where two pooled volumes overlap.
+	if (TargetASC->HasMatchingGameplayTag(GSTags::State_Burning))
+	{
+		return;
+	}
+
+	float& Exposure = BurningExposureSeconds.FindOrAdd(Target);
+	Exposure += DamageTickInterval;
+	if (Exposure < BurnStatusIgniteSeconds)
+	{
+		return;
+	}
+
+	FGameplayEffectContextHandle Context = TargetASC->MakeEffectContext();
+	Context.AddInstigator(this, this);
+
+	const FGameplayEffectSpecHandle SpecHandle =
+		TargetASC->MakeOutgoingSpec(BurningStatusEffectClass, 1.f, Context);
+	FGameplayEffectSpec* Spec = SpecHandle.IsValid() ? SpecHandle.Data.Get() : nullptr;
+	if (!Spec)
+	{
+		return;
+	}
+
+	// Same friendly-fire scaling as the contact damage - defenders take it full, allies/goblins
+	// scaled. See ApplyFireDamageTo's comment for the "both a tragedy and the funniest thing" ruling.
+	const bool bIsDefender = Target->IsA(AGSEnemyCharacter::StaticClass());
+	const float Scalar = bIsDefender ? 1.f : FriendlyFireScalar;
+
+	Spec->AddDynamicAssetTag(GSTags::Damage_Fire);
+	Spec->SetSetByCallerMagnitude(GSTags::Damage_Fire, BurnStatusDamagePerTick * Scalar);
+
+	TargetASC->ApplyGameplayEffectSpecToSelf(*Spec);
+
+	// Reset rather than leave at/above threshold: a pawn extinguished by a roll while still standing
+	// in the fire gets a fresh BurnStatusIgniteSeconds count instead of re-igniting the instant
+	// State.Burning clears on the following tick.
+	BurningExposureSeconds.Remove(Target);
 }
 
 void AGSFireVolume::ApplyFireDamageTo(AActor* Target)

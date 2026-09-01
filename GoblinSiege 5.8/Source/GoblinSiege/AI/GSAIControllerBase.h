@@ -64,6 +64,27 @@ public:
 	 */
 	AGSAIControllerBase(const FObjectInitializer& ObjectInitializer);
 
+	/**
+	 * Re-syncs SightConfig from SightRadius/LoseSightRadius/PeripheralVisionAngleDegrees
+	 * (2026-08-30). Found live: editing those three EditDefaultsOnly fields on a Blueprint CDO
+	 * (e.g. BP_GSAIController_Militia) had ZERO effect on actual perception - `SightConfig->
+	 * SightRadius = SightRadius` in the constructor runs ONCE, using whatever the raw C++ class
+	 * default was at that exact line, which is BEFORE this object's own Blueprint property
+	 * overrides have been loaded onto it. The three controller-level fields and SightConfig's own
+	 * same-named properties are really two independent copies that only ever agreed by
+	 * coincidence (both starting at the same literal default). PostInitProperties runs after
+	 * property loading, on the CDO and on every instance, so re-copying here is the actual fix -
+	 * without it, "change SightRadius on the Blueprint" looks like it works (the field shows the
+	 * new value in the details panel) and silently does nothing at runtime. */
+	virtual void PostInitProperties() override;
+
+	/** GS.AI.DebugSight 1: draws this controller's sight radius (sphere) and peripheral vision
+	 *  cone (forward-facing wedge) over its pawn every frame. Written 2026-08-30 so "is the sight
+	 *  radius actually what the numbers say" is a thing to LOOK at rather than infer from log
+	 *  lines - the same "build the instrument" reasoning as GS.Combat.LogAI, one level more
+	 *  literal. Costs nothing when the cvar is 0. */
+	virtual void Tick(float DeltaTime) override;
+
 	// ---- IACFEntityInterface, the half ACF 4.4.2 does not ship -----------------------------
 	//
 	// AACFBaseAIController declares `public IACFEntityInterface` and defines only two of its four
@@ -103,22 +124,31 @@ public:
 	virtual void OnUnPossess() override;
 
 	/**
-	 * Wakes nearby allies when this pawn is attacked, so a fight is not invisible to the guard
-	 * standing next to it (#346).
+	 * Makes the VICTIM itself target its attacker (2026-08-30), then wakes nearby allies too (#346),
+	 * so a fight is not invisible to the guard it happened to and not to the guard standing next to
+	 * it either.
 	 *
-	 * WHY THIS EXISTS RATHER THAN ACF'S OWN ALERTING. ACF already propagates exactly this, but every
-	 * path is gated on a group: AACFAIController::HandlePawnDamaged does
+	 * WHY THIS EXISTS RATHER THAN ACF'S OWN ALERTING. ACF already ships both halves of this -
+	 * AACFAIController::HandlePawnDamaged does `ThreatComponent->AddThreat(...); SetTarget(...)` for
+	 * the victim (ungated - runs regardless of group), then
 	 * `if (GroupOwner && GroupOwner->GetAlertOtherTeamMembers() ...) GroupOwner->SetInBattle(...)`
-	 * (ACFAIController.cpp:719, and the same shape at :649 for target acquisition). Goblin Siege's
-	 * defenders are PLACED IN THE LEVEL individually and have no UACFGroupAIComponent - measured live,
-	 * Group=None on every defender controller - so both branches are dead code here.
+	 * for allies (ACFAIController.cpp:719, and the same shape at :649 for target acquisition). But
+	 * that handler listens for FACFDamageEvent, and this project's damage is GAS-based
+	 * (GSDamageExecCalculation) - it never fires ACF's event, so ACF's version has been dead code for
+	 * us since the migration regardless of the group gate. This function is bound to
+	 * AGSCharacterBase::OnDamaged instead, which GAS damage DOES broadcast, and does both jobs ACF's
+	 * handler would have: self-target through the same ThreatManager AddThreat/GetActorWithHigherThreat
+	 * path, then the ally wake (which for us has to be manual regardless, since Goblin Siege's
+	 * defenders are PLACED IN THE LEVEL individually and have no UACFGroupAIComponent - measured
+	 * live, Group=None on every defender controller, so GroupOwner-gated alerting would be dead even
+	 * if the event fired).
 	 *
 	 * AND NOTHING MAKES A SOUND. There is no MakeNoise, no ReportNoiseEvent and no hearing sense
-	 * anywhere in Source/GoblinSiege, so a fight is literally imperceptible: a defender reacts only
-	 * to what it personally SEES. Its neighbour being cut down produces no signal at all.
+	 * anywhere in Source/GoblinSiege, so a fight is perceptible only to whoever is IN it (via this
+	 * function) or personally SEES it. A third guard around a corner still gets nothing.
 	 *
-	 * This is the small version of the fix. Noise is IN by ruling 9 and is the designed answer; when
-	 * it lands, this should be reconsidered rather than left to double up with it.
+	 * Noise is IN by ruling 9 and is the designed answer to that gap; when it lands, this should be
+	 * reconsidered rather than left to double up with it.
 	 *
 	 * Deliberately mirrors UGSHordeSubsystem's threat sweep, which already does this for ALLIED
 	 * goblins - same idea, other side of the fight.
@@ -196,11 +226,21 @@ protected:
 	/** Blackboard keys every archetype's BT relies on, so BT assets can be swapped per-archetype
 	 *  without redefining these each time: "TargetActor" (Object), "IsFleeing" (Bool, Landlord
 	 *  mission), "IsFirefighting" (Bool), "HomeBuilding" (Object, for guard/return-to-post AI). */
+	// 1200/1500 -> 3000/3300 (2026-08-30, Michael watching the live GS.AI.DebugSight spheres):
+	// "I'd like for their green to be at their red and their red a little further." Raised as the
+	// C++ CLASS DEFAULT rather than a per-Blueprint CDO override - a prior attempt at exactly that
+	// (editing BP_GSAIController_Militia/_Archer's SightConfig subobject via
+	// execute_python_code's set_editor_property) silently failed to survive a Blueprint recompile:
+	// read back as 1200/1500 again afterward, with no error anywhere. Editing a nested default
+	// subobject's property from Python does not reliably mark it as a tracked archetype override,
+	// so a later compile falls back to whatever the native class default is - which is exactly
+	// this field. Changing the field itself removes that whole failure class: every Blueprint
+	// subclass and every instance now inherits the correct number with nothing to silently lose.
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|AI")
-	float SightRadius = 1200.f;
+	float SightRadius = 3000.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|AI")
-	float LoseSightRadius = 1500.f;
+	float LoseSightRadius = 3300.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|AI")
 	float PeripheralVisionAngleDegrees = 90.f;

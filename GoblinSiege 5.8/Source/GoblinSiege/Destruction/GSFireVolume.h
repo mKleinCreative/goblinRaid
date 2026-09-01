@@ -18,6 +18,7 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UPointLightComponent;
 class UGameplayEffect;
+class UAbilitySystemComponent;
 
 UCLASS()
 class GOBLINSIEGE_API AGSFireVolume : public AActor
@@ -55,8 +56,17 @@ public:
 	 * - the lights overlap heavily at the field's 170uu volume radius and 6x LightRadiusScale, so
 	 * the spill is already pooled long before it reaches the ground - while costing a third of the
 	 * dynamic lighting. The caller decides; see AGSFieldFireObjective::MaxLitVolumes.
+	 *
+	 * bInEnableFireFX added 2026-08-30 (#370/#371): the field's own consolidated wide fire visual
+	 * (AGSFieldFireObjective::UpdateConsolidatedFireVisual) took over drawing the flame sprite
+	 * itself, because per-volume flames read as separate patches however much they overlap or are
+	 * randomized (see AGSFieldFireObjective::bConsolidateFireVisual for the full reasoning). A
+	 * pooled volume still does everything else - damage sphere, light, embers, smoke - only its own
+	 * FireFX component is suppressed, so a burning cell is never drawing two flames stacked on each
+	 * other.
 	 */
-	void ConfigurePooled(float InDamageRadius, bool bInEnableSmoke = true, bool bInEnableLight = true);
+	void ConfigurePooled(float InDamageRadius, bool bInEnableSmoke = true, bool bInEnableLight = true,
+		bool bInEnableFireFX = true);
 
 	/**
 	 * Toggle this volume's point light AFTER BeginPlay (2026-07-31, Q-33).
@@ -109,6 +119,15 @@ protected:
 
 	/** Applies one tick of fire damage to a single actor, if it has an ASC and is a legal target. */
 	void ApplyFireDamageTo(AActor* Target);
+
+	/**
+	 * Advances Target's entry in BurningExposureSeconds by DamageTickInterval and, once it crosses
+	 * BurnStatusIgniteSeconds, applies BurningStatusEffectClass - see BurnStatusIgniteSeconds's
+	 * comment in the header. Called from DamageTick alongside ApplyFireDamageTo, on the same
+	 * overlap list, so it shares the exact same legality checks (ASC, dead, invulnerable) rather
+	 * than re-deriving them.
+	 */
+	void ApplyBurningStatus(AActor* Target, UAbilitySystemComponent* TargetASC);
 
 	/** Loads FireSystem/SmokeSystem onto their components, scales them, and activates. */
 	void ApplyFireFX();
@@ -242,6 +261,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|FX")
 	bool bEnableLight = true;
 
+	/** See ConfigurePooled's bInEnableFireFX. True (draw your own flame) unless the field has told
+	 *  this volume the consolidated visual is drawing it instead. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|FX")
+	bool bEnableFireFX = true;
+
 	/** Warm orange. Kept well below white so it reads as firelight rather than a spotlight. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|FX")
 	FLinearColor LightColour = FLinearColor(1.f, 0.42f, 0.12f, 1.f);
@@ -285,6 +309,38 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Tuning")
 	float FriendlyFireScalar = 1.f;
 
+	/**
+	 * "On fire" status (2026-08-30): a pawn that dwells in the flames for BurnStatusIgniteSeconds
+	 * catches fire and keeps taking slow damage after leaving them - the only way out is to roll
+	 * (UGSGA_DodgeRoll extinguishes it). Separate from the instant contact damage above, which
+	 * always applies regardless of this and stops the moment you step out of DamageSphere. See
+	 * UGSGE_Burning's header for why this is its own GameplayEffect.
+	 *
+	 * Ignition trigger, per Michael's ruling: standing in fire - a field ablaze or a burning
+	 * building - not a specific attack. Both already route damage through AGSFireVolume (field
+	 * cells via AGSFieldFireObjective::UpdateDamageVolumes, buildings via GSFlammableComponent/
+	 * GSCrumbleComponent), so hooking ignition into this one class's own DamageTick covers both
+	 * without either caller needing to know about it.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Burning")
+	bool bCanIgniteBurningStatus = true;
+
+	/** The GameplayEffect carrying the slow burn. Defaults to UGSGE_Burning. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Burning")
+	TSubclassOf<UGameplayEffect> BurningStatusEffectClass;
+
+	/** Seconds of continuous DamageTick overlap before a pawn catches fire - "running through" a
+	 *  field or ducking through a doorway for a moment should not ignite you; standing in it should.
+	 *  Tracked per-actor in BurningExposureSeconds, which resets the instant a pawn is no longer
+	 *  overlapping (see DamageTick) - exposure does not accumulate across separate visits. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Burning", meta = (ClampMin = "0.0"))
+	float BurnStatusIgniteSeconds = 1.5f;
+
+	/** Damage per tick of the clinging burn, once caught - deliberately well under DamagePerTick
+	 *  above ("slow burn"): this is the cost of not rolling, not a second copy of standing in fire. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Burning", meta = (ClampMin = "0.0"))
+	float BurnStatusDamagePerTick = 1.5f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Tuning")
 	float SpreadDelaySeconds = 2.5f;
 
@@ -307,6 +363,13 @@ protected:
 	float AlarmOnSpawn = 1.5f;
 
 	float TotalDamageDealt = 0.f;
+
+	/** Continuous seconds each currently/recently-overlapping actor has spent in this volume's
+	 *  DamageSphere, toward BurnStatusIgniteSeconds. DamageTick advances an entry for every actor it
+	 *  finds overlapping and REMOVES any entry it doesn't find, so a pawn that steps out - even for
+	 *  one tick - loses its progress rather than accumulating it across separate visits. Keyed by
+	 *  weak pointer: an actor that dies mid-exposure must not leave a dangling entry here. */
+	TMap<TWeakObjectPtr<AActor>, float> BurningExposureSeconds;
 
 	FTimerHandle DamageTickHandle;
 	FTimerHandle SpreadTimerHandle;

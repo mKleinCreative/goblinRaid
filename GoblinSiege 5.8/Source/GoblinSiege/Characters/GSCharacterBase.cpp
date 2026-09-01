@@ -17,6 +17,7 @@
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
 #include "Core/GSGameMode.h"
+#include "Interaction/GSInteractableComponent.h"
 #include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -970,7 +971,52 @@ void AGSCharacterBase::HandleDeath()
 		{
 			GM->HandleGoblinDeath(this, GetController());
 		}
+
+		const int32 DropValue = ConsumeLootSackDropValue();
+		if (DropValue > 0)
+		{
+			SpawnLootSack(DropValue);
+		}
 	}
+}
+
+int32 AGSCharacterBase::ConsumeLootSackDropValue()
+{
+	return LootSackDropValue;
+}
+
+void AGSCharacterBase::SpawnLootSack(int32 Value)
+{
+	UWorld* World = GetWorld();
+	UClass* SackClass = LootSackClassPath.LoadSynchronous();
+	if (!World || !SackClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GS.Loot] %s could not drop a coin pouch worth %d - '%s' failed to load."),
+			*GetName(), Value, *LootSackClassPath.ToString());
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	Params.Owner = this;
+
+	AActor* Sack = World->SpawnActor<AActor>(SackClass, GetActorLocation(), FRotator::ZeroRotator, Params);
+	if (!Sack)
+	{
+		return;
+	}
+
+	// InitialiseAsCarryable, not a bare LootValue setter - it also sets the prompt, the channel time
+	// and bIsCarryable, the same one-shot dressing pass MakeActorCarryable uses on livestock. The
+	// Blueprint's own authored defaults (BP_LootSack's LootValue=20) exist for hand-placed instances;
+	// a death drop needs its OWN value overwritten at spawn time regardless of what the class default says.
+	if (UGSInteractableComponent* Interactable = Sack->FindComponentByClass<UGSInteractableComponent>())
+	{
+		Interactable->InitialiseAsCarryable(Value,
+			NSLOCTEXT("GoblinSiege", "RecoverLootSack", "Recover the coin pouch"), 1.f, FVector::ZeroVector);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[GS.Loot] %s dropped a coin pouch worth %d."), *GetName(), Value);
 }
 
 void AGSCharacterBase::KillOutright()
@@ -1060,6 +1106,29 @@ void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float Invulnerabi
 	// A short-duration GameplayEffect granting a "State.Invulnerable" tag (checked by the damage
 	// GameplayEffect's application requirements) is the idiomatic GAS way to implement the
 	// invulnerability window - apply it here once that effect class exists as a data asset.
+}
+
+void AGSCharacterBase::Heal(float Amount)
+{
+	if (!HasAuthority() || !AbilitySystemComponent || bIsDead || Amount <= 0.f)
+	{
+		return;
+	}
+
+	const FGameplayAttribute HealthAttr = GetDefault<UACFStatisticsSet>()->HealthAttribute();
+	bool bFound = false;
+	const float Current = AbilitySystemComponent->GetGameplayAttributeValue(HealthAttr, bFound);
+	if (!bFound)
+	{
+		return;
+	}
+
+	const float Max = GetMaxHealth();
+	const float NewHealth = FMath::Clamp(Current + Amount, 0.f, Max);
+	AbilitySystemComponent->SetNumericAttributeBase(HealthAttr, NewHealth);
+
+	UE_LOG(LogTemp, Log, TEXT("[GS.Heal] %s healed %.1f (%.0f -> %.0f / %.0f)"),
+		*GetName(), Amount, Current, NewHealth, Max);
 }
 
 void AGSCharacterBase::SetTurnRateRadPerSec(float NewTurnRateRadPerSec)

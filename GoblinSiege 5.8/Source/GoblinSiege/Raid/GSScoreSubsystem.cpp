@@ -159,6 +159,16 @@ void UGSScoreSubsystem::AddLoot(int32 Points)
 	OnScoreChanged.Broadcast();
 }
 
+void UGSScoreSubsystem::ResetLoot()
+{
+	if (Loot == 0)
+	{
+		return;
+	}
+	Loot = 0;
+	OnScoreChanged.Broadcast();
+}
+
 int32 UGSScoreSubsystem::GetDeedsForType(FGameplayTag TypeTag) const
 {
 	const int32* Found = DeedsByType.Find(TypeTag);

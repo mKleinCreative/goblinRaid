@@ -18,6 +18,22 @@ dated, citable list.
 
 ---
 
+## 2026-08-31 — the horde order wheel is whole
+
+Michael, confirming live play after the overnight packaging session (#387-389), that all four
+order-wheel verbs work — not just Attack and Follow, which is what GDD v1.4 still claimed.
+
+| # | Ruling | Consequence |
+|---|---|---|
+| 73 | **Hold and Loot both land in `BT_HordeGoblin`.** `BTTask_PickUpCargo` and `BTTask_DeliverCargo` now sit in the tree rather than compiling unused — the hand-authored Behaviour Tree edit ticket #213 specified and could not do from Python (a `UBehaviorTree` with an EdGraph regenerates over any Python-injected node the next time the asset is opened) has been done. `BB_HordeGoblin` and `BT_HordeGoblin.uasset` carry the change, uncommitted as of this ruling | GDD §5 and §12.1 rows 6 and 17 re-graded: Horn & horde moves WIRED → BUILT, Loot couriers moves "WIRED, no cargo" → WIRED. **Smash is not part of this** — `BTTask_SmashOrderTarget` was never a wheel command (the wheel is Attack/Hold/Loot/Follow, #141) and #213 never scoped it in, so it stays uncalled |
+
+**Source:** Michael, directly, in session — not a queue ticket's own observed-evidence report. Recorded
+under #394, which claims and edits the two design documents per the change rule; the underlying
+`BT_HordeGoblin`/`BB_HordeGoblin` edit itself has no ticket of its own (done by hand, outside the
+queue, per #213's own conclusion that this specific edit could not safely go through an agent).
+
+---
+
 ## 2026-08-27 — the game gets a front end, and it is ACF's
 
 Michael, asked how a main menu and the options screens should be built (#335). Three rulings, and

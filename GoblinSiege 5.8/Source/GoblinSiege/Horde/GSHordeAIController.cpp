@@ -6,16 +6,33 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "HAL/IConsoleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSHordeAI, Log, All);
 
+// See HandleMoveRequestFinished's header comment. Off by default - fires on every completed move for
+// every summoned goblin, which is most goblins most of the time (Follow alone).
+static TAutoConsoleVariable<bool> CVarGSLogMoveCompletion(
+	TEXT("GS.AI.LogMoveCompletion"), false,
+	TEXT("Log AGSHordeAIController's PathFollowingComponent::OnRequestFinished (2026-08-30 diagnostic ")
+	TEXT("for the Loot-order MoveTo-completes-but-tree-never-advances bug)."),
+	ECVF_Cheat);
+
 AGSHordeAIController::AGSHordeAIController(const FObjectInitializer& ObjectInitializer)
-	// Decline the perception component. This is the line that implements §3.4's "perception-less
-	// agents" - without it every summoned goblin carries its own 1200uu sight sense feeding a
-	// handler that does nothing, ten times over, which is precisely the cost the horde design is
-	// built to avoid.
-	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("AIPerceptionComponent")))
+	: Super(ObjectInitializer)
 {
+	// §3.4's "perception-less agents" is NOT actually implemented - this constructor used to pass
+	// ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("AIPerceptionComponent")) to Super(), but
+	// GSAIControllerBase.cpp's own constructor already documents that Unreal 5.8 ignores that opt-out
+	// and force-creates the component anyway (CPF_ObjectMustBeCreated wins). The call was pure dead
+	// code: every summoned horde goblin has always carried its own perception component and sight
+	// sense, exactly the per-agent cost §3.4 meant to avoid - this comment previously claimed
+	// otherwise and was wrong. Removed here (2026-08-30, #387) because the engine logs an Error: line
+	// every time the opt-out is ignored, and UAT's cook step hard-fails the whole package on ANY
+	// Error:-level log line even though the cook itself completes - this was silently blocking every
+	// attempt to package the game. Actually implementing perception-less horde agents (if the cost
+	// is ever measured to matter) needs a different mechanism - e.g. a shared/pooled sense, or a
+	// runtime toggle on the component after construction - not this constructor trick.
 	// TICKS AGAIN AS OF #135, and the line it replaces was silently disabling two shipped features.
 	//
 	// This used to read `PrimaryActorTick.bCanEverTick = false;` with the note: "No Tick. The old
@@ -77,6 +94,14 @@ void AGSHordeAIController::OnPossess(APawn* InPawn)
 		World->GetTimerManager().SetTimer(StimulusTimer, this,
 			&AGSHordeAIController::RefreshStimulus, StimulusRefreshInterval, true);
 	}
+
+	// DIAGNOSTIC (2026-08-30) - see HandleMoveRequestFinished's header comment. Bound once per
+	// possession; OnUnPossess does not need to unbind it explicitly, since the delegate lives on this
+	// controller's own PathFollowingComponent, not on something with a longer lifetime than us.
+	if (UPathFollowingComponent* PFC = GetPathFollowingComponent())
+	{
+		PFC->OnRequestFinished.AddUObject(this, &AGSHordeAIController::HandleMoveRequestFinished);
+	}
 }
 
 void AGSHordeAIController::OnUnPossess()
@@ -107,7 +132,20 @@ void AGSHordeAIController::RefreshStimulus()
 	AActor* FollowTarget = Horde->GetFollowTargetFor(Goblin);
 
 	// Read the standing order BEFORE publishing FollowTarget - the write below depends on it.
-	const EGSHordeOrder OrderVerb = Horde->GetOrderVerbFor(Goblin);
+	const EGSHordeOrder RawOrderVerb = Horde->GetOrderVerbFor(Goblin);
+
+	// Resolved once here (rather than again down in the "standing order" block below) because a Loot
+	// order with nothing left for THIS goblin to claim - its own target already smashed and looted by
+	// someone else, and the area search dry - degrades to no order at all for it specifically, and
+	// that has to be decided before bHasStandingOrder gates FollowTarget/FollowLocation above, not
+	// after: deciding it later would leave this goblin with FollowTargetKey already nulled out from
+	// the RAW order, so "revert to Follow" would have nothing to follow. Attack/Hold/Follow are
+	// unaffected - see GetOrderSubjectFor's own comment on why only Loot forages independently, and
+	// IsStillLootable's for why a stale claim or a spent Subject no longer counts (2026-08-30, Michael:
+	// "if they can't find anything to loot, go ahead and revert to follow").
+	AActor* OrderSubject = Horde->GetOrderSubjectFor(Goblin);
+	const bool bLootOrderIsEmpty = (RawOrderVerb == EGSHordeOrder::Loot) && !OrderSubject;
+	const EGSHordeOrder OrderVerb = bLootOrderIsEmpty ? EGSHordeOrder::None : RawOrderVerb;
 	const bool bHasStandingOrder = (OrderVerb != EGSHordeOrder::None);
 
 	BB->SetValueAsObject(TargetActorKey, Threat);
@@ -160,9 +198,11 @@ void AGSHordeAIController::RefreshStimulus()
 	}
 
 	// ---- the standing order (#141) ---------------------------------------------------------
-	const EGSHordeOrder Verb = OrderVerb;   // read once, above - two reads could disagree mid-frame
+	const EGSHordeOrder Verb = OrderVerb;   // the (possibly Loot-degraded) verb resolved above
 	BB->SetValueAsEnum(OrderVerbKey, static_cast<uint8>(Verb));
-	BB->SetValueAsObject(OrderSubjectKey, Horde->GetOrderSubjectFor(Goblin));
+	BB->SetValueAsObject(OrderSubjectKey, OrderSubject);   // same call as above; GetOrderSubjectFor
+	                                                        // also mutates the area-forage claim, so
+	                                                        // this must stay a single call per refresh.
 	BB->SetValueAsVector(OrderLocationKey, Horde->GetOrderLocationFor(Goblin));
 	BB->SetValueAsVector(DeliveryLocationKey, Horde->GetDeliveryLocationFor(Goblin));
 
@@ -187,4 +227,63 @@ void AGSHordeAIController::RefreshStimulus()
 		: (Threat ? EGSHordeState::Frenzy
 		          : (FollowTarget ? EGSHordeState::Follow : EGSHordeState::Idle));
 	BB->SetValueAsEnum(HordeStateKey, static_cast<uint8>(State));
+}
+
+FPathFollowingRequestResult AGSHordeAIController::MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath)
+{
+	const FPathFollowingRequestResult Result = Super::MoveTo(MoveRequest, OutPath);
+
+	if (CVarGSLogMoveCompletion.GetValueOnGameThread())
+	{
+		UE_LOG(LogGSHordeAI, Warning,
+			TEXT("[GS.MoveCompletion] %s: MoveTo() synchronous result Code=%d (0=Failed,1=AlreadyAtGoal,")
+			TEXT("2=RequestSuccessful) MoveId=%u, GoalActor='%s', UsePathfinding=%d, ProjectGoalToNav=%d, ")
+			TEXT("AcceptanceRadius=%.1f"),
+			*GetNameSafe(this),
+			static_cast<int32>(Result.Code),
+			Result.MoveId.GetID(),
+			*GetNameSafe(MoveRequest.GetGoalActor()),
+			MoveRequest.IsUsingPathfinding() ? 1 : 0,
+			MoveRequest.IsProjectingGoal() ? 1 : 0,
+			MoveRequest.GetAcceptanceRadius());
+	}
+
+	return Result;
+}
+
+void AGSHordeAIController::HandleMoveRequestFinished(FAIRequestID RequestID, const FPathFollowingResult& Result)
+{
+	if (!CVarGSLogMoveCompletion.GetValueOnGameThread())
+	{
+		return;
+	}
+
+	const UPathFollowingComponent* PFC = GetPathFollowingComponent();
+	const APawn* ControlledPawn = GetPawn();
+	if (!PFC || !ControlledPawn)
+	{
+		return;
+	}
+
+	// Same key RefreshStimulus already writes OrderSubject to - reading it back here, rather than
+	// caching it at request time, is deliberate: we want to know what the tree currently believes the
+	// subject is at the moment completion fires, not what it was when the move started.
+	const UBlackboardComponent* BB = GetBlackboardComponent();
+	AActor* Subject = BB ? Cast<AActor>(BB->GetValueAsObject(OrderSubjectKey)) : nullptr;
+	const float DistToSubject = IsValid(Subject)
+		? FVector::Dist2D(Subject->GetActorLocation(), ControlledPawn->GetActorLocation())
+		: -1.f;
+
+	UE_LOG(LogGSHordeAI, Warning,
+		TEXT("[GS.MoveCompletion] %s: OnRequestFinished(Request=%u, Success=%d, Code=%d) - ")
+		TEXT("GetMoveStatus=%d, DidMoveReachGoal=%d, AcceptanceRadius=%.1f, OrderSubject='%s', DistToSubject=%.1f"),
+		*GetNameSafe(this),
+		RequestID.GetID(),
+		Result.IsSuccess() ? 1 : 0,
+		static_cast<int32>(Result.Code),
+		static_cast<int32>(GetMoveStatus()),
+		PFC->DidMoveReachGoal() ? 1 : 0,
+		PFC->GetAcceptanceRadius(),
+		*GetNameSafe(Subject),
+		DistToSubject);
 }

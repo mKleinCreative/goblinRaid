@@ -327,6 +327,31 @@ protected:
 	 */
 	float OrderEngageRadius = 1500.f;
 
+	/**
+	 * How far from a POINTED-AT LOCATION IssueOrder will search for a carryable when a Loot order's
+	 * aim trace found bare ground (2026-08-30, design ticket #379, Michael: "goblins under my
+	 * control will look around the area I pointed to, for anything they can loot").
+	 *
+	 * Deliberately separate from OrderEngageRadius rather than reusing it: that dial is a PER-GOBLIN,
+	 * on-arrival search radius consumed continuously by GetAssignedTargetFor every time an Attack
+	 * order's target is resolved. This one is a ONE-SHOT search run exactly once, at the moment the
+	 * order is issued, inside IssueOrder itself - closer in spirit to UGSHordeCommandComponent's
+	 * OrderTraceRadius (which is a precision-aim radius, 60uu, deliberately far too tight for this)
+	 * than to the ambient combat dial. Sized "a room, not a handhold" per the design ticket's own
+	 * framing - large enough to cover a market stall's worth of ground, not so large that pointing
+	 * roughly at one loot table also picks up a barrel across the courtyard.
+	 *
+	 * SCOPE, per the design ticket's open question 2, answered: only actors already carrying a
+	 * carryable UGSInteractableComponent (UGSHordeCommandComponent::ResolveOrderSubject's own
+	 * "carryable" branch, mirrored here rather than widened) count as a candidate. Plain decoration
+	 * meshes (the SM_Ham / SM_CheeseWheel / etc. props found scattered across L_Tutorial_Island by
+	 * the food-consumable research earlier this session) are NOT auto-discovered - they carry no
+	 * UGSInteractableComponent at all today, so including them would need that separate ticket's
+	 * work to land first, not a widened search here.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "GoblinSiege|Horde", meta = (ClampMin = "0.0"))
+	float LootSearchRadius = 800.f;
+
 private:
 	struct FGSHordeThreat
 	{
@@ -347,6 +372,22 @@ private:
 	 *  player. */
 	TMap<TWeakObjectPtr<AController>, FGSHordeOrder> ActiveOrders;
 
+	/**
+	 * Area-forage claims under a Loot order (#379 Shape B, 2026-08-30 morning): which lootable each
+	 * goblin has independently committed to, so a warband spreads across a cluster of items instead of
+	 * piling onto whichever single Subject the player's aim resolved. Michael: "loot everything within
+	 * a radius... it makes it more interactive to see your group of goblins giggling as they smash and
+	 * loot" - explicitly the point, not a race condition to prevent.
+	 *
+	 * MUTABLE because GetOrderSubjectFor is const (BlueprintPure, called every ~0.15-0.2s refresh from
+	 * every goblin's controller) and this is a memoization cache, not externally-visible state: once a
+	 * goblin claims an item it keeps returning the SAME item every refresh (sticky) rather than
+	 * re-rolling mid-walk, and the entry is dropped the moment the goblin's order stops being Loot or
+	 * the claimed actor goes invalid (looted, destroyed, or the order cleared). Bounded by horde size
+	 * (the pool caps active goblins), so this never grows unbounded.
+	 */
+	mutable TMap<TWeakObjectPtr<AGSHordeGoblin>, TWeakObjectPtr<AActor>> LootClaims;
+
 	/** The standing order covering this goblin, or null. Const because the three Get*For accessors
 	 *  are; IssueOrder writes through the map directly. */
 	const FGSHordeOrder* FindOrderFor(const AGSHordeGoblin* Goblin) const;
@@ -354,6 +395,29 @@ private:
 	/** Which controller summoned this goblin. Hoisted out of GetFollowTargetFor, which was doing the
 	 *  same double loop inline and is now one line shorter for it. */
 	AController* FindSummonerFor(const AGSHordeGoblin* Goblin) const;
+
+	/**
+	 * IssueOrder's Loot fallback (#379): the aim trace found bare ground, so search within
+	 * LootSearchRadius of Location for the nearest carryable instead of refusing outright. Mirrors
+	 * UGSHordeCommandComponent::ResolveOrderSubject's own carryable branch rather than widening what
+	 * counts as loot - see LootSearchRadius's comment for why. Returns nullptr, unchanged, if nothing
+	 * carryable is in range; IssueOrder's existing refusal handles that case exactly as it always has.
+	 *
+	 * Exclude lets a caller ask for the nearest UNCLAIMED item - see GetOrderSubjectFor's area-forage
+	 * use (#379 Shape B). Empty by default for IssueOrder's own single-anchor resolution, which runs
+	 * before any goblin has claimed anything.
+	 */
+	AActor* FindNearestLootable(const FVector& Location, const TSet<TWeakObjectPtr<AActor>>& Exclude = {}) const;
+
+	/**
+	 * The exact two-part test FindNearestLootable's own overlap loop applies, pulled out so
+	 * GetOrderSubjectFor can apply it to a CACHED or FALLBACK subject too, not just a freshly found
+	 * one. Without this, a goblin's sticky claim (or the order's own resolved Subject) kept being
+	 * trusted forever once looted - Existing->Get() only ever checked "did the actor get destroyed",
+	 * never "is it still something worth standing over" - so a goblin whose barrel had already been
+	 * smashed and looted by someone else just kept walking back to recheck it (2026-08-30).
+	 */
+	bool IsStillLootable(const AActor* Candidate) const;
 
 	/** Retires orders whose subject has died or vanished. Runs on the EXISTING ScanForThreats timer -
 	 *  the horde does not get a second one, and 0.5s is well inside the time it takes anyone to

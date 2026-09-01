@@ -66,6 +66,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Score")
 	void AddLoot(int32 Points);
 
+	/**
+	 * Zeroes carried loot without touching Deeds. Called exactly once, by
+	 * AGSPlayerCharacter::ConsumeLootSackDropValue, the instant that value manifests as a dropped
+	 * BP_LootSack on death (#382 addendum, 2026-08-30 morning - Michael: "any accumulated points
+	 * we're receiving should be added to the value of the coin pouch"). This is what makes loot
+	 * genuinely AT RISK rather than a copy: the total really does leave the player until recovered.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Score")
+	void ResetLoot();
+
 	/** One line for the end panel: "142 points   3 objectives". Built here rather than in the widget
 	 *  so the score's own wording lives with the score. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Score")

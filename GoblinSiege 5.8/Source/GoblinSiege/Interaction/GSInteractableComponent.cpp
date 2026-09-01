@@ -152,6 +152,13 @@ void UGSInteractableComponent::CompleteInteraction(AActor* Interactor)
 	{
 		ApplyCollapse();
 	}
+
+	// LAST: everything above (the broadcast a Blueprint's sound-on-complete hangs off, SetAvailable,
+	// ApplyCollapse) still needs a live owner to run against.
+	if (bDestroyOwnerOnComplete && !bIsCarryable)
+	{
+		GetOwner()->Destroy();
+	}
 }
 
 void UGSInteractableComponent::ApplyCollapse()

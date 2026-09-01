@@ -37,6 +37,28 @@ void UGSBreakableComponent::BeginPlay()
 	{
 		IntactMeshComponent = ResolveIntactMesh();
 	}
+
+	// bBroken can arrive already true - a map saved mid-test, or a replicated actor whose initial
+	// state already has it set - and neither case is "replication changing a value", which is the
+	// only thing that fires OnRep_Broken. Without this, a pre-broken actor plays with its intact
+	// mesh still showing and, worse, never unlocks its interactable: Break()'s SetAvailable(true)
+	// is a one-time side effect of the imperative call, not something re-derived from bBroken, so
+	// an actor that starts broken is permanently stuck neither looking nor working broken.
+	if (bBroken)
+	{
+		RetireIntactMesh();
+
+		if (bUnlockInteractableOnBreak)
+		{
+			if (AActor* Owner = GetOwner())
+			{
+				if (UGSInteractableComponent* Interactable = Owner->FindComponentByClass<UGSInteractableComponent>())
+				{
+					Interactable->SetAvailable(true);
+				}
+			}
+		}
+	}
 }
 
 UStaticMeshComponent* UGSBreakableComponent::ResolveIntactMesh() const

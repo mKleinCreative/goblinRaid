@@ -187,6 +187,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder")
 	float SmolderDurationSeconds = 0.f;
 
+	/**
+	 * Global cap on simultaneously active smolder systems, across every actor wearing this component
+	 * on the whole map - NOT per-building. Same reasoning as AGSBuildingObjective::MaxFireFX, but this
+	 * component has no building-level coordinator to enforce a per-building cap through (it drives
+	 * per-piece char independently of whatever objective, if any, owns the piece).
+	 *
+	 * Found live (2026-09-01), "the Inn specifically": a genuinely kitbashed (never mesh-merged, unlike
+	 * the rest of the village) building with 440 individually-adopted pieces, each wearing its own
+	 * UGSBurnFXComponent. bSmolderForever=true is correct design ("a razed place stays smoking for the
+	 * rest of the raid") for an isolated haycart or granary, but at 440 pieces it meant up to 440
+	 * permanent Niagara systems accumulating on ONE building - "each wall has its own emitter," visibly
+	 * (a wall of individual smoke columns) and on the frame budget. A handful of small buildings across
+	 * the map smoking forever is the intended picture; one building alone maxing out this budget is not.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0"))
+	int32 MaxGlobalSmolderFX = 40;
+
 	// --------------------------------------------------------- ground scorch
 
 	/**
@@ -230,6 +247,11 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraComponent> SmolderFX;
+
+	/** True once this instance has incremented the global smolder counter - so EndPlay decrements
+	 *  exactly the instances that actually counted, not every component regardless of whether its
+	 *  spawn was allowed or refused by MaxGlobalSmolderFX. */
+	bool bCountedTowardGlobalSmolderCap = false;
 
 	/** Last value pushed. Never decreases on its own - char is a ratchet. */
 	float CurrentBurnAmount = 0.f;

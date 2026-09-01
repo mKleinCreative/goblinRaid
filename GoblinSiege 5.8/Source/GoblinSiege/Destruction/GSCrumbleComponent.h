@@ -316,10 +316,23 @@ public:
 	 * something - debris finishing its tumble against its neighbours must not tick damage forever.
 	 * Measured against this component's own impulses: a straggler sweep or a gentle settle lands
 	 * well under this; a piece still carrying real fall speed clears it easily.
+	 *
+	 * RAISED 2026-09-01 (20000 -> 150000), first cut, needs a live feel-check: Michael, packaged
+	 * playtest - "the buildings collapsing are too deadly." `HandlePieceCollision` gates on
+	 * `CollisionInfo.AccumulatedImpulse.Size()`, a raw impulse (mass x velocity change, NOT
+	 * normalized) - #393/#395's clustering (`FFractureEngineClustering::AutoCluster`, capping
+	 * simulated bodies at ~24 per building) merges what used to be hundreds of small, light leaf
+	 * pieces into far fewer, proportionally MUCH heavier bodies. `CollapseShoveMagnitude` (the shove
+	 * that sells the collapse visually) was tuned before clustering existed, against a 32-chunk
+	 * house - the same shove on today's much heavier clusters trivially clears the old threshold on
+	 * nearly every impact. Chose to raise THIS instead of lowering the shove, so the collapse still
+	 * looks the same and only "did this actually land on you with real force" changes. Unverified
+	 * against the statue/mill's own crumbles (this component is shared, not building-specific) -
+	 * they were not reported as a problem, but were not re-tested after this change either.
 	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Damage", meta = (ClampMin = "0.0",
 		EditCondition = "bEnableDamageFromCollision"))
-	float MinImpulseToDamage = 20000.f;
+	float MinImpulseToDamage = 150000.f;
 
 	/** UGSGE_WeaponDamage by default - a generic instant-damage GE that bakes no Damage.* tag of
 	 *  its own (see that class's header), exactly what a hazard supplying its own tag needs. */

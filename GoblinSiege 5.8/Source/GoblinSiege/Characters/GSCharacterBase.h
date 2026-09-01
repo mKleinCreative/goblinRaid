@@ -40,7 +40,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGSOnDamaged, AActor*, Attacker, fl
  *  is what the swing already knows and the attacker is what it already is. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGSOnDealtDamage, AActor*, Victim);
 
-UCLASS(Abstract)
+UCLASS(Abstract, Config = Game)
 // IAbilitySystemInterface is NOT listed here any more: AACFCharacter already declares it (along with
 // IGenericTeamAgentInterface, IACFEntityInterface and IALSSavableInterface), and UHT treats a
 // re-declaration in a derived class as an error.
@@ -91,6 +91,16 @@ public:
 	/** Applied on respawn: sets Health to RespawnHealthFraction * MaxHealth and grants brief i-frames. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
 	virtual void ApplyRespawnState(float HealthFraction, float InvulnerabilitySeconds);
+
+	/**
+	 * Add Amount to Health, clamped to MaxHealth. Server only; a no-op on a corpse or a non-positive
+	 * amount. Written for the arena's healing food (2026-08-30) but general-purpose - anything that
+	 * wants a flat heal (a potion, a shrine) calls this rather than re-deriving the
+	 * SetNumericAttributeBase pattern KillOutright/ApplyRespawnState already use, now that ARS owns
+	 * Health (#228).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Combat")
+	void Heal(float Amount);
 
 	/**
 	 * DEBUG ONLY. Kill outright by driving the Health attribute to zero.
@@ -356,6 +366,41 @@ protected:
 	 */
 	UFUNCTION()
 	virtual void HandleDeath();
+
+	/**
+	 * What this character's death drops as a recoverable coin pouch (#382 addendum, 2026-08-30
+	 * morning). Michael: "guards drop this. any accumulated points we're receiving should be added
+	 * to the value of the coin pouch" - so a guard's is a fixed authored amount, but a PLAYER'S
+	 * carried loot is not a plain data field (it lives on UGSScoreSubsystem and has to be CLEARED
+	 * when it manifests as a pouch, or dying twice would double-pay it). Virtual rather than a bare
+	 * property for exactly that reason - AGSPlayerCharacter overrides this to read-and-reset the
+	 * score subsystem; everything else just returns LootSackDropValue. Zero means "drops nothing",
+	 * which is every non-guard character's correct default.
+	 */
+	virtual int32 ConsumeLootSackDropValue();
+
+	/** The fixed purse a non-player character drops on death - a guard's own wealth, not tied to
+	 *  anything the player has looted. 0 (default) drops nothing; set per-Blueprint (a Militia's
+	 *  purse should be lighter than a Knight's). See ConsumeLootSackDropValue. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Loot", meta = (ClampMin = "0"))
+	int32 LootSackDropValue = 0;
+
+	/**
+	 * What a dying character's carried loot manifests as. Config so the drop prop can be swapped via
+	 * DefaultGame.ini without a C++ change - same idiom as UGSHordeSubsystem::OrderMarkerClassPath.
+	 * Defaults to BP_LootSack (#382 addendum): a carryable UGSInteractableComponent, configured at
+	 * spawn time via InitialiseAsCarryable so the SAME actor class serves a guard's fixed purse and
+	 * the player's variable one - reusing the exact carry/loot machinery a dropped pig already uses,
+	 * not a second recovery system.
+	 */
+	UPROPERTY(Config, EditDefaultsOnly, Category = "GoblinSiege|Loot")
+	TSoftClassPtr<AActor> LootSackClassPath = TSoftClassPtr<AActor>(
+		FSoftObjectPath(TEXT("/Game/Blueprints/Interactables/BP_LootSack.BP_LootSack_C")));
+
+	/** Spawns LootSackClassPath at this character's current location, pre-loaded with Value via
+	 *  UGSInteractableComponent::InitialiseAsCarryable. No-op if Value is 0 or the class fails to
+	 *  load - logged, not asserted, since a missing drop prop should not crash a death. */
+	void SpawnLootSack(int32 Value);
 
 	/**
 	 * CACHED, NOT OWNED (#223). Points at AACFCharacter's ActionsComp, assigned in

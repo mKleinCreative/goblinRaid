@@ -69,6 +69,14 @@ void UGSGA_DodgeRoll::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		return;
 	}
 
+	// Roll to put yourself out (2026-08-30, #370/#371): the ONLY way UGSGE_Burning's clinging burn
+	// ends is here, by the tag it grants - see UGSGE_Burning's header. A no-op when nothing is
+	// burning, so this costs nothing on every other roll.
+	if (UAbilitySystemComponent* BurningASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		BurningASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(GSTags::State_Burning));
+	}
+
 	// Length of the roll animation, if one plays. Drives the commit window when
 	// bCommitForFullMontage is set; stays 0 when no montage is assigned, in which case the ability
 	// falls back to DodgeDurationSeconds and behaves exactly as it did before animation existed.

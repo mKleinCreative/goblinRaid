@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "GameFramework/PlayerController.h"
 
 namespace
 {
@@ -132,6 +133,20 @@ TOptional<FVector> AGSGameMode::DebugSpawnOverride;
 
 void AGSGameMode::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* StartSpot)
 {
+	// Undo whatever UI-only input mode a menu level left behind (2026-08-31). Nothing else in the
+	// project ever explicitly restores game input or hides the cursor again - AGSMainMenuGameMode
+	// and UGSPlayerHUDWidget::HandleRaidEnded are the only two places that ever SET FInputModeUIOnly,
+	// and neither a fresh raid level nor OpenLevel is guaranteed to reset it on its own. Without this,
+	// a player arriving here via WBP_MainMenu's New Raid button (or the end panel's Restart/Main Menu
+	// buttons looping back through here) could be stuck mouse-look-only, unable to move at all - this
+	// is the single choke point every spawn path already goes through, so it is the right place to
+	// undo it, regardless of which branch below actually places them.
+	if (APlayerController* PC = Cast<APlayerController>(NewPlayer))
+	{
+		PC->SetShowMouseCursor(false);
+		PC->SetInputMode(FInputModeGameOnly());
+	}
+
 	// Debug override wins over everything, including the runic site - that is the point of it.
 	if (DebugSpawnOverride.IsSet())
 	{

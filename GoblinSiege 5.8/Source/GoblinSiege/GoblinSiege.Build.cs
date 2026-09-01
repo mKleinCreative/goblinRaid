@@ -61,6 +61,17 @@ public class GoblinSiege : ModuleRules
 			// FACFDamageEvent. Add the next ACF module here the moment you CALL into it.
 			"AscentCombatFramework",
 
+			// ActionsSystem (#390). The paragraph above applies verbatim, and this is the sharpest
+			// case of it yet: UGSGA_GrappleThrow now DERIVES UACFGameplayAbility (in its header, so
+			// PUBLIC) rather than just calling into a module reached through AACFCharacter. The
+			// include resolved transitively through AscentCombatFramework and compiled cleanly; the
+			// link then failed on every UACFGameplayAbility symbol - StaticClass, GetWorld,
+			// HandleMontageFinished/Interrupted, InitAbility, ExtractPayloadFromEvent, the
+			// _Implementation thunks UHT generates for the BlueprintNativeEvents - because
+			// ActionsSystem itself was never named here, only reached through AscentCombatFramework's
+			// own (public) dependency on it.
+			"ActionsSystem",
+
 			// InventorySystem (#280, ruling 46). The paragraph above applies verbatim: this module
 			// already arrives transitively through AIFramework, so the includes have always
 			// compiled - and the link would fail with LNK2019 the moment we CALLED into it. #280 is

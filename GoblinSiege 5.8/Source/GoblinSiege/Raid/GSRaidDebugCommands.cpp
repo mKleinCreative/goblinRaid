@@ -31,10 +31,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "Core/GSGameMode.h"
 #include "Destruction/GSBuildingObjective.h"
+#include "Destruction/GSBurnObjectiveBase.h"
 #include "Destruction/GSFlammableComponent.h"
 #include "Destruction/GSBurnFXComponent.h"
+#include "Destruction/GSTopplableComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/UObjectIterator.h"
 
 namespace GSRaidDebug
 {
@@ -649,4 +652,64 @@ static FAutoConsoleCommandWithWorld GSRaidBuildingStatusCmd(
 			WithParam == 0 ? TEXT("<- no MIDs: char CANNOT show")
 				: (MaxBurn <= 0.01f ? TEXT("<- param exists but is still 0: FX not driving it")
 					: TEXT("<- char is being applied"))));
+	}));
+
+// -------------------------------------------------------------------- GS.Raid.CompleteAllObjectives
+//
+// The complement to GS.Burn.IgniteAll (Destruction/GSBurnDebugCommands.cpp): that one starts every
+// objective burning but does not guarantee any of them REACHES its completion threshold (a field
+// spreads over time, a building burns its shell down, the mill runs a fuse) - so there was still no
+// way to drive the raid to "won" on demand. This jumps every burn objective straight to 1.0 via the
+// new AGSBurnObjectiveBase::DebugForceComplete() and topples every monument, then lets the EXISTING
+// UGSRaidDirector/AGSRunicSite cascade (HandleCarrierCompleted/HandleMonumentToppled ->
+// EvaluateWinCondition -> OnRaidObjectivesComplete -> SetPortalOpen) do the rest - no changes to
+// either of those classes were needed.
+static FAutoConsoleCommandWithWorld GSRaidCompleteAllObjectivesCmd(
+	TEXT("GS.Raid.CompleteAllObjectives"),
+	TEXT("Force every burn objective and every monument to completion, so the win-condition cascade ")
+		 TEXT("(director -> runic site portal) can be exercised without playing through the raid."),
+	FConsoleCommandWithWorldDelegate::CreateStatic([](UWorld* InWorld)
+	{
+		UWorld* World = GSRaidDebug::GameWorld(InWorld);
+		if (!World)
+		{
+			return;
+		}
+
+		int32 BurnCount = 0;
+		for (TActorIterator<AGSBurnObjectiveBase> It(World); It; ++It)
+		{
+			if (AGSBurnObjectiveBase* Objective = *It)
+			{
+				if (!Objective->IsComplete())
+				{
+					Objective->DebugForceComplete();
+					++BurnCount;
+				}
+			}
+		}
+
+		int32 ToppleCount = 0;
+		for (TObjectIterator<UGSTopplableComponent> It; It; ++It)
+		{
+			UGSTopplableComponent* Topplable = *It;
+			if (!IsValid(Topplable) || Topplable->GetWorld() != World)
+			{
+				continue;
+			}
+			if (!Topplable->IsToppled())
+			{
+				AActor* Owner = Topplable->GetOwner();
+				const FVector PullDirection = Owner ? Owner->GetActorForwardVector() : FVector::ForwardVector;
+				const FVector AnchorPoint = Owner ? Owner->GetActorLocation() + FVector(0.f, 0.f, 200.f) : FVector::ZeroVector;
+				if (Topplable->Topple(nullptr, PullDirection, AnchorPoint))
+				{
+					++ToppleCount;
+				}
+			}
+		}
+
+		GSRaidDebug::Log(FString::Printf(
+			TEXT("CompleteAllObjectives: forced %d burn objective(s), toppled %d monument(s)."),
+			BurnCount, ToppleCount));
 	}));

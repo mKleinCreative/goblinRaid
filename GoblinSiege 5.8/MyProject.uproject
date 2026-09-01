@@ -22,6 +22,16 @@
 				"Engine",
 				"CoreUObject"
 			]
+		},
+		{
+			"Name": "GoblinSiegeEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject",
+				"GoblinSiege"
+			]
 		}
 	],
 	"Plugins": [
@@ -100,6 +110,20 @@
 		{
 			"Name": "NiagaraFluids",
 			"Enabled": true
+		},
+		{
+			"Name": "Fracture",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
+			"Name": "PlanarCut",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		}
 	]
 }

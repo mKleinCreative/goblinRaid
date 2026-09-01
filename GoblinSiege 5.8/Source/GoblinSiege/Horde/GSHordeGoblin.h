@@ -49,9 +49,32 @@ public:
 	int32 GetFollowSlot() const { return FollowSlot; }
 	void SetFollowSlot(int32 InSlot) { FollowSlot = InSlot; }
 
+	/**
+	 * A gold-type item looted in place (BTTask_LootInPlace) - a chest, a coin pouch - banks HERE
+	 * instead of straight to UGSScoreSubsystem (2026-08-30, Michael: "they only return with loot if
+	 * it's livestock, otherwise accumulate the gold on themselves as their personal purse"). Livestock
+	 * is unaffected: it goes through UGSCarryComponent + GSLootBankComponent's existing
+	 * carry-and-deliver path, which still banks to the score subsystem directly on delivery, same as
+	 * before this ticket.
+	 *
+	 * Server-authoritative. Two things consume it, for two different endings (2026-08-30, Michael:
+	 * "keeps that money with them, until they either die... or they make it back to spawn and bank
+	 * it"): ConsumeLootSackDropValue reads-and-resets it on death, for AGSCharacterBase::HandleDeath
+	 * to hand to SpawnLootSack as a recoverable pouch; BankPersonalPurse reads-and-resets it on a live
+	 * delivery, for UGSLootBankComponent::BankPersonalPurse to add straight to the score subsystem.
+	 * Kept as two separate methods rather than one, despite the identical bodies, because they answer
+	 * different questions (what does dying drop vs. what does arriving bank) and the day one of them
+	 * needs to diverge - a partial death-drop, say - sharing one method would be the wrong coupling.
+	 */
+	void AddToPersonalPurse(int32 Value) { PersonalPurse += Value; }
+
+	/** See AddToPersonalPurse's comment for why this is not ConsumeLootSackDropValue. */
+	int32 BankPersonalPurse() { const int32 Value = PersonalPurse; PersonalPurse = 0; return Value; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void HandleDeath() override;
+	virtual int32 ConsumeLootSackDropValue() override;
 
 	/** Which race this goblin belongs to. Supplies RaceTag (Race.Goblin) and the stat row, exactly
 	 *  the way DA_Race_Human supplies the six human defenders. */
@@ -98,6 +121,10 @@ protected:
 private:
 	/** See GetFollowSlot. INDEX_NONE until the subsystem assigns one. */
 	int32 FollowSlot = INDEX_NONE;
+
+	/** See AddToPersonalPurse / ConsumeLootSackDropValue. Not replicated - nothing client-side reads
+	 *  it, and it only ever changes and is consumed on the server. */
+	int32 PersonalPurse = 0;
 
 	/** Applies the archetype row's stats. A near-copy of AGSEnemyCharacter's version rather than a
 	 *  shared one, because that class's copy also carries defender-only concerns; if a third caller

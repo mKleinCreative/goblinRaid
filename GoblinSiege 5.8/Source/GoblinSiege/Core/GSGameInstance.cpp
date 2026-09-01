@@ -1,6 +1,8 @@
 #include "Core/GSGameInstance.h"
 #include "Progression/GSSaveGame.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 
 const FString UGSGameInstance::SaveSlotName = TEXT("GoblinSiegeSave");
 
@@ -17,6 +19,18 @@ void UGSGameInstance::Init()
 	{
 		CurrentSave = Cast<UGSSaveGame>(UGameplayStatics::CreateSaveGameObject(UGSSaveGame::StaticClass()));
 	}
+}
+
+UGSSaveGame* UGSGameInstance::GetCurrentSave(const UObject* WorldContextObject)
+{
+	if (const UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr)
+	{
+		if (const UGSGameInstance* GameInstance = World->GetGameInstance<UGSGameInstance>())
+		{
+			return GameInstance->GetSaveGame();
+		}
+	}
+	return nullptr;
 }
 
 void UGSGameInstance::SaveGame()

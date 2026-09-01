@@ -6,18 +6,32 @@
 // means the grapple inherits the fixes those two paths already took (#040's montage/spawn coupling,
 // #048's assignment failure, the muzzle move to UGSAimComponent in #004).
 //
-// What it does NOT do is own the rope. The hook actor derives its own anchor and lays its own rope
-// on impact - see BP_GrappleHook - so this ability's whole job is "put a hook in the air, once".
+// What it does NOT do is own the rope. AGSGrappleHookProjectile derives its own anchor and lays its
+// own rope on impact - so this ability's whole job is "put a hook in the air, once".
+//
+// Rebased onto UACFGameplayAbility (#390, 2026-08-31), NOT plain UGameplayAbility. GS's own ASC
+// (AGSCharacterBase::AbilitySystemComponent) IS ACF's UACFAbilitySystemComponent - see
+// gs-abilities-outside-acf-asc - but CurrentPriority/buffering are armed only by
+// UACFGameplayAbility::ActivateAbility/::EndAbility calling ACFAbilityComponent->OnAbilityStarted/
+// OnAbilityEnded, and a plain UGameplayAbility never does. This ability does NOT call
+// Super::ActivateAbility (that pipeline commits an ActionConfig cost against a
+// UACFGASStatisticsComponent this character may not have, and would silently no-op the whole throw
+// if that component is absent) - it calls OnAbilityStarted directly instead, keeping the existing
+// hand-rolled windup/spawn timing. Super::EndAbility IS called (unchanged from before this rebase)
+// and that alone reaches UACFGameplayAbility::EndAbility's OnAbilityEnded call, which is what
+// arbitration and combo buffering actually key off. ActionConfig.bAutoStartCooldown is turned off in
+// the constructor so the unused cooldown half of that same base-class pipeline stays inert too.
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbility.h"
+#include "ACFGameplayAbility.h"
 #include "GSGA_GrappleThrow.generated.h"
 
 class UAnimMontage;
+class AGSGrappleHookProjectile;
 
 UCLASS()
-class GOBLINSIEGE_API UGSGA_GrappleThrow : public UGameplayAbility
+class GOBLINSIEGE_API UGSGA_GrappleThrow : public UACFGameplayAbility
 {
 	GENERATED_BODY()
 
@@ -28,7 +42,7 @@ public:
 	 *  the throw spawns. Exactly UGSGA_TorchToss::GetTorchProjectileClass's reason for existing:
 	 *  one place owns "which hook", and it is the ability that throws it. */
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Grapple")
-	TSubclassOf<AActor> GetHookProjectileClass() const { return HookProjectileClass; }
+	TSubclassOf<AGSGrappleHookProjectile> GetHookProjectileClass() const { return HookProjectileClass; }
 
 protected:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -50,20 +64,15 @@ protected:
 	void OnGrappleWindupFinished();
 
 	/**
-	 * Soft-defaulted to /Game/Blueprints/Grapple/BP_GrappleHook.
-	 *
-	 * A TSubclassOf<AActor> rather than a concrete C++ projectile type because the prototype hook
-	 * IS a Blueprint - there is no AGSGrappleHookProjectile yet. When that class lands this should
-	 * be re-typed to it; until then a null here would make the wheel's newest slot do nothing at
-	 * all, silently, which is #048 and #088 both.
+	 * C++-defaulted to AGSGrappleHookProjectile (#390) - the BP_GrappleHook prototype this used to
+	 * soft-load is retired. Same reasoning as AGSTorchProjectile::FireVolumeClass: a reference
+	 * assigned only in a content folder is one bad merge or rename away from being null again, and
+	 * that failure is silent - the wheel's newest slot would throw nothing and say nothing, which is
+	 * #048 and #088 both. Still EditDefaultsOnly so a thin Blueprint child (for a hook mesh/rope
+	 * material override) can be substituted without touching code.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Grapple")
-	TSoftClassPtr<AActor> HookProjectileClassPath;
-
-	/** Resolved HookProjectileClassPath, cached for the life of the instance. Transient: rebuilt on
-	 *  demand, never saved. */
-	UPROPERTY(Transient)
-	TSubclassOf<AActor> HookProjectileClass;
+	TSubclassOf<AGSGrappleHookProjectile> HookProjectileClass;
 
 	/** Wind-up before the hook leaves the hand, matching the torch's 0.25s. Short enough to still
 	 *  read as a flick. A world timer would not be cancelled with the ability; the task is. */

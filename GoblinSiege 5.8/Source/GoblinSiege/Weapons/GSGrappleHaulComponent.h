@@ -39,7 +39,7 @@ public:
 	UGSGrappleHaulComponent();
 
 	/**
-	 * Called by BP_GrappleHook the moment the hook bites.
+	 * Called by AGSGrappleHookProjectile the moment the hook bites.
 	 *
 	 * @param HitActor    what the hook stuck into
 	 * @param AnchorPoint where it stuck, in world space. MUST be the hook's re-traced point, not the
@@ -61,6 +61,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Grapple")
 	bool IsHauling() const { return bHauling; }
+
+	/** True whenever a hook is out - stuck in scenery as a movement anchor, or actively hauling a
+	 *  monument. The release input (right-click, GSPlayerCharacter::Input_AimStart) checks this
+	 *  first so the player can always drop the rope, not just while a haul is in progress - the
+	 *  grapple is a movement tool first (see the class comment) and most throws never haul anything. */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Grapple")
+	bool IsHookAttached() const { return HookActor.IsValid(); }
 
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Grapple")
 	float GetHaulProgress() const { return HaulProgress; }

@@ -212,10 +212,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 370 | active | claude-fire | Fire visual: scale pooled field fire volumes to overlap along the burn front | Source/GoblinSiege/Destruction/GSFireVolume.cpp | none |
-| 371 | active | claude-fire | Raise field MaxFireVolumes to close visible gaps between fire patches | Source/GoblinSiege/Destruction/GSFieldFireObjective.h | none |
+| 396 | queued | claude-grapple | Building collapse debris deals too much damage after clustering - raise MinImpulseToDamage | Source/GoblinSiege/Destruction/GSCrumbleComponent.h | none |
+| 397 | active | claude-repack | Repackage for itch under 1GB: drop bCookAll, scope DirectoriesToAlwaysCook, strip dead content | Config/DefaultGame.ini | none |
+| 398 | review | claude-fracture-fix | Fix headless GC_ regeneration crash (IsFullyLoaded) | Source/GoblinSiegeEditor/GSFractureToolsLibrary.cpp<br>Source/GoblinSiegeEditor/GSFractureToolsLibrary.h | success |
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -590,8 +591,32 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 367 | done | claude-fire | Field objectives were intercepting torch hits meant for structures - fix FindObjectiveAtLocation priority |
 | 368 | done | claude-fire | Debris damage: released crumble pieces can kill on high-impulse collision |
 | 369 | done | claude-fire | Wire debris damage on to mill/building crumble |
+| 370 | done | claude-fire | Fire visual: scale pooled field fire volumes to overlap along the burn front |
+| 371 | done | claude-fire | Raise field MaxFireVolumes to close visible gaps between fire patches |
 | 372 | abandoned | claude-fire | Fire visual: per-instance random seed offset to break the stamped-copy look |
 | 373 | abandoned | claude-fire | Test swap: Niagara Fluids fire system for field fire volumes |
+| 374 | done | claude-fire | Hill mill cap/roof still culls at 350m - Merge Actors proxy ignores AllowCullDistanceVolume |
+| 375 | done | claude-anim | Horn blast loop: freeze intro pose instead of blend-race to Loop montage |
+| 376 | done | claude-fire | On-fire status effect: slow burn that clings until you roll |
+| 377 | done | claude-town | Town garrison: 8 -> 24 defenders, first real archer placement, patrol splines reused |
+| 378 | done | claude-ai | Defenders react to threats: empty ACF DefaultThreatMap means sight-based engagement never worked; victim never self-targets on hit |
+| 379 | done **UNOBSERVED** | claude-loot | Design: Loot command - goblins search a pointed area for anything lootable |
+| 380 | done **UNOBSERVED** | claude-anim | Design: hook animations onto Pig, Sheep, Chicken so they become raidable livestock |
+| 381 | done **UNOBSERVED** | claude-overnight | Pig/Sheep/Chicken: AnimBPs built, sheep+chicken actors created, all placed as raid targets on Tutorial Island |
+| 382 | done | claude-loot2 | Loot order: goblins must break crates open and actually carry loot, not just walk to it |
+| 383 | abandoned | claude-savegame | Design: persist score across sessions and close the raid loop (end panel is a dead end) |
+| 384 | done | claude-loot2 | Loot polish: chest/pouch swap, revert-to-follow when nothing left to loot |
+| 385 | done | claude-loot2 | Close the raid loop: EndPanel buttons, score persistence, minimal main menu |
+| 386 | abandoned | claude-loot2 | Close raid loop: boot menu, complete-all debug cmd, gold/xp profile |
+| 387 | done | claude-package | Package for itch: fix cook-blocking AIPerceptionComponent Error log |
+| 388 | done **UNOBSERVED** | claude-package | Fix packaged-build OpenLevel short-name bug: New Raid does nothing outside PIE |
+| 389 | done **UNOBSERVED** | claude-shiplog | Enable logging in Shipping builds so packaged-game logs are readable |
+| 390 | done | claude-grapple | Fix grapple rope scaling + add right-click release input |
+| 391 | done **UNOBSERVED** | claude-loadingscreen | Enable loading screen for menu->raid transition (release day) |
+| 392 | done | claude-grapple | Buildings with no fracture asset now break: generic rubble fallback for the 41 of 42 SM_MERGED_House_* meshes missing a GC_ |
+| 393 | done | claude-grapple | Bulk Chaos fracture generation: custom editor module calling FractureEngine/PlanarCut C++ directly, real GC_ assets for all 42 house meshes |
+| 394 | done | claude-gdd | GDD: Hold and Loot horde orders confirmed working, update roster and inert-order status |
+| 395 | done | claude-grapple | Perf: cap simultaneous smolder FX, extend real fracture to kitbashed wall pieces, fix Inn's PieceNameFilters |
 
 <!-- BOARD:END -->
 

@@ -11,6 +11,11 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 
+// Global, not per-instance - MaxGlobalSmolderFX's whole point is a map-wide budget shared across
+// every UGSBurnFXComponent, since this component has no per-building coordinator the way
+// AGSBuildingObjective::MaxFireFX does. See the header comment on MaxGlobalSmolderFX.
+static int32 GActiveSmolderCount = 0;
+
 UGSBurnFXComponent::UGSBurnFXComponent()
 {
 	// Timer-driven like every other burn system in this module. Char updates ten times a second
@@ -291,6 +296,19 @@ void UGSBurnFXComponent::SpawnSmolder()
 		return;
 	}
 
+	// Global budget, not a per-piece decision - see MaxGlobalSmolderFX's header comment. Degrades the
+	// same way a missing System does: char still reads, this piece just does not add to the smoke.
+	// Verbose, not Warning - a large kitbashed building refusing dozens of these in one burst is the
+	// cap working as intended, not something worth a log line per refusal.
+	if (MaxGlobalSmolderFX > 0 && GActiveSmolderCount >= MaxGlobalSmolderFX)
+	{
+		UE_LOG(LogTemp, Verbose,
+			TEXT("[GoblinSiege] %s burned down but the global smolder budget (%d) is full - char only, ")
+			TEXT("no smoke for this piece."),
+			*Owner->GetName(), MaxGlobalSmolderFX);
+		return;
+	}
+
 	// Spawned at the CENTRE of the actor's bounds, in WORLD space - not at the root component's own
 	// origin (a house's pivot sits at ground level, or wherever the kit piece was authored, which
 	// reads as "no smoke visible from outside" the same way a top-only spawn once did) and not at
@@ -316,6 +334,9 @@ void UGSBurnFXComponent::SpawnSmolder()
 	{
 		return;
 	}
+
+	++GActiveSmolderCount;
+	bCountedTowardGlobalSmolderCap = true;
 
 	// Attach AFTER spawn so it still tracks the actor (a pooled/repositioned owner, or rubble that
 	// settles after crumbling) without inheriting the root's rotation - smoke should rise straight
@@ -377,7 +398,15 @@ void UGSBurnFXComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		FlammableComp = nullptr;
 	}
 
-	// SmolderFX is attached to the owner and dies with it; nothing to tear down here.
+	// SmolderFX is attached to the owner and dies with it; nothing to tear down here beyond giving
+	// its slot in the global budget back - matched exactly to bCountedTowardGlobalSmolderCap so a
+	// piece refused by MaxGlobalSmolderFX (which never incremented) cannot decrement someone else's
+	// count, and so this cannot double-decrement if EndPlay ever runs twice.
+	if (bCountedTowardGlobalSmolderCap)
+	{
+		--GActiveSmolderCount;
+		bCountedTowardGlobalSmolderCap = false;
+	}
 	BurnMIDs.Reset();
 
 	Super::EndPlay(EndPlayReason);

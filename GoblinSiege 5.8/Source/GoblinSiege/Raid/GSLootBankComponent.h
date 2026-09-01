@@ -53,6 +53,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Loot Bank")
 	int32 BankCarriedLoot(APawn* Pawn);
 
+	/**
+	 * A horde goblin made it home with an accumulated personal purse - gold looted in place (a
+	 * chest, a coin pouch) that lives on the goblin itself rather than as a physical carried actor.
+	 * See AGSHordeGoblin::PersonalPurse (2026-08-30, Michael: "goblin that grabbed that money, keeps
+	 * that money with them, until they either die... or they make it back to spawn and bank it" - the
+	 * death half already existed via ConsumeLootSackDropValue/SpawnLootSack; this is the live half).
+	 * Independent of BankCarriedLoot - a goblin can walk in with BOTH a nonzero purse and something in
+	 * its UGSCarryComponent, and both bank.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Loot Bank")
+	int32 BankPersonalPurse(APawn* Pawn);
+
 	/** Something is lying in the circle under its own steam - thrown in, or put down by a courier. */
 	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Loot Bank")
 	int32 BankLooseActor(AActor* Actor);

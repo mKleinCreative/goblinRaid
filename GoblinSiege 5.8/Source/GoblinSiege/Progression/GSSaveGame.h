@@ -8,7 +8,7 @@
 #include "GameplayTagContainer.h"
 #include "GSSaveGame.generated.h"
 
-UCLASS()
+UCLASS(BlueprintType)
 class GOBLINSIEGE_API UGSSaveGame : public USaveGame
 {
 	GENERATED_BODY()
@@ -21,4 +21,15 @@ public:
 	/** Post-slice economy landing pad - unused during the slice. */
 	UPROPERTY()
 	TArray<FGameplayTag> UnlockedWeaponTags;
+
+	/** Running total gold across every raid ever played, ADDED to each raid's
+	 *  UGSScoreSubsystem::GetLoot() at EndRaid - distinct from BestScores, which is a per-map high
+	 *  score (Max()), not a wallet (+=). What it's spent on is a later problem (2026-08-30). */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Save")
+	int32 Gold = 0;
+
+	/** Running total experience across every raid ever played, ADDED to each raid's
+	 *  UGSScoreSubsystem::GetDeeds() at EndRaid. */
+	UPROPERTY(BlueprintReadOnly, Category = "GoblinSiege|Save")
+	int32 Experience = 0;
 };

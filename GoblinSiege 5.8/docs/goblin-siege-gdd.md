@@ -44,6 +44,7 @@ cost no code change and took the design document out of a tool's private folder.
 
 | Version | Date | Ticket | What changed |
 |---|---|---|---|
+| v1.5 | 2026-08-31 | #394 | **All four horde order-wheel verbs confirmed working** — Attack, Hold, Loot and Follow all land; Hold and Loot were built by hand in the Behaviour Tree editor per #213's spec, closing the gap #154/#213 recorded. §5, and §12.1 rows 6 and 17, re-graded from WIRED to BUILT/WIRED accordingly. Ruling 73. |
 | v1.0 | 2026-08-19 | #198 | This file becomes canonical and moves to `docs/`. Reconciled against the live tree: grapple written in as a core verb, audio un-cut for world SFX, climb re-graded as Blueprint-driven, the `L_CombatArena` / `L_Tutorial_Island` divergence stated, §12.1 re-graded, §12.4 scope freeze added, §13 pointed at a real ledger. 23 rulings taken — see `docs/decisions-ledger.md`. |
 | v1.1 | 2026-08-21 | #296 | **World corruption added** — the land visibly turns as you raid. One global monotonic 0..1 scalar drives sky, fog, sun, grade, world materials, VFX and ambience. Added to the §12.4 IN column; §1 pillar reworded; the wayfinding consequence amended, since corruption is now what "the environment does the leading" actually means. Rulings 40–45; ruling 62 (2026-08-24) adds that **civilian kills corrupt more than soldiers'**. Re-filed under #296 — #252 was abandoned without its edits being reverted. |
 | v1.2 | 2026-08-24 | #277 | **Finite arrows added** — the player carries a quiver that empties, refilled by walking over a bundle or a dead archer. Torches stay infinite and AI archers never run dry; weapons are not lootable. Added to the §12.4 IN column. Rulings 46-52. |
@@ -149,11 +150,13 @@ there was never a real disagreement. `UGSHordeSubsystem` has `ActiveCap = 10` an
 20 all along. Only the 2026-08-04 export text dissented. **20 goblins in the raid pool, 10 active at
 once, per player** — one notch above the Groatsworth garrison of 15, which is the point.
 
-**Order-wheel status:** Attack and Follow work — `GSHordeSubsystem` routes an Attack order's subject
-into `TargetActor` and clears Follow onto the follow branch. **Hold, Loot and Smash are inert:**
-`BTTask_PickUpCargo`, `BTTask_DeliverCargo` and `BTTask_SmashOrderTarget` compile but appear in none
-of the project's behaviour trees, and `BB_HordeGoblin` lacks the four `Order*` keys the controller
-writes (#154). Both halves are needed; the keys alone will not do it.
+**Order-wheel status — all four confirmed working (2026-08-31, ruling 73).** Attack, Hold, Follow and
+Loot all land: `GSHordeSubsystem` routes an Attack order's subject into `TargetActor` and clears
+Follow onto the follow branch, and `BT_HordeGoblin` now carries the `OrderVerb`-gated branches
+ticket #213 specified but left for a hand edit in the Behaviour Tree editor — `BTTask_PickUpCargo` and
+`BTTask_DeliverCargo` now sit in the tree rather than compiling unused, matching #382/#384's loot-order
+work. *Smash remains the one order without a consumer* — `BTTask_SmashOrderTarget` still appears in no
+behaviour tree, since #213 scoped only Hold and Loot as "the same shape" once the pattern proved out.
 
 ## 6. The level — the hamlet
 
@@ -425,7 +428,7 @@ three-column shape are pinned by `features.json` — see the parser contract at 
 | 4 | Alarm meter + phases | **WIRED, unreachable** — upgraded from SKELETON: `RequestAlarmPhase`, `SuspicionDecaySeconds`, the unseen-fire fuse and Razed are all real in `Core/GSGameState.cpp`. What is missing is a **reporter**, not the machine — no guard can file a sighting (§7), so SUSPICIOUS is unreachable, and the escalation rule refreshes the decay where it should promote to RAID |
 | 5 | Third-person camera & control | **BUILT** |
 | 5b | Traversal — climb (Blueprint-driven) | **BUILT** — climb rebuilt over #070–#084 and signed off. `UGSClimbLibrary` has **zero C++ callers by design**: the climb lives in the player Blueprint calling it, so "no callers" is not "dead code". **Vault and mantle do not exist**, which leaves decision 41-a's vault-only horde depending on a verb the project has never had |
-| 6 | Horn & horde — summon, pool, follow/frenzy/orders | **WIRED** — summon, follow, frenzy and Attack orders work; Hold/Loot/Smash inert (§5). Pool is 20 (10 active × reserve 2), settled. The behaviour tree was found gutted on 2026-08-14 and repaired (#153) |
+| 6 | Horn & horde — summon, pool, follow/frenzy/orders | **BUILT** — summon, follow, frenzy, and all four order-wheel verbs (Attack/Hold/Loot/Follow) work, watched 2026-08-31 (ruling 73); Smash — not a wheel command — remains uncalled (§5). Pool is 20 (10 active × reserve 2), settled. The behaviour tree was found gutted on 2026-08-14 and repaired (#153) |
 | 7 | The stealth five | **SPLIT — two built, three absent.** The ~1.5s confirm and crouch detection are real and correct in `Stealth/`; **noise, takedown, corpse-suspicion and the coin toss have no code at all**. The perception component sits on **zero actors** - which became the argument for ruling 56 (#285), that being the only "Never cut" item never to have run. **The whole sneaking portion is CUT from the demo as of 2026-08-24**; noise is no longer IN and ruling 9 is superseded. The `Stealth/` code stays in the tree |
 | 8 | Interact framework — hold-channel | **BELIEVED WIRED, UNOBSERVED** — was "MISSING and blocking" for eight days on the unset `InteractAction`. #161/#163/#172/#181/#187 landed the assignment, the first interactables, the channel ring and the focus prompt — **in `L_CombatArena` only**. Watch it before trusting this row in either direction (Block A) |
 | 9 | Breach set | **DEFERRED — tier-2** |
@@ -436,7 +439,7 @@ three-column shape are pinned by `features.json` — see the parser contract at 
 | 14 | Lives / respawn | **BUILT** — 5 lives and the OutOfLives loss both driven and watched |
 | 15 | Barks + Overlord whispers | **MISSING** — 9 validated prompt rows in `content-pipeline/out/prompts.csv`; the project contains **zero DataTable assets** and no first-encounter tracker. **The banked text still names the granary and must be regenerated** — `gsstyle.py` already does this and was proven on those rows (#191) |
 | 16 | Gore / gib system | **CUT (ruling 15)** — ragdoll death covers it; not built, not scheduled |
-| 17 | Loot couriers — sacks + livestock as cargo | **WIRED, no cargo** — upgraded: `BTTask_PickUpCargo`, `BTTask_DeliverCargo` and `NotifyCourierDelivered` are all real. What is missing is livestock actors and a `CarrySocket`, which exists on **none of the project's 25 skeletons**, so cargo attaches at the carrier's feet |
+| 17 | Loot couriers — sacks + livestock as cargo | **WIRED** — `BTTask_PickUpCargo`, `BTTask_DeliverCargo` and `NotifyCourierDelivered` are real and now sit in `BT_HordeGoblin`'s tree (ruling 73); a Loot order sends a goblin to break a crate and carry it home (#382/#384). Livestock (Chicken/Pig/Sheep) were placed as raid targets by #379-381, still marked **UNOBSERVED** in the queue; `CarrySocket` exists on none of the project's 25 skeletons, so cargo attaches at the carrier's feet |
 | 18 | Raid clock — 30-min cap, 90s collapse, left-behind | **BUILT** |
 | 19 | Patrol director | **MISSING, and will not be built** — ACF's `UACFAIPatrolComponent` + `ACFUpdatePatrolBTService` retire `UGSPatrolDirector` (ruling 14). The overdue-patrol check-in soft signal stays ours. Today `GS.Combat.SpawnPatrol` is a clump-spawner |
 | 20 | The hamlet map | **MISSING — unblocked.** The generator **won its timebox**: 8 seeds, 8 passes, measured kit, 2026-08-18. `L_Groatsworth` does not exist yet and `apply_in_editor.py` has never been run. See §6 for the two-statue roster trap |

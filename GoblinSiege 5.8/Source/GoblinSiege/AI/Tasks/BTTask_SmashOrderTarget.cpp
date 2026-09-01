@@ -7,6 +7,8 @@
 #include "Characters/GSCharacterBase.h"
 #include "Destruction/GSBreakableComponent.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGSSmashOrder, Log, All);
+
 UBTTask_SmashOrderTarget::UBTTask_SmashOrderTarget()
 {
 	NodeName = TEXT("Smash Ordered Target (Break)");
@@ -39,6 +41,8 @@ EBTNodeResult::Type UBTTask_SmashOrderTarget::ExecuteTask(UBehaviorTreeComponent
 	AActor* Target = Cast<AActor>(BB->GetValueAsObject(TargetKey.SelectedKeyName));
 	if (!Self || !IsValid(Target))
 	{
+		UE_LOG(LogGSSmashOrder, Verbose, TEXT("[GS.Smash] %s: no self or no valid OrderSubject."),
+			*GetNameSafe(Controller->GetPawn()));
 		return EBTNodeResult::Failed;
 	}
 
@@ -48,11 +52,16 @@ EBTNodeResult::Type UBTTask_SmashOrderTarget::ExecuteTask(UBehaviorTreeComponent
 		// Not breakable, or somebody already broke it. Failing here is what lets an Attack order on a
 		// living guard fall straight through to the combat branches below - this node is the FIRST
 		// thing an Attack order tries, and "that is not a prop" is its normal answer.
+		UE_LOG(LogGSSmashOrder, Verbose, TEXT("[GS.Smash] %s: '%s' has %s - nothing to smash."),
+			*Self->GetName(), *Target->GetName(), !Breakable ? TEXT("no GSBreakableComponent") : TEXT("already broken"));
 		return EBTNodeResult::Failed;
 	}
 
-	if (FVector::Dist2D(Target->GetActorLocation(), Self->GetActorLocation()) > SmashRange)
+	const float Dist = FVector::Dist2D(Target->GetActorLocation(), Self->GetActorLocation());
+	if (Dist > SmashRange)
 	{
+		UE_LOG(LogGSSmashOrder, Log, TEXT("[GS.Smash] %s: '%s' is %.0fuu away, need <= %.0fuu - not in range yet."),
+			*Self->GetName(), *Target->GetName(), Dist, SmashRange);
 		return EBTNodeResult::Failed;
 	}
 
@@ -62,6 +71,8 @@ EBTNodeResult::Type UBTTask_SmashOrderTarget::ExecuteTask(UBehaviorTreeComponent
 	// around in a tick or two.
 	if (!Self->TryLightAttack())
 	{
+		UE_LOG(LogGSSmashOrder, Verbose, TEXT("[GS.Smash] %s: TryLightAttack refused (already swinging?)."),
+			*Self->GetName());
 		return EBTNodeResult::Failed;
 	}
 
@@ -73,6 +84,8 @@ EBTNodeResult::Type UBTTask_SmashOrderTarget::ExecuteTask(UBehaviorTreeComponent
 	const FVector Impact = Target->GetActorLocation();
 	const FVector Direction = (Target->GetActorLocation() - Self->GetActorLocation()).GetSafeNormal();
 	Breakable->Break(Impact, Direction * DebrisImpulse);
+
+	UE_LOG(LogGSSmashOrder, Log, TEXT("[GS.Smash] %s smashed '%s' open."), *Self->GetName(), *Target->GetName());
 
 	return EBTNodeResult::Succeeded;
 }

@@ -1,4 +1,6 @@
 #include "Weapons/Abilities/GSGA_GrappleThrow.h"
+#include "Weapons/GSGrappleHookProjectile.h"
+#include "Components/ACFAbilitySystemComponent.h"
 #include "Combat/GSAimComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -8,7 +10,6 @@
 // One warning per session for a broken reference, not one per goblin. This ability is
 // InstancedPerActor, so a member latch would warn once per pawn - the same reasoning
 // GSGA_TorchToss.cpp records for GThrowMontageResolveFailed.
-static bool GGrappleHookResolveFailed = false;
 static bool GGrappleMontageResolveFailed = false;
 
 UGSGA_GrappleThrow::UGSGA_GrappleThrow()
@@ -16,12 +17,14 @@ UGSGA_GrappleThrow::UGSGA_GrappleThrow()
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 
-	// Soft C++ default. The prototype hook is a Blueprint, so this cannot be a StaticClass() the
-	// way UGSGA_TorchToss defaults to AGSTorchProjectile - but the reason for defaulting it in code
-	// at all is identical: #048 and #088 both shipped a verb whose class was never assigned on the
-	// CDO, and both looked exactly like "the key does nothing".
-	HookProjectileClassPath = TSoftClassPtr<AActor>(
-		FSoftObjectPath(TEXT("/Game/Blueprints/Grapple/BP_GrappleHook.BP_GrappleHook_C")));
+	// C++ default - see the header comment on HookProjectileClass for why this replaced a
+	// TSoftClassPtr onto BP_GrappleHook (#390).
+	HookProjectileClass = AGSGrappleHookProjectile::StaticClass();
+
+	// This ability now derives UACFGameplayAbility (#390) but does not use ACF's cost/cooldown
+	// pipeline - see the header comment. Leaving bAutoStartCooldown at its FActionConfig default
+	// (true) would have EndAbility commit a cooldown GameplayEffect this ability never set up.
+	ActionConfig.bAutoStartCooldown = false;
 
 	// Shares the torch's throw animation until AM_GS_GrappleThrow exists. Soft, so recording it
 	// here costs no package load at module time.
@@ -43,6 +46,16 @@ void UGSGA_GrappleThrow::ActivateAbility(const FGameplayAbilitySpecHandle Handle
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
+	// Arms ACF's priority arbitration for this activation - see the header comment for why this is
+	// called directly instead of Super::ActivateAbility (which runs a cost/warp/montage pipeline
+	// this ability does not use, and would silently no-op the whole throw without a
+	// UACFGASStatisticsComponent). GetACFAbilityComponent() resolves from OnAvatarSet, which this
+	// ability does not override, so it is valid here.
+	if (UACFAbilitySystemComponent* ACFComp = GetACFAbilityComponent())
+	{
+		ACFComp->OnAbilityStarted(this);
+	}
+
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
@@ -105,23 +118,15 @@ void UGSGA_GrappleThrow::ThrowHook()
 		return;
 	}
 
-	if (!HookProjectileClass && !GGrappleHookResolveFailed)
-	{
-		if (UClass* Loaded = HookProjectileClassPath.IsNull() ? nullptr
-			: HookProjectileClassPath.LoadSynchronous())
-		{
-			HookProjectileClass = Loaded;
-		}
-		else
-		{
-			GGrappleHookResolveFailed = true;
-			UE_LOG(LogTemp, Error,
-				TEXT("[GS.Grapple] HookProjectileClassPath failed to resolve - the grapple slot "
-					 "will throw nothing. This is the #048/#088 failure; check the path."));
-		}
-	}
+	// HookProjectileClass is a C++ default now (AGSGrappleHookProjectile::StaticClass(), set in the
+	// constructor) rather than a soft path resolved here - see the header comment. Still checked:
+	// an EditDefaultsOnly property can be cleared to None in a Blueprint child, and that must still
+	// fail loudly rather than throw nothing (#048/#088).
 	if (!HookProjectileClass)
 	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[GS.Grapple] HookProjectileClass is None - the grapple slot will throw nothing. "
+				 "This is the #048/#088 failure; check for an override that cleared it."));
 		return;
 	}
 
@@ -148,7 +153,7 @@ void UGSGA_GrappleThrow::ThrowHook()
 	SpawnParams.Instigator = Avatar;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	Avatar->GetWorld()->SpawnActor<AActor>(
+	Avatar->GetWorld()->SpawnActor<AGSGrappleHookProjectile>(
 		HookProjectileClass, Muzzle.GetLocation(), Muzzle.GetRotation().Rotator(), SpawnParams);
 }
 

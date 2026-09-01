@@ -1,6 +1,7 @@
 #include "AI/GSAIControllerBase.h"
 
 #include "Components/ACFAIPatrolComponent.h"
+#include "Components/ACFThreatManagerComponent.h"
 #include "AI/GSAISteeringComponent.h"
 #include "Characters/GSCharacterBase.h"
 #include "Characters/GSEnemyCharacter.h"
@@ -16,6 +17,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
+#include "DrawDebugHelpers.h"
 
 // GS.Combat.Separation and GS.Combat.FaceTarget moved to GSAISteeringComponent.cpp with the
 // behaviours they switch (#143). They are still registered, still named the same, and still mean the
@@ -69,6 +71,71 @@ AGSAIControllerBase::AGSAIControllerBase(const FObjectInitializer& ObjectInitial
 		AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 		SetPerceptionComponent(*AIPerceptionComponent);
 	}
+}
+
+void AGSAIControllerBase::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// See the header: SightConfig's own SightRadius/LoseSightRadius/PeripheralVisionAngleDegrees
+	// are a SEPARATE copy from these controller-level fields, set once in the constructor from the
+	// raw C++ class default - a Blueprint override of the controller's fields never reached them.
+	// Re-copying here, after property loading, is what makes editing the controller's own fields
+	// (the intuitive place to look) actually change what AIPerceptionComponent senses.
+	if (SightConfig)
+	{
+		SightConfig->SightRadius = SightRadius;
+		SightConfig->LoseSightRadius = LoseSightRadius;
+		SightConfig->PeripheralVisionAngleDegrees = PeripheralVisionAngleDegrees;
+	}
+}
+
+static int32 GSAIDebugSight = 0;
+static FAutoConsoleVariableRef CVarGSAIDebugSight(
+	TEXT("GS.AI.DebugSight"),
+	GSAIDebugSight,
+	TEXT("1 = draw this controller's sight radius (sphere), lose-sight radius (thinner sphere) and "
+		 "peripheral vision cone (wedge) over its pawn every frame. 0 = off (default)."),
+	ECVF_Cheat);
+
+void AGSAIControllerBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (GSAIDebugSight == 0 || !SightConfig)
+	{
+		return;
+	}
+
+	const APawn* ControlledPawn = GetPawn();
+	const UWorld* World = GetWorld();
+	if (!ControlledPawn || !World)
+	{
+		return;
+	}
+
+	const FVector Origin = ControlledPawn->GetActorLocation();
+	const FVector Forward = ControlledPawn->GetActorForwardVector();
+
+	// Sight radius: solid-ish green sphere, low segment count - this runs every frame for every
+	// debugged agent and does not need to look like a CAD model.
+	DrawDebugSphere(World, Origin, SightConfig->SightRadius, 24, FColor::Green, false, -1.f, 0, 2.f);
+
+	// Lose-sight radius: the SAME shape in red, so the gap between "can first notice you" and
+	// "won't drop you until here" is something to look at rather than two numbers on a details
+	// panel. Skipped entirely when the two radii are equal - drawing an identical sphere twice is
+	// just visual noise.
+	if (!FMath::IsNearlyEqual(SightConfig->LoseSightRadius, SightConfig->SightRadius))
+	{
+		DrawDebugSphere(World, Origin, SightConfig->LoseSightRadius, 24, FColor::Red, false, -1.f, 0, 1.f);
+	}
+
+	// Peripheral vision cone: PeripheralVisionAngleDegrees is a HALF-angle off forward (confirmed
+	// against the engine's own AISenseConfig_Sight.h comment - "Peripheral Vision Half Angle"), so
+	// the cone spans DOUBLE that value in total, split evenly either side of Forward.
+	const float HalfAngleRad = FMath::DegreesToRadians(SightConfig->PeripheralVisionAngleDegrees);
+	DrawDebugCone(World, Origin, Forward, SightConfig->SightRadius, HalfAngleRad, HalfAngleRad,
+		16, FColor::Yellow, false, -1.f, 0, 1.5f);
 }
 
 bool AGSAIControllerBase::IsEntityAlive_Implementation() const
@@ -251,7 +318,61 @@ void AGSAIControllerBase::OnPossess(APawn* InPawn)
 void AGSAIControllerBase::HandlePawnDamagedAlertAllies(AActor* Attacker, float Damage)
 {
 	APawn* Self = GetPawn();
-	if (!IsValid(Attacker) || !Self || AllyAlertRadius <= 0.f)
+	if (!IsValid(Attacker) || !Self)
+	{
+		return;
+	}
+
+	// THE VICTIM ITSELF, first (2026-08-30) - this function used to only wake bystanders and never
+	// the pawn actually hit. ACF ships exactly this self-target step natively
+	// (AACFAIController::HandlePawnDamaged: ThreatComponent->AddThreat + SetTarget, NOT gated on
+	// GroupOwner - only the "alert other team members" half below it is), but that handler listens
+	// for FACFDamageEvent, which this project's GAS damage pipeline never fires - so it has been
+	// dead code for us since the ACF migration. Reusing GetThreatManager()/AddThreat rather than a
+	// bare SetTarget so this feeds the same threat bookkeeping ACF's own combat service reads
+	// (UACFUpdateCombatBTService::EvaluateAndUpdateCombat pulls from GetTargetActorBK(), which
+	// SetTarget writes, so either call ends up in the same place - AddThreat first keeps a shooter
+	// who lands a second, harder hit correctly registered as more threatening than one graze).
+	//
+	// Only if not already fighting someone: a guard mid-swing on a different target should finish
+	// that fight, not flinch onto whoever tags them from behind.
+	if (!GetTarget())
+	{
+		if (UACFThreatManagerComponent* Threat = GetThreatManager())
+		{
+			Threat->AddThreat(Attacker, FMath::Max(Damage, 1.f));
+			if (AActor* HighestThreat = Threat->GetActorWithHigherThreat())
+			{
+				SetTarget(HighestThreat);
+				if (GSAIDebug::IsLogging())
+				{
+					GSAIDebug::Log(Self, FString::Printf(
+						TEXT("self-targeted %s after being hit by %s"),
+						*GetNameSafe(HighestThreat), *GetNameSafe(Attacker)));
+				}
+			}
+			else if (GSAIDebug::IsLogging())
+			{
+				GSAIDebug::Log(Self, TEXT("hit, but ThreatManager returned no highest-threat actor - self-target skipped"));
+			}
+		}
+		else
+		{
+			SetTarget(Attacker);
+			if (GSAIDebug::IsLogging())
+			{
+				GSAIDebug::Log(Self, TEXT("hit, no ThreatManager found - fell back to a bare SetTarget on the attacker"));
+			}
+		}
+	}
+	else if (GSAIDebug::IsLogging())
+	{
+		GSAIDebug::Log(Self, FString::Printf(
+			TEXT("hit by %s while already fighting %s - self-target skipped"),
+			*GetNameSafe(Attacker), *GetNameSafe(GetTarget())));
+	}
+
+	if (AllyAlertRadius <= 0.f)
 	{
 		return;
 	}

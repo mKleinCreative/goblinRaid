@@ -12,10 +12,12 @@
 #include "NiagaraSystem.h"
 #include "Core/GSGameState.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Net/UnrealNetwork.h"
+#include "Sound/SoundBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSBuilding, Log, All);
 
@@ -56,6 +58,16 @@ AGSBuildingObjective::AGSBuildingObjective()
 		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_SurfaceFire.NS_GS_SurfaceFire")));
 	SmokeColumnSystem = TSoftObjectPtr<UNiagaraSystem>(
 		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_SmokeColumn.NS_GS_SmokeColumn")));
+
+	// Generic collapse fallback (#390-adjacent, 2026-08-31) for the 41 of 42 `SM_MERGED_House_*`
+	// meshes with no matching GC_ fracture asset - see SpawnGenericRubbleFallback. Reused rather than
+	// authored: N_PebbleDust is the project's existing generic debris-burst system
+	// (EnvironmentVFX/VFX/EnvironmentDust), and the debris cue is the existing rock-impact sound bank.
+	GenericRubbleFXAsset = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
+		TEXT("/Game/EnvironmentVFX/VFX/EnvironmentDust/Systems/N_PebbleDust.N_PebbleDust")));
+	GenericRubbleSoundAsset = TSoftObjectPtr<USoundBase>(FSoftObjectPath(
+		TEXT("/Game/NaPH_RPG_Fantasy_Sounds_Bunle/Environment/cue/SC_Rock_Large_Debris_2-1_Cue."
+			 "SC_Rock_Large_Debris_2-1_Cue")));
 
 	PieceNameFilters.Add(TEXT("House"));
 	PieceNameFilters.Add(TEXT("Roof"));
@@ -655,6 +667,70 @@ AActor* AGSBuildingObjective::SpawnCollectionProxy(AActor* Piece) const
 	return Proxy;
 }
 
+void AGSBuildingObjective::SpawnGenericRubbleFallback(AActor* Piece, bool bPlayFX) const
+{
+	if (!IsValid(Piece))
+	{
+		return;
+	}
+
+	// REVERTED TO NON-PHYSICS (2026-08-31, #393). The physics-topple version of this function is
+	// gone, not tuned - it failed two different ways in two different live tests:
+	//   1. On a MERGED house (one big mesh): a strong enough impulse to visibly rotate a house-scale
+	//      body read as the entire building launching into the air, not collapsing. Michael: "why in
+	//      gods green earth did you think the entire house popping up would be a good idea."
+	//   2. On individual KITBASHED trim pieces (SM_House_Roof_01_*, SM_House_Wall_5x4_*, etc.): these
+	//      ship with 'Use Complex Collision As Simple', which the physics engine categorically cannot
+	//      simulate on - confirmed live, every single call logged "Trying to simulate physics on ...
+	//      but it has ComplexAsSimple collision" and did nothing, leaving a piece that both never
+	//      moved AND had no collision response (Michael: "it has no collision, so I can just walk
+	//      through it").
+	// #393's bulk fracture generation covers MERGED houses only, not kitbashed trim pieces - this
+	// function is reached constantly for a kitbashed building's hundreds of pieces, not rarely. Every
+	// piece is still hidden/removed here regardless of bPlayFX (see CrumblePieces' MaxRubbleFXPerBuilding
+	// cap) - only the dust/sound burst is bounded, since THAT is what measured at 577 simultaneous
+	// Niagara instances and ~70ms of game-thread time (2026-09-01, "it's really laggy right now").
+	for (UStaticMeshComponent* M : TInlineComponentArray<UStaticMeshComponent*>(Piece))
+	{
+		if (M)
+		{
+			M->SetHiddenInGame(true);
+			M->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
+
+	if (bPlayFX)
+	{
+		const FTransform PieceTransform = Piece->GetActorTransform();
+
+		if (UWorld* World = GetWorld())
+		{
+			if (!GenericRubbleFXAsset.IsNull())
+			{
+				if (UNiagaraSystem* Dust = GenericRubbleFXAsset.LoadSynchronous())
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Dust,
+						PieceTransform.GetLocation(), PieceTransform.Rotator());
+				}
+			}
+
+			if (!GenericRubbleSoundAsset.IsNull())
+			{
+				if (USoundBase* Sound = GenericRubbleSoundAsset.LoadSynchronous())
+				{
+					UGameplayStatics::PlaySoundAtLocation(World, Sound, PieceTransform.GetLocation());
+				}
+			}
+		}
+	}
+
+	UE_LOG(LogGSBuilding, Verbose,
+		TEXT("[GoblinSiege] %s removed piece %s (no fracture asset for its mesh yet)."),
+		*GetName(), *Piece->GetName());
+
+	Piece->Destroy();
+}
+
 void AGSBuildingObjective::HandleCompleted()
 {
 	Super::HandleCompleted();
@@ -670,6 +746,7 @@ void AGSBuildingObjective::CrumblePieces()
 {
 	int32 Released = 0;
 	int32 NoAsset = 0;
+	int32 RubbleFXSpawned = 0;
 
 	for (const TWeakObjectPtr<AActor>& Weak : Pieces)
 	{
@@ -683,6 +760,15 @@ void AGSBuildingObjective::CrumblePieces()
 		if (!Proxy)
 		{
 			++NoAsset;
+			// Capped, not per-piece - see MaxRubbleFXPerBuilding's header comment. A kitbashed
+			// building's hundreds of un-fractured trim pieces each spawning their own dust/sound cue
+			// measured live at 577 simultaneous Niagara instances and ~70ms of game-thread time.
+			const bool bPlayFX = RubbleFXSpawned < MaxRubbleFXPerBuilding;
+			if (bPlayFX)
+			{
+				++RubbleFXSpawned;
+			}
+			SpawnGenericRubbleFallback(Piece, bPlayFX);
 			continue;
 		}
 
@@ -729,10 +815,12 @@ void AGSBuildingObjective::CrumblePieces()
 	}
 
 	// One line, and it has to be readable by somebody who has not read this file. "0 of 34" is the
-	// answer to why a house did not fall down, and it points at the missing asset, not at the code.
+	// answer to why a house did not fall down with a REAL fracture, and it points at the missing
+	// asset, not at the code - the other 34 still visibly break, just via the generic rubble fallback
+	// rather than a fitted Chaos collection.
 	UE_LOG(LogGSBuilding, Log,
-		TEXT("[GoblinSiege] %s burnt out: released %d of %d piece(s); %d have no fracture asset yet ")
-		TEXT("and simply stop where they stand."),
+		TEXT("[GoblinSiege] %s burnt out: released %d of %d piece(s) with a real fracture; %d used the ")
+		TEXT("generic rubble fallback (no GC_ asset for their mesh yet)."),
 		*GetName(), Released, Pieces.Num(), NoAsset);
 }
 

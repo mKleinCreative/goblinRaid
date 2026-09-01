@@ -53,6 +53,22 @@ public:
 	void BindToCharacter(AGSCharacterBase* Character);
 
 	/**
+	 * Rebind the crosshair (UGSHordeCommandComponent), interact prompt/channel ring
+	 * (UGSInteractionComponent), and grapple haul bar (UGSGrappleHaulComponent) to the CURRENT owning
+	 * pawn's components.
+	 *
+	 * WHY THIS EXISTS (2026-08-30): NativeConstruct bound these three exactly once, to whichever pawn
+	 * existed when the widget was first built. BoundCharacter already had a NativeTick re-check for
+	 * "the pawn can arrive late too" (health/stamina/inventory) - these three did not, so after the
+	 * FIRST respawn destroyed the original pawn, all three TWeakObjectPtrs went stale and every piece
+	 * of UI their delegates drive (the order-wheel crosshair, the "Eat the food" / interact prompt,
+	 * the channel ring, the haul bar) simply stopped updating - which reads as "invisible", not as an
+	 * error, because nothing crashes: the delegates just have no live subscriber calling Broadcast
+	 * that reaches anywhere any more.
+	 */
+	void BindPawnComponents(APawn* Pawn);
+
+	/**
 	 * Bind everything that is not the pawn: the raid director, the game state, the player state.
 	 *
 	 * Public and safely re-callable, because NativeConstruct can legitimately run before any of the
@@ -500,6 +516,18 @@ protected:
 	TObjectPtr<UTextBlock> EndScoreText;
 
 	/**
+	 * Closes the raid loop (#383/#385): reloads the current map fresh. Add a `Button` named
+	 * `RestartButton` inside `EndPanel`. Optional like the rest of the panel's contents - a raid
+	 * with no button still shows the score, it just cannot be acted on from here.
+	 */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UButton> RestartButton;
+
+	/** Leaves the raid for `L_MainMenu`. Add a `Button` named `MainMenuButton` inside `EndPanel`. */
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<class UButton> MainMenuButton;
+
+	/**
 	 * A burn type with MORE carriers than this collapses to a single counted row.
 	 *
 	 * 2 by default, which keeps the tutorial's two wheat fields named individually ("The Wheat
@@ -677,6 +705,12 @@ protected:
 
 	UFUNCTION()
 	void HandleRaidEnded(EGSRaidResult Result);
+
+	UFUNCTION()
+	void HandleRestartButtonClicked();
+
+	UFUNCTION()
+	void HandleMainMenuButtonClicked();
 
 	// ------------------------------------------------------------------ internals
 

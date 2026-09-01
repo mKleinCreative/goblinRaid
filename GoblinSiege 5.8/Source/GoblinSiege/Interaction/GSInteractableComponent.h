@@ -192,6 +192,20 @@ protected:
 		meta = (EditCondition = "bCollapseOnComplete", ClampMin = "0.0"))
 	float CollapseImpulse = 250.f;
 
+	/**
+	 * On completion, destroy the owning actor outright instead of just going unavailable.
+	 *
+	 * Right for a pickup with no shell worth leaving behind - a coin pouch looted in place, not a
+	 * smashed crate (GSBreakableComponent already has its own "the raid has no memory otherwise"
+	 * reason to leave broken props standing, and this flag has no opinion about those). Meaningless
+	 * on a carryable: `bIsCarryable` already wins over `bConsumeOnComplete` in CompleteInteraction
+	 * because a courier needs the actor to still exist to carry, and destroying it out from under a
+	 * courier mid-run would be worse than either.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GoblinSiege|Interaction",
+		meta = (EditCondition = "!bIsCarryable"))
+	bool bDestroyOwnerOnComplete = false;
+
 private:
 	/** Server-side; the physics state replicates from there. */
 	void ApplyCollapse();

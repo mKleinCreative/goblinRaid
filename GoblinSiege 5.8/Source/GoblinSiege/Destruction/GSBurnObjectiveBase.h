@@ -73,6 +73,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Objective")
 	bool IsComplete() const { return bCompleted; }
 
+	/**
+	 * Debug-only shortcut: jump straight to 1.0 completion, bypassing whatever mechanism (fire
+	 * spread, fuse, ignition) each subclass normally uses to get there. Authority-only, and goes
+	 * through the same SetCompletion01 path every real completion uses - HandleCompleted,
+	 * OnBurnObjectiveCompleted, and the alarm promotion all still run exactly as they would from a
+	 * real burn. Exists so GS.Raid.CompleteAllObjectives doesn't need a second completion code
+	 * path to keep in sync with the real one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "GoblinSiege|Objective|Debug")
+	void DebugForceComplete();
+
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Objective")
 	EGSBurnObjectiveType GetObjectiveType() const { return ObjectiveType; }
 

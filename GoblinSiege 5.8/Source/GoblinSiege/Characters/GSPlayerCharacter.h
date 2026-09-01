@@ -82,6 +82,12 @@ protected:
 	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 
+	/** The player's coin pouch is UGSScoreSubsystem's carried Loot total, not LootSackDropValue - a
+	 *  guard drops a fixed purse, the player drops (and loses, unless recovered) whatever they've
+	 *  actually accumulated. Reads AND resets the score, so a second death before the last pouch is
+	 *  recovered does not double-drop the same points (#382 addendum, 2026-08-30 morning). */
+	virtual int32 ConsumeLootSackDropValue() override;
+
 	void Input_Move(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
 	virtual void Tick(float DeltaSeconds) override;

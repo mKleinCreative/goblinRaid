@@ -12,6 +12,15 @@
 # that is already versioned — Map_Backup_20260806 alone is 177 MB.
 *_Backup_*/
 
+# Packaged build artifacts staged for itch.io upload — regenerable from
+# Saved/StagedBuilds/, multi-GB, no reason to ever enter version control.
+Deliverables/*.zip
+
+# Repo-root packaging scratch output (Windows build, backup jsons, package
+# logs) from a manual packaging pass — 4.2 GB of build artifacts, regenerable
+# from Saved/StagedBuilds/. Never belonged in version control.
+/Packaged/
+
 # Python bytecode
 __pycache__/
 *.pyc

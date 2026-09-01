@@ -42,6 +42,15 @@ namespace GSTags
 	 *  ActivationBlockedTags. */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Dodging);
 
+	/** On fire - a periodic burn that clings to a pawn after it leaves the flames it caught fire
+	 *  from (field fire, a burning building), unlike ordinary contact damage from
+	 *  AGSFireVolume::DamageTick, which stops the instant you step out of the volume. Granted by
+	 *  UGSGE_Burning for as long as that effect is active; the ONLY way it ends is
+	 *  UGSGA_DodgeRoll removing it by this tag on activation ("roll to put yourself out") - there is
+	 *  deliberately no independent timeout. See UGSGE_Burning's header for why this is a separate
+	 *  GameplayEffect from UGSGE_FireDamage rather than the same one with a Duration added. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Burning);
+
 	/** Facing the camera/aim direction instead of the movement direction (tech doc §16 - "the
 	 *  character faces movement, and faces the aim while attacking or aiming"). Set/cleared by
 	 *  AGSPlayerCharacter::UpdateRotationMode so animation Blueprints and future combat systems can
@@ -143,6 +152,10 @@ namespace GSTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Takedown);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_FoulWell);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Carry);
+
+	/** Consume a food prop for a flat heal. Added 2026-08-30 for the arena's healing food -
+	 *  a sixth verb, still costing only a tag per the header comment above. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Interact_Eat);
 
 	/** RESERVED, deliberately unused as of 2026-08-04: extraction is an auto-bank circle (GDD §9),
 	 *  not a hold-E channel. Kept declared because §12.1 lists extract among the slice verbs and the

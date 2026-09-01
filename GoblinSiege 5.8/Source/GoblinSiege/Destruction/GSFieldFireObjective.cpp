@@ -49,6 +49,19 @@ AGSFieldFireObjective::AGSFieldFireObjective()
 	// must play correctly today with nothing on the other end of this path.
 	SmokeWispSystem = TSoftObjectPtr<UNiagaraSystem>(
 		FSoftObjectPath(TEXT("/Game/VFX/NS_GS_Smolder.NS_GS_Smolder")));
+
+	// Michael's own Niagara Fluids prototype, NOT NS_Fire_Big (2026-08-30, second live look). The
+	// sprite system read as "little puffs, hard to tell where it actually is" once scaled up to
+	// span a whole burning front - a fixed-count sprite emitter spread over a bigger area is the
+	// same number of particles covering more ground, so it thins out exactly where this needs to
+	// read as solid. HANDOFF-2026-08-30.md's "still rows, even under Niagara Fluids" verdict on this
+	// asset was measured under the OLD per-volume architecture (many small separate instances) -
+	// that says nothing about how a fluid sim behaves as ONE instance spanning the whole front,
+	// which is a materially different case and worth trying now that the architecture has changed.
+	// Domain-resize cost at runtime against ConsolidatedFireCurrentScale is untested - the open risk
+	// the handoff itself flagged.
+	ConsolidatedFireSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(
+		TEXT("/Game/VFX/NG_GS_SurfaceFireLiquid.NG_GS_SurfaceFireLiquid")));
 }
 
 void AGSFieldFireObjective::BeginPlay()
@@ -131,6 +144,15 @@ void AGSFieldFireObjective::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	SmokeWisps.Reset();
 	WispCellIndices.Reset();
 	WispAges.Reset();
+
+	// The consolidated fire visual is a component on this actor too, and unlike a wisp it is NOT
+	// meant to persist past the field - destroy it explicitly rather than trust streaming-out.
+	if (ConsolidatedFireFX)
+	{
+		ConsolidatedFireFX->Deactivate();
+		ConsolidatedFireFX->DestroyComponent();
+		ConsolidatedFireFX = nullptr;
+	}
 
 	// NO render target and NO MIDs to clean up here any more (2026-07-31). Both belong to
 	// UGSBurnMaskSubsystem, whose Deinitialize nulls the mask out of every bound MID and releases
@@ -263,6 +285,20 @@ FVector AGSFieldFireObjective::GetBurningCentroid() const
 	}
 
 	return Count > 0 ? Sum / static_cast<float>(Count) : GetActorLocation();
+}
+
+FBox AGSFieldFireObjective::GetBurningLocalBounds() const
+{
+	FBox LocalBounds(ForceInit);
+	const FTransform& Xform = GetActorTransform();
+	for (int32 i = 0; i < Cells.Num(); ++i)
+	{
+		if (Cells[i].State == EGSFieldCellState::Burning)
+		{
+			LocalBounds += Xform.InverseTransformPosition(GetCellWorldLocation(i));
+		}
+	}
+	return LocalBounds;
 }
 
 // GetFieldOrigin / GetFieldWorldSize were REMOVED on 2026-07-31 with the move to a world mask.
@@ -1025,7 +1061,8 @@ void AGSFieldFireObjective::UpdateDamageVolumes()
 			// lights. Passed here so the unlit volumes never start a flicker timer at all.
 			Volume->ConfigurePooled(FireVolumeRadius,
 				/*bInEnableSmoke=*/!bFieldOwnsSmoke,
-				/*bInEnableLight=*/Slot < MaxLitVolumes);
+				/*bInEnableLight=*/Slot < MaxLitVolumes,
+				/*bInEnableFireFX=*/!bConsolidateFireVisual);
 			Volume->FinishSpawning(FTransform(Target));
 
 			if (DamageVolumes.IsValidIndex(Slot))
@@ -1349,6 +1386,121 @@ void AGSFieldFireObjective::UpdateSmokeWisps()
 	}
 }
 
+// ====================================================================== consolidated fire visual
+
+void AGSFieldFireObjective::UpdateConsolidatedFireVisual()
+{
+	if (!bConsolidateFireVisual)
+	{
+		return;
+	}
+
+	// Same gate as UpdateSmokeWisps, same reason: a bare runtime UNiagaraComponent does not
+	// replicate, so it has to be built and driven on every machine that draws, and there is nothing
+	// to draw on a dedicated server.
+	if (IsNetMode(NM_DedicatedServer))
+	{
+		return;
+	}
+
+	const FBox LocalBounds = GetBurningLocalBounds();
+	if (!LocalBounds.IsValid)
+	{
+		// Nothing burning: fade out and idle rather than destroy. The front can reignite, and
+		// destroying/recreating on every flare-up would re-pay the asset load and re-roll the seed
+		// for no benefit - same reasoning ConfigurePooled's pooling exists for in the first place.
+		if (ConsolidatedFireFX && ConsolidatedFireFX->IsActive())
+		{
+			ConsolidatedFireFX->Deactivate();
+		}
+		return;
+	}
+
+	// Local space, not world (2026-08-30): GetBurningLocalBounds is already in the field's own
+	// rotated frame, and ConsolidatedFireFX is attached to the field's root, so its RelativeScale3D
+	// axes ARE the field's local axes - a yawed field gets a box that follows its actual burn front
+	// instead of one that's axis-aligned to the world and doesn't line up with it.
+	const FVector LocalCenter = LocalBounds.GetCenter();
+	const FVector LocalExtent = LocalBounds.GetExtent();
+	const FVector TargetWorldLocation =
+		SnapPointToGround(GetActorTransform().TransformPosition(LocalCenter));
+
+	// FireVolumeRadius padding: the box is built from CELL CENTRES (GetCellWorldLocation), but the
+	// burning ground each cell actually radiates extends FireVolumeRadius past its own centre in
+	// every direction - the same padding a single pooled volume's own DamageRadius already
+	// contributes at the front's edge. Without it the visual's edge would sit exactly on the
+	// outermost burning cells' centres and read as narrower than the fire actually is.
+	const float HalfX = FMath::Max(ConsolidatedFireMinHalfExtent, LocalExtent.X + FireVolumeRadius);
+	const float HalfY = FMath::Max(ConsolidatedFireMinHalfExtent, LocalExtent.Y + FireVolumeRadius);
+	const FVector TargetScale(
+		HalfX / ConsolidatedFireAuthoredHalfExtent,
+		HalfY / ConsolidatedFireAuthoredHalfExtent,
+		FMath::Max(HalfX, HalfY) / ConsolidatedFireAuthoredHalfExtent);
+
+	if (!ConsolidatedFireFX)
+	{
+		UNiagaraComponent* FireFX = NewObject<UNiagaraComponent>(this);
+		if (!FireFX)
+		{
+			return;
+		}
+
+		FireFX->SetAutoActivate(false);
+		if (USceneComponent* Root = GetRootComponent())
+		{
+			FireFX->SetupAttachment(Root);
+		}
+		FireFX->RegisterComponent();
+		ConsolidatedFireFX = FireFX;
+
+		// First frame snaps straight to target instead of chasing from the origin - see
+		// ConsolidatedFireCurrentLocation's comment in the header.
+		ConsolidatedFireCurrentLocation = TargetWorldLocation;
+		ConsolidatedFireCurrentScale = TargetScale;
+	}
+
+	const float Alpha = FMath::Clamp(ConsolidatedFireInterpSpeed
+		* FMath::Max(0.05f, CosmeticTickInterval), 0.f, 1.f);
+	ConsolidatedFireCurrentLocation =
+		FMath::Lerp(ConsolidatedFireCurrentLocation, TargetWorldLocation, Alpha);
+	ConsolidatedFireCurrentScale = FMath::Lerp(ConsolidatedFireCurrentScale, TargetScale, Alpha);
+
+	ConsolidatedFireFX->SetWorldLocation(ConsolidatedFireCurrentLocation);
+	ConsolidatedFireFX->SetRelativeScale3D(ConsolidatedFireCurrentScale);
+
+	if (!ConsolidatedFireFX->IsActive())
+	{
+		// RESOLVE ONCE, same pattern as ResolvedSmokeSystem - see its comment on why LoadSynchronous
+		// must not be re-tried every update against a path that keeps failing.
+		if (!ResolvedConsolidatedFireSystem && !bConsolidatedFireSystemResolveFailed)
+		{
+			ResolvedConsolidatedFireSystem =
+				ConsolidatedFireSystem.IsNull() ? nullptr : ConsolidatedFireSystem.LoadSynchronous();
+			bConsolidatedFireSystemResolveFailed = (ResolvedConsolidatedFireSystem == nullptr);
+		}
+
+		if (!ResolvedConsolidatedFireSystem)
+		{
+			if (!bWarnedMissingConsolidatedFireSystem)
+			{
+				bWarnedMissingConsolidatedFireSystem = true;
+				UE_LOG(LogTemp, Warning,
+					TEXT("[GoblinSiege] %s has no consolidated fire Niagara system (%s) - the field ")
+					TEXT("will burn with no flame visual at all now that its pooled volumes' own ")
+					TEXT("FireFX is suppressed (bConsolidateFireVisual)."),
+					*GetName(), *ConsolidatedFireSystem.ToString());
+			}
+			return;
+		}
+
+		if (ConsolidatedFireFX->GetAsset() != ResolvedConsolidatedFireSystem)
+		{
+			ConsolidatedFireFX->SetAsset(ResolvedConsolidatedFireSystem);
+		}
+		ConsolidatedFireFX->Activate(true);
+	}
+}
+
 // ====================================================================== burn mask (objective 1)
 //
 // EnsureBurnMask, RedrawBurnMask, BindCropMaterials, RefreshCropMaterialBindings and GetBurnMaskRT
@@ -1480,6 +1632,9 @@ void AGSFieldFireObjective::CosmeticTick()
 		Age += Step;
 	}
 	UpdateSmokeWisps();
+
+	// Same machine set as UpdateSmokeWisps and for the same reason - see UpdateConsolidatedFireVisual.
+	UpdateConsolidatedFireVisual();
 
 	// ---- re-publish the mask's LIVE cells (2026-07-31, world-mask re-architecture) -------------
 	//

@@ -247,6 +247,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Field")
 	FVector GetBurningCentroid() const;
 
+	/** Bounding box of every currently-burning cell, in the FIELD'S OWN LOCAL SPACE (not world) -
+	 *  so a yawed field gets a box aligned to its actual burn front rather than a world-axis-aligned
+	 *  one. Feeds UpdateConsolidatedFireVisual. Returns an invalid FBox (IsValid == 0) when nothing
+	 *  is burning; callers must check that before reading GetCenter/GetExtent. */
+	FBox GetBurningLocalBounds() const;
+
 	/**
 	 * "How involved is this cell", 0..1 - THE single definition of that, used by everything
 	 * (2026-07-31). Returns 0 for any cell that is not Burning.
@@ -327,6 +333,18 @@ protected:
 	 * Burnt state is the only input here.
 	 */
 	void UpdateSmokeWisps();
+
+	/**
+	 * Repositions/resizes the ONE consolidated fire visual to span GetBurningLocalBounds
+	 * (2026-08-30, #370/#371). Sibling of UpdateSmokeWisps in every structural way that matters:
+	 * driven off already-replicated cell state, so it is called from CosmeticTick (every machine,
+	 * skipped on a dedicated server) rather than CellTick (authority-only) - a bare runtime
+	 * UNiagaraComponent does not replicate, so building it only on the authority would make it
+	 * invisible to every client, exactly the mistake UpdateSmokeWisps's own comment warns about.
+	 *
+	 * Replaces per-volume flames reading as "rows of separate fires" - see bConsolidateFireVisual.
+	 */
+	void UpdateConsolidatedFireVisual();
 
 	int32 FindNearestCell(const FVector& WorldLocation) const;
 	bool IsEdgeCell(int32 CellIndex) const;
@@ -717,6 +735,74 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Damage")
 	bool bFieldOwnsSmoke = true;
 
+	/**
+	 * ONE wide fire-visual component spanning the CURRENT BOUNDING BOX of every burning cell,
+	 * instead of each pooled AGSFireVolume drawing its own separate flame (2026-08-30, #370/#371).
+	 *
+	 * Added after three rounds of tuning the per-volume approach - scale-to-overlap
+	 * (bAutoScaleFXToRadius in ConfigurePooled), MaxFireVolumes raised 10->16, per-instance random
+	 * seed offsets (all still in effect; none of this reverts, the consolidated visual sits on top
+	 * of it) - all still read as "rows of separate fires" per Michael watching a live burn, even
+	 * under a genuinely simulated Niagara Fluids swap as a further test. That result is why this
+	 * exists instead of a fourth round of tuning: the problem was never the render technology. N
+	 * independently-bounded instances lined up along a front read as N things, sprite or fluid.
+	 *
+	 * The pooled AGSFireVolumes are UNCHANGED for damage - still per-cell, still parked on and
+	 * chasing the front, still the only thing DamageTick fires off, still carrying their own light
+	 * and embers. Only their own FireFX (the flame sprite itself) is suppressed while this is on -
+	 * see AGSFireVolume::ConfigurePooled's bInEnableFireFX - so a burning cell is never drawing two
+	 * flames on top of each other.
+	 *
+	 * DEFAULTED OFF 2026-08-30, same evening: both attempts at the wide single visual read worse
+	 * than the "rows of separate fires" problem it was meant to fix, not better. The sprite system
+	 * (NS_Fire_Big) scaled to span a burning front came out as "little puffs, hard to tell where it
+	 * actually is" - a fixed particle count spread over more area is just thinner, not bigger. Swapping
+	 * to Michael's Niagara Fluids prototype for the SAME stretched single instance came out worse:
+	 * "a bunch of sperm shaped objects swimming on a 2d plane... even more dangerous, I can't tell
+	 * where the fire actually is" - non-uniform RelativeScale3D on a fluid sim's domain evidently
+	 * distorts it in ways a sprite emitter doesn't show, and the result actively obscured the hazard
+	 * rather than just looking worse. Two failures on the same "stretch one component to span a
+	 * bounding box" mechanism, the second one safety-relevant, is where this stopped rather than
+	 * trying a third asset on the same approach. Reverted to every pooled volume drawing its own
+	 * flame - the known pre-2026-08-30 state, imperfect ("rows") but not hazard-obscuring. The
+	 * consolidated-visual code itself (UpdateConsolidatedFireVisual, GetBurningLocalBounds) is left
+	 * in place, disabled by this flag, in case a future attempt wants a different mechanism entirely
+	 * (e.g. several modestly-scaled instances spread across the box instead of one heavily-stretched
+	 * one) rather than starting over.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Damage")
+	bool bConsolidateFireVisual = false;
+
+	/** The flame system for the consolidated visual. Defaults to the same NS_Fire_Big every pooled
+	 *  volume used to draw individually - see AGSFireVolume::FireSystem's comment for why that
+	 *  asset was picked. Soft, same reasoning as everywhere else in this file: a missing asset costs
+	 *  the visual, not the fire. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Damage")
+	TSoftObjectPtr<UNiagaraSystem> ConsolidatedFireSystem;
+
+	/** Floor on the consolidated visual's half-extent (uu), so a front down to its last burning cell
+	 *  doesn't collapse the flame to nothing right before it goes out. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Damage", meta = (ClampMin = "10.0"))
+	float ConsolidatedFireMinHalfExtent = 150.f;
+
+	/** NS_Fire_Big/Medium/Small's FixedBounds are all the same unedited +-100 box (see
+	 *  AGSFireVolume::FireSystem's comment) - this converts a target world half-extent into a
+	 *  RelativeScale3D against that authored size. Change only if ConsolidatedFireSystem is swapped
+	 *  for an asset with different authored bounds. */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Damage", meta = (ClampMin = "1.0"))
+	float ConsolidatedFireAuthoredHalfExtent = 100.f;
+
+	/**
+	 * How fast the consolidated visual's position and size chase their targets - fraction of the
+	 * remaining gap closed per second, NOT a snap. A hard cut here would be visible as a hitch every
+	 * time a volume at the front's edge extinguishes or a fresh one catches, shrinking or growing
+	 * the bounding box in one tick; a front only moves one CellSize every several seconds, so even a
+	 * slow chase keeps up with the actual fire. Same reasoning as WispReseedSeconds's "hard cut vs a
+	 * moving front" - the resize risk the field-fire-visual restructuring plan explicitly flagged.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Damage", meta = (ClampMin = "0.1"))
+	float ConsolidatedFireInterpSpeed = 2.f;
+
 	// ------------------------------------------------------------------ burn mask (objective 1)
 	//
 	// THE MASK ITSELF LIVES IN UGSBurnMaskSubsystem SINCE 2026-07-31. Everything that used to be
@@ -923,6 +1009,29 @@ protected:
 	/** Seconds each wisp has stood on its current cell. Parallel to SmokeWisps; reset to 0 on
 	 *  every (re-)seed. Read only against WispReseedSeconds. */
 	TArray<float> WispAges;
+
+	/** The one consolidated fire visual (2026-08-30, #370/#371). Plain runtime UNiagaraComponent,
+	 *  same reasoning as SmokeWisps: unreplicated, built and driven on every machine that draws via
+	 *  UpdateConsolidatedFireVisual. Null until the field's first burning cell. Never destroyed
+	 *  while the field lives - deactivated and left in place when nothing is burning, since the
+	 *  front can reignite. */
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ConsolidatedFireFX;
+
+	/** Chased toward the true target (bounds center / target scale) at ConsolidatedFireInterpSpeed
+	 *  each CosmeticTick, rather than snapping - see ConsolidatedFireInterpSpeed. Zero-initialized;
+	 *  the first update snaps straight to target instead of lerping from the origin (guarded by
+	 *  ConsolidatedFireFX == nullptr, not by these being zero, since zero is also a legal target). */
+	FVector ConsolidatedFireCurrentLocation = FVector::ZeroVector;
+	FVector ConsolidatedFireCurrentScale = FVector::OneVector;
+
+	/** One-shot warning latch, same pattern as bWarnedMissingSmokeSystem. */
+	bool bWarnedMissingConsolidatedFireSystem = false;
+
+	/** RESOLVE-ONCE CACHE, same pattern as ResolvedSmokeSystem/bSmokeSystemResolveFailed. */
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraSystem> ResolvedConsolidatedFireSystem;
+	bool bConsolidatedFireSystemResolveFailed = false;
 
 	// BurnMaskRT, CropMaterials, bBurnMaskDirty, bWarnedMissingBurnBrush, ResolvedBurnMaskBrush and
 	// bBurnMaskBrushResolveFailed were all REMOVED on 2026-07-31. The render target, the MID cache

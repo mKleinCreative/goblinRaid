@@ -2,13 +2,13 @@
 id: 371
 title: Raise field MaxFireVolumes to close visible gaps between fire patches
 agent: claude-fire
-status: active
+status: done
 claimed: 2026-08-30T05:22Z
 build: none
 waiting_on:
-evaluated:
-observed:
-scenario:
+evaluated: 2026-08-30T09:08:21Z
+observed: 2026-08-30T09:08:06Z | Same as #370 - reverted alongside it. bConsolidateFireVisual defaulted back to false in GSFieldFireObjective.h after Michael watched two failed consolidated-visual attempts live.
+scenario: Live PIE test of a burning field, player watching from ground level
 files: 
   - Source/GoblinSiege/Destruction/GSFieldFireObjective.h
 ---
@@ -19,18 +19,22 @@ Raise field MaxFireVolumes to close visible gaps between fire patches
 
 ## Generate
 
-<!-- REPLACE: what you produced. Files touched, what each change does, the calls
-you made. Delete this comment when you write the section. -->
+Merged with #370 - full account of the work is written there. Summary specific to this ticket's own
+title: `MaxFireVolumes=16` was already committed before this ticket touched anything (raised earlier
+this session per HANDOFF-2026-08-30.md, verdict "still rows, not enough"), so there was nothing left
+to raise. The `GSFieldFireObjective.h` claim this ticket holds is the file the actual fix (the
+consolidated wide fire visual, #370) lives in alongside `GSFieldFireObjective.cpp` (not originally
+claimed by either ticket - see #370's Generate for the flag).
 
 ## Evaluate
 
-<!-- REPLACE: judge your own output against the goal, adversarially. What is
-verified and by what evidence (a log line, a PIE observation, a compile result -
-not "should work"); what is written but has never run; what you touched outside
-the goal; the DECISION or FAILED line this owes AGENT_STATE.md. -->
+See #370 - same code, same "written not built" status, same build-gate block.
 
 ## Refine
 
-<!-- REPLACE: what you changed in response to your own evaluation, and what you
-are deliberately leaving undone. "Nothing changed, and here is why the first pass
-survives scrutiny" is a valid answer; silence is not. -->
+See #370 for the full account: two live looks at the consolidated visual both failed (sprite =
+"little puffs, hard to tell where it is"; fluid = "sperm shaped objects... even more dangerous"),
+reverted `bConsolidateFireVisual` to `false` in this ticket's own claimed file
+(`GSFieldFireObjective.h`). Every pooled volume draws its own flame again - the original "rows of
+separate fires" complaint this ticket and #370 were both trying to fix is back, unsolved. Closing
+alongside #370 rather than leaving one of the pair open with nothing further to do.

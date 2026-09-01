@@ -19,6 +19,7 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Components/Button.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/HorizontalBox.h"
@@ -27,6 +28,8 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSHUD, Log, All);
@@ -68,22 +71,66 @@ void UGSPlayerHUDWidget::NativeConstruct()
 		EndPanel->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
+	// Bound once, here, rather than re-bound every raid: the buttons exist for the widget's whole
+	// life, only their visibility (inherited from EndPanel, which starts Collapsed above) changes.
+	if (RestartButton)
+	{
+		RestartButton->OnClicked.AddDynamic(this, &UGSPlayerHUDWidget::HandleRestartButtonClicked);
+	}
+	if (MainMenuButton)
+	{
+		MainMenuButton->OnClicked.AddDynamic(this, &UGSPlayerHUDWidget::HandleMainMenuButtonClicked);
+	}
+
 	// GetOwningPlayerPawn can legitimately be null on the first construct if the widget is created
 	// before possession; BindToCharacter is public so whoever creates the widget can retry.
 	BindToCharacter(Cast<AGSCharacterBase>(GetOwningPlayerPawn()));
 	BindToRaid();
 
+	// ---- reticle (#148/#149), interact channel ring (#169), grapple haul (#193) --------------
+	// All three moved into BindPawnComponents so NativeTick can re-run them after a respawn - see
+	// that function's header comment for why this used to be one-shot and what broke because of it.
+	BindPawnComponents(GetOwningPlayerPawn());
+
+	// The board's state is decided here, not by whatever the asset happened to be saved with.
+	// Closed by default - Michael, on the first art pass: "the UI is way too huge, at least the
+	// objective marker".
+	SetMapOpen(bMapOpenByDefault);
+}
+
+void UGSPlayerHUDWidget::BindPawnComponents(APawn* Pawn)
+{
+	// Unbind the OLD components first - same reasoning NativeDestruct gives for all three: a stale
+	// dynamic delegate on a since-destroyed component is at best dead weight and at worst a crash
+	// waiting for that component to get garbage collected mid-broadcast.
+	if (UGSHordeCommandComponent* OldCmd = BoundCommandComponent.Get())
+	{
+		OldCmd->OnCrosshairTargetChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleCrosshairTargetChanged);
+	}
+	if (UGSInteractionComponent* OldInteraction = BoundInteractionComponent.Get())
+	{
+		OldInteraction->OnChannelStarted.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleChannelStarted);
+		OldInteraction->OnChannelProgress.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleChannelProgress);
+		OldInteraction->OnChannelEnded.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleChannelEnded);
+		OldInteraction->OnFocusChanged.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleFocusChanged);
+		OldInteraction->OnInteractRefused.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleInteractRefused);
+	}
+	if (UGSGrappleHaulComponent* OldHaul = BoundHaulComponent.Get())
+	{
+		OldHaul->OnHaulStarted.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHaulStarted);
+		OldHaul->OnHaulProgress.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHaulProgress);
+		OldHaul->OnHaulEnded.RemoveDynamic(this, &UGSPlayerHUDWidget::HandleHaulEnded);
+	}
+
 	// ---- reticle (#148/#149) -----------------------------------------------------------------
 	// Deliberately NOT passed to WarnIfUnbound: a project that has not authored a reticle yet is a
-	// valid state, and the six warnings above are for elements that are always supposed to exist.
+	// valid state, and the six warnings NativeConstruct issues are for elements that are always
+	// supposed to exist.
 	//
 	// FindComponentByClass on the pawn rather than a cast to AGSPlayerCharacter, matching every other
 	// consumer of that component: knowing what is under the crosshair is a property of being able to
 	// give orders, not of being the player class.
-	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
-	{
-		BoundCommandComponent = OwnerPawn->FindComponentByClass<UGSHordeCommandComponent>();
-	}
+	BoundCommandComponent = Pawn ? Pawn->FindComponentByClass<UGSHordeCommandComponent>() : nullptr;
 
 	if (UGSHordeCommandComponent* Cmd = BoundCommandComponent.Get())
 	{
@@ -100,10 +147,7 @@ void UGSPlayerHUDWidget::NativeConstruct()
 	// ---- interact channel ring (#169) ---------------------------------------------------------
 	// Same shape as the reticle above, and not warned about for the same reason: a project with no
 	// interactables authored yet is a valid state.
-	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
-	{
-		BoundInteractionComponent = OwnerPawn->FindComponentByClass<UGSInteractionComponent>();
-	}
+	BoundInteractionComponent = Pawn ? Pawn->FindComponentByClass<UGSInteractionComponent>() : nullptr;
 
 	if (UGSInteractionComponent* Interaction = BoundInteractionComponent.Get())
 	{
@@ -126,10 +170,7 @@ void UGSPlayerHUDWidget::NativeConstruct()
 	// Optional in the strongest sense: the component is added on BP_GSPlayerCharacter, not in native
 	// code, so a pawn without it is normal rather than broken. No warning for the same reason the
 	// reticle gets none.
-	if (const APawn* OwnerPawn = GetOwningPlayerPawn())
-	{
-		BoundHaulComponent = OwnerPawn->FindComponentByClass<UGSGrappleHaulComponent>();
-	}
+	BoundHaulComponent = Pawn ? Pawn->FindComponentByClass<UGSGrappleHaulComponent>() : nullptr;
 
 	if (UGSGrappleHaulComponent* Haul = BoundHaulComponent.Get())
 	{
@@ -138,15 +179,10 @@ void UGSPlayerHUDWidget::NativeConstruct()
 		Haul->OnHaulEnded.AddDynamic(this, &UGSPlayerHUDWidget::HandleHaulEnded);
 	}
 
-	// Start hidden regardless of what the asset saved, for the reason EndPanel is hidden above: a
-	// designer leaving it visible mid-edit would otherwise ship a ring stuck on screen all raid.
+	// A stale prompt/ring from the OLD pawn's mid-channel interact must not survive onto the new
+	// one - the exact "Eat the food popup didn't go away" shape of bug this rebind exists to fix.
 	ShowChannelRing(false);
 	RefreshPrompt(nullptr);
-
-	// Same reasoning one line up: the board's state is decided here, not by whatever the asset
-	// happened to be saved with. Closed by default - Michael, on the first art pass: "the UI is
-	// way too huge, at least the objective marker".
-	SetMapOpen(bMapOpenByDefault);
 }
 
 void UGSPlayerHUDWidget::NativeDestruct()
@@ -417,6 +453,19 @@ void UGSPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 		if (AGSCharacterBase* Pawn = Cast<AGSCharacterBase>(GetOwningPlayerPawn()))
 		{
 			BindToCharacter(Pawn);
+		}
+	}
+
+	// SAME RETRY, for the reason BindPawnComponents' header comment gives: this used to be
+	// NativeConstruct-only, which meant it silently went stale the moment the first death destroyed
+	// the original pawn. BoundCommandComponent is the one every real player pawn is expected to have
+	// ("No component is survivable" - BindPawnComponents), so its invalidity is what flags "the pawn
+	// under us changed and nobody re-pointed these three at the new one."
+	if (!BoundCommandComponent.IsValid())
+	{
+		if (APawn* Pawn = GetOwningPlayerPawn())
+		{
+			BindPawnComponents(Pawn);
 		}
 	}
 
@@ -1333,7 +1382,14 @@ void UGSPlayerHUDWidget::HandleRaidEnded(EGSRaidResult Result)
 
 	if (EndTitleText)  { EndTitleText->SetText(FText::FromString(Title)); }
 	if (EndDetailText) { EndDetailText->SetText(FText::FromString(Detail)); }
-	if (EndPanel)      { EndPanel->SetVisibility(ESlateVisibility::HitTestInvisible); }
+
+	// SelfHitTestInvisible, NOT HitTestInvisible (#383/#385) - that one-word difference was the
+	// whole reason the end panel could never be clicked. HitTestInvisible means the panel AND
+	// everything inside it is invisible to hit-testing; SelfHitTestInvisible means only the panel
+	// itself is (so its own background never steals a click), while RestartButton/MainMenuButton
+	// underneath remain clickable. It is also WBP_GSPlayerHUD's own authored default for this
+	// widget, so this is a correction back to that, not a new choice.
+	if (EndPanel) { EndPanel->SetVisibility(ESlateVisibility::SelfHitTestInvisible); }
 
 	if (!EndPanel)
 	{
@@ -1343,5 +1399,42 @@ void UGSPlayerHUDWidget::HandleRaidEnded(EGSRaidResult Result)
 				 "shown. Add a panel named EndPanel to WBP_GSPlayerHUD."), *Title);
 	}
 
+	// The game has never needed a mouse cursor before this moment - every other interaction in
+	// GoblinSiege is aim-and-key. RestartButton/MainMenuButton are the first UMG buttons a player
+	// is ever expected to click, so nothing upstream of here shows a cursor or lets Slate see one.
+	//
+	// NOT SetWidgetToFocus(TakeWidget()) - this HUD's own root is not focusable (logged "Attempting
+	// to focus Non-Focusable widget" in AGSMainMenuGameMode's identical case and silently failed to
+	// focus anything there). Buttons do not need keyboard focus to register a mouse click.
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		PC->SetShowMouseCursor(true);
+		FInputModeUIOnly InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+	}
+
 	OnRaidEnded(Result);
+}
+
+void UGSPlayerHUDWidget::HandleRestartButtonClicked()
+{
+	// Fresh, not a soft reset: OpenLevel reloads the whole level, which is what takes the score
+	// subsystem (a UWorldSubsystem) down with it - see GSRaidDirector::EndRaid's persistence
+	// comment for why the best score is banked to disk BEFORE this point, not after.
+	//
+	// GetCurrentLevelName() returns the SHORT map name ("L_Tutorial_Island"), which OpenLevel can
+	// only resolve via the editor's asset registry - a packaged build has no such lookup and
+	// silently reloads whatever level is already loaded instead (#388: New Raid did nothing in the
+	// packaged build for exactly this reason). Use the full long package path from the world itself.
+	if (const UWorld* World = GetWorld())
+	{
+		UGameplayStatics::OpenLevel(this, FName(*World->PersistentLevel->GetOutermost()->GetName()), true);
+	}
+}
+
+void UGSPlayerHUDWidget::HandleMainMenuButtonClicked()
+{
+	// Full path, not the short name "L_MainMenu" - see HandleRestartButtonClicked's comment (#388).
+	UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/Maps/L_MainMenu")), true);
 }

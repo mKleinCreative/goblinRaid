@@ -59,33 +59,29 @@ protected:
 	float BlastDurationSeconds = 1.6f;
 
 	/**
-	 * The blast animation, in three montages: raise the horn, hold it at the lips for as long as
-	 * the button is down, lower it.
+	 * The blast animation. ONE montage, self-chained to loop for as long as the button is down -
+	 * same runtime trick UGSGA_Block uses (see PlayLooping).
 	 *
-	 * THREE ASSETS RATHER THAN THREE SECTIONS OF ONE, and that is not a style choice. Montage
-	 * sections cannot be authored from the Python asset API - the section array is not exposed
-	 * under any name and FCompositeSection has no settable StartTime, verified 2026-08-21. Only
-	 * runtime section CHAINING is reachable, which is what UGSGA_Block uses. So the split lives in
-	 * the assets, and each montage carries a single Default section that this class self-chains to
-	 * loop, exactly as Block does.
+	 * CUT DOWN from a three-montage intro/hold/outro system on 2026-08-30, Michael's ruling after
+	 * two separate visible failures in one evening: the first (#356, iceboxed) baked hand-authored
+	 * bone rotations onto the source clip's arm chain trying to make a raise/hold/lower shape out of
+	 * a taunt-battlecry clip, and those edits themselves were the "arm going all over the place" bug
+	 * this ticket (#375) was written to fix. The SECOND failure was mine: reimporting the source
+	 * clip to strip #356's edits, via an AssetImportTask with no skeleton specified, silently
+	 * dropped the asset's skeleton binding - "his head flies off". Both failures came from treating
+	 * a plain Mixamo taunt clip as raw material for a custom-choreographed raise/hold/lower gesture
+	 * it was never authored for. Michael's ruling: "let's just do the taunt animation and not fuck
+	 * with the horn at all. it's cut until I can find an animator" - so this is now exactly what it
+	 * says: the taunt clip, played and looped, nothing more. Sourced from
+	 * A_MX_Taunt_Battlecry_Gob directly (NOT A_GS_HornBlow_Gob, the copy #356 and I both edited and
+	 * un-edited this session - using the untouched original avoids carrying forward anything from
+	 * either mistake).
 	 *
-	 * The shape deliberately matches the horn's VOICE below - attack, sustain, release - because
-	 * they are the same event and drift between them would be visible.
-	 *
-	 * All optional and all soft: a missing montage costs the animation, not the feature. The summon
-	 * and the alarm do not depend on any of this.
+	 * Optional and soft: a missing montage costs the animation, not the feature. The summon and the
+	 * alarm do not depend on any of this.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horn")
-	TSoftObjectPtr<UAnimMontage> HornMontageIntro;
-
-	/** The hold. Self-chained to loop while the button is down. Authored as a CONSTANT pose, so the
-	 *  wrap is the same frame twice and cannot hitch - measured at 0.0000 deg. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horn")
-	TSoftObjectPtr<UAnimMontage> HornMontageLoop;
-
-	/** Lowering the horn. Plays once on release and is NOT interrupted by the ability ending. */
-	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Horn")
-	TSoftObjectPtr<UAnimMontage> HornMontageOutro;
+	TSoftObjectPtr<UAnimMontage> HornMontage;
 
 	/**
 	 * The horn's voice, in three parts: the breath and the note coming up, a sustain that loops
@@ -162,12 +158,8 @@ private:
 	/** One goblin out of the hole, then decide whether to keep going. Drives itself on a timer. */
 	void SummonNext();
 
-	/** Raises the horn: prop visible, intro montage, first note. */
+	/** Raises the horn: prop visible, looping montage, first note. */
 	void StartBlast();
-
-	/** Hands the animation from the intro to the looping hold. Timed off the intro montage's own
-	 *  length, so re-authoring the intro cannot desynchronise it - same rule as the audio handover. */
-	void BeginHornHold();
 
 	/** Plays a montage and points its first section at itself so it loops for as long as we leave
 	 *  it alone. The section trick is UGSGA_Block's, for the reason its comment gives: a montage
@@ -214,17 +206,14 @@ private:
 	 *  length of an audio file. */
 	FTimerHandle VoiceHandoffTimerHandle;
 
-	/** Intro -> hold handover. Separate from the voice's handover because the two assets are
-	 *  authored independently and their lengths are not required to match. */
-	FTimerHandle MontageHandoffTimerHandle;
-
-	/** Fires at the end of the outro to hide the horn prop. Cleared by StartBlast, so blowing again
-	 *  before the outro finishes does not hide the horn out from under the new blast. */
+	/** Fires MontageBlendOutSeconds after release to hide the horn prop - held that long so the
+	 *  blend-out has time to lower it before it vanishes rather than popping off mid-blend. Cleared
+	 *  by StartBlast, so blowing again before it fires does not hide the horn out from under the new
+	 *  blast. */
 	FTimerHandle HornLowerTimerHandle;
 
-	/** Whichever montage is currently playing - intro or loop. Kept so the stop path halts the same
-	 *  object it started; the soft pointer could resolve to nothing by then if the package was
-	 *  unloaded mid-blast. The outro is deliberately NOT tracked here: nothing stops it. */
+	/** The currently-playing montage. Kept so the stop path halts the same object it started; the
+	 *  soft pointer could resolve to nothing by then if the package was unloaded mid-blast. */
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> ActiveHornMontage;
 

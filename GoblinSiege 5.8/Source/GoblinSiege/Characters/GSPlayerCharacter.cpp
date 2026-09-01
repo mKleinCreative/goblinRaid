@@ -5,6 +5,7 @@
 #include "Attributes/GSAttributeSetBase.h"
 #include "GameplayEffectExtension.h"
 #include "Interaction/GSCarryComponent.h"
+#include "Raid/GSScoreSubsystem.h"
 #include "Characters/GSStaminaComponent.h"
 #include "World/GSWaterVolume.h"
 #include "Interaction/GSInteractionComponent.h"
@@ -15,6 +16,7 @@
 #include "Weapons/Abilities/GSGA_Block.h"
 #include "Weapons/Abilities/GSGA_Horn.h"
 #include "Weapons/Abilities/GSGA_GrappleThrow.h"
+#include "Weapons/GSGrappleHaulComponent.h"
 #include "Weapons/Abilities/GSGA_BowShot.h"
 #include "Weapons/Abilities/GSGA_TorchToss.h"
 #include "Destruction/GSTorchProjectile.h"
@@ -673,6 +675,22 @@ void AGSPlayerCharacter::Drown()
 	// through HandleDeath -> AGSGameMode::HandleGoblinDeath -> LoseLife() -> respawn, or
 	// EndRaid(OutOfLives) if that was the last one.
 	KillOutright();
+}
+
+int32 AGSPlayerCharacter::ConsumeLootSackDropValue()
+{
+	UGSScoreSubsystem* Score = GetWorld() ? GetWorld()->GetSubsystem<UGSScoreSubsystem>() : nullptr;
+	if (!Score)
+	{
+		return 0;
+	}
+
+	const int32 Carried = Score->GetLoot();
+	if (Carried > 0)
+	{
+		Score->ResetLoot();
+	}
+	return Carried;
 }
 
 void AGSPlayerCharacter::ApplyViewPitchLimits()
@@ -1340,6 +1358,20 @@ bool AGSPlayerCharacter::IsSwordEquipped() const
 
 void AGSPlayerCharacter::Input_AimStart(const FInputActionValue& Value)
 {
+	// Right-click drops the rope first, ahead of aim/block, whenever one is out (Michael, 2026-08-31:
+	// "we need a way to remove the rope so it's not permanently attached to you"). The grapple is a
+	// movement tool first - most throws stick the hook in scenery and never haul anything - so this
+	// checks IsHookAttached(), not IsHauling(), and NotifyHookDetached() is documented safe to call
+	// either way.
+	if (UGSGrappleHaulComponent* Grapple = FindComponentByClass<UGSGrappleHaulComponent>())
+	{
+		if (Grapple->IsHookAttached())
+		{
+			Grapple->NotifyHookDetached();
+			return;
+		}
+	}
+
 	if (IsSwordEquipped())
 	{
 		StartBlocking();

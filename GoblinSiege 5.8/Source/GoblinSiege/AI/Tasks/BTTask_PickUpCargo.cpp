@@ -5,7 +5,10 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "Interaction/GSCarryComponent.h"
+#include "Interaction/GSInteractableComponent.h"
 #include "GameFramework/Pawn.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogGSPickUpCargo, Log, All);
 
 UBTTask_PickUpCargo::UBTTask_PickUpCargo()
 {
@@ -49,9 +52,28 @@ EBTNodeResult::Type UBTTask_PickUpCargo::ExecuteTask(UBehaviorTreeComponent& Own
 
 	// Dist2D for UBTTask_MeleeAttack's reason: a height difference between a 240uu goblin's origin
 	// and a sack sitting on the floor should not eat the reach budget.
-	if (FVector::Dist2D(Cargo->GetActorLocation(), Self->GetActorLocation()) > PickUpRange)
+	const float Dist = FVector::Dist2D(Cargo->GetActorLocation(), Self->GetActorLocation());
+	if (Dist > PickUpRange)
 	{
+		UE_LOG(LogGSPickUpCargo, Log, TEXT("[GS.PickUp] %s: '%s' is %.0fuu away, need <= %.0fuu - not in range yet."),
+			*Self->GetName(), *Cargo->GetName(), Dist, PickUpRange);
 		return EBTNodeResult::Failed;
+	}
+
+	// NOT EVERY LOOT SUBJECT IS CARRYABLE. StartCarry itself has no such gate - it will attach anything
+	// handed to it - so without this check an ordered crate got shouldered whole, unbroken, LootValue
+	// and all, instead of going through UBTTask_SmashOrderTarget + UBTTask_LootInPlace the way a
+	// container is meant to. A subject with an interactable component that says it is not carryable
+	// fails here and falls to the tree's other Loot branch; a subject with no interactable component at
+	// all (nothing has been placed to guard against yet) is left alone rather than guessed at.
+	if (const UGSInteractableComponent* Interactable = Cargo->FindComponentByClass<UGSInteractableComponent>())
+	{
+		if (!Interactable->IsCarryable())
+		{
+			UE_LOG(LogGSPickUpCargo, Log, TEXT("[GS.PickUp] %s: '%s' is not carryable - falling to the smash-and-loot branch."),
+				*Self->GetName(), *Cargo->GetName());
+			return EBTNodeResult::Failed;
+		}
 	}
 
 	UGSCarryComponent* Carry = Self->FindComponentByClass<UGSCarryComponent>();
@@ -59,6 +81,8 @@ EBTNodeResult::Type UBTTask_PickUpCargo::ExecuteTask(UBehaviorTreeComponent& Own
 	{
 		// Fails rather than crashes, and this is the honest state for anything that is not an
 		// AGSHordeGoblin - the component was added to that class in #141 and to nothing else.
+		UE_LOG(LogGSPickUpCargo, Warning, TEXT("[GS.PickUp] %s: no UGSCarryComponent - not an AGSHordeGoblin?"),
+			*Self->GetName());
 		return EBTNodeResult::Failed;
 	}
 
@@ -74,9 +98,12 @@ EBTNodeResult::Type UBTTask_PickUpCargo::ExecuteTask(UBehaviorTreeComponent& Own
 	// authority, so there is no client path to guard here.
 	if (!Carry->StartCarry(Cargo))
 	{
+		UE_LOG(LogGSPickUpCargo, Warning, TEXT("[GS.PickUp] %s: StartCarry('%s') refused (already carried by someone else?)."),
+			*Self->GetName(), *Cargo->GetName());
 		return EBTNodeResult::Failed;
 	}
 
+	UE_LOG(LogGSPickUpCargo, Log, TEXT("[GS.PickUp] %s picked up '%s'."), *Self->GetName(), *Cargo->GetName());
 	BB->SetValueAsObject(CargoKey.SelectedKeyName, Cargo);
 	return EBTNodeResult::Succeeded;
 }

@@ -22,6 +22,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Save")
 	UGSSaveGame* GetSaveGame() const { return CurrentSave; }
 
+	/** WorldContext convenience for UI (e.g. the main menu's gold/XP display), which has no
+	 *  strongly-typed GSGameInstance pointer to hand a Cast node - saves the widget graph a
+	 *  GetGameInstance + Cast pair. Returns null if the world has no GSGameInstance (should not
+	 *  happen once GameInstanceClass is set in DefaultEngine.ini, but UI should not crash if it is). */
+	UFUNCTION(BlueprintPure, Category = "GoblinSiege|Save", meta = (WorldContext = "WorldContextObject"))
+	static UGSSaveGame* GetCurrentSave(const UObject* WorldContextObject);
+
 protected:
 	UPROPERTY()
 	TObjectPtr<UGSSaveGame> CurrentSave;

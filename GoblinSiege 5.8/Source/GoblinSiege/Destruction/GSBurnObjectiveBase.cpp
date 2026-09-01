@@ -245,6 +245,17 @@ void AGSBurnObjectiveBase::SetCompletion01(float NewCompletion01)
 	}
 }
 
+void AGSBurnObjectiveBase::DebugForceComplete()
+{
+	// SetCompletion01 already guards HasAuthority()/bCompleted internally; this check is just
+	// belt-and-suspenders so a caller reading this function alone sees the same contract.
+	if (!HasAuthority())
+	{
+		return;
+	}
+	SetCompletion01(1.0f);
+}
+
 void AGSBurnObjectiveBase::HandleCompleted()
 {
 	// Subclass hook: collapse, detonate, state-swap.

@@ -28,7 +28,20 @@ are committed and keep their Generate/Evaluate/Refine as the review record, but 
 old tickets at run start** — fold anything durable into BUILT / DECISIONS / FAILED below, or the
 next agent rediscovers it.
 
-## BUILT
+## FAILED
+- 2026-08-30 (#389 then #388) **`bUseLoggingInShipping = true` is a DEAD END on this engine
+  install, REVERTED.** Landed to fix a real problem (a packaged Shipping .exe writes a totally
+  empty `Saved/Logs/MyProject.log`, NO_LOGGING=1 being Shipping's default, which is why the
+  "New Raid does nothing" packaged-build bug had zero log evidence even though the identical click
+  logs plenty in PIE) - but setting it makes UBT require `BuildEnvironment = TargetBuildEnvironment.Unique`
+  (a target whose rules differ from `UnrealGame`'s cannot use the default Shared environment), and
+  **"Targets with a unique build environment cannot be built with an installed engine"** - this is
+  an installed/Rocket 5.8 build, not source, and that restriction is absolute here. Confirmed by
+  actually trying to package with it: `RulesError`, build refused outright. Reverted in full.
+  **If a live-readable Shipping log is needed again**, the real options are: package as
+  `DevelopmentClient` instead of Shipping (keeps logging/console without a Unique build environment,
+  at the cost of Shipping's size/perf), or build the engine from source. Do not re-attempt
+  `bUseLoggingInShipping` on this install without one of those.
 - 2026-08-30 **The real reason the mill was hard to exterior-ignite: fields were stealing the hit
   (#366 + #367, watched).** #361/#362 (below) were real, necessary fixes but didn't fully explain
   why exterior ignition still felt unreliable - two sessions of theories (reach/height, then
@@ -292,6 +305,119 @@ next agent rediscovers it.
     against knights - wants more goblins or fewer knights before it reads as a battle.
 
 ## DECISIONS
+
+- **2026-08-31 (#391): `EnableLoadingScreen` FLIPPED TO `True` - STALE #335 TODO, UNOBSERVED.**
+  Michael's report on release day: "there's no loading time after New Raid, so you can't tell if
+  it's broken or not." `Config/DefaultPlugins.ini`'s `ALSLoadingScreenSettings` had
+  `EnableLoadingScreen=False`, set by #335 specifically because `L_MainMenu`/the New Raid button
+  did not exist yet - the block's own comment said a later "stage 8" would flip it once they did.
+  `L_MainMenu`, `WBP_MainMenu` and New Raid all shipped since (#385/#388); stage 8 never ran, so the
+  flip was just forgotten, not a decision anyone reversed. Flipped it. Confirmed the widget it
+  points at (`ANS_LoadingScreen_WB`) exists on disk in the ACF plugin before flipping. **UNOBSERVED:
+  config-only change, no rebuild needed, but nobody has watched a loading screen actually appear on
+  a live New Raid click yet - if it still doesn't show, the next place to look is whether ACF's
+  loading-screen subsystem is even initialized for this project (it may need more than the ini flag).**
+  Left alone, adjacent and still stale from the same #335 plan: `WidgetRegistryAsset` /
+  `DefaultMenuMap` / `DefaultNewGameMap` in the same file, still commented out.
+
+- **2026-09-01 (#395): SMOLDER FX HAS NO PER-BUILDING COORDINATOR - GLOBAL CAP ADDED (`MaxGlobalSmolderFX
+  = 40`).** Follow-up to #393: clustering fixed the collapse-piece-count cost, but a live re-measure
+  (`stat dumpframe`, after clustering landed and frame time had NOT moved - 182ms -> 202ms) found the
+  real culprit was `UGSBurnFXComponent::SpawnSmolder()` - permanent (`bSmolderForever=true`), uncapped,
+  and per-PIECE. The Inn (`GSBuildingObjective_293`, 440 pieces, genuinely kitbashed and never
+  mesh-merged like the rest of the village) had every burning piece independently spawn its own
+  smolder system via `SpawnGenericRubbleFallback`: 577 simultaneous Niagara instances, ~70ms of
+  game-thread time from particle-collision checks alone. Fixed with a file-scope static counter
+  (`GActiveSmolderCount`) since this component has no building-level coordinator the way
+  `AGSBuildingObjective::MaxFireFX` does. **Same session, two more Inn-specific fixes**: real fracture
+  assets extended to kitbashed wall pieces (`GC_House_Wall_*`, same #393 tool, different NamePrefix -
+  no code change, this is exactly the reusable process it was built for) and the Inn's
+  `PieceNameFilters` cleared to empty on that ONE placed instance only (its furniture - `SM_Bar_Main`,
+  `SM_Fireplace_Base`, etc. - matched none of the structural name filters and was never adopted at
+  all, left floating once walls were destroyed; an empty filter adopts everything within
+  `AdoptRadius`, per this class's own header). All three confirmed live: "the framerate was amazing,"
+  "i watched it and the collapse looked great." **NEXT: the Inn's adoption footprint after clearing
+  its filter was never audited for over-adoption** (the class's own documented risk - "drags in
+  barrels and market tables"); roofs/floors/foundations/corners of the kitbashed kit still have no
+  fracture assets, only walls do.
+
+- **2026-09-01 (#393): BULK CHAOS FRACTURE GENERATION - ALL 42 HOUSE MESHES HAVE REAL `GC_` ASSETS
+  NOW, VIA A REUSABLE EDITOR TOOL, NOT HAND-AUTHORING.** Followed #392's rejected physics-topple
+  fallback (both versions of it failed live - see that entry). Built a NEW editor-only module,
+  `GoblinSiegeEditor` (`Source/GoblinSiegeEditor/`), with `UGSFractureToolsLibrary::
+  GenerateFractureAsset`/`BulkGenerateMissingBuildingFractures` - both `BlueprintCallable` and
+  Python-callable from VibeUE. **The key discovery: `Fracture` and `PlanarCut` are
+  `"EnabledByDefault": false` plugins in this engine install, but their compiled binaries (`.dll`/
+  `.lib`) are already on disk** - enable them in `MyProject.uproject` (`TargetAllowList: ["Editor"]`
+  so they never reach a packaged build) and a project module CAN link against `FractureEngine`/
+  `PlanarCut` directly, bypassing the fact that neither module has a Python-exposed
+  create-and-fracture entry point (`unreal.FractureEditorLibrary` does not exist; Dataflow's Python
+  surface authors graphs but cannot evaluate them). The actual calls used are the same ones the
+  project's own hand-made Dataflow graph (`DF_GS_HouseFracture`) already wraps:
+  `FGeometryCollectionEngineConversion::AppendStaticMesh` then
+  `FFractureEngineFracturing::UniformFracture`.
+  **Two real bugs, each found by an actual live burn, not guessed:** (1) using the OTHER conversion
+  entry point, `ConvertStaticMeshToGeometryCollection`, and manually assigning its output materials
+  array afterward, scrambled every piece's material - `AppendStaticMesh` operating directly on the
+  destination asset (`bAddInternalMaterials=true`) keeps geometry and materials in sync by
+  construction and is the fix. (2) neither conversion nor fracturing generates collision -
+  `FGeometryCollectionConvexUtility::CreateNonOverlappingConvexHullData` after fracturing is the
+  missing step; without it the resulting debris has no collision at all ("I can just walk through
+  it"). **NEXT: only 2 of the 42 regenerated houses were watched burning live** (the full bulk pass
+  ran clean against the fixed code and every mesh shares the same code path, but that is
+  "representative," not "watched" - see #393's own ticket for the honest distinction).
+  `NumVoronoiCells` is a flat 8 for every mesh regardless of size; if a specific house's fracture
+  density looks wrong later, that is the number to revisit, not the algorithm.
+
+- **2026-09-01 (#394, ruling 73): ALL FOUR HORDE ORDER-WHEEL VERBS CONFIRMED WORKING - GDD AND
+  LEDGER UPDATED, NOT JUST ATTACK/FOLLOW.** Michael, in session: Hold and Loot both land now, not
+  just Attack and Follow. `BT_HordeGoblin`/`BB_HordeGoblin.uasset` show as modified, uncommitted,
+  in the working tree - consistent with #213's spec (an `OrderVerb`-gated Hold branch, positioned
+  above Menace Orbit/Chase/Follow, below Block/Melee Attack, `Observer Aborts: Both`) having been
+  hand-authored in the BT editor, since #213 itself concluded a Python-injected node would not
+  survive the asset next being opened. GDD §5 and §12.1 rows 6/17 re-graded WIRED -> BUILT/WIRED;
+  full ruling in `docs/decisions-ledger.md` (2026-08-31 entry). **UNOBSERVED BY THIS AGENT: this is
+  Michael's report, not a PIE session or log line this agent watched** - the doc change is
+  accurate to what he said, not independently re-verified. **Smash is NOT part of this claim** -
+  `BTTask_SmashOrderTarget` was never a wheel command (the wheel is Attack/Hold/Loot/Follow, #141)
+  and stays uncalled. Also left alone: livestock (#379-381) stays UNOBSERVED, not folded into this.
+
+- **2026-08-31 (#392): ONLY 1 OF 42 `SM_MERGED_House_*` MESHES HAS A FRACTURE ASSET - GENERIC RUBBLE
+  FALLBACK ADDED, NOT REAL FRACTURES.** Michael, right after #390 closed: "not every building has
+  their collapse mesh cached." `AGSBuildingObjective::SpawnCollectionProxy`/`CrumblePieces` already
+  treat a missing `GC_<name>` fracture asset as the expected, silent case (see that method's own
+  header) - so 41 of 42 house shapes simply stood untouched on `HandleCompleted`, with no error.
+  A Geometry Collection bakes in the specific geometry it was fractured from, so the one existing
+  `GC_MERGED_House_Small_03` cannot stand in for the other 41 meshes. Given the choice between
+  bulk-authoring 41 real fractures (better result, unverified Python surface for Chaos Fracture Mode,
+  large content lift) and a same-day generic fallback, Michael picked the fallback:
+  `SpawnGenericRubbleFallback` hides+disables collision on a piece with no `GC_` match, plays a
+  reused existing dust burst (`N_PebbleDust`) and debris sound, then destroys it.
+  **SUPERSEDED same day - see #393, below.** The "close, watched, ship it" verdict here did not
+  survive Michael's own follow-up watch: in the SAME live session he called this exact result
+  unacceptable ("the building completely disappeared... a puff of smoke was there hanging in mid
+  air"). A physics-topple rewrite was tried next and ALSO failed live two different ways (see #393).
+  The real fix that stuck was bulk-generating actual fracture assets, not a better fallback -
+  `SpawnGenericRubbleFallback` is back to exactly this hide+dust+destroy shape today, kept only as a
+  rare safety net for a mesh the bulk tool has not covered yet. Read #393 before touching this
+  function again; this entry is left here as the record of what was tried and rejected, not as
+  current behavior to extend.
+
+- **2026-08-31 (#390): `BP_GrappleHook` RETIRED FOR A NATIVE CLASS; `ActionsSystem` ADDED TO
+  `GoblinSiege.Build.cs`.** #388 had already found `BP_GrappleHook`'s `HookMesh`/`RopeISM`/`RopeMesh`
+  carried the same SCS-drop corruption as `BP_Statue_Warrior` - the engine silently drops corrupted
+  components on every load, and this Blueprint's had real EventGraph logic wired to them. Replaced
+  wholesale with `AGSGrappleHookProjectile` (native `UPROPERTY` subobjects - no SCS tree for the
+  validator to drop). **The module gotcha to remember**: `UGSGA_GrappleThrow` was rebased onto
+  `UACFGameplayAbility` to wire the throw into ACF's Actions System (arms `CurrentPriority`/combo
+  buffering per `gs-abilities-outside-acf-asc`), which compiled fine through `AscentCombatFramework`'s
+  transitive include path and then failed to LINK every `UACFGameplayAbility` symbol - the exact
+  `#166`/`#280` trap already documented in that file, now with `ActionsSystem` a fourth confirmed
+  case of it. **Next agent that derives from or calls into a new ACF module for the first time: add
+  it to `PublicDependencyModuleNames` explicitly, do not trust the transitive include.**
+  **NEXT: `AGSGrappleHookProjectile::HookMeshAsset` is still unset** - the hook head has no visual in
+  flight (functional, same invisible-but-working degrade `AGSTorchProjectile` uses for a missing
+  `TorchMesh`). Needs a mesh assigned in the editor; nobody has done this yet.
 
 - **2026-08-20 (#207–#210): THERE WERE TWO DODGE SYSTEMS, AND FOUR PASSES WERE SPENT DEBUGGING THE
   ONE THAT WORKED.** Michael reported "the dodge plays the forward roll in every direction". The C++
@@ -772,7 +898,86 @@ next agent rediscovers it.
   satisfies GDD 2.7's first-courier-run beat, and the AI courier is 4-6 days with the order-wheel work
   bundled in.
 
+- **2026-08-30 (#385): `GameInstanceClass` WAS NEVER SET ANYWHERE IN CONFIG — `UGSGameInstance` HAD
+  BEEN DEAD CODE AT RUNTIME SINCE IT WAS WRITTEN.** Found while wiring the main menu's gold/XP
+  display. `Config/DefaultEngine.ini` had no `GameInstanceClass=` line under
+  `[/Script/EngineSettings.GameMapsSettings]`, and no Blueprint child or other config set it either —
+  so the engine instantiated the base `UGameInstance` at runtime, and every
+  `World->GetGameInstance<UGSGameInstance>()` call (including the score/gold/XP banking added earlier
+  this same session in `GSRaidDirector::EndRaid`) was silently returning null and no-opping. Nothing
+  errored; the save file just never got written. **Fixed by adding
+  `GameInstanceClass=/Script/GoblinSiege.GSGameInstance` to `DefaultEngine.ini`.** Confirmed live in
+  PIE afterward: `GameplayStatics.get_game_instance(world).get_class()` now reads
+  `/Script/GoblinSiege.GSGameInstance`, and two consecutive raids banked additively (0/0 → 25g/3180xp →
+  90g/6360xp). **If a `UGameInstance` subclass's state ever appears to silently not persist or not
+  exist, check `GameInstanceClass` in Config before assuming the C++ logic is wrong** — the class can
+  compile clean, compile into a Blueprint child, and still never run if nothing points the project at
+  it.
+
+- **2026-08-31 (#388): PACKAGED-BUILD PLAYTEST FOUND GRAPPLE HOOK/CRATE LOOT/BUILDING FRACTURES ALL
+  MISSING - ROOT CAUSE WAS SOFT-REFERENCED CONTENT NEVER GETTING COOKED, NOT GAMEPLAY BUGS.** After
+  fixing the New Raid map-cooking bug (see the `-allmaps` entry above), a live playtest of the
+  packaged build found: grapple hook doesn't work (can't leave the map), goblins fixate on crates
+  that never break or drop loot, no building or windmill ever burns down/collapses, and fire volumes
+  cause a severe frame-rate spike after starting. All four trace to ONE cause: `TSoftObjectPtr`/
+  `LoadObject`-by-path content (fracture `GC_*` collections in `GSCrumbleComponent`/
+  `GSBuildingObjective`, fire/smoke/ember Niagara systems in `GSFireVolume`, the grapple hook's
+  projectile class in `GSGA_GrappleThrow`) is never auto-included by the cooker unless something
+  hard-references it - and nothing did, since only `L_MainMenu`+`L_Tutorial_Island` were explicitly
+  listed to cook. `LoadSynchronous()` on an asset that was never cooked returns null silently, every
+  call - which also explains the frame-rate spike, since fire volumes call it every tick. **Fixed by
+  setting `bCookAll=True` in `DefaultGame.ini`** (forces the whole `Content/` directory to cook
+  regardless of reference type) to unblock testing immediately. **Before a real itch upload this
+  needs trimming back down** - either list the specific soft-loaded folders (`/Game/Destruction`,
+  the VFX folders) in `DirectoriesToAlwaysCook` and drop `bCookAll`, or register them as Primary
+  Asset Types via the Asset Manager - `bCookAll` currently also ships the test/scratch maps
+  `MapsToCook` deliberately excluded.
+
+- **2026-08-31 (#388): `BP_GrappleHook` HAS BEEN SILENTLY LOSING ITS OWN MESH COMPONENTS ON EVERY
+  LOAD, PROBABLY FOR A WHILE.** Found while chasing why grapple hook "doesn't work" in the first
+  ever packaged build. Root cause is the SAME class of SCS corruption `BP_Statue_Warrior` had
+  (`IntactMesh`/`Collection` nested under a non-root parent - see the #388 ticket for that fix) -
+  `HookMesh`, `RopeISM`, `RopeMesh` were all nested under `Sphere`. Unlike the statue, this one
+  couldn't be fixed by making the children independent: `Sphere` needs them ATTACHED so the rope
+  visuals actually follow the flying hook, and the same "make it independent" recipe would have
+  broken that relationship on purpose. **Worse: the engine's own auto-repair-on-load doesn't just
+  reparent the malformed nodes, it DROPS them entirely** - a fresh load leaves the Blueprint with
+  only `Sphere`/`Movement`, and the EventGraph's `Get RopeMesh`/`Get HookMesh` nodes then log
+  `Could not find a variable named "RopeMesh"`/`"HookMesh"` and `The property associated with ...
+  could not be found`. This means the rope/hook mesh components - and whatever the EventGraph does
+  with them - have likely been silently gone at runtime on every load (editor, PIE, cook) for a
+  while now, not something this session broke.
+  - **Scanned ALL 126 Blueprints in the project for this exact SCS pattern** (force-reload each one,
+    grep the log for the "Reparenting... cyclic linkage" warning) - **only `BP_Statue_Warrior`
+    (already fixed) and `BP_GrappleHook` are affected.** Nothing else in the project has this defect.
+  - **Deliberately did NOT reconstruct the EventGraph logic or re-author HookMesh/RopeISM/RopeMesh
+    blind** - that's real gameplay/content work needing Michael's knowledge of what those nodes were
+    supposed to do, not something to guess at overnight. Saved the Blueprint in its current
+    auto-repaired (components-dropped) state ONLY to stop it hard-failing the cook (any Error:-level
+    log line fails a package build regardless of whether the cook itself finishes - see the
+    AIPerceptionComponent entry in ticket #387's history for the same UAT behavior).
+  - **FOLLOW-UP NEEDED, NOT DONE**: re-author `BP_GrappleHook`'s `HookMesh`/`RopeISM`/`RopeMesh`
+    components and check whatever the EventGraph does with them - this is very likely THE reason the
+    grapple hook doesn't work in the packaged build, separate from (and on top of) the
+    soft-reference-cooking issue also found the same night (see the `bCookAll` decision above/below).
+
 ## NEXT
+
+- **2026-09-01: Class deadline shipped (packaged build uploaded to itch); Sept 8 is the FINAL
+  deadline for polish.** Two known issues from the live packaged playtest were deliberately NOT
+  fixed before shipping (Michael's call - "that's what matters," ship now, fix after):
+  - **Foliage (including apple trees) disappears entirely once a field fire starts spreading**,
+    with a lag spike right before it. Never diagnosed - no editor/PIE access to a packaged .exe, and
+    this session ran out of runway before switching back to the editor to reproduce it. The
+    on-screen "[VSM] Nanite Marking Job Queue overflow" warning has been visible repeatedly all
+    session (building fires too, not just field fire) and is the most likely shared root cause -
+    start there with `PerformanceService.frame_timing()`/`stat dumpframe` in PIE, matching the
+    method that found the smolder-FX and clustering costs in #393/#395.
+  - **General lag "around the middle of the village"** during a full raid loop, likely village
+    density (many buildings/pieces in view at once) rather than any single system - not isolated to
+    one building or mechanic.
+  Both are real regressions to chase before the 8th, not accepted as final quality.
+
 
 ### World corruption - ICEBOXED 2026-08-27 (#342), stages 5-6 remain
 

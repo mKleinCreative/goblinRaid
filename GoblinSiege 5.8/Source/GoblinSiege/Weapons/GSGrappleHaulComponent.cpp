@@ -51,11 +51,21 @@ void UGSGrappleHaulComponent::HandleOwnerHealthChanged(float /*NewHealth*/, floa
 
 void UGSGrappleHaulComponent::NotifyHookAttached(AActor* InHookActor, AActor* HitActor, const FVector& AnchorPoint)
 {
+	// TEMP DEBUG (2026-08-31, live grapple diagnosis with Michael) - the IsValid check right below
+	// this was a completely silent early-return, no log either way, which is exactly the "refuses
+	// correctly and says nothing at all" failure this class's own header warns about. Remove once
+	// the grapple-to-objective connection is confirmed working end to end.
+	UE_LOG(LogGSGrapple, Warning, TEXT("[GS.Grapple.DEBUG] NotifyHookAttached called. InHookActor=%s HitActor=%s"),
+		InHookActor ? *InHookActor->GetName() : TEXT("NULL"),
+		HitActor ? *HitActor->GetName() : TEXT("NULL"));
+
 	NotifyHookDetached();   // a second hook supersedes the first
 
 	AActor* Owner = GetOwner();
 	if (!IsValid(HitActor) || !IsValid(Owner))
 	{
+		UE_LOG(LogGSGrapple, Warning, TEXT("[GS.Grapple.DEBUG] Bailing: HitActor valid=%d Owner valid=%d"),
+			IsValid(HitActor), IsValid(Owner));
 		return;
 	}
 
@@ -76,13 +86,26 @@ void UGSGrappleHaulComponent::NotifyHookAttached(AActor* InHookActor, AActor* Hi
 		return;
 	}
 
+	// The rope's reach limit applies the moment ANY hook bites, haul or no haul - Michael, live
+	// playtest 2026-08-31: "you're able to lay out the rope segment for much longer than you should
+	// be able to." Before this, HaulAnchorPoint/AnchorDistanceAtAttach and the tick that reads them
+	// (ConstrainToRope, below) were only ever set on the haul path - a hook stuck in a plain wall (the
+	// class header's own "movement tool first" case, and the MOST common throw) enabled no clamp at
+	// all, so the rope paid out forever. MaxRopeStretchUU was already written generically ("How far
+	// away the hook may bite" / "how far ... before it stops you") for exactly this dual purpose.
+	HaulAnchorPoint = AnchorPoint;
+	AnchorDistanceAtAttach = BiteDistance;
+	SetComponentTickEnabled(true);
+
 	UGSTopplableComponent* Topplable = HitActor->FindComponentByClass<UGSTopplableComponent>();
 
 	// Hooking a wall is legal and common - the grapple is a movement tool first, so this stays quiet
-	// and the hook stays put.
+	// and the hook stays put. The rope still holds the player to it (see above); it just never starts
+	// a haul.
 	if (!Topplable)
 	{
-		UE_LOG(LogGSGrapple, Verbose, TEXT("[GoblinSiege] Hook bit '%s' - not a monument, no haul."),
+		// TEMP DEBUG: bumped from Verbose to Warning so it's guaranteed visible while diagnosing.
+		UE_LOG(LogGSGrapple, Warning, TEXT("[GoblinSiege] Hook bit '%s' - not a monument, no haul."),
 			*HitActor->GetName());
 		return;
 	}
@@ -99,15 +122,13 @@ void UGSGrappleHaulComponent::NotifyHookAttached(AActor* InHookActor, AActor* Hi
 		return;
 	}
 
+	// HaulAnchorPoint/AnchorDistanceAtAttach/tick were already set above, identically for both the
+	// haul and plain-anchor cases - not repeated here.
 	HaulTarget = HitActor;
 	HaulTopplable = Topplable;
-	HaulAnchorPoint = AnchorPoint;
-	AnchorDistanceAtAttach = FVector::Dist(Owner->GetActorLocation(), AnchorPoint);
 	HaulDuration = FMath::Max(Topplable->GetHaulSeconds(), 0.1f);
 	HaulProgress = 0.f;
 	bHauling = true;
-
-	SetComponentTickEnabled(true);
 
 	UE_LOG(LogGSGrapple, Log,
 		TEXT("[GoblinSiege] Haul started on '%s' - anchored %.0fuu away, needs %.1fs of tension."),
@@ -135,25 +156,39 @@ void UGSGrappleHaulComponent::TickComponent(float DeltaTime, ELevelTick TickType
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!bHauling)
+	// Ticks whenever ANY hook is attached now, not only while hauling - see the comment in
+	// NotifyHookAttached this pairs with. A plain anchor hook (no UGSTopplableComponent on what it
+	// hit) still needs ConstrainToRope every frame, or the rope pays out forever.
+	if (!HookActor.IsValid())
 	{
 		return;
 	}
 
 	AActor* Owner = GetOwner();
+	if (!IsValid(Owner))
+	{
+		return;
+	}
+
+	// The rope holds you before anything else happens this frame, whether or not there is a haul in
+	// progress - tension (below) is measured against a position the rope actually permits, and a
+	// plain anchor hook has nothing else to do this tick besides this call.
+	ConstrainToRope(Owner);
+
+	if (!bHauling)
+	{
+		return;
+	}
+
 	UGSTopplableComponent* Topplable = HaulTopplable.Get();
 
 	// The statue can be destroyed by something else mid-haul - another goblin, a torch. Ending rather
 	// than continuing to measure against a dead actor.
-	if (!IsValid(Owner) || !Topplable || !HaulTarget.IsValid() || Topplable->IsToppled())
+	if (!Topplable || !HaulTarget.IsValid() || Topplable->IsToppled())
 	{
 		EndHaul(false);
 		return;
 	}
-
-	// The rope holds you before anything else happens this frame, so tension is measured against a
-	// position the rope actually permits.
-	ConstrainToRope(Owner);
 
 	const float Distance = FVector::Dist(Owner->GetActorLocation(), HaulAnchorPoint);
 	const bool bTaut = Distance > AnchorDistanceAtAttach + TautSlackUU;
@@ -235,7 +270,8 @@ void UGSGrappleHaulComponent::EndHaul(bool bCompleted)
 	HaulProgress = 0.f;
 	HaulTarget.Reset();
 	HaulTopplable.Reset();
-	SetComponentTickEnabled(false);
+	// Tick is disabled in ReleaseHook (below) now, not here - a haul ending must not disable the
+	// tick that a plain anchor hook still needs (see NotifyHookAttached/TickComponent).
 
 	// The rope goes with the haul, whether it succeeded or not. On success the monument is already
 	// coming down and the hook is buried in something that no longer exists as a standing object; on
@@ -250,9 +286,13 @@ void UGSGrappleHaulComponent::ReleaseHook()
 {
 	if (AActor* Hook = HookActor.Get())
 	{
-		// Destroying the hook takes the rope with it - the spline mesh lives on the hook actor, so
-		// there is no separate visual to tidy up.
+		// Destroying the hook takes the rope with it - AGSGrappleHookProjectile's InstancedStaticMesh
+		// rope segments live on the hook actor, so there is no separate visual to tidy up.
 		Hook->Destroy();
 	}
 	HookActor.Reset();
+
+	// The one true "nothing to hold onto anymore" point - see TickComponent, which now ticks for
+	// as long as ANY hook is attached, haul or plain anchor.
+	SetComponentTickEnabled(false);
 }

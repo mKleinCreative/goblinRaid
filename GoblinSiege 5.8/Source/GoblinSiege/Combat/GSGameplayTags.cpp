@@ -14,6 +14,7 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Invulnerable, "State.Invulnerable", "Respawn i-frames - damage GEs check this");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Crouching, "State.Crouching", "Stealth stance active - crouch toggle (design doc §7)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Dodging, "State.Dodging", "Dodge roll in flight - i-frames + committed movement lock (design doc §7)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Burning, "State.Burning", "On fire - periodic burn granted by UGSGE_Burning, clings past leaving the flames, extinguished only by rolling");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Aiming, "State.Aiming", "Facing camera/aim direction instead of movement direction (tech doc §16)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Blocking, "State.Blocking", "Guard up - frontal hits are mitigated in GSDamageExecCalculation and stagger the blocker instead of wounding them");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_HitReact, "State.HitReact", "Flinching. Present only for the length of a hit-react montage; blocks a second flinch from stacking");
@@ -34,6 +35,7 @@ namespace GSTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_FoulWell, "Interact.FoulWell", "Foul a village well.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Carry, "Interact.Carry", "Pick up / put down a carryable object.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Extract, "Interact.Extract", "RESERVED - extraction auto-banks on a circle for now, not a channel.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Interact_Eat, "Interact.Eat", "Consume a food prop for a flat heal.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Race_Goblin, "Race.Goblin", "Player, allied goblins and the horde - melee will not hit its own race.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Race_Human, "Race.Human", "Village defenders - militia, archers, knights, civilians.");

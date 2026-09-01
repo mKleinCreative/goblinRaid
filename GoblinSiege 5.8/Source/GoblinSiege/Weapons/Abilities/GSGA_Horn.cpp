@@ -41,26 +41,19 @@ UGSGA_Horn::UGSGA_Horn()
 	// blocks the torch toss while carrying (2026-08-04).
 	ActivationBlockedTags.AddTag(GSTags::State_Carrying);
 
-	// THE WIND-UP, defaulted here rather than left for a designer, because there is nowhere for a
+	// THE GESTURE, defaulted here rather than left for a designer, because there is nowhere for a
 	// designer to put it: the horn is the only ability in the project with no Blueprint subclass
 	// (GA_GS_Block, GA_GS_Dodge, GA_GS_SwordLight and the rest all have one), and
-	// AGSPlayerCharacter hard-defaults HornAbilityClass to this C++ class. That is the whole reason
-	// the montage fields sat empty from the day they were written - there has never been a CDO for
-	// a designer to set them on.
+	// AGSPlayerCharacter hard-defaults HornAbilityClass to this C++ class.
 	//
-	// AM_GS_HornBlast wraps A_MX_Taunt_Battlecry_Gob, which is the closest thing the project owns to
-	// a horn: head back, arm raised. There is no actual horn animation anywhere in the 29-clip DTA
-	// combat set, the DK2 locomotion set or the 40 traversal clips - this is a real placeholder and
-	// should be replaced when one is authored.
+	// CUT DOWN 2026-08-30 (Michael) to a single plain looping montage - see HornMontage's own
+	// comment for why. There is no actual horn animation anywhere in the project; this is a
+	// placeholder taunt clip and stays one until an animator authors a real one.
 	//
 	// Still EditDefaultsOnly and still soft: a Blueprint subclass overrides this the day one exists,
 	// and the path costs no package load at module time.
-	HornMontageIntro = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
-		TEXT("/Game/Characters/ScoutV2/Montages/AM_GS_HornBlast_Intro.AM_GS_HornBlast_Intro")));
-	HornMontageLoop = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
-		TEXT("/Game/Characters/ScoutV2/Montages/AM_GS_HornBlast_Loop.AM_GS_HornBlast_Loop")));
-	HornMontageOutro = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
-		TEXT("/Game/Characters/ScoutV2/Montages/AM_GS_HornBlast_Outro.AM_GS_HornBlast_Outro")));
+	HornMontage = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
+		TEXT("/Game/Characters/ScoutV2/Montages/AM_GS_HornBlast.AM_GS_HornBlast")));
 
 	// THE VOICE, defaulted here for the same reason as the montage: there is no CDO for a designer
 	// to set it on. Nothing in the project's 2000-asset sound bundle is a horn - it has animals,
@@ -161,33 +154,11 @@ void UGSGA_Horn::StartBlast()
 		World->GetTimerManager().ClearTimer(HornLowerTimerHandle);
 	}
 
-	if (UAnimMontage* Intro = HornMontageIntro.LoadSynchronous())
-	{
-		// The intro plays ONCE - no self-chaining - and hands over to the hold when it is spent.
-		ActiveHornMontage = Intro;
-		Character->PlayAnimMontage(Intro);
-
-		// Read the handover off the asset rather than hard-coding it, so re-authoring the intro
-		// cannot leave the goblin frozen at the top of the raise. Same rule as the audio handover.
-		const float Handoff = Intro->GetPlayLength();
-		if (Handoff > KINDA_SMALL_NUMBER)
-		{
-			if (UWorld* World = GetWorld())
-			{
-				World->GetTimerManager().SetTimer(MontageHandoffTimerHandle, this,
-					&UGSGA_Horn::BeginHornHold, Handoff, false);
-			}
-		}
-		else
-		{
-			BeginHornHold();
-		}
-	}
-	else
-	{
-		// No intro authored: straight to the hold rather than standing at idle through a blast.
-		BeginHornHold();
-	}
+	// Straight into the looping gesture - no separate raise/hold/lower phases. See HornMontage's
+	// comment for why: this project has no horn animation, only a taunt clip standing in for one,
+	// and trying to choreograph a raise/hold/lower shape out of it is exactly what broke twice in
+	// one evening (2026-08-30). PlayLooping no-ops safely if HornMontage fails to load.
+	PlayLooping(HornMontage.LoadSynchronous());
 
 	StartHornVoice();
 }
@@ -214,17 +185,6 @@ void UGSGA_Horn::PlayLooping(UAnimMontage* Montage)
 	{
 		Anim->Montage_SetNextSection(FirstSection, FirstSection, Montage);
 	}
-}
-
-void UGSGA_Horn::BeginHornHold()
-{
-	// The button may already be up - a tap shorter than the intro. Let the intro finish and let
-	// StopBlast carry it into the outro, rather than starting a hold nobody asked for.
-	if (!bHornHeld)
-	{
-		return;
-	}
-	PlayLooping(HornMontageLoop.LoadSynchronous());
 }
 
 void UGSGA_Horn::LowerHornProp()
@@ -352,11 +312,6 @@ void UGSGA_Horn::StopBlast()
 {
 	StopHornVoice();
 
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(MontageHandoffTimerHandle);
-	}
-
 	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
 	if (ACharacter* Character = Cast<ACharacter>(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr))
 	{
@@ -377,23 +332,13 @@ void UGSGA_Horn::StopBlast()
 			}
 		}
 
-		// The outro plays UNSTOPPED, after the ability has already ended. That is the whole point of
-		// it: letting go of the button is the goblin lowering the horn, not the horn teleporting to
-		// his side.
-		float OutroLength = 0.0f;
-		if (UAnimMontage* Outro = HornMontageOutro.LoadSynchronous())
-		{
-			Character->PlayAnimMontage(Outro);
-			OutroLength = Outro->GetPlayLength();
-		}
-
-		// Hide the prop when the outro HAS FINISHED, not now - it is in his hand for the whole of
-		// that clip. With no outro authored this fires almost immediately and the horn simply
-		// disappears, which is the previous behaviour and still correct.
+		// No outro clip any more - see HornMontage's comment. The blend-out above IS the lowering
+		// motion now; hide the prop once it has had time to finish rather than on this frame, so it
+		// doesn't pop out of the hand mid-blend.
 		if (UWorld* World = GetWorld())
 		{
 			World->GetTimerManager().SetTimer(HornLowerTimerHandle, this,
-				&UGSGA_Horn::LowerHornProp, FMath::Max(OutroLength, 0.01f), false);
+				&UGSGA_Horn::LowerHornProp, FMath::Max(MontageBlendOutSeconds, 0.01f), false);
 		}
 	}
 	ActiveHornMontage = nullptr;

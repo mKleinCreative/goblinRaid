@@ -26,6 +26,7 @@
 
 #include "CoreMinimal.h"
 #include "AI/GSAIControllerBase.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "GSHordeAIController.generated.h"
 
 class UBehaviorTree;
@@ -135,5 +136,36 @@ protected:
 private:
 	void RefreshStimulus();
 
+	/**
+	 * DIAGNOSTIC, added 2026-08-30 to chase the Loot-order freeze: a goblin under a Loot order was
+	 * observed reaching MoveTo's acceptance radius (AAIController::GetMoveStatus() goes Idle) and then
+	 * NEVER advancing to the tree's Smash/Loot tasks - not even a custom Log-level UE_LOG from either
+	 * task ever fires. That means the BT's own MoveTo node never learns its move finished, even though
+	 * the controller plainly did. This binds PathFollowingComponent's OWN completion delegate (the one
+	 * UAITask_MoveTo itself listens to - see BTTask_MoveTo.cpp) so we can see directly whether THAT
+	 * delegate fires at all, and what DidMoveReachGoal() says, for the exact request the BT issued.
+	 * Every ACF AI controller's PathFollowingComponent is a UCrowdFollowingComponent (RVO), not the
+	 * plain engine one (ACFAIController.cpp's constructor forces this) - if this delegate never fires,
+	 * that is the crowd-following/AITask handoff, not our BT or navmesh work.
+	 *
+	 * Gated behind GS.AI.LogMoveCompletion because it fires on every completed move for every summoned
+	 * goblin (Follow included), not just Loot ones - noisy by default, cheap to turn on.
+	 */
+	void HandleMoveRequestFinished(FAIRequestID RequestID, const FPathFollowingResult& Result);
+
 	FTimerHandle StimulusTimer;
+
+public:
+	/**
+	 * DIAGNOSTIC, added 2026-08-30 (same investigation as HandleMoveRequestFinished): with the
+	 * OrderVerb blackboard fix in and every higher-priority branch confirmed empty (no TargetActor,
+	 * no FollowTarget), a Loot-ordered goblin still sat completely still - zero velocity, frozen
+	 * location, and NOT EVEN ONE [GS.MoveCompletion] log line, despite CVarGSLogMoveCompletion being
+	 * on. OnRequestFinished only fires for a request that was actually accepted; a request that fails
+	 * SYNCHRONOUSLY inside RequestMove (e.g. pathfinding fails immediately) never gets an FAIRequestID
+	 * and never reaches that delegate at all. This override logs the synchronous return value of
+	 * every MoveTo() call this controller makes, gated behind the same GS.AI.LogMoveCompletion cvar,
+	 * so we can see whether BTTask_MoveTo's request is being rejected before a move ever starts.
+	 */
+	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath = nullptr) override;
 };

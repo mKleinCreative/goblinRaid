@@ -44,6 +44,7 @@ class UGeometryCollectionComponent;
 class UGSCrumbleComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGSOnBuildingIgnited);
 
@@ -174,8 +175,46 @@ protected:
 	 * would train everyone to filter the category out, which is exactly how the old topple log came
 	 * to announce success three times while the statue stood there unmoved. One line that says "8 of
 	 * 34" is the instrument; thirty that say "no collection" is noise.
+	 *
+	 * A piece with no fracture asset no longer just stops where it stands (Michael, 2026-08-31: "not
+	 * every building has their collapse mesh cached" - only 1 of 42 `SM_MERGED_House_*` meshes has a
+	 * matching `GC_` today). See SpawnGenericRubbleFallback.
 	 */
 	void CrumblePieces();
+
+	/**
+	 * A piece with no matching GC_ fracture asset still has to visibly break - a house that "completes"
+	 * as an objective while standing untouched reads as the feature not working. This is deliberately
+	 * NOT a fracture (a Geometry Collection bakes in the specific geometry it was built from, so a
+	 * real fracture from a DIFFERENT mesh would render the wrong house's rubble) and, as of #393, NOT
+	 * physics either: hides the piece, plays a dust/sound cue, destroys it.
+	 *
+	 * TWO EARLIER VERSIONS, BOTH REVERTED LIVE (2026-08-31):
+	 *   v1 hid+disabled-collision+Destroy()ed with a dust burst - Michael watched the house vanish
+	 *   with the dust hanging in mid-air where it used to stand: "This is not an acceptable outcome."
+	 *   v2 replaced that with a plain-rigid-body topple (SetSimulatePhysics + an off-center impulse,
+	 *   same pattern as UGSInteractableComponent::ApplyCollapse) - this broke two different ways: on a
+	 *   MERGED house (one big mesh) enough impulse to visibly rotate it read as the building launching
+	 *   into the air ("why in gods green earth did you think the entire house popping up would be a
+	 *   good idea"), and on individual KITBASHED trim pieces it failed outright because they ship with
+	 *   'Use Complex Collision As Simple', which the physics engine cannot simulate on at all - every
+	 *   call logged a warning and did nothing, leaving pieces with no collision response at all
+	 *   ("it has no collision, so I can just walk through it").
+	 * #393's bulk fracture generation covers whole-mesh MERGED houses, not individual KITBASHED trim
+	 * pieces (SM_House_Roof_01_*, SM_House_Wall_5x4_*, etc.) - so this is very much NOT rarely reached
+	 * for a kitbashed building. CORRECTION, 2026-09-01: a kitbashed building can adopt hundreds of
+	 * pieces (measured: 440 on one building alone) and NONE of them have a matching GC_, so
+	 * CrumblePieces calls this once PER PIECE on completion. Confirmed live via `stat dumpframe`: 577
+	 * simultaneous N_PebbleDust instances, ~70ms of game-thread time from Niagara particle-collision
+	 * checks alone (2308 of them in one frame) - Michael's "it's really laggy right now" / "fire
+	 * causes the issue" was this, not the merged-house collapse piece count #393 already capped.
+	 * bPlayFX (see CrumblePieces, which owns the per-building cap - MaxRubbleFXPerBuilding, the same
+	 * pattern this class already uses for MaxFireFX) lets every piece still be correctly
+	 * hidden/removed while only a bounded few actually spawn a dust/sound cue - a building disappearing
+	 * with 4 dust puffs instead of 440 reads identically to the player and costs nothing close to the
+	 * same.
+	 */
+	void SpawnGenericRubbleFallback(AActor* Piece, bool bPlayFX) const;
 
 	/**
 	 * Find this piece's fracture asset by naming convention, attaching it if it is not already there.
@@ -324,6 +363,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX")
 	TSoftObjectPtr<UNiagaraSystem> SmokeColumnSystem;
 
+	/** SpawnGenericRubbleFallback's one-shot burst for a piece with no fracture asset. C++-defaulted
+	 *  to the project's existing generic debris dust system (same reasoning as
+	 *  AGSTorchProjectile::FireVolumeClass - a reference left to a content folder is one bad merge
+	 *  from going missing, and null here would make the fallback invisible AND silent). */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX")
+	TSoftObjectPtr<UNiagaraSystem> GenericRubbleFXAsset;
+
+	/** SpawnGenericRubbleFallback's impact sound. C++-defaulted to the project's existing large-debris
+	 *  cue, same reasoning as GenericRubbleFXAsset. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX")
+	TSoftObjectPtr<USoundBase> GenericRubbleSoundAsset;
+
 	/**
 	 * How many pieces may show flames at once.
 	 *
@@ -336,6 +387,17 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UNiagaraComponent>> ActiveFireFX;
+
+	/**
+	 * Same reasoning as MaxFireFX, for CrumblePieces' generic-rubble-fallback dust/sound - see
+	 * SpawnGenericRubbleFallback's header comment. A large KITBASHED building can have hundreds of
+	 * pieces with no fracture asset; spawning N_PebbleDust for every single one measured live at 577
+	 * simultaneous Niagara instances and ~70ms of game-thread time from particle-collision checks
+	 * alone. Every piece is still hidden/removed regardless of this cap - only the dust/sound burst is
+	 * bounded.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX", meta = (ClampMin = "0"))
+	int32 MaxRubbleFXPerBuilding = 6;
 
 	UPROPERTY()
 	TObjectPtr<UNiagaraComponent> SmokeColumn;

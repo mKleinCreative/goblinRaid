@@ -1,10 +1,14 @@
 #include "Raid/GSRaidDirector.h"
+#include "Raid/GSScoreSubsystem.h"
 #include "Destruction/GSBurnObjectiveBase.h"
 #include "Destruction/GSTopplableComponent.h"
 #include "Combat/GSGameplayTags.h"
 #include "Missions/GSMissionObjective.h"
 #include "Core/GSGameState.h"
+#include "Core/GSGameInstance.h"
+#include "Progression/GSSaveGame.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSRaid, Log, All);
@@ -600,11 +604,62 @@ void UGSRaidDirector::EndRaid(EGSRaidResult Result)
 
 	// Time stops when the raid does. Before #049 it did not: a raid lost to OutOfLives kept counting
 	// down and would eventually enter the collapse phase it had already lost the right to.
-	if (const UWorld* World = GetWorld())
+	if (UWorld* World = GetWorld())
 	{
 		if (AGSGameState* GS = World->GetGameState<AGSGameState>())
 		{
 			GS->StopRaidClock();
+		}
+
+		// PERSIST THE BEST SCORE AND BANK THE RUN (#383/#385/#386). Deliberately here, not in the
+		// HUD's HandleRaidEnded - this fires whether or not anything is watching OnRaidEnded,
+		// matching the ticket's own reasoning: a raid that ends with no HUD bound (a dedicated
+		// server, a future spectator) still has to bank the score. UGSGameInstance::Init() already
+		// loads UGSSaveGame from disk if it exists; these are the only call sites that ever write
+		// to it - BestScores/Gold/Experience had zero callers project-wide until now.
+		//
+		// Two different banking rules on purpose: BestScores is a per-map high score (Max() - only
+		// a NEW best overwrites it), while Gold/Experience are a running wallet (+= - every raid
+		// adds to the total, never overwrites it). Loot maps to Gold and Deeds maps to Experience,
+		// matching UGSScoreSubsystem's own existing two-kind split almost exactly onto currency vs
+		// XP. What either is spent on is a later problem.
+		if (const UGSScoreSubsystem* ScoreSys = World->GetSubsystem<UGSScoreSubsystem>())
+		{
+			if (UGSGameInstance* GameInstance = World->GetGameInstance<UGSGameInstance>())
+			{
+				if (UGSSaveGame* Save = GameInstance->GetSaveGame())
+				{
+					bool bDirty = false;
+
+					const int32 FinalScore = ScoreSys->GetTotal();
+					const FName MapName(*UGameplayStatics::GetCurrentLevelName(World));
+					int32& Best = Save->BestScores.FindOrAdd(MapName);
+					if (FinalScore > Best)
+					{
+						Best = FinalScore;
+						bDirty = true;
+						UE_LOG(LogGSRaid, Log, TEXT("[GoblinSiege] New best score for '%s': %d."),
+							*MapName.ToString(), FinalScore);
+					}
+
+					const int32 GoldGained = ScoreSys->GetLoot();
+					const int32 ExperienceGained = ScoreSys->GetDeeds();
+					if (GoldGained > 0 || ExperienceGained > 0)
+					{
+						Save->Gold += GoldGained;
+						Save->Experience += ExperienceGained;
+						bDirty = true;
+						UE_LOG(LogGSRaid, Log,
+							TEXT("[GoblinSiege] Banked +%d gold, +%d experience (totals: %d gold, %d experience)."),
+							GoldGained, ExperienceGained, Save->Gold, Save->Experience);
+					}
+
+					if (bDirty)
+					{
+						GameInstance->SaveGame();
+					}
+				}
+			}
 		}
 	}
 
