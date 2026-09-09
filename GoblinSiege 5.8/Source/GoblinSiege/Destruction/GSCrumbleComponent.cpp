@@ -788,6 +788,24 @@ void UGSCrumbleComponent::FreezeSettledPhysics()
 	Collection->SetSimulatePhysics(false);
 	bPhysicsFrozen = true;
 
+	// AND STOP CASTING SHADOWS. This is the biggest single cost in the game.
+	//
+	// Michael's own 3,974-frame capture (2026-09-09, r.GPUCsvStatsEnabled): GPU/ShadowDepths is
+	// **21.84 ms of a 28.47 ms GPU frame** - 77% of it - at 1,766 shadow draw calls, and it is also
+	// what spikes (21.26 ms normal, 48.31 ms on the worst frames). Basepass, by comparison, is 1.93 ms.
+	// It is also what the "[VSM] Non-Nanite Marking Job Queue overflow" warning has been reporting
+	// all along: many non-Nanite meshes covering a large area of the shadow map.
+	//
+	// A settled wreck is rubble lying on the ground. It has already dropped from a silhouette the
+	// sun could see into a low pile that contributes almost nothing to the shadow map - but it still
+	// costs a full set of shadow draw calls for every one of its pieces, and a razed village holds
+	// 366 collections and ~45,000 of them. This is the cheapest large win available and it is
+	// exactly here, at the moment the wreck stops moving and can no longer change shape.
+	if (bDisableShadowsOnSettle)
+	{
+		Collection->SetCastShadow(false);
+	}
+
 	// Nothing left to sweep or report on a wreck that cannot move. Leaving these armed would have
 	// SweepStragglers straining pieces that have no physics proxy to strain.
 	if (UWorld* World = GetWorld())

@@ -299,6 +299,20 @@ public:
 	float FreezeHardDeadlineSeconds = 30.f;
 
 	/**
+	 * Stop a settled wreck casting shadows, at the same moment it stops simulating.
+	 *
+	 * Shadow depth rendering is the single largest cost in this game. Measured from Michael's
+	 * 3,974-frame capture: **GPU/ShadowDepths 21.84 ms of a 28.47 ms GPU frame**, 1,766 shadow draw
+	 * calls, and the dominant spike too (21.26 -> 48.31 ms on the worst frames). Basepass is 1.93 ms.
+	 *
+	 * A settled wreck is a low pile of rubble that contributes almost nothing to the shadow map and
+	 * still pays full price for it, across ~45,000 pieces in a razed village. Turn this off if a
+	 * collapsed building ever needs to keep its shadow for a shot.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Settle")
+	bool bDisableShadowsOnSettle = true;
+
+	/**
 	 * How much of each shove points INWARD versus straight down (0 = pure drop, 1 = 45 degrees in).
 	 *
 	 * This is the dial that decides "controlled demolition" versus "shoved over", and it is the one
