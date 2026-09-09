@@ -171,3 +171,28 @@ guessing at a second mesh name would repeat exactly this mistake.
 
 **Still standing from the same session, verified by Michael watching:** the river stops the fire, and
 the collapse settles.
+
+---
+
+## Ruling, 2026-09-09 - smoke is reduced by COUNT, not by density
+
+Asked directly whether he wanted fewer pillars or the same number of thinner ones, Michael:
+*"fewer pillars of smokes works better."*
+
+So the count levers stand and the Niagara asset is left alone:
+
+- `MaxGlobalSmolderFX` = 12 (was 40)
+- `MinSmolderSpacing` = 3500uu (was 1500)
+- `P_SmolderSmoke_Converted`'s `Constants.Smoke.SpawnRate.SpawnRate` stays at **15.0** - deliberately
+  NOT lowered. Each pillar keeps its authored density; there are simply fewer of them.
+
+**Do not reach for plume scale.** `SetWorldScale3D` is inert on this system - its single emitter is
+`LocalSpace: No`, so particles are spawned and sized in absolute world units and the component
+transform only moves them. The `SmolderScale` / `SmolderAuthoredRadius` / `MaxSmolderScale`
+mechanism has no visible effect here, and an earlier entry in this ticket claiming a 481x -> 6x
+clamp fixed the sky-filling columns is **withdrawn**: those columns were several normal-sized
+plumes, not one giant one.
+
+The asset also has **no User parameters**, so there is no per-instance density override without
+authoring one in the Niagara editor. If fewer than 12 is wanted, drop `MaxGlobalSmolderFX` - that is
+the dial.
