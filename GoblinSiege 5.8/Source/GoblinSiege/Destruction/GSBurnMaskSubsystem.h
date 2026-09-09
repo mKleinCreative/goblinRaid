@@ -427,6 +427,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Config, Category = "GoblinSiege|BurnMask")
 	TArray<FName> CropMeshNameFilters;
 
+	/**
+	 * Mesh-name substrings that are NEVER bound, even when CropMeshNameFilters matches them.
+	 * Checked before the include list, so the exclusion always wins.
+	 *
+	 * Defaults to {"Grass"}: the include filter is the single substring "Wheat", and the field's
+	 * ground cover is named SM_VillageWheat_Grass, so without this the grass chars whenever the
+	 * crop does - and that mesh is painted well beyond the fields, so the burn read as spreading
+	 * across ground that was never alight. The crop itself (SM_VillageWheat_01 / _02) is unaffected.
+	 */
+	UPROPERTY(EditDefaultsOnly, Config, Category = "GoblinSiege|BurnMask")
+	TArray<FName> CropMeshNameExclusions;
+
 	/** Escape hatch: an actor carrying this tag has ALL its mesh components bound regardless of
 	 *  mesh name. For crop the art side named off-pattern, and for ground meshes that want scorch
 	 *  but are not crop at all. */

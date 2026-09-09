@@ -212,9 +212,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 399 | queued | claude-chaos-bounds | Chaos ensure: NaN world-space inflated bounds on mass building destruction (completeAllObjectives) | none-investigation-only | none |
+| 400 | review | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props | Source/GoblinSiege/Destruction/GSBurnFXComponent.h<br>Source/GoblinSiege/Destruction/GSBurnFXComponent.cpp<br>Source/GoblinSiege/Destruction/GSFieldFireObjective.h<br>Source/GoblinSiege/Destruction/GSFieldFireObjective.cpp<br>Source/GoblinSiege/Destruction/GSBurnMaskSubsystem.h<br>Source/GoblinSiege/Destruction/GSBurnMaskSubsystem.cpp | none |
+| 402 | review | claude-settle | Freeze collapse physics after it settles; calm the collapse and the market | Source/GoblinSiege/Destruction/GSCrumbleComponent.h<br>Source/GoblinSiege/Destruction/GSCrumbleComponent.cpp<br>Source/GoblinSiege/Destruction/GSMarketObjective.h<br>Source/GoblinSiege/Destruction/GSMarketObjective.cpp | none |
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -618,6 +619,8 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 396 | abandoned | claude-grapple | Building collapse debris deals too much damage after clustering - raise MinImpulseToDamage |
 | 397 | done | claude-repack | Repackage for itch under 1GB: drop bCookAll, scope DirectoriesToAlwaysCook, strip dead content |
 | 398 | done | claude-fracture-fix | Fix headless GC_ regeneration crash (IsFullyLoaded) |
+| 399 | done | claude-chaos-bounds | Chaos ensure: NaN world-space inflated bounds on mass building destruction (completeAllObjectives) |
+| 401 | abandoned | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props |
 
 <!-- BOARD:END -->
 

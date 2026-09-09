@@ -179,6 +179,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder")
 	float SmolderAuthoredRadius = 150.f;
 
+	/**
+	 * Hard ceiling on the bounds-derived scale. 0 disables the clamp.
+	 *
+	 * There was a lower clamp (0.1) here and no upper one, and that asymmetry put a plume on screen
+	 * at **481x** on 2026-09-09 - a single column of smoke taller than the sky box, which is most of
+	 * what Michael's "still too many smoke issues" screenshot actually shows. The cause is fixed
+	 * separately (the scale now comes from the INTACT footprint snapshotted at BeginPlay, not from
+	 * bounds read mid-collapse while debris is scattering), so this is the backstop rather than the
+	 * fix: it makes a runaway impossible regardless of what a future actor's bounds do, and logs
+	 * loudly when it bites so the underlying bounds problem is visible rather than silently hidden.
+	 *
+	 * 6 is roughly "the biggest building on the map"; the median plume measured 1.86x.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0.0"))
+	float MaxSmolderScale = 6.f;
+
 	/** Default ON: the razed state has to survive to raid end, or the scoreboard lies. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder")
 	bool bSmolderForever = true;
@@ -203,6 +219,25 @@ protected:
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0"))
 	int32 MaxGlobalSmolderFX = 40;
+
+	/**
+	 * Minimum world-space distance between two live smolder plumes, in unreal units. A piece that
+	 * burns down within this range of an existing plume chars normally and simply adds no second
+	 * column of smoke. 0 disables the rule and restores the pure first-come budget above.
+	 *
+	 * This is the spacing half of the same complaint MaxGlobalSmolderFX answered the population
+	 * half of. Michael, 2026-09-09: "the Inn spawns essentially one of those per wall panel or prop
+	 * it feels like ... limit the amount of smoke by proximity so it's never one giant cloud."
+	 * A count-only budget cannot express that - 40 plumes spread over the village reads as a raided
+	 * hamlet, and the same 40 stacked inside the Inn's footprint reads as one opaque grey blob AND
+	 * starves every other building of smoke.
+	 *
+	 * 1500 is a house-ish footprint: the Inn's own AdoptRadius is 2523uu and an ordinary merged
+	 * house is well under this, so the intended result is roughly one plume per building rather
+	 * than one per wall panel. It is a look number, not a physical one - tune it by eye.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0.0"))
+	float MinSmolderSpacing = 1500.f;
 
 	// --------------------------------------------------------- ground scorch
 
@@ -252,6 +287,12 @@ protected:
 	 *  exactly the instances that actually counted, not every component regardless of whether its
 	 *  spawn was allowed or refused by MaxGlobalSmolderFX. */
 	bool bCountedTowardGlobalSmolderCap = false;
+
+	/** The owner's bounds as they were at BeginPlay, i.e. while it was still intact. Both the plume's
+	 *  position and its scale come from these rather than from live bounds - see BeginPlay. */
+	FVector IntactBoundsOrigin = FVector::ZeroVector;
+	FVector IntactBoundsExtent = FVector::ZeroVector;
+	bool bHasIntactBounds = false;
 
 	/** Last value pushed. Never decreases on its own - char is a ratchet. */
 	float CurrentBurnAmount = 0.f;

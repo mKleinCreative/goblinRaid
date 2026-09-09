@@ -45,6 +45,9 @@ UGSBurnMaskSubsystem::UGSBurnMaskSubsystem()
 	// inline because a TArray UPROPERTY default has to be built somewhere, and Config = Game means
 	// a project can replace this list entirely from DefaultGame.ini without touching code.
 	CropMeshNameFilters.Add(FName("Wheat"));
+
+	// "Wheat" catches SM_VillageWheat_Grass as well as _01/_02. See ShouldBindComponent.
+	CropMeshNameExclusions.Add(FName("Grass"));
 }
 
 // ====================================================================== lifecycle
@@ -750,6 +753,23 @@ bool UGSBurnMaskSubsystem::ShouldBindComponent(const UMeshComponent* Mesh, const
 	}
 
 	const FString MeshName = StaticMesh->GetName();
+
+	// EXCLUSIONS BEAT INCLUSIONS, and they are checked first so an exclusion cannot be defeated by
+	// a broader include filter matching the same mesh.
+	//
+	// Michael, 2026-09-09: "we need to make sure that only the wheat burns from the field fire",
+	// with the grass called out. The include filter is the single substring "Wheat", and the art
+	// names the field's ground cover SM_VillageWheat_Grass - so "Wheat" matched the grass too and
+	// every blade of it charred along with the crop. That mesh is not confined to the fields, which
+	// is why the burn read as spilling far past the thing that was actually alight.
+	for (const FName& Excluded : CropMeshNameExclusions)
+	{
+		if (!Excluded.IsNone() && MeshName.Contains(Excluded.ToString(), ESearchCase::IgnoreCase))
+		{
+			return false;
+		}
+	}
+
 	for (const FName& Filter : CropMeshNameFilters)
 	{
 		if (!Filter.IsNone() && MeshName.Contains(Filter.ToString(), ESearchCase::IgnoreCase))

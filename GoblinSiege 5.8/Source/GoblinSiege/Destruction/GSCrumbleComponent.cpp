@@ -316,6 +316,18 @@ void UGSCrumbleComponent::OnRep_Release()
 		// duly reported 16 of 23 stuck when the real number was two.
 		World->GetTimerManager().SetTimer(SweepTimer,
 			FTimerDelegate::CreateWeakLambda(this, [this]() { SweepStragglers(); }), 6.0f, true);
+
+		// Then stop simulating once it has actually come to rest - see FreezePhysicsAfterSeconds.
+		// Measured from here so the hard deadline means "since the collapse", not "since the first
+		// re-check".
+		ReleaseTimeSeconds = World->GetTimeSeconds();
+		bPhysicsFrozen = false;
+		if (FreezePhysicsAfterSeconds > 0.f)
+		{
+			World->GetTimerManager().SetTimer(FreezeTimer,
+				FTimerDelegate::CreateWeakLambda(this, [this]() { TickFreezeCheck(); }),
+				FreezePhysicsAfterSeconds, false);
+		}
 	}
 }
 
@@ -691,6 +703,104 @@ void UGSCrumbleComponent::ApplyCollapseRing(UGeometryCollectionComponent* Collec
 		TEXT("[GoblinSiege] '%s' collapse ring: %d shoves of %.0f, inward %.2f, at z=%.0f radius %.0f."),
 		*Owner->GetName(), CollapseShoveCount, CollapseShoveMagnitude,
 		CollapseInwardRatio, RingZ, Radius);
+}
+
+// ====================================================================== settling
+
+void UGSCrumbleComponent::TickFreezeCheck()
+{
+	if (bPhysicsFrozen)
+	{
+		return;
+	}
+
+	UGeometryCollectionComponent* Collection = ResolveCollection();
+	UWorld* World = GetWorld();
+	if (!Collection || !World)
+	{
+		return;
+	}
+
+	const double Elapsed = World->GetTimeSeconds() - ReleaseTimeSeconds;
+	const bool bDeadlinePassed =
+		FreezeHardDeadlineSeconds > 0.f && Elapsed >= FreezeHardDeadlineSeconds;
+
+	// "Still" is measured, not assumed. A collapse that is genuinely still falling when the clock
+	// runs out gets frozen mid-air otherwise - masonry hanging in the sky, which is the exact thing
+	// SweepStragglers was written to clean up after and which Michael has already caught once.
+	const float Speed = static_cast<float>(Collection->GetPhysicsLinearVelocity().Size());
+	const bool bSettled = Speed <= SettledSpeedThreshold;
+
+	if (bFreezeEvenIfStillMoving || bSettled || bDeadlinePassed)
+	{
+		if (bDeadlinePassed && !bSettled && !bFreezeEvenIfStillMoving)
+		{
+			UE_LOG(LogGSCrumble, Warning,
+				TEXT("[GoblinSiege] '%s' never settled - still %.0f uu/s after %.1fs. Freezing anyway ")
+				TEXT("on the hard deadline; if this wreck looks wrong, that is why."),
+				GetOwner() ? *GetOwner()->GetName() : TEXT("?"), Speed, Elapsed);
+		}
+		FreezeSettledPhysics();
+		return;
+	}
+
+	// Not settled yet - ask again shortly.
+	World->GetTimerManager().SetTimer(FreezeTimer,
+		FTimerDelegate::CreateWeakLambda(this, [this]() { TickFreezeCheck(); }),
+		FMath::Max(0.1f, FreezeRecheckSeconds), false);
+}
+
+void UGSCrumbleComponent::FreezeSettledPhysics()
+{
+	UGeometryCollectionComponent* Collection = ResolveCollection();
+	AActor* Owner = GetOwner();
+	if (!Collection || bPhysicsFrozen)
+	{
+		return;
+	}
+
+	// THE ENGINE CVAR IS LOAD-BEARING AND DEFAULTS TO OFF.
+	//
+	// UGeometryCollectionComponent::SetSimulatePhysics(false) only tears down the physics proxy when
+	// p.Chaos.GC.DestroyProxyOnSetSimulatePhysicsFalse is 1; the engine default is 0, which
+	// "preserves legacy behavior of keeping the proxy alive" (its own help text). With it off, this
+	// whole function is a silent no-op that still logs success - measured live 2026-09-09, the call
+	// returned cleanly, IsSimulatingPhysics() still reported 366 of 366 collections simulating and
+	// the game thread barely moved (1381 ms -> 1073 ms). With it on: 0 of 366 simulating and 84 ms.
+	//
+	// So the cvar is set in DefaultEngine.ini, and this checks it rather than trusting it, because
+	// a feature that quietly does nothing is worse than one that fails loudly.
+	static const IConsoleVariable* DestroyProxyCVar =
+		IConsoleManager::Get().FindConsoleVariable(TEXT("p.Chaos.GC.DestroyProxyOnSetSimulatePhysicsFalse"));
+	if (DestroyProxyCVar && DestroyProxyCVar->GetInt() == 0)
+	{
+		UE_LOG(LogGSCrumble, Warning,
+			TEXT("[GoblinSiege] '%s' cannot freeze: p.Chaos.GC.DestroyProxyOnSetSimulatePhysicsFalse ")
+			TEXT("is 0, so SetSimulatePhysics(false) keeps the proxy alive and costs the same. Set it ")
+			TEXT("to 1 (DefaultEngine.ini) or the settle feature does nothing at all."),
+			Owner ? *Owner->GetName() : TEXT("?"));
+		return;
+	}
+
+	const int32 Pieces = Collection->GetCurrentTransforms().Num();
+	const float Speed = static_cast<float>(Collection->GetPhysicsLinearVelocity().Size());
+
+	Collection->SetSimulatePhysics(false);
+	bPhysicsFrozen = true;
+
+	// Nothing left to sweep or report on a wreck that cannot move. Leaving these armed would have
+	// SweepStragglers straining pieces that have no physics proxy to strain.
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(SweepTimer);
+		World->GetTimerManager().ClearTimer(FreezeTimer);
+	}
+
+	UE_LOG(LogGSCrumble, Log,
+		TEXT("[GoblinSiege] '%s' settled and froze: %d piece(s) stopped simulating at %.0f uu/s, ")
+		TEXT("%.1fs after release."),
+		Owner ? *Owner->GetName() : TEXT("?"), Pieces, Speed,
+		GetWorld() ? GetWorld()->GetTimeSeconds() - ReleaseTimeSeconds : 0.0);
 }
 
 void UGSCrumbleComponent::ReportCrumbleOutcome()

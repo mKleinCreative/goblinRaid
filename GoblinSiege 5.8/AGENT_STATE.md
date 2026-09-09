@@ -29,6 +29,36 @@ old tickets at run start** — fold anything durable into BUILT / DECISIONS / FA
 next agent rediscovers it.
 
 ## FAILED
+- 2026-09-09 (#399) **A GENERATED ASSET THAT LOADS, COOKS AND SHIPS CAN STILL BE GEOMETRICALLY
+  CORRUPT - and none of #398's checks could see it.** The Chaos NaN ensure Michael hit on
+  `completeAllObjectives` was ONE bad fracture asset: `GC_MERGED_House_Medium_07` carried rest
+  transforms 270,634uu / 144,992uu from the house (siblings: ~2,800 / ~4,000), so Chaos solved
+  constraints spanning kilometres and the accumulated impulse went NaN. Three of three placed
+  instances failed; every other asset was clean, including four with MORE pieces - piece count,
+  mass and the collapse-ring impulse were all ruled out by that. The source mesh
+  (`SM_MERGED_House_Medium_07`, 2336x2588x2128uu) is fine - **fracture GENERATION introduced it**.
+  Regenerating that one asset fixed it: rest extent 270,634 -> 2,323, and the identical repro then
+  produced no ensure and zero NaN transforms across all 366 collections.
+  **Three lessons, in order of how much they will cost the next person:**
+  1. **`Content/*` is gitignored, so `Content/Destruction/GC_*` is NOT in the repo, and the same
+     source mesh with the same parameters produced a corrupt asset on 09-01 and a clean one on
+     09-09.** Voronoi site placement is random: this is a NON-DETERMINISTIC failure, roughly 1 in 40
+     on that batch, and every future regeneration is another roll. `GenerateFractureAsset` should
+     validate its output's rest extent against the source mesh's bounding box before saving and
+     refuse or retry - not written, needs a compile. **The shipped itch build contains the corrupt
+     asset.**
+  2. **#398 verified 84 regenerations by file size (1.8GB -> 1.2GB), non-crashing, and a successful
+     repackage, and concluded they were "structurally valid, not just present on disk".** They were.
+     A corrupt-geometry collection loads, cooks, packages and ships perfectly well - not one of
+     those three checks looks at where the pieces ARE. When a tool generates geometry, the
+     verification has to measure the geometry.
+  3. **A tight temporal correlation in one log is a hypothesis, not a cause.** This ticket's second
+     pass pinned it on `SweepStragglers` - 147 stragglers swept 0.35s before the ensure, via an
+     unguarded `ApplyExternalStrain(..., 1000000.f)`, which was genuinely suspicious and read as
+     convincing. The reproduction showed zero `swept` lines in the frame it fired. Reproducing and
+     counting took minutes and killed a wrong answer that a third round of reasoning would have kept
+     building on.
+
 - 2026-08-30 (#389 then #388) **`bUseLoggingInShipping = true` is a DEAD END on this engine
   install, REVERTED.** Landed to fix a real problem (a packaged Shipping .exe writes a totally
   empty `Saved/Logs/MyProject.log`, NO_LOGGING=1 being Shipping's default, which is why the

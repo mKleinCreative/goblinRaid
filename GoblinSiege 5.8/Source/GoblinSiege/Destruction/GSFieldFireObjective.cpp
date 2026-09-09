@@ -6,6 +6,7 @@
 #include "Characters/GSCharacterBase.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "Engine/OverlapResult.h"
 #include "CollisionQueryParams.h"
 #include "Net/UnrealNetwork.h"
@@ -13,6 +14,11 @@
 #include "DrawDebugHelpers.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+
+// Same file-local pattern as LogGSCrumble in GSCrumbleComponent.cpp. This file logged through
+// LogTemp until 2026-09-09, which is unfilterable in a log where every other burn system has its
+// own category.
+DEFINE_LOG_CATEGORY_STATIC(LogGSField, Log, All);
 
 namespace GSFieldFire
 {
@@ -42,6 +48,9 @@ AGSFieldFireObjective::AGSFieldFireObjective()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	ObjectiveType = EGSBurnObjectiveType::Field;
+
+	// "River", not "Water" - see WaterActorNameFilters for the enumeration that settled this.
+	WaterActorNameFilters.Add(FName("River"));
 	CompletionThreshold01 = 0.7f; // Q-03 (ruled 2026-07-21) / spec §3.2, placeholder
 
 	// Soft path to an asset that does not exist yet (2026-07-31). Soft rather than hard precisely
@@ -208,7 +217,127 @@ void AGSFieldFireObjective::EnsureGridAllocated()
 		ReplicatedCellStates.Init(static_cast<uint8>(EGSFieldCellState::Unburnt), Needed);
 	}
 
+	// Ground type, once, for the same reason FuelScale is rolled once: it cannot change during a
+	// raid. Must run BEFORE RecountCellStates, which is what publishes BurnableCellCount.
+	ProbeWaterCells();
+
 	RecountCellStates();
+}
+
+// ====================================================================== water
+
+void AGSFieldFireObjective::ProbeWaterCells()
+{
+	BurnableCellCount = Cells.Num();
+
+	if (!bBlockFireOnWater)
+	{
+		for (FGSFieldCell& Cell : Cells)
+		{
+			Cell.bIsWater = false;
+		}
+		return;
+	}
+
+	int32 WaterCells = 0;
+	for (int32 i = 0; i < Cells.Num(); ++i)
+	{
+		Cells[i].bIsWater = IsWaterAtLocation(GetCellWorldLocation(i));
+		if (Cells[i].bIsWater)
+		{
+			++WaterCells;
+		}
+	}
+
+	BurnableCellCount = Cells.Num() - WaterCells;
+
+	// Log unconditionally, not Verbose: this number decides both what can burn and what counts as
+	// completion, and a silent wrong answer here reads in play as "the field will not finish" with
+	// nothing to point at. One line per field per raid is not spam.
+	UE_LOG(LogGSField, Log,
+		TEXT("[GoblinSiege] '%s' water probe: %d of %d cell(s) are water - %d burnable."),
+		*GetName(), WaterCells, Cells.Num(), BurnableCellCount);
+
+	if (BurnableCellCount <= 0)
+	{
+		UE_LOG(LogGSField, Warning,
+			TEXT("[GoblinSiege] '%s' has NO burnable cells - every cell probed as water. The field ")
+			TEXT("can never be completed. Check WaterActorNameFilters against what is actually under it."),
+			*GetName());
+	}
+}
+
+bool AGSFieldFireObjective::IsWaterAtLocation(const FVector& WorldLocation) const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	// 1. Physics volumes first, because they are the project's existing answer to "this is water"
+	//    (AGSWaterVolume, World/GSWaterVolume.h - an APhysicsVolume with bWaterVolume, which is
+	//    what the sea already is). No trace needed and no naming convention to get wrong.
+	for (TActorIterator<APhysicsVolume> It(const_cast<UWorld*>(World)); It; ++It)
+	{
+		const APhysicsVolume* Volume = *It;
+		if (Volume && Volume->bWaterVolume && Volume->EncompassesPoint(WorldLocation))
+		{
+			return true;
+		}
+	}
+
+	// 2. Then what is actually under the cell. The river on this map is Dreamscape's
+	//    BP_RiverSpline - a blueprint with spline meshes, not a volume and not an Epic water body
+	//    (the Water plugin is not enabled in this project at all). It does block a Visibility
+	//    trace, which is what makes this detectable: measured 2026-09-09, 37 of GS_MillField's
+	//    1089 cells land on one.
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(GSFieldWaterProbe), false, this);
+	for (const TObjectPtr<AGSFireVolume>& Existing : DamageVolumes)
+	{
+		if (Existing)
+		{
+			TraceParams.AddIgnoredActor(Existing);
+		}
+	}
+
+	FHitResult Hit;
+	const FVector TraceStart = WorldLocation + FVector(0.f, 0.f, WaterProbeTraceHeight);
+	const FVector TraceEnd   = WorldLocation - FVector(0.f, 0.f, WaterProbeTraceHeight);
+
+	if (!World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, TraceParams))
+	{
+		return false;
+	}
+
+	const AActor* HitActor = Hit.GetActor();
+	if (!HitActor)
+	{
+		return false;
+	}
+
+	if (!WaterActorTag.IsNone() && HitActor->ActorHasTag(WaterActorTag))
+	{
+		return true;
+	}
+
+	const FString ClassName = HitActor->GetClass()->GetName();
+	const FString ActorName = HitActor->GetName();
+	for (const FName& Filter : WaterActorNameFilters)
+	{
+		if (Filter.IsNone())
+		{
+			continue;
+		}
+		const FString Needle = Filter.ToString();
+		if (ClassName.Contains(Needle, ESearchCase::IgnoreCase)
+			|| ActorName.Contains(Needle, ESearchCase::IgnoreCase))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // ====================================================================== geometry
@@ -418,6 +547,16 @@ void AGSFieldFireObjective::IgniteAtLocation(const FVector& WorldLocation)
 void AGSFieldFireObjective::IgniteCell(int32 CellIndex, bool bDirectIgnition)
 {
 	if (!Cells.IsValidIndex(CellIndex))
+	{
+		return;
+	}
+
+	// WATER NEVER BURNS, by any route. This is above the state checks on purpose: it is a property
+	// of the ground, not of what has happened to the cell, so a torch thrown directly into the
+	// river must fail exactly as spread across it does. bDirectIgnition is not an override here -
+	// that flag exists to let a torch beat a DOUSED firebreak, which is a wet crop that can dry
+	// out, and a river is not that.
+	if (Cells[CellIndex].bIsWater)
 	{
 		return;
 	}
@@ -1713,9 +1852,18 @@ void AGSFieldFireObjective::CosmeticTick()
 
 float AGSFieldFireObjective::GetBurntFraction() const
 {
-	// Only Burnt counts. Doused cells count as unburnt, per spec §3.3 - a firebreak denies the
+	// Only Burnt counts. Doused cells count as unburnt, per spec 3.3 - a firebreak denies the
 	// player progress, which is the whole point of the defenders' verb.
-	return Cells.Num() > 0 ? static_cast<float>(BurntCellCount) / static_cast<float>(Cells.Num()) : 0.f;
+	//
+	// The denominator is BURNABLE cells, not every cell (2026-09-09). Water cells can never reach
+	// Burnt by any route, so leaving them in the divisor would silently cap the achievable
+	// fraction: GS_MillField is 3.4% river, and at a 70% completion threshold that is not yet
+	// fatal - but it is the same class of bug as a field that crosses a wider stream and simply
+	// never finishes however long the player burns it. Gating ignition without fixing this is
+	// half a change.
+	return BurnableCellCount > 0
+		? static_cast<float>(BurntCellCount) / static_cast<float>(BurnableCellCount)
+		: 0.f;
 }
 
 int32 AGSFieldFireObjective::DryAllDousedCells()
@@ -1815,6 +1963,15 @@ void AGSFieldFireObjective::DrawDebugState() const
 
 	for (int32 i = 0; i < Cells.Num(); ++i)
 	{
+		// Water first, above state, because a water cell has no interesting state - it is always
+		// Unburnt and always will be, and drawing it as dry crop is exactly the picture that would
+		// hide a mis-probed river. Deep blue against Doused's lighter wet-crop blue.
+		if (Cells[i].bIsWater)
+		{
+			DrawDebugSolidBox(World, GetCellWorldLocation(i), Extent, FColor(10, 40, 130), false, 0.3f, 0);
+			continue;
+		}
+
 		FColor Colour;
 		switch (Cells[i].State)
 		{

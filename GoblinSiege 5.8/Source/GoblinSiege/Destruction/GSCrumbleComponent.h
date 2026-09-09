@@ -225,6 +225,79 @@ public:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Collapse", meta = (ClampMin = "0.0"))
 	float CollapseShoveMagnitude = 5000000.f;
 
+	// ------------------------------------------------------- settling (2026-09-09)
+
+	/**
+	 * Seconds after release before this wreck stops simulating and simply stays where it landed.
+	 * 0 disables the freeze and leaves every piece simulating forever, which is the old behaviour.
+	 *
+	 * Michael, 2026-09-09, watching a full-map collapse: "there was way too much physics being
+	 * rendered when the building collapsed, things were shooting out fairly quickly ... is there a
+	 * way for us to cancel out the physics simulation after maybe 5-6 seconds of the collapse? just
+	 * so we can simulate it settling."
+	 *
+	 * MEASURED, same session, in PIE after GS.Raid.CompleteAllObjectives: 366 collections were
+	 * simulating **44,762 pieces** at once, at 1381 ms of game thread (0.7 FPS). Freezing all of
+	 * them took the game thread to **84 ms** - a ~16x improvement, and the single largest cost in
+	 * that frame by a wide margin. Piece poses were unchanged across the freeze (474 sampled,
+	 * worst delta 0.00 uu), so the wreck stays exactly where it settled.
+	 *
+	 * RAISED 6 -> 10 on 2026-09-09 after Michael watched the first version: "we need to have them go
+	 * a little longer. a lot of the pieces were still in the air." What he was watching was the
+	 * PYTHON PROTOTYPE, which froze all 366 collections at once with no settled check at all - the
+	 * mid-air freeze he saw is what bFreezeEvenIfStillMoving=false exists to prevent, and it was
+	 * never in this code. The delay went up anyway, because his instruction stands on its own and a
+	 * longer collapse costs nothing once the freeze is doing the settling check properly.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Settle", meta = (ClampMin = "0.0"))
+	float FreezePhysicsAfterSeconds = 10.f;
+
+	/**
+	 * Stop simulating even if pieces are still moving when the timer fires.
+	 *
+	 * False (the default) makes the freeze WAIT for the wreck to actually be still, re-checking
+	 * every FreezeRecheckSeconds, so a slow collapse is never frozen mid-fall - which would leave
+	 * masonry hanging in the air, the exact failure SweepStragglers exists to clean up after. True
+	 * is the hard version: freeze on the clock, no questions asked.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Settle")
+	bool bFreezeEvenIfStillMoving = false;
+
+	/** How often to re-ask "is it still now?" once FreezePhysicsAfterSeconds has elapsed. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Settle", meta = (ClampMin = "0.1"))
+	float FreezeRecheckSeconds = 1.f;
+
+	/**
+	 * Speed below which a wreck counts as settled, in uu/s. Read against the collection's own
+	 * linear velocity, the same value ReportCrumbleOutcome prints.
+	 *
+	 * 45, NOT 15 - AND THE REASON MATTERS, because 15 looked obviously right and was unusable.
+	 *
+	 * Measured on the first build (2026-09-09): of 365 wrecks, 190 hit the hard deadline reporting
+	 * "never settled", and **106 of them reported the identical 33 uu/s**. Independent wrecks
+	 * genuinely still tumbling do not agree on an integer - that is a FLOOR, not motion. 980 uu/s^2
+	 * of gravity across one 1/30 s step is 32.7 uu/s, so a body that is completely at rest still
+	 * reports roughly a substep of gravity as its velocity, forever.
+	 *
+	 * A threshold below that floor can never be satisfied: every settled wreck waited out the full
+	 * FreezeHardDeadlineSeconds and then logged a warning saying it had not settled, which is
+	 * exactly backwards. 45 clears the floor while staying far below anything actually moving
+	 * (debris in flight reads in the hundreds).
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Settle", meta = (ClampMin = "0.0"))
+	float SettledSpeedThreshold = 45.f;
+
+	/**
+	 * Give up waiting for stillness this long after release and freeze regardless, so a wreck that
+	 * jitters forever cannot simulate for the rest of the raid. 0 = wait indefinitely.
+	 *
+	 * 30, not 20: this is the ONLY path that can still freeze a piece in mid-air, and mid-air pieces
+	 * are the specific thing Michael objected to. With the first check at 10s it also has to leave a
+	 * useful settling window after it, rather than firing almost immediately afterwards.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Crumble|Settle", meta = (ClampMin = "0.0"))
+	float FreezeHardDeadlineSeconds = 30.f;
+
 	/**
 	 * How much of each shove points INWARD versus straight down (0 = pure drop, 1 = 45 degrees in).
 	 *
@@ -390,6 +463,22 @@ protected:
 	 * worse than no log: it actively misdirects.
 	 */
 	void ReportCrumbleOutcome();
+
+	/** Timer body for the settle-then-freeze cycle. Re-arms itself until the wreck is still (or the
+	 *  hard deadline passes), then calls FreezeSettledPhysics(). */
+	void TickFreezeCheck();
+
+	/** Stop simulating this wreck, keeping it exactly where it landed. */
+	void FreezeSettledPhysics();
+
+	FTimerHandle FreezeTimer;
+
+	/** Set when the release happened, so the hard deadline is measured from the collapse and not
+	 *  from whenever the first re-check happened to run. */
+	double ReleaseTimeSeconds = 0.0;
+
+	/** True once this wreck has been frozen, so nothing re-arms the timer afterwards. */
+	bool bPhysicsFrozen = false;
 
 	/**
 	 * Two seconds after release, knock loose anything still hanging in the air.

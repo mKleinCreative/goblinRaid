@@ -98,6 +98,17 @@ struct FGSFieldCell
 	bool bHasJumped = false;
 
 	/**
+	 * This cell's ground is water. Decided ONCE when the grid is allocated (see ProbeWaterCells)
+	 * and never revisited - a river does not move during a raid, and re-tracing 1089 cells on a
+	 * timer to learn the same answer would be pure cost.
+	 *
+	 * A water cell can never ignite by any route, and it is excluded from the completion
+	 * denominator - see GetBurntFraction. Both halves are needed: gating ignition alone would
+	 * leave a field that crosses a river permanently uncompletable.
+	 */
+	bool bIsWater = false;
+
+	/**
 	 * Accumulated ignition heat, 0..1; the cell catches the moment this reaches 1.0 (2026-07-31,
 	 * objective 2 - "fire must spread smoothly and grow as it goes, like a wave").
 	 *
@@ -314,6 +325,20 @@ protected:
 
 	void SetCellState(int32 CellIndex, EGSFieldCellState NewState);
 	void TryJumpToAdjacentFlammables(int32 CellIndex);
+
+	/**
+	 * Fill FGSFieldCell::bIsWater for every cell, and recompute BurnableCellCount. Runs once, from
+	 * EnsureGridAllocated, on server AND client - it is a pure world query with no authority
+	 * component, and a client needs the same answer to render the field honestly.
+	 */
+	void ProbeWaterCells();
+
+	/** True if a cell centre sits over water, by the rules in the Water tuning block. */
+	bool IsWaterAtLocation(const FVector& WorldLocation) const;
+
+	/** Cells that are allowed to burn, i.e. Cells.Num() minus the water ones. The denominator for
+	 *  GetBurntFraction - see that function for why it cannot be Cells.Num(). */
+	int32 BurnableCellCount = 0;
 
 	/** Spawns/repositions/retires the pooled damage volumes to follow the burn front. */
 	void UpdateDamageVolumes();
@@ -934,11 +959,65 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Field|Smoke", meta = (ClampMin = "0.0"))
 	float WispReseedSeconds = 45.f;
 
+	// ------------------------------------------------------------------ water (2026-09-09)
+
+	/**
+	 * Fire stops at water. Michael, 2026-09-09: "it goes through the river. fire should stop on
+	 * contact with rivers/water in general."
+	 *
+	 * Measured before it was written, on L_Tutorial_Island's only field (GS_MillField, 33x33 at
+	 * 640uu): 37 of its 1089 cells trace onto a BP_RiverSpline_C. The river genuinely runs through
+	 * the crop, and the fire genuinely crossed it, because nothing in the spread model had any
+	 * concept of ground type.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Water")
+	bool bBlockFireOnWater = true;
+
+	/**
+	 * How far above and below a cell centre the water probe looks. The probe is a downward line
+	 * trace on the Visibility channel, run once per cell at grid allocation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Water", meta = (ClampMin = "1.0"))
+	float WaterProbeTraceHeight = 3000.f;
+
+	/**
+	 * Substrings matched case-insensitively against the CLASS name and the label of whatever the
+	 * probe hits. A match means "this cell is water".
+	 *
+	 * Defaults to {"River"} and deliberately NOT {"Water"}. The level's water-named actors were
+	 * enumerated before choosing: BP_RiverSpline_C x8 is the river, but SM_WaterWheel_Blueprint
+	 * (a mill wheel) and six P_WaterFog emitters also contain "Water", and the water wheel really
+	 * does sit under one of this field's cells. A "Water" substring would have marked dry ground
+	 * as river on the strength of a prop's name.
+	 *
+	 * Genuine water that is not a physics volume and is not named for a river wants the tag below,
+	 * or its own entry here.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Water")
+	TArray<FName> WaterActorNameFilters;
+
+	/** Escape hatch, same shape as UGSBurnMaskSubsystem::CropActorTag: an actor carrying this tag
+	 *  counts as water whatever it is called. */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Water")
+	FName WaterActorTag = FName("GS_Water");
+
 	// ------------------------------------------------------------------ the jump (decision 26)
 
-	/** Burnt edge cells reach out and light fences, haycarts, a granary built too close. */
+	/**
+	 * Burnt edge cells reach out and light fences, haycarts, a granary built too close.
+	 *
+	 * DEFAULTED OFF 2026-09-09. Michael: "we also need to make sure that only the wheat burns from
+	 * the field fire", with fences, carts and haystacks named as the things he was watching catch.
+	 * The jump is decision 26 and the machinery is deliberately left intact rather than deleted -
+	 * this is one switch, and a designer who wants a field to take the barn with it can turn it
+	 * back on per instance. What it is NOT any more is the default behaviour of every field on the
+	 * map.
+	 *
+	 * Note this is EditAnywhere, so a field placed in a level while the default was true may carry
+	 * its own serialized copy of the old value - changing the default here does not reach those.
+	 */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Jump")
-	bool bCanJumpToAdjacentFlammables = true;
+	bool bCanJumpToAdjacentFlammables = false;
 
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Field|Jump")
 	float JumpRadius = 400.f;

@@ -14,7 +14,12 @@
 // Global, not per-instance - MaxGlobalSmolderFX's whole point is a map-wide budget shared across
 // every UGSBurnFXComponent, since this component has no per-building coordinator the way
 // AGSBuildingObjective::MaxFireFX does. See the header comment on MaxGlobalSmolderFX.
-static int32 GActiveSmolderCount = 0;
+//
+// This was a bare `static int32` until 2026-09-09. It is now the list of the components actually
+// holding a plume, because MinSmolderSpacing needs to know WHERE the live plumes are and not just
+// how many there are - and a separate position array kept alongside a counter is two things that
+// have to agree. The count is derived (GActiveSmolderFX.Num()), so they cannot drift apart.
+static TArray<TWeakObjectPtr<UGSBurnFXComponent>> GActiveSmolderFX;
 
 UGSBurnFXComponent::UGSBurnFXComponent()
 {
@@ -39,6 +44,23 @@ void UGSBurnFXComponent::BeginPlay()
 	{
 		return;
 	}
+
+	// SNAPSHOT THE INTACT FOOTPRINT, NOW, BEFORE ANYTHING BURNS OR COLLAPSES.
+	//
+	// SpawnSmolder used to read GetActorBounds() at burn-down time. By then a building has already
+	// crumbled and its pieces have scattered, so the "bounds" describe the debris field rather than
+	// the building - measured live 2026-09-09 on Michael's screenshot of the smoke: one plume came
+	// out at scale 481, which at SmolderAuthoredRadius 150 means the owner measured 72,150 uu
+	// across. Seven hundred metres. That is the sky-filling white column in that shot.
+	//
+	// It also broke MinSmolderSpacing, and this is why that fix looked like it was not working: the
+	// plume spawns at the bounds CENTRE, and a centre dragged toward scattered debris is nowhere
+	// near the building. Two such midpoints landed 636 uu apart under a 1500 uu rule. One bad
+	// measurement, both symptoms.
+	//
+	// BeginPlay is the one moment the bounds are guaranteed to describe the intact thing.
+	Owner->GetActorBounds(/*bOnlyCollidingComponents=*/ false, IntactBoundsOrigin, IntactBoundsExtent);
+	bHasIntactBounds = true;
 
 	// MIDs first: they must exist before any delegate can fire, and a prop that never burns still
 	// wants them so a debug scrub or a designer preview has something to talk to.
@@ -300,7 +322,7 @@ void UGSBurnFXComponent::SpawnSmolder()
 	// same way a missing System does: char still reads, this piece just does not add to the smoke.
 	// Verbose, not Warning - a large kitbashed building refusing dozens of these in one burst is the
 	// cap working as intended, not something worth a log line per refusal.
-	if (MaxGlobalSmolderFX > 0 && GActiveSmolderCount >= MaxGlobalSmolderFX)
+	if (MaxGlobalSmolderFX > 0 && GActiveSmolderFX.Num() >= MaxGlobalSmolderFX)
 	{
 		UE_LOG(LogTemp, Verbose,
 			TEXT("[GoblinSiege] %s burned down but the global smolder budget (%d) is full - char only, ")
@@ -318,8 +340,67 @@ void UGSBurnFXComponent::SpawnSmolder()
 	// rather than pouring out of it. GetActorBounds' Origin is already the bounding box's centre.
 	FVector Origin = FVector::ZeroVector;
 	FVector BoxExtent = FVector::ZeroVector;
-	Owner->GetActorBounds(/*bOnlyCollidingComponents=*/ false, Origin, BoxExtent);
+	if (bHasIntactBounds)
+	{
+		// The footprint this thing had before it fell down - see BeginPlay.
+		Origin = IntactBoundsOrigin;
+		BoxExtent = IntactBoundsExtent;
+	}
+	else
+	{
+		Owner->GetActorBounds(/*bOnlyCollidingComponents=*/ false, Origin, BoxExtent);
+	}
 	const FVector SpawnLocation = Origin;
+
+	// PROXIMITY, not just population. Michael, 2026-09-09: "the Inn spawns essentially one of those
+	// per wall panel or prop it feels like ... limit the amount of smoke by proximity so it's never
+	// one giant cloud."
+	//
+	// MaxGlobalSmolderFX alone could not do this. It is a first-come budget with no idea where
+	// anything is, so a single kitbashed building burning down claims all 40 slots inside its own
+	// footprint - which is BOTH halves of the complaint at once: one opaque cloud over that
+	// building, and no smoke left in the budget for the rest of the village. Spacing fixes both
+	// with one number; the cap stays as the absolute ceiling behind it.
+	//
+	// Linear scan on purpose. The list is bounded by MaxGlobalSmolderFX (40), so this is at most 40
+	// distance-squared compares on an event that happens when a thing finishes burning down - not a
+	// tick. A spatial hash here would be more code than the thing it optimises.
+	if (MinSmolderSpacing > 0.f)
+	{
+		const float MinSpacingSq = MinSmolderSpacing * MinSmolderSpacing;
+		const UWorld* MyWorld = Owner->GetWorld();
+
+		for (int32 i = GActiveSmolderFX.Num() - 1; i >= 0; --i)
+		{
+			const UGSBurnFXComponent* Other = GActiveSmolderFX[i].Get();
+
+			// Self-cleaning: a stale entry is one whose component was destroyed without EndPlay
+			// tidying up (level teardown ordering). Drop it rather than let it hold a slot and a
+			// position forever.
+			if (!Other || !Other->SmolderFX)
+			{
+				GActiveSmolderFX.RemoveAtSwap(i, EAllowShrinking::No);
+				continue;
+			}
+
+			// A PIE session and the editor world both run this component. Without the world test a
+			// plume left by one would silently suppress smoke in the other.
+			if (Other->GetWorld() != MyWorld)
+			{
+				continue;
+			}
+
+			if (FVector::DistSquared(Other->SmolderFX->GetComponentLocation(), SpawnLocation) < MinSpacingSq)
+			{
+				UE_LOG(LogTemp, Verbose,
+					TEXT("[GoblinSiege] %s burned down but a smolder plume is already within %.0fuu ")
+					TEXT("(%s) - char only, no second column here."),
+					*Owner->GetName(), MinSmolderSpacing,
+					Other->GetOwner() ? *Other->GetOwner()->GetName() : TEXT("?"));
+				return;
+			}
+		}
+	}
 
 	SmolderFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 		Owner->GetWorld(),
@@ -335,7 +416,7 @@ void UGSBurnFXComponent::SpawnSmolder()
 		return;
 	}
 
-	++GActiveSmolderCount;
+	GActiveSmolderFX.Add(this);
 	bCountedTowardGlobalSmolderCap = true;
 
 	// Attach AFTER spawn so it still tracks the actor (a pooled/repositioned owner, or rubble that
@@ -356,6 +437,18 @@ void UGSBurnFXComponent::SpawnSmolder()
 		{
 			FinalScale *= FMath::Max(0.1f, FootprintRadius / SmolderAuthoredRadius);
 		}
+	}
+
+	// Belt and braces on top of the intact-bounds fix above. That fix removes the known cause of a
+	// runaway scale; this makes a runaway IMPOSSIBLE, whatever a future actor's bounds do. There was
+	// a lower clamp here and no upper one, which is how 481x reached the screen.
+	if (MaxSmolderScale > 0.f && FinalScale > MaxSmolderScale)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[GoblinSiege] %s wanted a smolder plume at %.1fx - clamped to %.1fx. Its bounds are ")
+			TEXT("far larger than a thing of its kind should be; check what it owns."),
+			*Owner->GetName(), FinalScale, MaxSmolderScale);
+		FinalScale = MaxSmolderScale;
 	}
 
 	SmolderFX->SetWorldScale3D(FVector(FinalScale));
@@ -404,7 +497,7 @@ void UGSBurnFXComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	// count, and so this cannot double-decrement if EndPlay ever runs twice.
 	if (bCountedTowardGlobalSmolderCap)
 	{
-		--GActiveSmolderCount;
+		GActiveSmolderFX.RemoveSingleSwap(this, EAllowShrinking::No);
 		bCountedTowardGlobalSmolderCap = false;
 	}
 	BurnMIDs.Reset();
