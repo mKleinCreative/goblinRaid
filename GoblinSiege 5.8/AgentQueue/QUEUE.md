@@ -210,11 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 402 | review **STALE 2.9h** | claude-settle | Freeze collapse physics after it settles; calm the collapse and the market | Source/GoblinSiege/Destruction/GSCrumbleComponent.h<br>Source/GoblinSiege/Destruction/GSCrumbleComponent.cpp<br>Source/GoblinSiege/Destruction/GSMarketObjective.h<br>Source/GoblinSiege/Destruction/GSMarketObjective.cpp | none |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 108 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -621,6 +619,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 399 | done | claude-chaos-bounds | Chaos ensure: NaN world-space inflated bounds on mass building destruction (completeAllObjectives) |
 | 400 | done | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props |
 | 401 | abandoned | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props |
+| 402 | done | claude-settle | Freeze collapse physics after it settles; calm the collapse and the market |
 | 403 | done | claude-trees | Trees vanish during field fire and mass collapse |
 
 <!-- BOARD:END -->

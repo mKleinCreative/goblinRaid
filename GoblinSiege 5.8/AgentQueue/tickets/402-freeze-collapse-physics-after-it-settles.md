@@ -2,11 +2,11 @@
 id: 402
 title: Freeze collapse physics after it settles; calm the collapse and the market
 agent: claude-settle
-status: review
+status: done
 claimed: 2026-09-09T16:13Z
 build: none
 waiting_on:
-evaluated: 2026-09-09T16:28:44Z
+evaluated: 2026-09-09T19:09:05Z
 observed: 2026-09-09T17:50:42Z | Michael watched a full-map collapse in PIE and reported the collapse settles - wrecks come to rest and stop instead of debris continuing to shoot around
 scenario: Live PIE on L_Tutorial_Island, mass building collapse, played by Michael
 files: 
@@ -128,3 +128,35 @@ game DLL is dated 2026-08-31; no source change from today is compiled. The only 
 changed in what he watched is #399's regenerated `GC_MERGED_House_Medium_07` - which previously flung
 pieces up to 2.7 km, each a potential smolder source. That is a plausible cause and it belongs to
 #399, not here. #400's smoke spacing remains entirely unobserved.
+
+---
+
+## Closing status, 2026-09-09
+
+The Evaluate above ends "NOT compiled, not run". That is no longer true - superseding it so it is
+not read as an outstanding list.
+
+**Built, measured, and watched by Michael: "the collapse settles, which is nice."**
+
+Final values after his feedback that pieces were still in the air: `FreezePhysicsAfterSeconds` 10
+(from 6), `FreezeHardDeadlineSeconds` 30 (from 20), `SettledSpeedThreshold` **45** (from 15).
+
+**The threshold is the part worth remembering.** 15 uu/s looked obviously right and was unusable. On
+the first build, 190 of 365 wrecks hit the hard deadline logging "never settled", and **106 of them
+reported the identical 33 uu/s** - independent wrecks still tumbling do not agree on an integer.
+980 uu/s^2 of gravity across one 1/30 s step is 32.7 uu/s: a body completely at rest still reports a
+substep of gravity as its velocity, forever. A threshold below that floor can never be satisfied, so
+every settled wreck waited out the full deadline and then warned that it had not settled. After
+raising it: **all 360 wrecks froze at exactly 10.0s, zero warnings.**
+
+Frame cost, measured across the freeze: 366 collections simulating 44,762 pieces at 1381 ms of game
+thread (0.7 FPS) -> 84 ms once frozen. In the final build, 2264 ms -> 45.6 ms.
+
+`p.Chaos.GC.DestroyProxyOnSetSimulatePhysicsFalse=1` in DefaultEngine.ini remains load-bearing;
+`FreezeSettledPhysics` refuses with a warning rather than silently doing nothing if it is ever unset.
+Zero such warnings in the verification runs.
+
+**Left undone, deliberately:** `AGSMarketObjective` was claimed on this ticket and never touched.
+Michael clarified that "the market looks too intense" meant the **Inn**, which is #400's territory,
+so no market-specific work was needed. `CollapseShoveMagnitude` (5,000,000, seven shoves) is
+untouched too - it is a per-instance level value and a look number, reported rather than guessed at.
