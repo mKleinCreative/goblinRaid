@@ -621,6 +621,7 @@ _Queue is empty. The build gate is OPEN._
 | 401 | abandoned | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props |
 | 402 | done | claude-settle | Freeze collapse physics after it settles; calm the collapse and the market |
 | 403 | done | claude-trees | Trees vanish during field fire and mass collapse |
+| 404 | done | claude-fracture-guard | Validate generated fracture assets against the source mesh so #399 cannot recur |
 
 <!-- BOARD:END -->
 

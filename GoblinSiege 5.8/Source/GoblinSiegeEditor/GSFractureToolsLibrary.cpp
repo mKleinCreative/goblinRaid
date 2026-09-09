@@ -4,6 +4,7 @@
 #include "GeometryCollection/GeometryCollection.h"
 #include "GeometryCollection/GeometryCollectionEngineConversion.h"
 #include "GeometryCollection/GeometryCollectionConvexUtility.h"
+#include "GeometryCollection/GeometryCollectionAlgo.h"
 #include "FractureEngineFracturing.h"
 #include "FractureEngineClustering.h"
 #include "Dataflow/DataflowSelection.h"
@@ -35,7 +36,8 @@ namespace
 }
 
 UGeometryCollection* UGSFractureToolsLibrary::GenerateFractureAsset(UStaticMesh* SourceMesh,
-	const FString& DestFolder, int32 NumVoronoiCells, bool bOverwriteExisting, int32 MaxSimulatedPieces)
+	const FString& DestFolder, int32 NumVoronoiCells, bool bOverwriteExisting, int32 MaxSimulatedPieces,
+	float MaxPieceReachRatio)
 {
 	if (!SourceMesh)
 	{
@@ -201,6 +203,88 @@ UGeometryCollection* UGSFractureToolsLibrary::GenerateFractureAsset(UStaticMesh*
 	// actually collide with.
 	FGeometryCollectionConvexUtility::CreateNonOverlappingConvexHullData(Collection.Get());
 
+	// ---- VALIDATE BEFORE SAVING (2026-09-09, #404) ------------------------------------------
+	//
+	// This tool can produce a geometrically corrupt collection, and it did: GC_MERGED_House_Medium_07
+	// shipped with rest transforms 270,634 uu and 144,992 uu from a house whose source mesh measures
+	// 2336 x 2588 x 2128. Chaos then solved constraints spanning kilometres between pieces of one
+	// building and the accumulated impulse went NaN, which is ticket #399 - an ensure storm eight days
+	// after the asset was made, with nothing pointing back to here.
+	//
+	// It is NOT deterministic. The same source mesh and the same parameters produced a corrupt asset
+	// on 2026-09-01 and a clean one on 2026-09-09, so Voronoi site placement is the variable and
+	// roughly 1 in 40 of that batch came out wrong. Every future regeneration is another roll, and
+	// Content/Destruction is gitignored (these assets are regenerable by design), so there is no
+	// committed copy to fall back on.
+	//
+	// #398 verified an 84-asset batch by file size, non-crashing and a successful repackage, and
+	// concluded the assets were "structurally valid". They were - a corrupt-geometry collection
+	// loads, cooks, packages and ships perfectly well. None of those checks looks at WHERE the pieces
+	// are. This one does, and it is the only thing standing between a bad roll and another #399.
+	{
+		// MEASURE THE VERTICES, NOT THE TRANSFORMS.
+		//
+		// Two wrong versions preceded this one, and both reported success while measuring nothing:
+		// GeometryCollectionAlgo::GlobalMatrices returned an EMPTY array here, and the raw Transform
+		// array turned out to be 740 identity transforms. A freshly fractured collection keeps every
+		// bone at the origin and puts the geometry in the vertex positions; the per-piece transforms
+		// seen at runtime are derived later by the physics proxy. So the vertices are the only place
+		// the corruption can actually be seen at this point in the pipeline.
+		//
+		// This is also why #399 was invisible for eight days: every check anyone ran - file size,
+		// non-crashing, a successful cook and package - looked at the asset as a file rather than at
+		// where its geometry sits.
+		const TManagedArray<FVector3f>& Verts = Collection->Vertex;
+
+		double WorstReach = 0.0;
+		int32 WorstIndex = INDEX_NONE;
+		for (int32 Index = 0; Index < Verts.Num(); ++Index)
+		{
+			const FVector V(Verts[Index]);
+			if (V.ContainsNaN())
+			{
+				WorstReach = TNumericLimits<double>::Max();
+				WorstIndex = Index;
+				break;
+			}
+			const double Reach = V.GetAbs().GetMax();
+			if (Reach > WorstReach)
+			{
+				WorstReach = Reach;
+				WorstIndex = Index;
+			}
+		}
+
+		// The source mesh is the ground truth for how big this thing is allowed to be. A fracture
+		// piece belongs inside the mesh it was cut from; some slack for pivot offsets and for pieces
+		// whose origin sits at a corner, but not orders of magnitude.
+		const double SourceReach = FMath::Max(1.0,
+			static_cast<double>(SourceMesh->GetBoundingBox().GetExtent().GetMax()));
+		const double Allowed = SourceReach * FMath::Max(1.0, static_cast<double>(MaxPieceReachRatio));
+
+		// Always logged, not just on refusal: the first version of this gate measured the wrong thing
+		// and passed a deliberately impossible ratio of 1.0 without a word. A validator that cannot
+		// be seen working is indistinguishable from one that does nothing.
+		UE_LOG(LogGSFracture, Log,
+			TEXT("[GS.Fracture] %s reach check: worst vertex %.0f uu (index %d), source reach %.0f uu, ")
+			TEXT("ratio %.2fx, limit %.0fx, over %d vertices."),
+			*AssetName, WorstReach, WorstIndex, SourceReach,
+			SourceReach > 0.0 ? WorstReach / SourceReach : 0.0, MaxPieceReachRatio, Verts.Num());
+
+		if (WorstReach > Allowed)
+		{
+			UE_LOG(LogGSFracture, Error,
+				TEXT("[GS.Fracture] REFUSED to save %s: vertex %d sits %.0f uu from the origin, but the ")
+				TEXT("source mesh %s only reaches %.0f uu (limit %.0fx = %.0f). This is the corrupt-")
+				TEXT("geometry failure from #399 - Chaos will NaN on it. Nothing was written; the ")
+				TEXT("previous asset, if any, is untouched. Re-run to roll again: the fracture is ")
+				TEXT("non-deterministic and a repeat usually succeeds."),
+				*AssetName, WorstIndex, WorstReach, *SourceMesh->GetName(), SourceReach,
+				MaxPieceReachRatio, Allowed);
+			return nullptr;
+		}
+	}
+
 	NewAsset->InitializeMaterials();
 	NewAsset->RebuildRenderData();
 
@@ -222,7 +306,7 @@ UGeometryCollection* UGSFractureToolsLibrary::GenerateFractureAsset(UStaticMesh*
 
 int32 UGSFractureToolsLibrary::BulkGenerateMissingBuildingFractures(
 	const FString& SourceFolder, const FString& DestFolder, const FString& NamePrefix,
-	int32 NumVoronoiCells, int32 MaxSimulatedPieces)
+	int32 NumVoronoiCells, int32 MaxSimulatedPieces, float MaxPieceReachRatio)
 {
 	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
@@ -260,7 +344,7 @@ int32 UGSFractureToolsLibrary::BulkGenerateMissingBuildingFractures(
 			continue;
 		}
 
-		if (GenerateFractureAsset(Mesh, DestFolder, NumVoronoiCells, /*bOverwriteExisting*/ false, MaxSimulatedPieces))
+		if (GenerateFractureAsset(Mesh, DestFolder, NumVoronoiCells, /*bOverwriteExisting*/ false, MaxSimulatedPieces, MaxPieceReachRatio))
 		{
 			++Generated;
 		}

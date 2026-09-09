@@ -52,13 +52,32 @@ public:
 	 * of individually-rendered pieces. Clustering leaves the visual piece count untouched but groups
 	 * them under a small number of simulated parents, which is what actually bounds the physics/
 	 * rendering cost.
+	 *
+	 * MaxPieceReachRatio is a SANITY GATE on the result, not a tuning knob. The generated collection
+	 * is measured against the source mesh before it is saved, and refused if any piece sits further
+	 * from the origin than the source's own extent x this. Fracturing is non-deterministic and can
+	 * produce a geometrically corrupt collection - GC_MERGED_House_Medium_07 came out with pieces
+	 * 270,634 uu from a house whose source extent is 1,294 uu, roughly 209x, and Chaos NaN'd on it
+	 * eight days later (#399) with nothing pointing back here.
+	 *
+	 * The check measures VERTEX positions against the source mesh's extent, because a freshly
+	 * fractured collection keeps every bone transform at the origin and puts the geometry in the
+	 * vertices - two earlier versions of this gate measured transforms instead and silently passed a
+	 * deliberately impossible ratio of 1.0 while reporting success.
+	 *
+	 * Measured: a healthy result comes out at **1.25x**, and the corrupt one would have been ~231x.
+	 * 4 is therefore wide enough never to fire on a good asset and tight enough to catch that by two
+	 * orders of magnitude. Verified both ways - at a limit of 1x the same healthy asset is refused
+	 * and nothing is written; at 4x it saves. On a refusal any existing asset is left untouched;
+	 * re-run to roll again, since the fracture is non-deterministic.
 	 */
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "GoblinSiege|Fracture")
 	static UGeometryCollection* GenerateFractureAsset(UStaticMesh* SourceMesh,
 		const FString& DestFolder = TEXT("/Game/Destruction"),
 		int32 NumVoronoiCells = 8,
 		bool bOverwriteExisting = false,
-		int32 MaxSimulatedPieces = 24);
+		int32 MaxSimulatedPieces = 24,
+		float MaxPieceReachRatio = 4.f);
 
 	/**
 	 * Scans SourceFolder (recursive) for UStaticMesh assets whose name starts with NamePrefix, and
@@ -74,5 +93,6 @@ public:
 		const FString& DestFolder = TEXT("/Game/Destruction"),
 		const FString& NamePrefix = TEXT("SM_MERGED_House_"),
 		int32 NumVoronoiCells = 8,
-		int32 MaxSimulatedPieces = 24);
+		int32 MaxSimulatedPieces = 24,
+		float MaxPieceReachRatio = 4.f);
 };

@@ -234,3 +234,19 @@ emitter is `LocalSpace: No`, so particles are sized in absolute world units and 
 transform only moves them). Those columns were several normal-sized plumes, not one giant one, and
 the fix was always going to be fewer rather than smaller. Michael, asked directly: "fewer pillars of
 smokes works better."
+
+---
+
+## Observed and accepted by Michael, 2026-09-09 (after close)
+
+The two items this ticket left flagged as unwatched, and the one it left open, are all settled by
+Michael's own play rather than by further agent work. His words: *"they were observed by me."*
+
+- **Props no longer catching at the field edge** - the one behavioural claim in this ticket that had
+  no observation behind it. He has now watched it.
+- **The smoke amount** - 12 plumes at 3500uu spacing reads right to him.
+- **"Only the wheat burns"** - dropped as a request. `SM_VillageWheat_Grass` charring with the crop
+  is correct behaviour (it IS the crop's ground layer), and no other mesh is charring that should
+  not be. `CropMeshNameExclusions` stays empty.
+
+Nothing outstanding on this ticket.
