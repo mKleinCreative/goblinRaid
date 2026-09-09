@@ -410,6 +410,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX", meta = (ClampMin = "0"))
 	int32 MaxRubbleFXPerBuilding = 6;
 
+	/**
+	 * Map-wide ceiling on simultaneous rubble-dust bursts, across every building at once. 0 disables.
+	 *
+	 * MaxRubbleFXPerBuilding above is per BUILDING, which is not a cap at all when the whole village
+	 * comes down together - 67 buildings x 6 is ~400. Measured in a razed village on 2026-09-09:
+	 * **141 simultaneous N_PebbleDust instances costing 8.3 ms of game thread, 7.98 ms of it Niagara
+	 * particle COLLISION.** That was the single largest identified item in a 46 ms frame.
+	 *
+	 * Exactly the mistake #395 found in the smolder FX and fixed with a global budget; this is the
+	 * same shape of fix for the other per-piece Niagara system in this module. If a third one ever
+	 * appears, it wants one of these too before it ships.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX", meta = (ClampMin = "0"))
+	int32 MaxGlobalRubbleFX = 24;
+
 	UPROPERTY()
 	TObjectPtr<UNiagaraComponent> SmokeColumn;
 

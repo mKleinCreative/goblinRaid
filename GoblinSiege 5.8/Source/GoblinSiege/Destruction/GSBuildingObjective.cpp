@@ -22,6 +22,15 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGSBuilding, Log, All);
 
+// Map-wide budget for the generic rubble dust burst, alongside the per-building
+// MaxRubbleFXPerBuilding. A per-building cap of 6 is not a cap at all when 67 buildings collapse in
+// the same minute: measured 2026-09-09, 141 simultaneous N_PebbleDust instances costing 8.3 ms of
+// game thread, of which 7.98 ms was Niagara particle COLLISION - the same cost that made the smolder
+// FX a problem in #395, and the same fix (UGSBurnFXComponent::MaxGlobalSmolderFX).
+//
+// Weak pointers because these bursts auto-destroy, so the list prunes itself as they finish.
+static TArray<TWeakObjectPtr<UNiagaraComponent>> GActiveRubbleDust;
+
 AGSBuildingObjective::AGSBuildingObjective()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -758,8 +767,25 @@ void AGSBuildingObjective::SpawnGenericRubbleFallback(AActor* Piece, bool bPlayF
 			{
 				if (UNiagaraSystem* Dust = GenericRubbleFXAsset.LoadSynchronous())
 				{
-					UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Dust,
-						PieceTransform.GetLocation(), PieceTransform.Rotator());
+					// Prune finished bursts first - they auto-destroy, so this is how the budget is
+					// returned. Cheap: the list is bounded by MaxGlobalRubbleFX.
+					for (int32 Index = GActiveRubbleDust.Num() - 1; Index >= 0; --Index)
+					{
+						const UNiagaraComponent* Existing = GActiveRubbleDust[Index].Get();
+						if (!Existing || !Existing->IsActive() || Existing->GetWorld() != World)
+						{
+							GActiveRubbleDust.RemoveAtSwap(Index, EAllowShrinking::No);
+						}
+					}
+
+					if (MaxGlobalRubbleFX <= 0 || GActiveRubbleDust.Num() < MaxGlobalRubbleFX)
+					{
+						if (UNiagaraComponent* Burst = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+								World, Dust, PieceTransform.GetLocation(), PieceTransform.Rotator()))
+						{
+							GActiveRubbleDust.Add(Burst);
+						}
+					}
 				}
 			}
 
