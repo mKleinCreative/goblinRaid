@@ -431,10 +431,24 @@ protected:
 	 * Mesh-name substrings that are NEVER bound, even when CropMeshNameFilters matches them.
 	 * Checked before the include list, so the exclusion always wins.
 	 *
-	 * Defaults to {"Grass"}: the include filter is the single substring "Wheat", and the field's
-	 * ground cover is named SM_VillageWheat_Grass, so without this the grass chars whenever the
-	 * crop does - and that mesh is painted well beyond the fields, so the burn read as spreading
-	 * across ground that was never alight. The crop itself (SM_VillageWheat_01 / _02) is unaffected.
+	 * EMPTY BY DEFAULT, AND READ THIS BEFORE FILLING IT IN. It shipped for one build defaulting to
+	 * {"Grass"} and produced "the wheat field is black before it got burnt" (Michael, 2026-09-09).
+	 * Two separate mistakes, both worth knowing:
+	 *
+	 * 1. SM_VillageWheat_Grass is NOT lawn grass. It is the wheat field's own dense ground layer -
+	 *    part of the crop, and it is supposed to char with it. The name misleads.
+	 *
+	 * 2. EXCLUDING A MESH DOES NOT LEAVE IT ALONE - IT TURNS IT BLACK. Verified live: the component
+	 *    still carried a UMaterialInstanceDynamic from an earlier bind pass, and the exclusion only
+	 *    stopped GS_BurnMask being reassigned, leaving the MID sampling the engine's DefaultTexture.
+	 *    That default is WHITE, and the crop material reads white as fully burnt. Measured directly:
+	 *      SM_VillageWheat_01     GS_BurnMask = TextureRenderTarget2D_0
+	 *      SM_VillageWheat_02     GS_BurnMask = TextureRenderTarget2D_0
+	 *      SM_VillageWheat_Grass  GS_BurnMask = DefaultTexture      <- black field
+	 *
+	 * So an entry here means "permanently burnt", not "never marked", for any mesh that was ever
+	 * bound. Until that is fixed - by restoring the original material on release, or by publishing a
+	 * neutral black mask to excluded MIDs - do not use this to spare something from charring.
 	 */
 	UPROPERTY(EditDefaultsOnly, Config, Category = "GoblinSiege|BurnMask")
 	TArray<FName> CropMeshNameExclusions;

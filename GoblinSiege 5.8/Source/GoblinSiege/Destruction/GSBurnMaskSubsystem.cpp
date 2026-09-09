@@ -46,8 +46,8 @@ UGSBurnMaskSubsystem::UGSBurnMaskSubsystem()
 	// a project can replace this list entirely from DefaultGame.ini without touching code.
 	CropMeshNameFilters.Add(FName("Wheat"));
 
-	// "Wheat" catches SM_VillageWheat_Grass as well as _01/_02. See ShouldBindComponent.
-	CropMeshNameExclusions.Add(FName("Grass"));
+	// CropMeshNameExclusions is deliberately EMPTY. It briefly defaulted to {"Grass"} on 2026-09-09
+	// and that was wrong twice over - see the property's own comment before adding anything here.
 }
 
 // ====================================================================== lifecycle

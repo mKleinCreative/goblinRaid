@@ -7,8 +7,8 @@ claimed: 2026-09-09T15:40Z
 build: none
 waiting_on:
 evaluated: 2026-09-09T16:28:43Z
-observed:
-scenario:
+observed: 2026-09-09T17:56:20Z | Michael played a raid and reported the river works - fire no longer crosses it; separately the grass exclusion turned the wheat field black before it burned, which was measured to the exact cause (excluded mesh kept a MID sampling the white DefaultTexture) and reverted, then re-verified live: all three wheat foliage components bind GS_BurnMask to the render target again
+scenario: Live PIE on L_Tutorial_Island, played by Michael as the goblin, torching the field and village
 files: 
   - Source/GoblinSiege/Destruction/GSBurnFXComponent.h
   - Source/GoblinSiege/Destruction/GSBurnFXComponent.cpp
@@ -130,3 +130,44 @@ What a verification run should watch, in one PIE session on L_Tutorial_Island:
    the denominator change works.
 4. Burn the Inn - a few separated plumes rather than one wall of smoke.
 5. Watch a fence at the field edge NOT catch.
+
+---
+
+## Correction, 2026-09-09 - the grass exclusion was wrong and is reverted
+
+Michael, after playing the build: *"river works great, the collapse settles, which is nice, grass
+stays green, but the wheat field is black before it got burnt."*
+
+**Two mistakes in one three-line change, both mine.**
+
+1. **`SM_VillageWheat_Grass` is not lawn grass.** It is the wheat field's own dense ground layer -
+   part of the crop, and it is supposed to char with it. I read the mesh name as "grass" and
+   excluded the thing the player actually looks at when they look at the field.
+
+2. **Excluding a mesh does not leave it alone - it turns it BLACK.** The bind loop skips excluded
+   components, but the component still carried a `UMaterialInstanceDynamic` from an earlier bind
+   pass, so the exclusion only stopped `GS_BurnMask` being reassigned. A MID with no mask texture
+   samples the engine `DefaultTexture`, which is WHITE, and the crop material reads white as fully
+   burnt. Measured directly in PIE rather than reasoned:
+
+   ```
+   SM_VillageWheat_01     GS_BurnMask = TextureRenderTarget2D_0
+   SM_VillageWheat_02     GS_BurnMask = TextureRenderTarget2D_0
+   SM_VillageWheat_Grass  GS_BurnMask = DefaultTexture       <- the black field
+   ```
+
+Reverted: `CropMeshNameExclusions` now defaults EMPTY. The property and its mechanism stay, with the
+hazard documented on the property itself, because an entry there currently means "permanently burnt"
+rather than "never marked" for any mesh that was ever bound - a trap worth leaving a sign on rather
+than deleting silently.
+
+Re-verified live after the rebuild: all three wheat foliage components bind `GS_BurnMask` to
+`TextureRenderTarget2D_0` again.
+
+**The original complaint is therefore NOT addressed.** "Only the wheat burns" still stands as a
+request; what has been established is only that `SM_VillageWheat_Grass` is the wrong target for it.
+Which mesh Michael actually saw charring that should not have is an open question for him, and
+guessing at a second mesh name would repeat exactly this mistake.
+
+**Still standing from the same session, verified by Michael watching:** the river stops the fire, and
+the collapse settles.

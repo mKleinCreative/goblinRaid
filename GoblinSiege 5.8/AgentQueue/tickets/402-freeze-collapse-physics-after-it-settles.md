@@ -7,8 +7,8 @@ claimed: 2026-09-09T16:13Z
 build: none
 waiting_on:
 evaluated: 2026-09-09T16:28:44Z
-observed:
-scenario:
+observed: 2026-09-09T17:50:42Z | Michael watched a full-map collapse in PIE and reported the collapse settles - wrecks come to rest and stop instead of debris continuing to shoot around
+scenario: Live PIE on L_Tutorial_Island, mass building collapse, played by Michael
 files: 
   - Source/GoblinSiege/Destruction/GSCrumbleComponent.h
   - Source/GoblinSiege/Destruction/GSCrumbleComponent.cpp
