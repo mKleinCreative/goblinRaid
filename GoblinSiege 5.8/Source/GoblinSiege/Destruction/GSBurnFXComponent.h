@@ -195,6 +195,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0.0"))
 	float MaxSmolderScale = 6.f;
 
+	/**
+	 * Where up the owner's intact footprint the plume is sourced: 0 = its base (the ground it stood
+	 * on), 0.5 = the middle of where the building used to be, 1 = the old roofline.
+	 *
+	 * Smolder spawns on burn-DOWN, when the building is already flat, so anything much above the
+	 * base is smoke hanging in open sky over rubble - which is exactly what 0.5 produced on screen.
+	 * A little above the ground rather than exactly on it, so the plume reads as rising out of the
+	 * wreck instead of being clipped by it.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SmolderHeightFraction = 0.1f;
+
 	/** Default ON: the razed state has to survive to raid end, or the scoreboard lies. */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder")
 	bool bSmolderForever = true;

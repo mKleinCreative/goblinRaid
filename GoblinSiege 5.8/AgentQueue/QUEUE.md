@@ -212,7 +212,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 400 | review **STALE 2.3h** | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props | Source/GoblinSiege/Destruction/GSBurnFXComponent.h<br>Source/GoblinSiege/Destruction/GSBurnFXComponent.cpp<br>Source/GoblinSiege/Destruction/GSFieldFireObjective.h<br>Source/GoblinSiege/Destruction/GSFieldFireObjective.cpp<br>Source/GoblinSiege/Destruction/GSBurnMaskSubsystem.h<br>Source/GoblinSiege/Destruction/GSBurnMaskSubsystem.cpp | none |
+| 400 | review **STALE 2.4h** | claude-smoke-water | Smoke by proximity, and field fire stops at water/grass/props | Source/GoblinSiege/Destruction/GSBurnFXComponent.h<br>Source/GoblinSiege/Destruction/GSBurnFXComponent.cpp<br>Source/GoblinSiege/Destruction/GSFieldFireObjective.h<br>Source/GoblinSiege/Destruction/GSFieldFireObjective.cpp<br>Source/GoblinSiege/Destruction/GSBurnMaskSubsystem.h<br>Source/GoblinSiege/Destruction/GSBurnMaskSubsystem.cpp | none |
 | 402 | review | claude-settle | Freeze collapse physics after it settles; calm the collapse and the market | Source/GoblinSiege/Destruction/GSCrumbleComponent.h<br>Source/GoblinSiege/Destruction/GSCrumbleComponent.cpp<br>Source/GoblinSiege/Destruction/GSMarketObjective.h<br>Source/GoblinSiege/Destruction/GSMarketObjective.cpp | none |
 
 **BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**

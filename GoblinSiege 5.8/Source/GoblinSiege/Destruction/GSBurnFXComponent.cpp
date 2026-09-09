@@ -350,7 +350,24 @@ void UGSBurnFXComponent::SpawnSmolder()
 	{
 		Owner->GetActorBounds(/*bOnlyCollidingComponents=*/ false, Origin, BoxExtent);
 	}
-	const FVector SpawnLocation = Origin;
+	// HEIGHT: up from the FOOTPRINT, not the middle of where the building used to be.
+	//
+	// This used the bounds centre, which put the plume half a building's height up. That was chosen
+	// back when the source was read live and the thing was still standing (sourcing from the top
+	// made the cloud look like it floated ABOVE the house rather than pouring out of it). It stopped
+	// being true the moment the position came from the INTACT bounds instead: smolder spawns on
+	// burn-DOWN, by which point the building is flat rubble, so "half the old height" is open sky.
+	// Michael, 2026-09-09, with a screenshot of plumes starting at roof height over flattened
+	// houses: "there's smoke appearing in mid air ... make sure it doesn't spawn smoke in the middle
+	// of the air."
+	//
+	// Bottom of the bounds is the building's base, i.e. the ground it stands on, and the wreck sits
+	// there. A small fraction up from that keeps the plume rooted in the rubble.
+	const float BaseZ = Origin.Z - BoxExtent.Z;
+	const FVector SpawnLocation(
+		Origin.X,
+		Origin.Y,
+		BaseZ + (BoxExtent.Z * 2.f) * FMath::Clamp(SmolderHeightFraction, 0.f, 1.f));
 
 	// PROXIMITY, not just population. Michael, 2026-09-09: "the Inn spawns essentially one of those
 	// per wall panel or prop it feels like ... limit the amount of smoke by proximity so it's never

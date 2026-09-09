@@ -7,8 +7,8 @@ claimed: 2026-09-09T15:40Z
 build: none
 waiting_on:
 evaluated: 2026-09-09T16:28:43Z
-observed: 2026-09-09T17:56:20Z | Michael played a raid and reported the river works - fire no longer crosses it; separately the grass exclusion turned the wheat field black before it burned, which was measured to the exact cause (excluded mesh kept a MID sampling the white DefaultTexture) and reverted, then re-verified live: all three wheat foliage components bind GS_BurnMask to the render target again
-scenario: Live PIE on L_Tutorial_Island, played by Michael as the goblin, torching the field and village
+observed: 2026-09-09T18:05:14Z | Michael played the rebuilt game and reported the wheat field is gold again before burning, confirming the black-field regression is gone; he also reported the river stops the fire
+scenario: Live PIE on L_Tutorial_Island, played by Michael, walking the village and field before torching
 files: 
   - Source/GoblinSiege/Destruction/GSBurnFXComponent.h
   - Source/GoblinSiege/Destruction/GSBurnFXComponent.cpp
