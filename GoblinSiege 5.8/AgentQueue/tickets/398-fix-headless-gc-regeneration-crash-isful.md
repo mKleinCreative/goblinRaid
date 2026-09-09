@@ -2,13 +2,13 @@
 id: 398
 title: Fix headless GC_ regeneration crash (IsFullyLoaded)
 agent: claude-fracture-fix
-status: review
+status: done
 claimed: 2026-09-01T04:03Z
 build: success
 waiting_on:
 evaluated: 2026-09-01T04:08:53Z
-observed:
-scenario:
+observed: 2026-09-01T16:13:10Z | Full 84-asset headless regeneration batch ran clean, SUCCEEDED: 84 FAILED: 0 in the log, independently confirmed via du -sh on Content/Destruction folder before/after (1.8GB -> 1.2GB), not log-trust alone
+scenario: Headless UnrealEditor-Cmd -ExecutePythonScript run against all 84 real on-disk GC_ fracture assets, no pre-delete workaround
 files: 
   - Source/GoblinSiegeEditor/GSFractureToolsLibrary.cpp
   - Source/GoblinSiegeEditor/GSFractureToolsLibrary.h
@@ -140,3 +140,31 @@ the original crash on exactly those) rather than assuming an all-or-nothing resu
 `ObjectPath` alongside a non-null-check before/after `LoadObject` in the Python driver for this run so
 a partial failure is diagnosable asset-by-asset instead of stopping the whole 84-asset batch cold
 again.
+
+---
+
+**POST-REVIEW UPDATE (2026-09-01): the runtime verification this ticket withheld has now run.**
+
+First ran a 5-asset subset headlessly (including `GC_House_Wall_2_5x4_01`, the exact asset that
+crashed all three prior attempts) with no Python-side pre-delete, `bOverwriteExisting=True`. Exit
+code 0, zero crash/error lines in `Saved/Logs/MyProject.log`. File evidence (not log trust): 4 of 5
+assets shrank as expected (30-65% smaller); one - `GC_House_Wall_2_5x4_01` itself - grew slightly
+(~2.8MB) despite fewer voronoi cells, an unexplained anomaly flagged rather than ignored, but not a
+crash and not a false positive (mtimes and log piece-counts both confirm a real save happened).
+
+Then ran the full 84-asset batch, same parameters, no pre-delete workaround (removed from the driver
+script entirely, since the C++ fix makes it unnecessary and the delete-first step is what caused
+attempt 2's false-positive short-circuit). Result: **`SUCCEEDED: 84`, `FAILED: 0`**, exit code 0.
+Verified independently of the log per this ticket's own stated concern about attempt 2's false
+positive: `find Content/Destruction -iname "GC_*.uasset" -newermt <run-start-time>` initially showed
+0 (checked against the wrong timestamp window), corrected and re-checked against `du -sh` on the
+whole `Content/Destruction` folder before/after - **1.8GB -> 1.2GB**, a real, substantial size drop
+consistent with 84 real regenerations at fewer voronoi cells, not a silent no-op.
+
+This closes every item this ticket's Evaluate section listed as unverified except item 3
+(`FAssetRegistryModule::AssetCreated` correctness on the reuse path) - untested either way, still,
+but it was already unconditional pre-fix and nothing observed (no registry corruption, no duplicate
+entries, successful repackage afterward) suggests it's a live problem. Re-cooked and re-staged the
+full package afterward (ticket #397) using the regenerated assets - final build packaged and staged
+successfully, which is itself a real downstream consumer confirming the regenerated `.uasset` files
+are structurally valid, not just present on disk.

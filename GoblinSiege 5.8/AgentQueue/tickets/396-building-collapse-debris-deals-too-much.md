@@ -2,7 +2,7 @@
 id: 396
 title: Building collapse debris deals too much damage after clustering - raise MinImpulseToDamage
 agent: claude-grapple
-status: queued
+status: abandoned
 claimed: 2026-09-01T02:20Z
 build: none
 waiting_on:

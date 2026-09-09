@@ -212,11 +212,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 396 | queued | claude-grapple | Building collapse debris deals too much damage after clustering - raise MinImpulseToDamage | Source/GoblinSiege/Destruction/GSCrumbleComponent.h | none |
-| 397 | active | claude-repack | Repackage for itch under 1GB: drop bCookAll, scope DirectoriesToAlwaysCook, strip dead content | Config/DefaultGame.ini | none |
-| 398 | review | claude-fracture-fix | Fix headless GC_ regeneration crash (IsFullyLoaded) | Source/GoblinSiegeEditor/GSFractureToolsLibrary.cpp<br>Source/GoblinSiegeEditor/GSFractureToolsLibrary.h | success |
+| 399 | queued | claude-chaos-bounds | Chaos ensure: NaN world-space inflated bounds on mass building destruction (completeAllObjectives) | none-investigation-only | none |
 
-**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -617,6 +615,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 393 | done | claude-grapple | Bulk Chaos fracture generation: custom editor module calling FractureEngine/PlanarCut C++ directly, real GC_ assets for all 42 house meshes |
 | 394 | done | claude-gdd | GDD: Hold and Loot horde orders confirmed working, update roster and inert-order status |
 | 395 | done | claude-grapple | Perf: cap simultaneous smolder FX, extend real fracture to kitbashed wall pieces, fix Inn's PieceNameFilters |
+| 396 | abandoned | claude-grapple | Building collapse debris deals too much damage after clustering - raise MinImpulseToDamage |
+| 397 | done | claude-repack | Repackage for itch under 1GB: drop bCookAll, scope DirectoriesToAlwaysCook, strip dead content |
+| 398 | done | claude-fracture-fix | Fix headless GC_ regeneration crash (IsFullyLoaded) |
 
 <!-- BOARD:END -->
 
