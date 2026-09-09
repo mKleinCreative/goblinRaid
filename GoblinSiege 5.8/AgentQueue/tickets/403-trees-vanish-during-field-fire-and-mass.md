@@ -2,13 +2,13 @@
 id: 403
 title: Trees vanish during field fire and mass collapse
 agent: claude-trees
-status: review
+status: done
 claimed: 2026-09-09T18:36Z
 build: none
 waiting_on:
 evaluated: 2026-09-09T18:41:33Z
-observed: 2026-09-09T19:01:02Z | Burned every objective including the Inn and watched the foliage survive: 280,153 instances before, 280,153 after the Inn burnt out (1,860 pieces released), where previously the whole islands foliage actor was destroyed. The log also shows the Inn refusing to adopt BP_Sky_Sphere_2 (extent 1,638,400 against an adopt radius of 2,523), which it had been swallowing and destroying too
-scenario: Live PIE on L_Tutorial_Island, GS.Raid.CompleteAllObjectives so the Inn actually burns down - the specific trigger Michael identified
+observed: 2026-09-09T19:07:45Z | Michael played the rebuilt game and confirmed it: trees are still around after the Inn burns down - the bug is gone in normal play, not just in the instance-count measurement
+scenario: Live PIE playthrough on L_Tutorial_Island by Michael, burning the Inn
 files: 
   - Config/DefaultGameUserSettings.ini
   - Config/DefaultEngine.ini

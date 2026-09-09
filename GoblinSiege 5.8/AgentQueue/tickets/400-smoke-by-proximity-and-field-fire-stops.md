@@ -2,11 +2,11 @@
 id: 400
 title: Smoke by proximity, and field fire stops at water/grass/props
 agent: claude-smoke-water
-status: review
+status: done
 claimed: 2026-09-09T15:40Z
 build: none
 waiting_on:
-evaluated: 2026-09-09T16:28:43Z
+evaluated: 2026-09-09T19:08:18Z
 observed: 2026-09-09T18:05:14Z | Michael played the rebuilt game and reported the wheat field is gold again before burning, confirming the black-field regression is gone; he also reported the river stops the fire
 scenario: Live PIE on L_Tutorial_Island, played by Michael, walking the village and field before torching
 files: 
@@ -196,3 +196,41 @@ plumes, not one giant one.
 The asset also has **no User parameters**, so there is no per-instance density override without
 authoring one in the Niagara editor. If fewer than 12 is wanted, drop `MaxGlobalSmolderFX` - that is
 the dial.
+
+---
+
+## Closing status, 2026-09-09 - what this ticket actually shipped
+
+The Evaluate above was written before anything was compiled and is now stale in one direction only:
+everything in it has since been built and run. Superseding it rather than leaving it to be read as
+a to-do list.
+
+**Shipped and confirmed by Michael watching it in a live raid:**
+- Fire stops at water. "river works great." The probe reports `37 of 1089 cell(s) are water`.
+- The wheat field is gold before it burns, and chars when it does.
+
+**Shipped and measured, but NOT yet judged by eye:**
+- Smoke by proximity. Final values after three rounds of his feedback: `MaxGlobalSmolderFX` 12 (from
+  40), `MinSmolderSpacing` 3500uu (from 1500). Measured: active plumes 5-6 -> 3 at the same point in
+  an identical burn; closest pair 636uu -> 15,722uu.
+- Plume position: sourced from the intact footprint's BASE, so smoke rises from the rubble rather
+  than from where the roof used to be. Measured: median height above ground -50uu, five of six
+  within 200uu.
+- Props no longer catch from the field edge (`bCanJumpToAdjacentFlammables` defaults false).
+  **Nobody has watched a fence at the field edge fail to catch.** This is the one behavioural claim
+  in this ticket with no observation behind it.
+
+**Reverted, and the reason is worth more than the change was:**
+- The grass exclusion. `SM_VillageWheat_Grass` is the wheat field's own ground layer, not lawn
+  grass, and excluding a mesh does not spare it - it leaves a stale MID sampling the white
+  DefaultTexture, which the crop material reads as fully burnt. The field went black.
+  `CropMeshNameExclusions` now defaults empty with the hazard documented on the property.
+  **"Only the wheat burns" therefore remains an OPEN request** - all that was settled is which mesh
+  is the wrong target for it.
+
+**Withdrawn claim:** an earlier entry here credited a 481x -> 6x plume-scale clamp with fixing the
+sky-filling columns. Plume scale is inert on this system (`P_SmolderSmoke_Converted`'s single
+emitter is `LocalSpace: No`, so particles are sized in absolute world units and the component
+transform only moves them). Those columns were several normal-sized plumes, not one giant one, and
+the fix was always going to be fewer rather than smaller. Michael, asked directly: "fewer pillars of
+smokes works better."
