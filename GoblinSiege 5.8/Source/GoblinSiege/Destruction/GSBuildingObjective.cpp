@@ -1,4 +1,5 @@
 #include "Destruction/GSBuildingObjective.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Destruction/GSFlammableComponent.h"
 #include "Destruction/GSCrumbleComponent.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
@@ -207,10 +208,58 @@ void AGSBuildingObjective::AdoptPieces()
 			}
 		}
 
-		if (bMatches)
+		if (!bMatches)
 		{
-			Pieces.Add(Other);
+			continue;
 		}
+
+		// FOLIAGE IS NEVER PART OF A BUILDING, WHATEVER THE FILTERS SAY.
+		//
+		// This is the vanishing-trees bug (2026-09-09), and it deleted the entire island's foliage.
+		// Michael: "it's almost always after the Inn burns down that the trees disappear."
+		//
+		// AInstancedFoliageActor holds UFoliageInstancedStaticMeshComponents, which derive from
+		// UStaticMeshComponent - so the check above finds one and GetStaticMesh() happily returns
+		// SM_Tree_Apple_01. Its bounds span the whole map (measured: extent 63076 x 64242 x 13051 on
+		// L_Tutorial_Island), so the edge-distance test returns 0 for every building and it sits
+		// inside ANY AdoptRadius. With PieceNameFilters EMPTY - which means "adopt everything", and
+		// which exactly one building uses (GSBuildingObjective_293, the Inn, cleared in #395 so it
+		// would adopt its own furniture) - it matched, and the Inn adopted all 280,153 foliage
+		// instances as a single "piece". CrumblePieces then calls Piece->Destroy() on it.
+		//
+		// One actor, one Destroy(), every tree and every stalk of wheat on the island gone at once.
+		// That is why it was always the Inn, and why nothing about the trees themselves ever looked
+		// wrong: instance counts, visibility, cull distances and materials were all still correct
+		// right up until the actor holding them stopped existing.
+		//
+		// A hard exclusion rather than a name filter, because "do not eat the world's foliage" is not
+		// a per-building tuning decision.
+		if (MeshComp->IsA<UInstancedStaticMeshComponent>())
+		{
+			continue;
+		}
+
+		// The same mistake generalised: anything dramatically bigger than this building cannot be a
+		// part of it. A candidate whose own bounds out-reach the adopt radius by this much is a
+		// landscape, a sky sphere, a river spline or another world-sized actor that happens to carry
+		// a mesh - and adopting one costs the whole level rather than one wrong wall.
+		//
+		// Checked AFTER the name filter on purpose: before it, this warned about every world-sized
+		// actor near every building, including the ~67 that PieceNameFilters was already rejecting
+		// on its own. A warning that fires where there was never a bug teaches people to ignore it.
+		FVector GuardOrigin, GuardExtent;
+		Other->GetActorBounds(false, GuardOrigin, GuardExtent);
+		const float PieceReach = static_cast<float>(GuardExtent.GetMax());
+		if (AdoptRadius > 0.f && PieceReach > AdoptRadius * OversizePieceRejectRatio)
+		{
+			UE_LOG(LogGSBuilding, Warning,
+				TEXT("[GoblinSiege] '%s' refused to adopt '%s': its extent (%.0f) is more than %.0fx ")
+				TEXT("this building's AdoptRadius (%.0f). A piece that size is the world, not a wall."),
+				*GetName(), *Other->GetName(), PieceReach, OversizePieceRejectRatio, AdoptRadius);
+			continue;
+		}
+
+		Pieces.Add(Other);
 	}
 
 	InitialPieceCount = Pieces.Num();

@@ -319,6 +319,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
 	TArray<FString> PieceNameFilters;
 
+	/**
+	 * Reject a candidate piece whose own bounds reach further than AdoptRadius x this. A wall is
+	 * smaller than the building it belongs to; a landscape or a map-wide foliage actor is not.
+	 *
+	 * 2.0 is deliberately loose - a big roof or a long wall can legitimately out-reach a tight adopt
+	 * radius, and this is a backstop against world-sized actors, not a tight fit. The case it exists
+	 * for measured 63,076 against an AdoptRadius of 2,523: twenty-five times over, not two.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Adoption", meta = (ClampMin = "1.0"))
+	float OversizePieceRejectRatio = 2.f;
+
 	/** Alarm the moment the house goes up. A burning building is unmissable; louder than a field. */
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|Tuning")
 	float AlarmOnIgnite = 15.f;
