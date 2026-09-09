@@ -228,9 +228,15 @@ protected:
 	 * permanent Niagara systems accumulating on ONE building - "each wall has its own emitter," visibly
 	 * (a wall of individual smoke columns) and on the frame budget. A handful of small buildings across
 	 * the map smoking forever is the intended picture; one building alone maxing out this budget is not.
+	 *
+	 * CUT 40 -> 12 on 2026-09-09. Michael, after three separate looks at the built game: "there
+	 * still needs to be less smoke in general." 40 was chosen when the problem was one building
+	 * producing hundreds of plumes; once spacing stopped the stacking, 40 well-separated columns
+	 * across the village was still too much smoke. Note the plume's SCALE appears not to be a live
+	 * lever at all - see MaxSmolderScale - so count is what actually changes what the player sees.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0"))
-	int32 MaxGlobalSmolderFX = 40;
+	int32 MaxGlobalSmolderFX = 12;
 
 	/**
 	 * Minimum world-space distance between two live smolder plumes, in unreal units. A piece that
@@ -247,9 +253,12 @@ protected:
 	 * 1500 is a house-ish footprint: the Inn's own AdoptRadius is 2523uu and an ordinary merged
 	 * house is well under this, so the intended result is roughly one plume per building rather
 	 * than one per wall panel. It is a look number, not a physical one - tune it by eye.
+	 *
+	 * RAISED 1500 -> 3500 on 2026-09-09, same feedback. At 1500 the village still produced a row of
+	 * columns close enough together to read as one bank of smoke from the player's eye level.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0.0"))
-	float MinSmolderSpacing = 1500.f;
+	float MinSmolderSpacing = 3500.f;
 
 	// --------------------------------------------------------- ground scorch
 
