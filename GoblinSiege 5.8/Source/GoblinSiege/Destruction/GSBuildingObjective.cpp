@@ -31,6 +31,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogGSBuilding, Log, All);
 // Weak pointers because these bursts auto-destroy, so the list prunes itself as they finish.
 static TArray<TWeakObjectPtr<UNiagaraComponent>> GActiveRubbleDust;
 
+// The same budget for the per-piece flame. MaxFireFX is per BUILDING (8 by default), so a village
+// where everything is alight at once carried 24 NS_Fire_Big + 24 NS_FlameEmbers + 13
+// NS_GS_SurfaceFire simultaneously - and a CSV profile over 80 frames put Effects at 18 ms of game
+// thread and 94 ms across workers, against 2.75 ms for ticking every actor in the level. Niagara is
+// the cost in this game, and every per-piece system in this module has now needed one of these.
+static TArray<TWeakObjectPtr<UNiagaraComponent>> GActiveFireFX;
+
 AGSBuildingObjective::AGSBuildingObjective()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -581,6 +588,24 @@ void AGSBuildingObjective::SpawnFireFXOn(AActor* Piece)
 		return;
 	}
 
+	// Map-wide budget on top of this building's own. Prune first - flames are attached to their
+	// piece and die with it, so the list returns its own slots.
+	for (int32 Index = GActiveFireFX.Num() - 1; Index >= 0; --Index)
+	{
+		const UNiagaraComponent* Existing = GActiveFireFX[Index].Get();
+		if (!Existing || !Existing->IsActive() || Existing->GetWorld() != GetWorld())
+		{
+			GActiveFireFX.RemoveAtSwap(Index, EAllowShrinking::No);
+		}
+	}
+
+	if (MaxGlobalFireFX > 0 && GActiveFireFX.Num() >= MaxGlobalFireFX)
+	{
+		// The building still burns, still chars and still collapses - it just does not add another
+		// flame system to a village that already has its budget's worth on screen.
+		return;
+	}
+
 	// Already burning visibly? Do not stack a second system on the same piece.
 	for (const TObjectPtr<UNiagaraComponent>& Existing : ActiveFireFX)
 	{
@@ -604,6 +629,7 @@ void AGSBuildingObjective::SpawnFireFXOn(AActor* Piece)
 	if (Comp)
 	{
 		ActiveFireFX.Add(Comp);
+		GActiveFireFX.Add(Comp);
 	}
 }
 

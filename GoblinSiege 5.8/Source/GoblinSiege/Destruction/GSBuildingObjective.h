@@ -425,6 +425,23 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX", meta = (ClampMin = "0"))
 	int32 MaxGlobalRubbleFX = 24;
 
+	/**
+	 * Map-wide ceiling on simultaneous per-piece flame systems, across every burning building at
+	 * once. 0 disables.
+	 *
+	 * MaxFireFX above is per BUILDING, which is the same mistake MaxRubbleFXPerBuilding made: it
+	 * bounds one house and nothing bounds the village. Measured 2026-09-09 with the village alight -
+	 * 24 NS_Fire_Big, 24 NS_FlameEmbers and 13 NS_GS_SurfaceFire live together, and a CSV profile
+	 * over 80 frames put Exclusive/GameThread/Effects at 18.07 ms and Exclusive/AllWorkers/Effects at
+	 * 93.88 ms, against 2.75 ms to tick every actor in the level. Niagara is what costs in this game.
+	 *
+	 * 20 is roughly "a few buildings' worth of flame visible at once". A building refused a flame
+	 * still burns, chars and collapses - only the per-piece fire VFX is bounded, exactly as
+	 * MaxFireFX already does within one building.
+	 */
+	UPROPERTY(EditAnywhere, Category = "GoblinSiege|Building|FX", meta = (ClampMin = "0"))
+	int32 MaxGlobalFireFX = 20;
+
 	UPROPERTY()
 	TObjectPtr<UNiagaraComponent> SmokeColumn;
 
