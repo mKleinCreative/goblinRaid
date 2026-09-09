@@ -191,6 +191,23 @@ protected:
 	 * loudly when it bites so the underlying bounds problem is visible rather than silently hidden.
 	 *
 	 * 6 is roughly "the biggest building on the map"; the median plume measured 1.86x.
+	 *
+	 * INERT FOR THE CURRENT SMOLDER SYSTEM, AND SO IS THE WHOLE SmolderScale MECHANISM ABOVE IT.
+	 * Verified 2026-09-09 by reading the asset rather than inferring from the picture:
+	 *
+	 *     P_SmolderSmoke_Converted -> Emitters (1 total) -> [Smoke]  LocalSpace: No
+	 *
+	 * A world-space emitter spawns and sizes its particles in absolute world units, so the component
+	 * transform moves the system without resizing anything it emits. SetWorldScale3D therefore does
+	 * nothing visible here - which means the 481x -> 6x clamp that this comment used to describe as
+	 * a fix changed a number that never reached the screen. Michael called it: "plume scale didn't
+	 * seem to work."
+	 *
+	 * Left in place because it is correct for any LOCAL-space system a future prop might use, and it
+	 * costs nothing. Do NOT reach for it to make smoke smaller on this asset. The levers that do work
+	 * are MaxGlobalSmolderFX and MinSmolderSpacing (count), or editing the system itself - its
+	 * emitter exposes Constants.Smoke.SpawnRate.SpawnRate (15.0), and it has no User parameters, so
+	 * a per-instance density override does not exist without authoring one in the Niagara editor.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "GoblinSiege|Fire|Smolder", meta = (ClampMin = "0.0"))
 	float MaxSmolderScale = 6.f;
