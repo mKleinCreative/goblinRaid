@@ -7,8 +7,8 @@ claimed: 2026-09-09T19:31Z
 build: none
 waiting_on:
 evaluated: 2026-09-09T19:50:26Z
-observed:
-scenario:
+observed: 2026-09-09T23:17:17Z | Michael played a raid with csvprofile running and captured 1376 frames unthrottled. Effects fell from 18.07ms to 0.82ms of game thread after the three global FX caps, and the capture shows the remaining stutter is GPU-bound - on the worst 60 frames the GPU jumps 13ms to 70ms while the game thread only moves 5.5ms and spends 39.5ms waiting
+scenario: Live PIE playthrough on L_Tutorial_Island by Michael in a focused window, csvprofile start/stop across a full raid
 files: 
   - none-investigation-only
 ---
@@ -116,3 +116,58 @@ Next, in the order the profile argues for:
 told me nothing about Effects, which the 80-frame median put at the top immediately. And disable
 throttling with the console command in the same script as the measurement - the ini setting does not
 hold.
+
+---
+
+## Michael's own capture, 2026-09-09 16:08 - 1376 frames, unthrottled, real play
+
+This supersedes every measurement above. His PIE window is focused, so no editor throttle, and
+1376 frames of actual play beats anything driven over HTTP.
+
+**The effects caps worked.**
+
+| | my throttled capture | his real capture |
+|---|---|---|
+| `Exclusive/GameThread/Effects` | 18.07 ms | **0.82 ms** |
+| `Exclusive/AllWorkers/Effects` | 93.88 ms | **8.98 ms** |
+
+**But the frame is still over budget, and the reason is NOT what this ticket concluded.**
+
+| | median | p95 |
+|---|---|---|
+| FrameTime | 23.92 ms | 74.93 ms |
+| GameThreadTime | 23.89 ms | 61.68 ms |
+| RenderThreadTime | 12.23 ms | 66.70 ms |
+| GPUTime | 13.29 ms | 65.69 ms |
+
+Two separate problems, and they need separate fixes:
+
+**1. The median (24 ms, ~42 FPS) is game-thread bound.** Top items now that Effects is gone:
+`UI 4.61`, `Animation 3.31`, `TickActors 2.24`, `CharacterMovement 1.87`. **UI is the single
+largest game-thread cost in the game** and nobody has ever looked at it.
+
+**2. The SPIKES (p95 75 ms) are GPU-bound, not CPU.** Worst 60 frames (median 90.4 ms) against all
+others (23.7 ms):
+
+| stat | spike | normal | delta |
+|---|---|---|---|
+| RenderThreadTime | 73.05 | 12.19 | **+60.86** |
+| GPUTime | 70.12 | 13.16 | **+56.96** |
+| RenderThread/EventWait | 59.73 | 12.36 | +47.38 |
+| GameThread/EventWait | 39.55 | 0.01 | +39.53 |
+| GameThreadTime | 29.16 | 23.62 | **+5.54** |
+
+The game thread barely moves. It is WAITING 39.5 ms for a render thread that is waiting on a GPU
+that has jumped from 13 ms to 70 ms. **The stutter is the GPU.** This ticket's "game-thread bound"
+conclusion came from throttled data and is withdrawn for the spike case.
+
+`DrawCall/Translucency` is 55 normally and 69.5 in spikes - translucency is smoke and fire, so the
+FX are still implicated, just on the GPU rather than the CPU. Not conclusive: the capture has no
+GPU pass breakdown.
+
+**Next capture needs `r.CsvGpuStats 1` set before `csvprofile start`.** That adds per-pass `GPU/`
+columns and would name the expensive pass directly instead of inferring it from a draw-call count.
+
+Counters from his capture, for the rendering work: `RHI/PrimitivesDrawn` 2,592,306,
+`RHI/DrawCalls` 5,750, `SceneCulling/NumStaticInstances` 625,947, `ActorCount/TotalActorCount`
+9,360, `ActorCount/DecalActor` 476.
