@@ -212,3 +212,45 @@ template's graph does not come across that way. The working asset is `ACF_Humano
 by retargeting ACF's own humanoid AnimBP; note the batch operation reported "0 AnimBlueprints" in its
 return value while having created it. Michael's editor-made `ABP_GS_Human` also exists and is
 untested.
+
+---
+
+## She animates; locomotion does not - and the cause is documented in this repo
+
+Michael: "she is animated now... but it doesn't seem like you're using the right moveset? it seems
+like they're using a weird idle animation and not any kind of locomotion base animations for moving."
+
+**Two false leads, both killed by measurement:**
+
+1. **Not motion matching.** `ACF_UnarmedMoveset`'s dependencies are 68 AnimSequences, 1 BlendSpace,
+   1 BlendSpace1D and its base AnimBP - no PoseSearchDatabase. Every motion-matching asset in the
+   project lives under `/Game/FullSample/GASP/UEFN_Mannequin/` on a THIRD skeleton
+   (`SK_UEFN_Mannequin`), which is what `ACF_MMTemplate_ABP` targets, not this moveset.
+2. **Not empty blendspaces.** They first read `samples=0`, which looked conclusive. That reading was
+   taken WITH PIE RUNNING and was false. With PIE stopped, source and retargeted match exactly:
+   `ACFSwimBS` 5/5, `BS_MM_Rifle_Jog_Leans` 3/3, `AO_MM_Unarmed_Idle_Ready` 15/15. **Third time this
+   session a measurement taken during PIE was wrong** - assets do not load properly while it runs.
+
+**The anim instance is receiving correct data.** Sampled six times over ~20 s while she patrolled:
+
+```
+speed=250.0  norm=0.385  dir=0.0  moving=True     (x6, sustained)
+```
+
+So `Speed`, `Direction` and `IsMoving` all reach the graph, the moveset is linked
+(`ACF_UnarmedMoveset_GSH_C`), and it still plays idle.
+
+**The cause is `UGSCharacterMovementComponent`, and AGENT_STATE already says so:** it "exists to
+disarm ACF's locomotion state machine". Read live off Erika - her movement component is
+`GSCharacterMovementComponent`, `max_walk_speed` 250, and the ACF bands are all present
+(`EIdle` 0 / `EWalk` 250 / `EJog` 500 / sprint 650). The bands exist; GS suppresses the state
+transitions, so ACF's graph never receives the locomotion state changes its state machine keys off.
+
+`normalized_speed` 0.385 is the corroborating tell: 250/650, i.e. the graph is normalising her walk
+speed against the SPRINT band, which is what you get when the state machine is not driving the band.
+
+**This is step 2 of the migration plan, exactly as written before any of this started:** "Re-arm ACF
+locomotion. `UGSCharacterMovementComponent` exists purely to disarm ACF's state machine. It cannot
+come back until step 1 lands - the state machine never runs without a `UACFAnimInstance`." Step 1 has
+now landed. Erika is a `UACFAnimInstance` with a linked moveset and a conformed rig, so the
+precondition is satisfied and re-arming is the next slice.
