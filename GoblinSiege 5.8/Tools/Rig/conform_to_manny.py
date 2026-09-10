@@ -127,30 +127,44 @@ if hr: mk("ik_hand_r","ik_hand_gun",hr.head.copy(),hr.tail.copy())
 if hl: mk("ik_hand_l","ik_hand_gun",hl.head.copy(),hl.tail.copy())
 bpy.ops.object.mode_set(mode='OBJECT')
 
-# NORMALIZE SKIN WEIGHTS.
+# RESTORE THE WEIGHT THE IMPORTER DELETED, ONTO `pelvis`.
 #
-# Measured on the source human rig 2026-09-10: 1,057 of 11,969 vertices (~9%) have influence weights
-# that do not sum to 1, with a MEDIAN SUM OF 0.492 - those vertices follow their bones at about half
-# strength, so the surface lags behind the skeleton and reads as stretching. They cluster on
-# `Spine` (561), `LeftUpLeg` (227), `RightUpLeg` (218) and `Spine1` (51), i.e. the torso and upper
-# legs. Three vertices carry no weight at all.
+# Defect 1 above absorbs the parentless root bone into the armature object - and on the human it
+# takes the bone's VERTEX GROUP with it. Measured on the source human rig: no `Hips` bone AND no
+# `Hips` vertex group survive the import, so every weight that belonged to the hips is simply gone.
+# What is left is 947 vertices holding only partial weight from `Spine` and the two `UpLeg` bones,
+# summing to a median of 0.492, spanning Z 131..205 in a mesh that runs -1..299 - i.e. 44%-69% of
+# body height, the hip and waist region exactly.
 #
-# This is a defect in the ORIGINAL art, not something the conform introduces - bone transforms and
-# weights are otherwise bit-identical through the round trip (verified: worst axis deviation 0.00
-# degrees, identical group and influence counts). Normalising here is the one place the pipeline can
-# fix it for free, and it makes the conformed rig deform better than the rig it replaces.
+# DO NOT "FIX" THIS BY NORMALIZING. An earlier version of this script scaled the surviving weights up
+# to sum 1, which makes hip vertices follow the spine and the thighs at full strength with nothing
+# holding them at the hips. Michael, looking at the result: "some verts are going a little crazy
+# during the animation and pulling out of the hips." Normalising redistributes the missing influence
+# onto the wrong bones; it does not restore it.
+#
+# The deficit belongs to the bone that was lost, and `pelvis` is the bone standing in its place at
+# the same position. So give each vertex its missing fraction (1 - sum) as `pelvis` weight, and only
+# then normalise whatever is still off.
 for ob in [o for o in bpy.data.objects if o.type == 'MESH']:
     if not ob.vertex_groups:
         continue
-    bpy.context.view_layer.objects.active = ob
-    fixed = 0
+    bone_names = {b.name for b in arm.data.bones}
+    pelvis_group = ob.vertex_groups.get("pelvis") or ob.vertex_groups.new(name="pelvis")
+    restored = 0
+    renorm = 0
     for v in ob.data.vertices:
-        total = sum(g.weight for g in v.groups)
-        if total > 0.0 and abs(total - 1.0) > 0.001:
+        total = sum(g.weight for g in v.groups
+                    if ob.vertex_groups[g.group].name in bone_names)
+        if total <= 0.0:
+            continue
+        if total < 0.999:
+            pelvis_group.add([v.index], 1.0 - total, 'REPLACE')
+            restored += 1
+        elif total > 1.001:
             for g in v.groups:
                 ob.vertex_groups[g.group].add([v.index], g.weight / total, 'REPLACE')
-            fixed += 1
-    print("NORMALIZED %s: %d vertex(es)" % (ob.name, fixed))
+            renorm += 1
+    print("PELVIS WEIGHT RESTORED %s: %d vertex(es); renormalized %d" % (ob.name, restored, renorm))
 bpy.context.view_layer.objects.active = arm
 
 print("RENAMED:",renamed," MISSING:",missing)
