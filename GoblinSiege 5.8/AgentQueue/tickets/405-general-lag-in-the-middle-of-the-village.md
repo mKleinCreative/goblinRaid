@@ -2,13 +2,13 @@
 id: 405
 title: General lag in the middle of the village during a raid
 agent: claude-villagelag
-status: review
+status: done
 claimed: 2026-09-09T19:31Z
 build: none
 waiting_on:
-evaluated: 2026-09-09T19:50:26Z
-observed: 2026-09-09T23:17:17Z | Michael played a raid with csvprofile running and captured 1376 frames unthrottled. Effects fell from 18.07ms to 0.82ms of game thread after the three global FX caps, and the capture shows the remaining stutter is GPU-bound - on the worst 60 frames the GPU jumps 13ms to 70ms while the game thread only moves 5.5ms and spends 39.5ms waiting
-scenario: Live PIE playthrough on L_Tutorial_Island by Michael in a focused window, csvprofile start/stop across a full raid
+evaluated: 2026-09-10T00:02:14Z
+observed: 2026-09-10T00:01:45Z | Michael captured 2374 frames after the shadow change and the pass it targeted collapsed: GPU/ShadowDepths 21.84ms to 2.76ms, GPU time 28.47 to 10.89, and the median frame 33.25ms to 21.77ms. p95 frame went 79.6 to 62.8ms. The frame is now game-thread bound instead of GPU bound
+scenario: Live PIE raid played by Michael in a focused window with r.GPUCsvStatsEnabled 1 and csvprofile running, compared against his own 3974-frame capture from before the change
 files: 
   - none-investigation-only
 ---
@@ -171,3 +171,63 @@ columns and would name the expensive pass directly instead of inferring it from 
 Counters from his capture, for the rendering work: `RHI/PrimitivesDrawn` 2,592,306,
 `RHI/DrawCalls` 5,750, `SceneCulling/NumStaticInstances` 625,947, `ActorCount/TotalActorCount`
 9,360, `ActorCount/DecalActor` 476.
+
+---
+
+## VERIFIED, 2026-09-09 17:00 - Michael's before/after captures
+
+`GPU/ShadowDepths` was 77% of the GPU frame. Turning shadow casting off on settled wrecks
+(`bDisableShadowsOnSettle`, in `UGSCrumbleComponent::FreezeSettledPhysics`) cut it by 87%.
+
+| median | before (3974 fr) | after (2374 fr) | delta |
+|---|---|---|---|
+| GPU/ShadowDepths | 21.84 | **2.76** | -19.08 |
+| GPUTime | 28.47 | 10.89 | -17.58 |
+| RenderThreadTime | 25.21 | 10.96 | -14.24 |
+| **FrameTime** | 33.25 | **21.77** | **-11.48** |
+| Exclusive/AllWorkers/Effects | 18.59 | 8.50 | -10.09 |
+
+p95 FrameTime 79.64 -> 62.83, p95 GPUTime 61.84 -> 38.73, p95 ShadowDepths 53.83 -> 27.42.
+
+**Caveat:** two different play sessions, not a controlled A/B, so magnitudes carry noise. A 19 ms
+drop in exactly the targeted pass is not noise, but do not quote these to three significant figures.
+
+**A detail worth keeping:** `DrawCall/ShadowDepths` barely moved (1766 -> 1717) while the cost
+collapsed. It was never the NUMBER of shadow draws - it was the geometry they pushed, ~45,000 wreck
+pieces in the shadow map. A draw-call count would have said this change did nothing.
+
+### Where the frame stands now
+
+**Median 21.77 ms (46 FPS), and the bound has flipped from GPU to game thread** (GT 21.85 vs GPU
+10.89). Game-thread breakdown:
+
+| | ms |
+|---|---|
+| **UI** | **4.60** |
+| Animation | 2.65 |
+| TickActors | 1.81 |
+| CharacterMovement | 1.67 |
+| Effects | 0.89 |
+
+Those sum to ~12 ms of 21.85, so roughly 8 ms is untracked and would need finer stat groups.
+**UI is the largest identified game-thread cost in the game and has never been profiled.**
+
+### The remaining spike is the collapse itself
+
+Worst 150 frames (64.8 ms) vs the rest (21.3 ms):
+
+| | normal | spike | delta |
+|---|---|---|---|
+| AllWorkers/Physics | 1.74 | 28.39 | +26.65 |
+| GameThread/EventWait/EndPhysics | 0.87 | 27.03 | +26.16 |
+| GPU/ShadowDepths | 2.53 | 39.08 | +36.55 |
+| TickActors | 1.71 | 12.66 | +10.95 |
+
+Two drivers, both transient and both the same moment: pieces are simulating (with the game thread
+stalled 27 ms waiting on physics) AND still casting shadows while they fall, because
+`bDisableShadowsOnSettle` only fires once they settle.
+
+**Next lever, NOT taken because it changes how the game looks:** drop shadow casting at RELEASE
+rather than at settle. That is the 39 ms shadow spike, and falling rubble casting no shadow for ~10
+seconds is a visual call for Michael, not a perf decision for an agent. The alternative is fewer
+simulated bodies (`MaxSimulatedPieces`, currently 24 per collection).
