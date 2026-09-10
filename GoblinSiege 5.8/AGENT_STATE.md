@@ -336,6 +336,43 @@ next agent rediscovers it.
 
 ## DECISIONS
 
+### RULING, 2026-09-10 — ACF IS THE SYSTEM. GS CODE IS THE EXCEPTION, AND IT NEEDS PERMISSION.
+
+**Michael, in full, after a session spent fighting GS-authored systems:** *"We have been CONSTANTLY
+fighting against the bugs in systems you created because you were convinced you could do more than
+what ACF has already implemented... we would be better off if I had just not listened to you at the
+start of this... Now is the time for us to start fresh using the lessons we learned from the
+prototype we built... I want us to be ACFU's showcase. So let's use the system to the maximum of
+its' potential instead of fucking around with bush-league half realized systems you created. This is
+the last time I tell you this."*
+
+**He has now said this THREE times.** The earlier two are already recorded ("check the vendor plugin
+before building custom", the second time angrily). This is not a preference. It is the standing
+architecture of the project.
+
+**The rule, operationally:**
+
+1. **Default to ACF for every system.** Not "borrow from", not "wrap" - adopt, and let it own the
+   behaviour.
+2. **Writing GS code that overlaps an ACF feature requires Michael's explicit permission FIRST,**
+   with the ACF feature named and the specific reason it cannot serve. "Ours is more flexible",
+   "theirs doesn't quite fit", "faster to write it here" are not reasons.
+3. **The existing GS systems are a PROTOTYPE.** Their value is the lessons, not the code. Treat
+   them as scheduled for replacement, not as an asset to defend.
+4. **Read the ACF skill pack and the GS gap skill before touching a domain.** Both exist. This
+   session proved they work: `gs-teams-damage-spawning` named a real permanently-invulnerable-corpse
+   bug in one read, and `gs-character-data-asset` stopped a change that would have disarmed five of
+   seven characters.
+5. **The bar is ACFU's showcase project**, not "works well enough".
+
+**Symptoms he named, all downstream of the same cause and all still open:** the grapple/climb never
+reached its potential (ACF's CharacterController owns climbing, ladders and vaulting); combat is
+boring and haphazard (GS abilities are plain `UGameplayAbility`, so ACF's Actions System, combo
+graph, chooser actions and collision manager are idle); weapons grip oddly and **the bow is held
+backwards right now** (no GS AnimBP is a `UACFAnimInstance`, so ACF's equipment-to-pose chain never
+runs).
+
+
 - **2026-08-31 (#391): `EnableLoadingScreen` FLIPPED TO `True` - STALE #335 TODO, UNOBSERVED.**
   Michael's report on release day: "there's no loading time after New Raid, so you can't tell if
   it's broken or not." `Config/DefaultPlugins.ini`'s `ALSLoadingScreenSettings` had
