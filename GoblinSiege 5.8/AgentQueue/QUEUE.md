@@ -212,13 +212,14 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 406 | review **STALE 19.3h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
+| 406 | review **STALE 19.6h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
 | 409 | review | claude-anim-spine | ACF animation spine: audit skeletons, references and AnimBP parents before migrating | none-investigation-only | none |
 | 410 | review | claude-rig-conform | Conform GS rigs to ACF Manny bone standard in Blender | none-investigation-only | none |
 | 411 | review | claude-rig-import | Land the conform script in Tools and import the conformed human rig | Tools/Rig/conform_to_manny.py | none |
 | 412 | review | claude-acf-animbp | First ACF AnimBP: ACF_Template_ABP child on the conformed human skeleton | none-content-only | none |
+| 413 | review | claude-retarget | Retarget FullSample animation library onto the conformed human rig | none-content-only | none |
 
-**BUILD GATE: CLOSED - 5 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 6 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
