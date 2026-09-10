@@ -212,9 +212,10 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 406 | review | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
+| 406 | review **STALE 17.9h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
+| 409 | review | claude-anim-spine | ACF animation spine: audit skeletons, references and AnimBP parents before migrating | none-investigation-only | none |
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
@@ -626,6 +627,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 404 | done | claude-fracture-guard | Validate generated fracture assets against the source mesh so #399 cannot recur |
 | 405 | done | claude-villagelag | General lag in the middle of the village during a raid |
 | 407 | done | claude-acf-revive | ACF conversion: ApplyRespawnState must revive ACFs damage handler |
+| 408 | abandoned | claude-acf-2b | ACF phase 2B: retire CharacterInitDataAsset, wire primaries and regen via ACF GEs |
 
 <!-- BOARD:END -->
 
