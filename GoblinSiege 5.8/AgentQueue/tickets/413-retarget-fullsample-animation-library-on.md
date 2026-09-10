@@ -71,3 +71,44 @@ Pistol, ladder and swim sets are untouched.
 Next: author a moveset implementing `ACF_Moveset_ALI` against these 66, assign it to
 `ABP_GS_Human_ACF`, and look at Erika actually walking. That is the first point where any of this is
 visible rather than measured.
+
+---
+
+## Michael caught a real defect: "I'm not sure the arm animations went through"
+
+He was right, and the cause was mine.
+
+**The target IK Rig had no goals and no solver.** I mirrored ACF's 19 retarget chains including their
+`ik_goal_name` fields (`hand_l_Goal`, `hand_r_Goal`, `foot_l_Goal`, `foot_r_Goal`) but never created
+the goals themselves or an IK solver, so the retargeter's "Run IK Rig" op had nothing to run:
+
+```
+SOURCE IK_ACF_UE5Manny     goals=[hand_l_Goal, hand_r_Goal, foot_l_Goal, foot_r_Goal]  solvers=1
+TARGET IK_SK_Human_Manny   goals=[]                                                     solvers=0
+```
+
+Measured against the source animation, sampling local bone rotation range over the clip:
+
+| bone | source | before fix | after fix |
+|---|---|---|---|
+| `upperarm_l` | 111.2 deg | **57.4 deg** | **109.2 deg** |
+| `calf_l` | 110.8 | 110.2 | 101.5 |
+| `spine_01` | 9.8 | 9.5 | 16.6 |
+
+Arm motion was arriving at roughly HALF its source range. `apply_auto_fbik()` on the target rig
+generated exactly the four goals ACF uses, with the same names, one solver, all four connected - then
+re-running the batch restored `upperarm_l` to 109.2 against the source's 111.2.
+
+**All 66 sequences were re-retargeted with the fixed rig.**
+
+## Unresolved, and deliberately not chased further on a bad instrument
+
+`pelvis` still measures 2.4 deg of local rotation range against the source's 84.5. But the Pelvis
+Motion op is at defaults with nothing damped - `rotation_alpha 1.0`, `translation_alpha 1.0`,
+`scale_horizontal 1.0`, `scale_vertical 1.0` - so there is no obvious cause in configuration.
+
+**The metric is crude and known-noisy:** it is a max euler-component spread, and it reports ~350 deg
+for `lowerarm_l`, `thigh_l` and `clavicle_l`, which is angle wrap rather than real motion. A reading
+it produces should not be trusted on its own. The pelvis may be genuinely flat, or the difference may
+be that the synthesised pelvis has a different local orientation so the same world motion reads
+differently. Handing this to Michael's eye rather than tuning against a number I do not trust.
