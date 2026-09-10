@@ -95,7 +95,9 @@ if "pelvis" not in eb:
         sp=eb.get("spine_01") or kids[0]
         pv=eb.new("pelvis")
         pv.head=sp.head.copy()
-        pv.tail=sp.head.copy()+mathutils.Vector((0,0,max(1.0,(sp.tail-sp.head).length*0.5)))
+        _d=(sp.tail-sp.head)
+        _len=max(1.0,_d.length*0.5)
+        pv.tail=sp.head.copy()+_d.normalized()*_len
         pv.use_connect=False
         for k in kids:
             k.parent=pv; k.use_connect=False
@@ -110,8 +112,25 @@ def mk(name, parent, head, tail):
 # Unconditional: the FBX importer absorbs a parentless root bone into the armature object on BOTH
 # rigs, so neither arrives with one even though the goblin authored `Root`. Everything - pelvis and
 # both IK roots - must descend from a single `root` or Unreal imports a multi-root skeleton.
+# ORIENT root AND pelvis ALONG THE BODY, NOT ALONG WORLD Z.
+#
+# Measured 2026-09-10: after the FBX round trip the body axis in this space is +Y - `spine_01` runs
+# (0, 1.00, -0.08) and `thigh_l` runs (0, -1.00, 0.02). An earlier version of this script created
+# `root` and `pelvis` with their tails at (0,0,10), i.e. up world Z, leaving their local axes about
+# 90 degrees off every other bone in the rig. The ref pose still looked correct, because head
+# positions were right - but the Pelvis Motion op applies the retargeted pelvis rotation in LOCAL
+# space, so it went about the wrong axes and the character animated permanently tilted sideways.
+# Michael: "she's also tilted sideways."
+#
+# Take the direction from `spine_01` so these two bones share the rig's own convention.
+_sp = eb.get("spine_01")
+if _sp is not None:
+    _up = (_sp.tail - _sp.head).normalized()
+else:
+    _up = mathutils.Vector((0, 1, 0))
+
 if "root" not in eb:
-    r=mk("root", None, mathutils.Vector((0,0,0)), mathutils.Vector((0,0,10)))
+    r=mk("root", None, mathutils.Vector((0,0,0)), _up * 10.0)
 for orphan in ("pelvis",):
     b=eb.get(orphan)
     if b and b.parent is None: b.parent=eb["root"]; b.use_connect=False
