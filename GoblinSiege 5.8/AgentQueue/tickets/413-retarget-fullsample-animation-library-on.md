@@ -254,3 +254,46 @@ locomotion. `UGSCharacterMovementComponent` exists purely to disarm ACF's state 
 come back until step 1 lands - the state machine never runs without a `UACFAnimInstance`." Step 1 has
 now landed. Erika is a `UACFAnimInstance` with a linked moveset and a conformed rig, so the
 precondition is satisfied and re-arming is the next slice.
+
+---
+
+## "Can we just rip the copies from FullSample?" - yes, and it is the right operation
+
+Michael's suggestion, and it corrects mine. **Duplicating an AnimBP copies its AnimGraph;
+retargeting one does not.** I reached for the retargeter because it had worked for animation
+sequences, and an AnimBP is not that kind of asset.
+
+`EditorAssetLibrary.duplicate_asset` on three FullSample assets into
+`/Game/Characters/ACFRigs/Human/Ripped/`, each with `target_skeleton` repointed to
+`SK_Human_Manny_Skeleton` and recompiled:
+
+| source | copy |
+|---|---|
+| `ACF_Humanoid_ABP` | `ABP_GS_Humanoid` (isACFAnimInstance **True**) |
+| `ACF_UnarmedMoveset` | `ABP_GS_UnarmedMoveset` |
+| `ACF_UnarmedOverlay` | `ABP_GS_UnarmedOverlay` |
+
+The AnimBP's `Moveset` layer was repointed at the duplicated moveset; `Moveset.Rifle` and
+`Moveset.Pistol` left on ACF's originals.
+
+The animations these reference remain on `ACF_UE5Manny`, which is fine because the two skeletons were
+marked compatible earlier - and that is only legitimate because the conform gave our rig Manny's exact
+bone names.
+
+**Verified live in PIE:**
+
+```
+animBP: ABP_GS_Humanoid_C
+current_moveset_instance: ABP_GS_UnarmedMoveset_C
+speed 250.0  normalized 0.385  is_moving True
+```
+
+Structurally complete: the AnimBP instantiates, the moveset links and is selected from the equipped
+weapon, and motion reaches it. **Whether she visibly animates is unverified** - PIE ended before a
+visual check and no measurement available from Python can answer it (the hand-span proxy was proven
+worthless, and the node-count check returns 0 even for known-good assets).
+
+**A method note worth keeping:** the node-count check reported `totalNodes=0` for the working
+FullSample reference as well as for our copies. Including known-good controls is what stopped it being
+reported as "the graph is empty" - the same guard that caught the invalid bone-name read earlier in
+this session, and the opposite of what happened with the three PIE-corrupted measurements.
