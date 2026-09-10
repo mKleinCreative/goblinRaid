@@ -993,6 +993,56 @@ next agent rediscovers it.
 
 ## NEXT
 
+### UI costs 4.60 ms a frame — folded into the ACF conversion, not its own ticket
+
+**Michael's ruling, 2026-09-09: "let's lump UI work into the ACF conversion."** The HUD is expected
+to move onto ACF's UI framework (Ascent UI Tools + the UI Navigation System, and ACF's own
+`WBP_FullHUD` now that #406 has installed FullSample), so optimising the bespoke
+`WBP_GSPlayerHUD` in place is throwaway work. **No standalone UI perf ticket. Read this before
+authoring the ACF-side HUD** — the cheapest moment to avoid a 4.6 ms per-frame UI cost is while
+building the replacement.
+
+**The measurement (Michael's 2,374-frame capture, `Saved/Profiling/CSV/Profile(20260909_165845).csv`).**
+After #405 cut shadows, `Exclusive/GameThread/UI` at **4.60 ms** is the largest identified
+game-thread cost in the game — bigger than Animation (2.65), TickActors (1.81) and
+CharacterMovement (1.67). The frame is 21.77 ms median and game-thread bound.
+
+**The clue that matters: Slate is cheap.** `DrawPrePass` 1.75, `TickPlatform` 0.21,
+`DrawWindows_Private` 0.15, `PaintFastPath` 0.05, `SObjectWidget_Tick` 0.03,
+`AllWorkers/Slate` 0.14, `RenderThread/Slate` 0.09, `GPU/SlateUI` 0.10. **Slate is ~2.2 ms of the
+4.60 — over half the cost is outside Slate's own timers entirely.** `DrawCall/SlateUI` is 159,
+which is a lot of batches for a health bar, stamina bar, clock, lives row, objective list and
+reticle.
+
+**Prime suspect: UMG property Bindings.** A `Binding` on any widget property is a Blueprint
+function evaluated every frame, on the game thread, per bound property, and its cost lands in the
+UI bracket rather than in any Slate stat — which is exactly the gap above. Checked first, and the
+C++ side is NOT the problem: `UGSPlayerHUDWidget::NativeTick` only runs bind-retries plus
+`TickRefusalShake`, and the expensive rebuilds (`RebuildObjectiveList`, `RefreshLivesRow`, which
+`ClearChildren()` and re-`CreateWidget`) are event-driven, so they do not run on the measured
+frames. **Do not start by optimising the rebuild** — it looks heavy and is not what the measurement
+is pointing at. `WBP_GSObjectiveRow` is the one to watch, since a binding on it is multiplied by
+the number of rows on screen.
+
+**Whoever builds the ACF HUD:** count the Bindings before you ship it, prefer event-driven pushes
+(the C++ HUD is already shaped for this — `RefreshLivesRow` and `RebuildObjectiveList` are called
+from delegates), and re-measure against the 4.60 ms baseline. Refuse to land a HUD worse than the
+one it replaces. If `DrawPrePass` turns out to dominate instead, the levers are
+`Slate.EnableGlobalInvalidation 1` as a blunt A/B and Invalidation Boxes as the targeted fix.
+
+**Two measurement rules, both learned by getting them wrong on 2026-09-09 (#405):**
+1. **The editor throttles PIE when its window is not focused** — `render=0.0` and FrameTime pinned
+   at 333.33 ms are the tell, and every number taken that way is meaningless. Michael's captures
+   are trustworthy because he plays focused; an agent driving the editor over HTTP must set
+   `Slate.bAllowThrottling 0` **in the same script as the measurement** (the ini setting did not
+   hold).
+2. **Use `csvprofile start`/`stop` and read the CSV, not `stat dumpframe`.** Single frames misled
+   twice in one session — once naming `FTicker_Tick` (it was the throttle's idle time) and once
+   pointing at translucency (the GPU breakdown then showed shadows at 77%). Add
+   `r.GPUCsvStatsEnabled 1` before starting for the per-pass `GPU/` columns; `-csvGpuStats` is a
+   command-line switch, not a console command.
+
+
 - **2026-09-01: Class deadline shipped (packaged build uploaded to itch); Sept 8 is the FINAL
   deadline for polish.** Two known issues from the live packaged playtest were deliberately NOT
   fixed before shipping (Michael's call - "that's what matters," ship now, fix after):
