@@ -212,10 +212,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 406 | review **STALE 17.9h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
+| 406 | review **STALE 18.1h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
 | 409 | review | claude-anim-spine | ACF animation spine: audit skeletons, references and AnimBP parents before migrating | none-investigation-only | none |
+| 410 | review | claude-rig-conform | Conform GS rigs to ACF Manny bone standard in Blender | none-investigation-only | none |
 
-**BUILD GATE: CLOSED - 2 ticket(s) still open. Do not build game files.**
+**BUILD GATE: CLOSED - 3 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
