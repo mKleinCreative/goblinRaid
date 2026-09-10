@@ -212,12 +212,15 @@ escape hatch is `abandoned`, not a build that ignores it.
 
 | # | status | agent | title | claimed files | build |
 |---|--------|-------|-------|---------------|-------|
-| 406 | review **STALE 19.6h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
-| 409 | review | claude-anim-spine | ACF animation spine: audit skeletons, references and AnimBP parents before migrating | none-investigation-only | none |
-| 410 | review | claude-rig-conform | Conform GS rigs to ACF Manny bone standard in Blender | none-investigation-only | none |
-| 411 | review | claude-rig-import | Land the conform script in Tools and import the conformed human rig | Tools/Rig/conform_to_manny.py | none |
+| 406 | review **STALE 21.1h** | claude-acfsample | Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes | .gitignore<br>CLAUDE.md<br>.claude/skills/gs-character-data-asset/SKILL.md<br>.claude/skills/gs-behaviour-tree-wiring/SKILL.md<br>Content/FullSample | none |
+| 409 | review **STALE 3.3h** | claude-anim-spine | ACF animation spine: audit skeletons, references and AnimBP parents before migrating | none-investigation-only | none |
+| 410 | review **STALE 3.1h** | claude-rig-conform | Conform GS rigs to ACF Manny bone standard in Blender | none-investigation-only | none |
+| 411 | review **STALE 2.9h** | claude-rig-import | Land the conform script in Tools and import the conformed human rig | Tools/Rig/conform_to_manny.py | none |
 | 412 | review | claude-acf-animbp | First ACF AnimBP: ACF_Template_ABP child on the conformed human skeleton | none-content-only | none |
 | 413 | review | claude-retarget | Retarget FullSample animation library onto the conformed human rig | none-content-only | none |
+
+**STALE - #406, #409, #410, #411 open longer than 2h.** Ask Michael whether each is
+still live before doing anything about it. Run `gsqueue.ps1 list` for the wording.
 
 **BUILD GATE: CLOSED - 6 ticket(s) still open. Do not build game files.**
 
@@ -632,6 +635,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 405 | done | claude-villagelag | General lag in the middle of the village during a raid |
 | 407 | done | claude-acf-revive | ACF conversion: ApplyRespawnState must revive ACFs damage handler |
 | 408 | abandoned | claude-acf-2b | ACF phase 2B: retire CharacterInitDataAsset, wire primaries and regen via ACF GEs |
+| 414 | abandoned | claude-locomotion | Re-arm ACF locomotion states now that a UACFAnimInstance exists |
 
 <!-- BOARD:END -->
 
