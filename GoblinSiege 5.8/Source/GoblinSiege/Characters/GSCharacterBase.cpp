@@ -1052,6 +1052,31 @@ void AGSCharacterBase::ApplyRespawnState(float HealthFraction, float Invulnerabi
 {
 	bIsDead = false;
 
+	// TELL ACF THE CHARACTER IS ALIVE AGAIN. Nothing in this project ever did.
+	//
+	// `grep -rn "Revive" Source/GoblinSiege` returned ZERO hits before this line. Death was migrated
+	// to ACF in phase 2A - AGSCharacterBase binds its consequences to DamageHandler->OnOwnerDeath and
+	// drains ACF's health attribute clamped to zero to fire it - but the revive half never was. Only
+	// UACFDamageHandlerComponent::Revive() ever writes bIsAlive back to true, and nothing called it.
+	//
+	// Today that is masked: AGSGameMode::RespawnPlayer leaves the corpse standing and RestartPlayer
+	// hands out a brand-new pawn with a fresh bIsAlive. But this function is virtual and
+	// BlueprintCallable, so it reads as the project's general "bring this character back" verb. Used
+	// IN PLACE on an existing corpse - a downed ally picked up, a healer, a debug un-kill, a boss
+	// phase reset - it produced a character alive to every GS check and dead to every ACF one:
+	// full health, walking, State.Dead cleared, absent from every UACFGroupAIComponent roster, and
+	// PERMANENTLY INVULNERABLE, because UACFDamageHandlerComponent::TakeDamage early-returns while
+	// !GetIsAlive() and the ACF damage path is live behind GSUseACFDamage.
+	//
+	// ReviveCharacter is ACF's own entry point and already does Revive() + a health write + unlocking
+	// actions + MOVE_Walking. Deliberately NOT hand-rolling Revive() here: called alone it leaves a
+	// living character at 0 HP that can never die again, because ACF's death test fires only on a
+	// CHANGE to exactly 0.f and the health is already there.
+	if (HasAuthority())
+	{
+		ReviveCharacter(FMath::Clamp(HealthFraction, 0.f, 1.f));
+	}
+
 	// Drop the health sample so the respawn refill is not measured against the corpse's zero.
 	LastKnownHealth = -1.f;
 

@@ -625,6 +625,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 403 | done | claude-trees | Trees vanish during field fire and mass collapse |
 | 404 | done | claude-fracture-guard | Validate generated fracture assets against the source mesh so #399 cannot recur |
 | 405 | done | claude-villagelag | General lag in the middle of the village during a raid |
+| 407 | done | claude-acf-revive | ACF conversion: ApplyRespawnState must revive ACFs damage handler |
 
 <!-- BOARD:END -->
 
