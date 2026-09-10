@@ -127,6 +127,32 @@ if hr: mk("ik_hand_r","ik_hand_gun",hr.head.copy(),hr.tail.copy())
 if hl: mk("ik_hand_l","ik_hand_gun",hl.head.copy(),hl.tail.copy())
 bpy.ops.object.mode_set(mode='OBJECT')
 
+# NORMALIZE SKIN WEIGHTS.
+#
+# Measured on the source human rig 2026-09-10: 1,057 of 11,969 vertices (~9%) have influence weights
+# that do not sum to 1, with a MEDIAN SUM OF 0.492 - those vertices follow their bones at about half
+# strength, so the surface lags behind the skeleton and reads as stretching. They cluster on
+# `Spine` (561), `LeftUpLeg` (227), `RightUpLeg` (218) and `Spine1` (51), i.e. the torso and upper
+# legs. Three vertices carry no weight at all.
+#
+# This is a defect in the ORIGINAL art, not something the conform introduces - bone transforms and
+# weights are otherwise bit-identical through the round trip (verified: worst axis deviation 0.00
+# degrees, identical group and influence counts). Normalising here is the one place the pipeline can
+# fix it for free, and it makes the conformed rig deform better than the rig it replaces.
+for ob in [o for o in bpy.data.objects if o.type == 'MESH']:
+    if not ob.vertex_groups:
+        continue
+    bpy.context.view_layer.objects.active = ob
+    fixed = 0
+    for v in ob.data.vertices:
+        total = sum(g.weight for g in v.groups)
+        if total > 0.0 and abs(total - 1.0) > 0.001:
+            for g in v.groups:
+                ob.vertex_groups[g.group].add([v.index], g.weight / total, 'REPLACE')
+            fixed += 1
+    print("NORMALIZED %s: %d vertex(es)" % (ob.name, fixed))
+bpy.context.view_layer.objects.active = arm
+
 print("RENAMED:",renamed," MISSING:",missing)
 print("FINAL BONES:",len(arm.data.bones))
 print("IK PRESENT:",[b.name for b in arm.data.bones if b.name.startswith("ik_")])
