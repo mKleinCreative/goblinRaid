@@ -99,3 +99,59 @@ Proposed order, smallest risk first, nothing authored yet:
 3. Only then migrate the rest, and only then revisit root motion - it is a per-asset boolean once
    the motion is on the right rig, and it will change spacing and AI engagement distances when it
    lands.
+
+---
+
+## Pre-check RUN, 2026-09-10 — and it changes the template choice
+
+`gs-anim-rig-compatibility` gives a one-line gate before adopting any ACF anim template: does the
+target skeleton contain `pelvis` AND `ik_foot_root` AND (`ik_foot_l`, `foot_l`, `thigh_l`)?
+
+Read from the assets' name tables, **with ACF's own Manny as a control** (the previous attempt via
+`bone_tree` returned `BoneNode` structs and reported Manny as having no pelvis, which is impossible -
+that measurement was discarded rather than reported):
+
+| skeleton | pelvis | ik_foot_root | ik_foot_l | foot_l | thigh_l | verdict |
+|---|---|---|---|---|---|---|
+| `ACF_UE5Manny` (control) | YES | YES | YES | YES | YES | passes |
+| `SK_Human_Skeleton` | no - `Hips` | no | no | no | no | **FAILS** |
+| `GOB_Scout_v2_Skeleton` | `Pelvis` only | no | no | no | no | **FAILS** |
+
+**So the plan in Refine step 2 above was wrong and is corrected here: use `ACF_SimpleTemplate_ABP` +
+`ACF_SimpleMoveset`, NOT `ACF_Template_ABP` + `ACF_BaseMoveset`.**
+
+`ACF_BaseMoveset` is built from 5 StrideWarping + 5 OrientationWarping nodes whose bone refs are
+`pelvis`, `ik_foot_root`, `ik_foot_l/r`, `foot_l/r`, `thigh_l/r`, `spine_01..05`.
+`FAnimNode_StrideWarping::IsValidToEvaluate` returns **false with no log at all** when those are
+absent. The character would animate, the editor would compile clean, and what we would lose is
+stride scaled to ground speed and lower-body strafe orientation - uniform foot-sliding at every
+speed, which reads as a blendspace-tuning problem. `ACF_SimpleMoveset` has zero bone references and
+zero warping nodes, and ACF's own sample enemy uses that family.
+
+Note the skill's table cites `GOB_Scout_v3_baked_Skeleton` while the characters in use are on
+**v2**. Immaterial: both are 41 bones and both fail the same gate.
+
+## Michael's point about FullSample, answered
+
+FullSample carries ~1000 sequences on `ACF_UE5Manny`, and he is right that they would resolve a lot
+of what is coming (combos, executions, mounts, climbing). Using them means an **IK Retargeter** from
+`ACF_UE5Manny` to each GS rig, not a reparent - the bone names share nothing
+(`Hips` vs `pelvis`, `L_Thigh` vs `thigh_l`), so the chain mapping has to be authored per rig.
+
+**Two constraints on that retarget, both already paid for once:**
+- **Disable the Root Motion op and set Pelvis Motion `ScaleHorizontal = 0`**, which is what ticket
+  #333 landed on after the first attempt baked 223 uu of travel into the hips.
+- **Never set `force_root_lock` on either rig.** `ResetRootBoneForRootMotion` replaces the entire
+  transform of **bone 0 by position, with no name check** - which is `Hips` on the human (the bone
+  carrying the pose) and `Root` on the goblin. On the human clips it measured a Hips Z-span of
+  **0.00** against 6.76 uu on a never-locked idle: the bob, sway and hip rotation were deleted along
+  with the travel, and it reached Michael as "a little stiff".
+
+## Also worth fixing while in here
+
+`GS.Anim.Snapshot` - the project's only automated animation check - **starts its loop at bone 1**
+(`GSAnimDebugCommands.cpp:111-112`) and compares rotation only. Bone 0 is exactly where both GS rigs
+fail. A re-introduced root lock, a retargeter zeroing the target root, or a clip imported without its
+hip track all express themselves at bone 0 and only bone 0, and all of them currently PASS. Two
+columns close it: the name of bone 0, and the Z-span of bone 0 and of `Hips`/`Pelvis` over the last N
+frames.
