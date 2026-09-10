@@ -151,3 +151,64 @@ BP_ErikaArcher_C_3   animBP: ABP_GS_Human_ACF_C
    `link_anim_class_layers`) and its replacement takes a class rather than a tag; the call failed and
    was left failing rather than forced. The overlay is the upper-body weapon layer - it is what
    `Moveset.Bow` will drive, so it matters for the bow, but it is not needed for walking.
+
+---
+
+## The T-pose, root-caused: the bow had no moveset tag
+
+Michael: "still tposing and frozen, but moving along the paths, she's also tilted sideways."
+
+Two separate defects, both found by reading ACF's source rather than guessing further.
+
+### 1. The tilt (mine)
+
+`root` and `pelvis` are bones this pipeline SYNTHESISES, and I gave them tails at (0,0,10) - up world
+Z - while the rig's body axis after the FBX round trip is +Y (`spine_01` runs (0, 1.00, -0.08)).
+Their local axes sat ~90 degrees off every other bone. The reference pose looked right because head
+POSITIONS were correct, which is why it passed every check; but the Pelvis Motion op applies the
+retargeted rotation in LOCAL space, so it went about the wrong axes. Both bones now take their
+direction from `spine_01`. Fixed in `conform_to_manny.py` and verified: root, pelvis and spine_01 all
+report direction (0, 1.00, -0.08) with identical X and Z axes.
+
+### 2. The T-pose - and it is the SAME missing field as the backwards bow
+
+Traced through ACF's own code rather than guessed:
+
+- `ACFCharacter.cpp:250` - `movesetTag = EquipmentComp->GetCurrentDesiredMovesetTag()`
+- `ACFCharacter.cpp:284` - `if (movesetTag != FGameplayTag() && ...) acfAnimInst->SetMoveset(...)`
+- `ACFEquipmentComponent.cpp:215` - returns `GetCurrentMainWeapon()->GetAssociatedMovesetTag()`
+- `ACFWeapon.h:68` - `return Moveset;` - a `FGameplayTag` on the weapon DEFINITION
+
+Measured live: Erika **does** have her bow equipped (`BP_ACFWeapon_ErikaBow_C_0`), but
+`GetCurrentDesiredMovesetTag()` returned **None**. `BP_Item_ErikaBow`'s `Moveset` tag was empty, so
+the non-empty check at :284 failed, `SetMoveset` was never called, no moveset layer linked, and the
+AnimGraph's moveset layer fell through to the reference pose. **That is the T-pose.**
+
+Set `BP_Item_ErikaBow.Moveset = Moveset` - the tag reused from the working `ACF_Humanoid_ABP`
+reference rather than invented. Verified in a fresh PIE with no Python intervention:
+
+```
+animBP=ACF_Humanoid_ABP_GSH_C   moveset=ACF_UnarmedMoveset_GSH_C
+```
+
+**This is also why the bow is held wrong.** ACF's convention maps `Moveset.Bow -> ACF_MMBowOverlay`,
+the layer that poses the hands for a bow. A weapon with no tag gets neither a moveset nor an overlay,
+so nothing has ever posed her hands for the bow she is carrying. `Moveset` is the base locomotion tag
+and is the correct value for now (bow is an OVERLAY in ACF's reference, not a moveset); wiring
+`Moveset.Bow` as the overlay is the next step and is the real fix for the grip.
+
+### A metric I should have abandoned sooner
+
+Hand-to-hand distance was used as a T-pose proxy and returned **exactly 237.9 uu in every state**,
+including with no anim instance at all. A number that never moves is not measuring the thing. Michael
+called it out ("Measuring the pose?"); it was reading the reference pose, not the animated one. The
+useful checks in this section are all reads of ACF's own state (`current_moveset_instance`,
+`GetCurrentDesiredMovesetTag`), not geometry.
+
+### Also on the pile, from the earlier attempts
+
+`ABP_GS_Human_ACF` (child of `ACF_Template_ABP` via `parent_class`) has an EMPTY AnimGraph - a
+template's graph does not come across that way. The working asset is `ACF_Humanoid_ABP_GSH`, produced
+by retargeting ACF's own humanoid AnimBP; note the batch operation reported "0 AnimBlueprints" in its
+return value while having created it. Michael's editor-made `ABP_GS_Human` also exists and is
+untested.
