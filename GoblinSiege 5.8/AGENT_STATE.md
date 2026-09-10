@@ -336,6 +336,36 @@ next agent rediscovers it.
 
 ## DECISIONS
 
+### CORRECTION, 2026-09-10 — WE DO HAVE ROOT MOTION. THE FLAG IS OFF, THAT IS ALL.
+
+I told Michael "ACF's montages expect root motion we deliberately stripped" while planning the
+animation spine. **That was wrong, and he caught it as a hallucination.** It was repeated from
+`gs-anim-adoption-gaps`'s summary line without checking a single asset.
+
+**Measured, 2026-09-10, in `/Game/CombatMasterBundle/Animations/DynamicAxe/Manny_UE5/RootMotion/`:**
+
+- **25 `_RM` anim sequences exist** — 16 combo attacks, 3 common attacks, 3 hit/die, 2 idle, 1 buff.
+- **All 25 have `enable_root_motion = False`** (and `force_root_lock = False`).
+- **The root track genuinely carries motion**, sampled at 21 points across each:
+
+| asset | length | max root displacement |
+|---|---|---|
+| `Anim_DA_CommonAttack_A_RM` | 1.60 s | **364.56 uu** |
+| `Anim_DA_Combo_A1_RM` | 1.25 s | **94.56 uu** |
+| `Anim_DA_Idle_A_RM` | 2.08 s | 2.44 uu (static, correct for an idle) |
+
+**So the animation spine's supposed blocker does not exist.** Adopting ACF's root-motion montages
+needs `enable_root_motion` enabled on the attack/combo/hit sequences — a per-asset boolean, batchable
+from Python — not new animation work. Idles should stay off.
+
+**Expect a real feel change when it goes on:** a common attack will carry the character 364 uu. That
+weight is the point, and it is what ACF's combat is built around, but it will need tuning against
+capsule collision and the engagement distances the AI uses.
+
+**`gs-anim-adoption-gaps` needs correcting** — its "root motion we deliberately removed" line is what
+produced the false claim. The data was never removed; the flag was.
+
+
 ### RULING, 2026-09-10 — ACF IS THE SYSTEM. GS CODE IS THE EXCEPTION, AND IT NEEDS PERMISSION.
 
 **Michael, in full, after a session spent fighting GS-authored systems:** *"We have been CONSTANTLY
