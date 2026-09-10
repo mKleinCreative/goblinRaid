@@ -112,3 +112,42 @@ for `lowerarm_l`, `thigh_l` and `clavicle_l`, which is angle wrap rather than re
 it produces should not be trusted on its own. The pelvis may be genuinely flat, or the difference may
 be that the synthesised pelvis has a different local orientation so the same world motion reads
 differently. Handing this to Michael's eye rather than tuning against a number I do not trust.
+
+---
+
+## Moveset linked, 2026-09-10 - she has ACF locomotion
+
+**ACF movesets are NOT data-only children.** `anim-blueprints` says children of a base are data-only
+("assign animations, never re-author graph logic"), which implied a child of `ACF_BaseMoveset` with
+animation properties to fill in. Checked the CDO: `ACF_BaseMoveset` and `ACF_UnarmedMoveset` expose
+**zero** animation properties - the sequences are baked into AnimGraph nodes. So a moveset cannot be
+authored by setting properties; it has to be retargeted like any other animation asset.
+
+**Retargeted the moveset and overlay AnimBPs through the same retargeter.** Two assets in, **95
+out** - `ACF_UnarmedMoveset_GSH`, `ACF_UnarmedOverlay_GSH`, their bases `ACF_BaseMoveset_GSH` /
+`ACF_BaseOverlay_GSH`, and every animation, blendspace and aim offset they reference, all on
+`SK_Human_Manny_Skeleton`.
+
+**Wired into `ABP_GS_Human_ACF`.** The layer system is two arrays of `{tag_name, class}` structs -
+`moveset_layers` and `overlay_layers` - keyed by GameplayTag. Read the convention off the working
+reference `ACF_Humanoid_ABP` rather than inventing tags: `Moveset` (unarmed), `Moveset.Rifle`,
+`Moveset.Pistol`, `Moveset.SingleHandSword`, **`Moveset.Bow`**. Ours now carries
+`Moveset -> ACF_UnarmedMoveset_GSH_C` and `Moveset -> ACF_UnarmedOverlay_GSH_C`.
+
+**Verified live in PIE:**
+
+```
+BP_ErikaArcher_C_3   animBP: ABP_GS_Human_ACF_C
+  set_moveset(Moveset) -> current_moveset_instance = ACF_UnarmedMoveset_GSH_C
+```
+
+**Two things NOT done, and neither should be mistaken for working:**
+
+1. **The moveset does not select itself.** `current_moveset_instance` is None on spawn; ACF picks the
+   moveset from the equipped weapon's tag, and nothing drives that yet. It was applied by calling
+   `set_moveset` from Python, which does not persist across a PIE restart. Wiring the equipment ->
+   moveset-tag path is the next slice, and it is the same path that will select `Moveset.Bow`.
+2. **The overlay is not linked.** `set_layer_overlay` is deprecated (renamed
+   `link_anim_class_layers`) and its replacement takes a class rather than a tag; the call failed and
+   was left failing rather than forced. The overlay is the upper-body weapon layer - it is what
+   `Moveset.Bow` will drive, so it matters for the bow, but it is not needed for walking.
