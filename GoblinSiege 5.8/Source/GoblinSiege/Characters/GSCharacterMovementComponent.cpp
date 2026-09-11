@@ -45,6 +45,30 @@ UGSCharacterMovementComponent::UGSCharacterMovementComponent(const FObjectInitia
 
 void UGSCharacterMovementComponent::BeginPlay()
 {
+	// RE-ASSERT THE PATH-FOLLOWING ACCELERATION FLAG. The constructor sets it (see above) and the
+	// value survives all the way down the archetype chain - measured 2026-09-10: the C++ CDO reads
+	// true, and so does BP_ErikaArcher's Blueprint CDO - but a LIVE instance in PIE reads FALSE.
+	// Something between construction and here clears it.
+	//
+	// WHAT IS NOT THE CAUSE, each checked: no code in Source/GoblinSiege or in the whole ACF plugin
+	// writes `bUseAccelerationForPaths` or `NavMovementProperties` (grepped, zero hits); the engine
+	// writes it in exactly one place, `UNavMovementComponent::Serialize`
+	// (`NavMovementComponent.cpp:44`), which is `WITH_EDITOR` and load-time only.
+	//
+	// PRIME SUSPECT, NOT PROVEN: `UACFCharacterInitializerComponent` runs on every GS character
+	// (`GSCharacterBase.cpp:118` SetAutoInit(true)) and every character carries a
+	// `CharacterInitDataAsset` - `DA_Char_Archer` on Erika. That component overwrites component
+	// properties from the DataAsset at BeginPlay, and its unset fields push CDO defaults rather than
+	// being inert; see `.claude/skills/gs-character-data-asset`, which documents the same class of
+	// surprise for the capsule and the rotation mode. It is documented there as overwriting the
+	// capsule and RotationMode, not nav properties, so this is a suspicion and not a diagnosis.
+	//
+	// Re-asserting here is robust whatever the cause, and it is the same belt-and-braces shape as
+	// the MaxWalkSpeed restore below. If the real cause is ever found, delete this and keep the
+	// constructor. Do NOT "simplify" by removing the constructor and keeping only this: a pawn that
+	// never reaches BeginPlay (an editor preview, a CDO query) should still report the right value.
+	NavMovementProperties.bUseAccelerationForPaths = true;
+
 	if (!bDisarmLocomotionStates)
 	{
 		// ACF's locomotion state machine stays ARMED for this character. The LocomotionStates bands
