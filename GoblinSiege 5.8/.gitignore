@@ -88,6 +88,78 @@ Content/*
 #
 # The default Content/ ignore already covers it. This comment exists only so the next reader
 # recognises it as a decision rather than the seventh instance of that bug.
+#
+# AMENDED 2026-09-10 (#416): the BULK of FullSample stays ignored, but the exact dependency
+# closure of the animation stack our characters run is now TRACKED, below.
+#
+# Why: `BP_ErikaArcher` runs ACF's own `ACF_Humanoid_ABP` directly - no conform script, no
+# retarget library, no duplicated assets, which is the whole point of the ACF conversion. That
+# makes a shipping character depend on gitignored content: a package built on this machine is
+# fine, but a clean `git clone` opens with a broken archer and no obvious reason why.
+#
+# The closure was MEASURED, not guessed: walking hard dependencies from `ACF_Humanoid_ABP`
+# reaches **292 packages totalling 126.4 MB** - 2.7% of FullSample. Dominated by
+# `Animations/Locomotion` (201: the Unarmed, Rifle and Pistol movesets) and `AimOffsets` (48).
+#
+# Negating the closure IN PLACE is deliberately preferred over copying those assets into
+# `Content/Characters/`: duplication would mean repointing every reference and would permanently
+# FORK them from ACF, so plugin updates would silently stop reaching our characters. Tracked in
+# place, they still update when FullSample is re-copied.
+#
+# If a future character needs something outside these folders, re-measure the closure rather than
+# adding paths by guesswork - the measurement script is in ticket #416.
+!Content/FullSample/
+Content/FullSample/*
+!Content/FullSample/Animations/
+Content/FullSample/Animations/*
+!Content/FullSample/Animations/ACF_Humanoid_ABP.uasset
+!Content/FullSample/Animations/BS_MM_Rifle_Jog_Leans.uasset
+!Content/FullSample/Animations/Locomotion/
+!Content/FullSample/Animations/AimOffsets/
+!Content/FullSample/Animations/OriginalAnimations/
+!Content/FullSample/Animations/AnimBPs/
+!Content/FullSample/Animations/Rider/
+!Content/FullSample/Animations/ForwardFacing/
+# GASP is negated FILE BY FILE, deliberately. Negating the two directories the closure touches
+# (`GASP/Animations/`, `GASP/UEFN_Mannequin/`) tracked **1,056 files / 1,049 MB** - the whole
+# Game Animation Sample motion-matching database - where the closure needs exactly SEVEN packages.
+# Caught by measuring the staged size before committing, not after. Directory negation tracks the
+# DIRECTORY; it does not track "the files in it that something references".
+!Content/FullSample/GASP/
+Content/FullSample/GASP/*
+!Content/FullSample/GASP/Animations/
+Content/FullSample/GASP/Animations/*
+!Content/FullSample/GASP/Animations/Overlays/
+Content/FullSample/GASP/Animations/Overlays/*
+!Content/FullSample/GASP/Animations/Overlays/ACF_MMBaseOverlay.uasset
+!Content/FullSample/GASP/Animations/Overlays/ACF_MMBowOverlay.uasset
+!Content/FullSample/GASP/Animations/Overlays/ACF_MMSwordOverlay.uasset
+!Content/FullSample/GASP/Animations/Overlays/Poses/
+Content/FullSample/GASP/Animations/Overlays/Poses/*
+!Content/FullSample/GASP/Animations/Overlays/Poses/Protector_Idle1.uasset
+!Content/FullSample/GASP/UEFN_Mannequin/
+Content/FullSample/GASP/UEFN_Mannequin/*
+!Content/FullSample/GASP/UEFN_Mannequin/Meshes/
+Content/FullSample/GASP/UEFN_Mannequin/Meshes/*
+!Content/FullSample/GASP/UEFN_Mannequin/Meshes/SKM_UEFN_Mannequin.uasset
+!Content/FullSample/GASP/UEFN_Mannequin/Meshes/SKM_UEFN_Mannequin_Physics.uasset
+!Content/FullSample/GASP/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin.uasset
+# The bow PROP is outside the AnimBP's dependency closure - it is a weapon item, referenced by the
+# weapon Blueprint rather than by the animation graph - so the measured closure above does not
+# reach it. Added explicitly (1.6 MB): the mesh, its own `Bow_Skeleton`, `Bow_AnimBP` and the
+# draw/loop/release montages that animate the STRING, plus the arrow and the bow audio cues.
+# `UACFBowAnimInstance` drives the string from a socket named `Arrow` (`ACFBowAnimInstance.cpp:17`).
+!Content/FullSample/Assets/
+Content/FullSample/Assets/*
+!Content/FullSample/Assets/Weapons/
+Content/FullSample/Assets/Weapons/*
+!Content/FullSample/Assets/Weapons/Bow/
+!Content/FullSample/Assets/Items/
+Content/FullSample/Assets/Items/*
+!Content/FullSample/Assets/Items/BowAndArrow/
+!Content/FullSample/Audio/
+Content/FullSample/Audio/*
+!Content/FullSample/Audio/Bow/
 
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.

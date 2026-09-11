@@ -210,9 +210,11 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-_Queue is empty. The build gate is OPEN._
+| # | status | agent | title | claimed files | build |
+|---|--------|-------|-------|---------------|-------|
+| 416 | queued | claude-archer-kit | Erika's ACF archer kit: bow aim offset, bow overlay, animated bow prop, combat montages | Content/Blueprints/Adversaries/BP_ErikaArcher.uasset<br>Content/Items/BP_Item_ErikaBow.uasset<br>Content/Characters/Humans/ErikaArcher<br>Content/Data/Weapons/DA_Weapon_Erika.uasset | none |
 
-**BUILD GATE: OPEN - and 108 finished ticket(s) asked for a build.**
+**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
 
 ### Closed
 
