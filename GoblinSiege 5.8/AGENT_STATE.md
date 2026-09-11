@@ -352,6 +352,33 @@ next agent rediscovers it.
 
 ## DECISIONS
 
+### #416 closed UNOBSERVED, 2026-09-11 — the bow overlay LINKS; nobody has seen it held
+
+Michael was asleep. What is **proven by measurement**, live in PIE on all four archers:
+`animBP=ABP_GS_Archer_C`, `moveset=ACF_UnarmedMoveset_C`, `overlay=ACF_MMBowOverlay_C`,
+`|accel|=3493.5`. The equipment-to-pose chain runs end to end for the first time.
+
+What is **NOT proven**: that the bow is held correctly. That is the entire point of the ticket and
+it is a visual judgement — the exact class of thing this session proved my instruments cannot
+answer. **If the bow still looks wrong, the tag chain is not the place to look**: it is verified.
+Look at the overlay's blend mask resolving across skeletons (`AnimationRuntime.cpp:2488-2491`
+remaps mask bone indices between the authoring skeleton and ours), since `ACF_MMBowOverlay` is
+authored on `SK_UEFN_Mannequin` and Erika is on `SK_Erika_Rigged_Skeleton`.
+
+**The finding worth keeping either way.** `ACFWeapon` has THREE tag fields — `Moveset` (`:68`),
+`MovesetActions` (`:76`) and `MovesetOverlay` (`:84`) — and the overlay comes from
+**`MovesetOverlay`**, never from `Moveset` (`ACFEquipmentComponent.cpp:231-241` ->
+`ACFCharacter.cpp:249`). Ours was unset. And the two setters are ASYMMETRIC: `SetMoveset` has no
+else branch (`ACFAnimInstance.cpp:51-64`) so a miss leaves the old moveset linked, while
+`SetAnimationOverlay` calls `RemoveOverlay()` on a miss (`:111`) and NULLS the instance. That
+asymmetry is why "moveset linked, overlay None" was so hard to read. **`MovesetActions` is still
+unset on the bow** and is the likely gate on draw/loose montages.
+
+**A regression avoided, recorded because the earlier plan proposed it as a one-liner.**
+`ACF_Humanoid_ABP` maps `Moveset.Bow` to an overlay but to NO moveset, and `FindByKey` is an exact
+`FGameplayTag` match (`ACFAnimTypes.h:35`). Retagging the bow to `Moveset.Bow` without first adding
+a moveset entry would have made `SetMoveset` find nothing and silently killed locomotion.
+
 ### CORRECTIONS, 2026-09-10 (#415) — five claims I asserted this session are FALSE. Read this before any rig work.
 
 Three adversarial audits (process, skinning, claims) went over a day of rig work. The corrections

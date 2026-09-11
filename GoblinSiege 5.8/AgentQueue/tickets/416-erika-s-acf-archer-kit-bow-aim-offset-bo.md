@@ -2,13 +2,13 @@
 id: 416
 title: Erika's ACF archer kit: bow aim offset, bow overlay, animated bow prop, combat montages
 agent: claude-archer-kit
-status: queued
+status: done
 claimed: 2026-09-11T03:20Z
 build: none
 waiting_on:
-evaluated:
-observed:
-scenario:
+evaluated: 2026-09-11T07:53:05Z
+observed: UNOBSERVED 2026-09-11T07:53:06Z - Michael is asleep. The overlay LINKING is verified by measurement in PIE (overlay=ACF_MMBowOverlay_C on all four archers), but whether the bow is HELD CORRECTLY is a visual judgement no measurement here can settle, and it is the actual point of the ticket. Needs his eyes before this can be called done.
+scenario: none - never run
 files: 
   - Content/Blueprints/Adversaries/BP_ErikaArcher.uasset
   - Content/Items/BP_Item_ErikaBow.uasset

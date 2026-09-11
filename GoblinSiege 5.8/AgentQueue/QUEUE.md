@@ -210,11 +210,9 @@ escape hatch is `abandoned`, not a build that ignores it.
 <!-- BOARD:BEGIN -->
 ### Open - in queue order (lowest id has right of way)
 
-| # | status | agent | title | claimed files | build |
-|---|--------|-------|-------|---------------|-------|
-| 416 | queued | claude-archer-kit | Erika's ACF archer kit: bow aim offset, bow overlay, animated bow prop, combat montages | Content/Blueprints/Adversaries/BP_ErikaArcher.uasset<br>Content/Items/BP_Item_ErikaBow.uasset<br>Content/Characters/Humans/ErikaArcher<br>Content/Data/Weapons/DA_Weapon_Erika.uasset | none |
+_Queue is empty. The build gate is OPEN._
 
-**BUILD GATE: CLOSED - 1 ticket(s) still open. Do not build game files.**
+**BUILD GATE: OPEN - and 108 finished ticket(s) asked for a build.**
 
 ### Closed
 
@@ -635,6 +633,7 @@ escape hatch is `abandoned`, not a build that ignores it.
 | 413 | done | claude-retarget | Retarget FullSample animation library onto the conformed human rig |
 | 414 | abandoned | claude-locomotion | Re-arm ACF locomotion states now that a UACFAnimInstance exists |
 | 415 | done | claude-rig-rebuild | Rebuild character rigs from Manny's skeleton and apply ACF's name contract |
+| 416 | done **UNOBSERVED** | claude-archer-kit | Erika's ACF archer kit: bow aim offset, bow overlay, animated bow prop, combat montages |
 
 <!-- BOARD:END -->
 
