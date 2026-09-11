@@ -45,28 +45,40 @@ UGSCharacterMovementComponent::UGSCharacterMovementComponent(const FObjectInitia
 
 void UGSCharacterMovementComponent::BeginPlay()
 {
-	// RE-ASSERT THE PATH-FOLLOWING ACCELERATION FLAG. The constructor sets it (see above) and the
-	// value survives all the way down the archetype chain - measured 2026-09-10: the C++ CDO reads
-	// true, and so does BP_ErikaArcher's Blueprint CDO - but a LIVE instance in PIE reads FALSE.
-	// Something between construction and here clears it.
+	// DEFENCE IN DEPTH against a PER-INSTANCE PROPERTY OVERRIDE saved into a level.
 	//
-	// WHAT IS NOT THE CAUSE, each checked: no code in Source/GoblinSiege or in the whole ACF plugin
-	// writes `bUseAccelerationForPaths` or `NavMovementProperties` (grepped, zero hits); the engine
-	// writes it in exactly one place, `UNavMovementComponent::Serialize`
-	// (`NavMovementComponent.cpp:44`), which is `WITH_EDITOR` and load-time only.
+	// ROOT CAUSE, now PROVEN (2026-09-11) - nothing "clears" this flag at runtime. The 25 placed
+	// characters in `L_Tutorial_Island` each carried an authored override of
+	// `bUseAccelerationForPaths = false`, and tagged-property deserialization applies those AFTER
+	// the C++ constructor and BEFORE BeginPlay. That is exactly the window where the value changed,
+	// and it explains cleanly why the C++ CDO and the Blueprint CDO both read true while a live
+	// instance read false.
 	//
-	// PRIME SUSPECT, NOT PROVEN: `UACFCharacterInitializerComponent` runs on every GS character
-	// (`GSCharacterBase.cpp:118` SetAutoInit(true)) and every character carries a
-	// `CharacterInitDataAsset` - `DA_Char_Archer` on Erika. That component overwrites component
-	// properties from the DataAsset at BeginPlay, and its unset fields push CDO defaults rather than
-	// being inert; see `.claude/skills/gs-character-data-asset`, which documents the same class of
-	// surprise for the capsule and the rotation mode. It is documented there as overwriting the
-	// capsule and RotationMode, not nav properties, so this is a suspicion and not a diagnosis.
+	// How the override got there: the actors were placed while the engine default was false; commit
+	// 663e2cb then made the archetype true; the map was saved; and delta serialization wrote an
+	// explicit per-instance false because instance no longer equalled archetype. Dated from the LFS
+	// blobs - `L_Tutorial_Island.umap` has zero occurrences of `NavMovementProperties` at e75d896
+	// and one at 663e2cb.
 	//
-	// Re-asserting here is robust whatever the cause, and it is the same belt-and-braces shape as
-	// the MaxWalkSpeed restore below. If the real cause is ever found, delete this and keep the
-	// constructor. Do NOT "simplify" by removing the constructor and keeping only this: a pawn that
-	// never reaches BeginPlay (an editor preview, a CDO query) should still report the right value.
+	// REFUTED along the way, each by reading code or data, so nobody re-chases them:
+	//   - `UACFCharacterInitializerComponent` - its ONLY movement-component touch on either path is
+	//     `SetRotationMode` (`ACFCharacterInitializerComponent.cpp:148-151`, `:195-198`).
+	//   - The deprecated-scalar sync at `NavMovementComponent.cpp:41` - every package in this
+	//     project reads FFortniteReleaseBranchCustomObjectVersion 20 against a threshold of 14, so
+	//     it always takes the else branch (deprecated <- struct, never the reverse).
+	//   - Component re-creation, possession, and "the read is lying" - `GetNavMovementProperties()`
+	//     returns `&NavMovementProperties` (`NavMovementComponent.h:139-141`), one storage.
+	//   - A whole-engine grep: no code anywhere writes this flag at runtime. Only reads.
+	//
+	// The 25 overrides were cleared and the level re-saved, so this line is no longer load-bearing.
+	// It stays as a backstop because the same trap re-arms the moment anyone changes a movement
+	// default while those actors are placed.
+	//
+	// KNOWN DOWNSIDE, stated so the trade-off is a choice and not an accident: this MASKS a future
+	// per-instance override rather than surfacing it. If you would rather such an override announce
+	// itself, delete this line - the constructor alone is then correct - and check the placed actors
+	// when a movement default appears not to apply. Do NOT delete the constructor and keep this: a
+	// pawn that never reaches BeginPlay should still report the right value.
 	NavMovementProperties.bUseAccelerationForPaths = true;
 
 	if (!bDisarmLocomotionStates)
