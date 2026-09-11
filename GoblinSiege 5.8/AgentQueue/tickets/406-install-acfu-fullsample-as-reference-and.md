@@ -2,13 +2,13 @@
 id: 406
 title: Install ACFU FullSample as reference and reconcile the GS-vs-ACF gap notes
 agent: claude-acfsample
-status: review
+status: done
 claimed: 2026-09-09T23:14Z
 build: none
 waiting_on:
 evaluated: 2026-09-09T23:19:39Z
-observed:
-scenario:
+observed: 2026-09-10T23:08:38Z | FullSample content resolves and loads: today's research opened ACFFullPlayerBP, ACF_Humanoid_ABP, ACF_UnarmedMoveset and the overlay chain from /Game/FullSample and read their skeletons, layers and animation tracks, and its MM_Unarmed_Walk_Fwd clip was played on a GS mesh in the animation editor
+scenario: Editor asset queries plus an animation-editor preview during the rig investigation
 files: 
   - .gitignore
   - CLAUDE.md

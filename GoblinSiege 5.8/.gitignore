@@ -76,6 +76,19 @@ Content/*
 # chasing for a different reason.
 !Content/Items/
 
+# 2026-09-09 (#406): Content/FullSample/ is DELIBERATELY NOT NEGATED. Read this before
+# "fixing" it to match the lines above.
+#
+# It is the official Ascent Combat Framework Ultimate sample content (~4.7 GB), copied in
+# from D:\ACFUSampleProject4.2\FullSample so the 40 ACF skill packs stop citing /Game/FullSample/
+# paths that have never resolved on this machine. It is marketplace content, it is not ours,
+# and it is re-downloadable from the ACF repo - the same reasoning as Plugins/Marketplace/
+# below, and the exact opposite of the six negations above, every one of which exists because
+# project-authored work was silently untracked.
+#
+# The default Content/ ignore already covers it. This comment exists only so the next reader
+# recognises it as a decision rather than the seventh instance of that bug.
+
 # source FBX staging lives outside Content (auto-import fires on anything
 # under Content/) and is not versioned - the clips come from Mixamo.
 _MixamoStaging/

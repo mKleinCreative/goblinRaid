@@ -2,6 +2,47 @@
 
 #include "Characters/GSCharacterMovementComponent.h"
 
+UGSCharacterMovementComponent::UGSCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// PATH FOLLOWING MUST DRIVE MOVEMENT THROUGH ACCELERATION, NOT RAW VELOCITY (#415, 2026-09-10).
+	//
+	// `bUseAccelerationForPaths` defaults to FALSE in the engine (`NavigationTypes.h:430-432`), and
+	// that default decides which of two entirely different code paths a path-following AI takes:
+	//
+	//   false -> UPathFollowingComponent::FollowPathSegment calls RequestDirectMove
+	//            (`PathFollowingComponent.cpp:1159`), which sets only `RequestedVelocity` /
+	//            `bHasRequestedVelocity` (`CharacterMovementComponent.cpp:4038`). The requested
+	//            acceleration inside CalcVelocity is a LOCAL (`:3877`) added straight onto Velocity
+	//            (`:3946-3951`) and never stored, so the `Acceleration` MEMBER stays zero forever.
+	//   true  -> RequestPathMove (`:1149`) routes through `AddMovementInput`
+	//            (`PawnMovementComponent.cpp:87-93`), and `ControlledCharacterMove` assigns the
+	//            member at `CharacterMovementComponent.cpp:6451`.
+	//
+	// With it false, `GetCurrentAcceleration()` is identically 0 for every AI in the game while they
+	// walk at full speed. That is invisible to a speed-driven blendspace like `ABP_Human`, and fatal
+	// to ACF: `UACFAnimInstance::UpdateAcceleration` does `bIsAccelerating = Acceleration > 0`
+	// (`ACFAnimInstance.cpp:383`), and `ACF_BaseMoveset` gates locomotion on `bIsAccelerating`,
+	// `LocalAccel2D`, `AccelerationDirection` and `PivotStartingAcceleration`. So an ACF character
+	// idles and turns in place correctly (yaw-driven) and NEVER STARTS WALKING, at any speed.
+	//
+	// ACF's own sample ticks this box on `ACF_Enemy_BP`'s component instance rather than in
+	// `UACFCharacterMovementComponent`'s constructor, so swapping in this subclass
+	// (`GSCharacterBase.cpp:54`) silently dropped it and we inherited the engine default instead.
+	//
+	// Measured in PIE with a control, 2026-09-10: two `BP_CastleGuard01_C` instances, same class,
+	// same 280.1 uu/s, five consecutive samples - flag ON reports |accel| 4131.5, flag OFF reports
+	// 0.0. Note the engine reads this ONLY on the path-following route, so a player-controlled pawn
+	// is unaffected.
+	//
+	// KNOWN CONSEQUENCE, deliberate: `ShouldStopMovementOnPathFinished` returns false in
+	// acceleration mode (`PathFollowingComponent.cpp:623-626`), so agents brake over
+	// `CachedBrakingDistance` instead of stopping dead on arrival. If a behaviour-tree task turns
+	// out to assume an instantaneous stop at its acceptance radius, tune it with
+	// `bUseFixedBrakingDistanceForPaths` + `FixedPathBrakingDistance` rather than reverting this.
+	NavMovementProperties.bUseAccelerationForPaths = true;
+}
+
 void UGSCharacterMovementComponent::BeginPlay()
 {
 	if (!bDisarmLocomotionStates)

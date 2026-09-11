@@ -32,6 +32,16 @@ pointing at `Content/Configuration/ACF_SampleAttributesInit_DT.uasset`. The bund
 byte-identical to the engine copy (`diff -q` on `ACFCharacterInitializerComponent.cpp` returns 0), so
 this is not a version gap — the vendor simply does not use the feature.
 
+**Confirmed against the real sample, 2026-09-09 (#406).** Everything above was measured on
+`FullExample` — the plugin's stub project. The *shipping* ACF Ultimate sample content
+(`/Game/FullSample/`, ~30 characters) has since been installed, and it agrees: exactly **one**
+character sets `CharacterInitDataAsset` — `Blueprints/Characters/Enemies/Zombie/ACFZombieBP`.
+`ACFFullPlayerBP` and every other enemy, companion, mount and NPC authors `CharacterRow` instead,
+with the loadout (AnimBP, ability sets, starting items, effects table) on a `DA_*`
+`ACFCharacterDataAsset` rather than on the initializer. So the "cheap alternative" below is not a
+workaround — **it is the vendor's own pattern**, and the auto-init path is a one-off even in the
+full sample. That strengthens the prescription; it does not change it.
+
 Every bug in §2–§5 is a bug in that unexercised path. Hence the second clause on the standing rule:
 **adopt what ACF ships AND what the sample demonstrates.**
 

@@ -140,10 +140,27 @@ version the copies came from.
 headers while the author's answers sat unread on disk — that is the mistake this section exists to
 stop repeating.
 
-Two gaps in this install, both worth knowing before you trust a skill's paths: **`/Game/FullSample/`
-is not present** (the sample items, pawns and FX every skill references live there — free from the
-ACF Discord for verified Fab customers), and the **`Docs/*_Wiki.md` files the `ai-framework` skill
-cites do not exist** here; that content is at <https://slimwiki.com/dark-tower-int/acfu/welcome>.
+One gap in this install, worth knowing before you trust a skill's paths: the **`Docs/*_Wiki.md`
+files the `ai-framework` skill cites do not exist** here; that content is at
+<https://slimwiki.com/dark-tower-int/acfu/welcome>.
+
+**`/Game/FullSample/` IS present as of 2026-09-09 (#406).** The official ACF Ultimate sample
+content now lives at `Content/FullSample/`, copied from `D:\ACFUSampleProject4.2\FullSample`. This
+is what every skill pack means when it cites `/Game/FullSample/...` — those paths finally resolve.
+Three things to know before you lean on it:
+
+- **It is gitignored on purpose** (`.gitignore`, the `#406` block) — 4.7 GB of marketplace content
+  that is not ours. A clean checkout will NOT have it; re-copy it from the source folder above.
+- **The source folder is a live git clone, not a static drop.** Despite the enclosing folder being
+  named `ACFUSampleProject4.2`, the content inside is `main` of
+  <https://gitlab.com/pasqualemangano/FullSample.git> at `52fa4f22` (2026-07-31) — ACF's RC/develop
+  line, roughly current with the engine's 4.4.2 plugin, NOT 4.2-era content. Update it with
+  `git -C "D:\ACFUSampleProject4.2\FullSample" pull`. The repo also carries feature branches this
+  project has direct use for: `feat/climbing-ik`, `feat/freeclimbing-ik`, `feat/hop-climbing`,
+  `fix/climbing-V2`, `feature/laddersystem-v2`, `feat/Directional-Combat`, `feature/ai-smart-objects`.
+- **Never press ACF's "Update Project Settings" button**, which the sample's README instructs. It
+  overwrites `Config/`, including the `HealthAttribute=ACFStatisticsSet:Health` fix from #228 —
+  before which nothing in the game could die.
 
 ---
 

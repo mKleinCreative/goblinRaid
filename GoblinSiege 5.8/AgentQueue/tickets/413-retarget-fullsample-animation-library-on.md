@@ -2,13 +2,13 @@
 id: 413
 title: Retarget FullSample animation library onto the conformed human rig
 agent: claude-retarget
-status: review
+status: done
 claimed: 2026-09-10T18:47Z
 build: none
 waiting_on:
 evaluated: 2026-09-10T18:52:22Z
-observed:
-scenario:
+observed: 2026-09-10T23:07:25Z | Michael watched Erika animate in PIE after the moveset tag fix - she moved along her spline path playing an idle rather than locomotion, and the arm range defect he spotted was fixed and re-checked
+scenario: PIE raid on L_Tutorial_Island, Michael watching the archers
 files: 
   - none-content-only
 ---
@@ -297,3 +297,44 @@ worthless, and the node-count check returns 0 even for known-good assets).
 FullSample reference as well as for our copies. Including known-good controls is what stopped it being
 reported as "the graph is empty" - the same guard that caught the invalid bone-name read earlier in
 this session, and the opposite of what happened with the three PIE-corrupted measurements.
+
+---
+
+## CORRECTION, 2026-09-10 (#415) — the central claim in this ticket is FALSE
+
+This ticket states, and commit `5b94b7b` committed:
+
+> "**ACF movesets are NOT data-only children.** `ACF_BaseMoveset` and `ACF_UnarmedMoveset` expose
+> **zero** animation properties - the sequences are baked into AnimGraph nodes."
+
+**Refuted.** `ACF_UnarmedMoveset.uasset`'s name table contains **zero** `AnimGraphNode_*` strings of
+any kind, and the asset carries 68 AnimSequence + 2 BlendSpace hard dependencies. The control:
+`ACF_BaseMoveset.uasset` has 15 node types (4x StrideWarping, 4x OrientationWarping, 7x
+TransitionResult) and **none** of those animation dependencies. The clips live in **overridden
+defaults on the parent's inherited `FAnimNode_*` structs**, reachable in the AnimBP editor's
+asset-override panel and invisible to Python CDO introspection.
+
+**The instrument that produced the false claim:** enumerating properties on the CDO. `dir(CDO)` plus
+`get_editor_property` returns the identical six multicast delegates for `ACF_UnarmedMoveset_C` and
+for `ACF_BaseMoveset_C` - an asset with 15 node types. The probe cannot see anim-node data at all, so
+"zero animation properties" was true of the probe and told us nothing about the asset. It was never
+run against a known-good control.
+
+**ACF ships the disproof.** `ACF_HorseMoveset_ABP` (skeleton `Proxy-Horse1_Skeleton`, 5 anim deps)
+and `ACF_WyvernGroundMoveset` (skeleton `Irval_the_Wyvern_Skeleton`, 4 anim deps) are both data-only
+children of `ACF_QuadrupedBaseMoveset`, each on its own skeleton, each carrying its own animation
+set. The vendor's own `anim-blueprints` skill pack says so at `SKILL.md:60`, and was overridden.
+
+**What this claim cost.** It justified retargeting the moveset AnimBPs as if they were animation
+assets - "2 assets in, 95 out", the 95 files under `Content/Characters/ACFRigs/Human/Movesets/`. Those
+children then behaved oddly, which produced the "rip the copies from FullSample" duplication pivot
+(3 more assets), which produced the IK-layer theory, which produced **#415, a full rig rebuild**. All
+of it downstream of one unverified measurement.
+
+**What should have been written:** *ACF movesets ARE data-only children. To put a moveset on a custom
+skeleton, create a Blueprint child of `ACF_BaseMoveset`, set its target skeleton, and assign the
+animations in the asset-override panel - the horse/wyvern pattern. No duplication, no retargeting of
+the AnimBP itself, and ACF's graph fixes keep flowing through the parent.*
+
+The other findings in this ticket stand, including the `BP_Item_ErikaBow` moveset-tag root cause
+(though see #415: the tag is `Moveset`, not `Moveset.Bow`, so the bow overlay is still not linked).

@@ -2,13 +2,13 @@
 id: 409
 title: ACF animation spine: audit skeletons, references and AnimBP parents before migrating
 agent: claude-anim-spine
-status: review
+status: done
 claimed: 2026-09-10T17:00Z
 build: none
 waiting_on:
 evaluated: 2026-09-10T17:06:28Z
-observed:
-scenario:
+observed: 2026-09-10T23:07:12Z | Bone gate run on all three skeletons; ACF_UE5Manny passed, SK_Human_Skeleton and GOB_Scout_v2_Skeleton failed on pelvis/ik_foot_root
+scenario: Editor queries against the live asset registry
 files: 
   - none-investigation-only
 ---

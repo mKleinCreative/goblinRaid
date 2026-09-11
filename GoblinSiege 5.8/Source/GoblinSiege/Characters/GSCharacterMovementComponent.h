@@ -50,6 +50,10 @@ class GOBLINSIEGE_API UGSCharacterMovementComponent : public UACFCharacterMoveme
 	GENERATED_BODY()
 
 public:
+	// ACF's component has no default constructor - it only declares
+	// UACFCharacterMovementComponent(const FObjectInitializer&) - so this must take and forward one.
+	UGSCharacterMovementComponent(const FObjectInitializer& ObjectInitializer);
+
 	virtual void BeginPlay() override;
 
 	/**

@@ -16,6 +16,19 @@ Read this before adding, swapping or flattening a BT, or before touching `BTServ
 None of this is in the 40 ACF packs: a grep for `RunBehaviorTree`, `StartTree`, `BrainComponent`,
 `SetBehaviorTree`, `InitializeBlackboard` across all of them returns zero hits.
 
+**Context from the shipping sample, added 2026-09-09 (#406).** The full ACF Ultimate sample content
+is now installed at `/Game/FullSample/`, and it contains exactly **one** BehaviorTree —
+`Blueprints/AI/Boat/BT_EnemyBoat`, driven by `ACFBoatAIController` — and **zero** Blackboard assets.
+There is no humanoid BT, no humanoid BB, and no patrol asset anywhere in the sample's project
+content. Every melee, ranged, gun, mage, defender, spider, zombie and companion AI in ACF's own
+showcase runs on the `AIFramework` plugin defaults that `AACFAIController` sets up in `OnPossess`.
+
+Two consequences for the rules below. First, they are load-bearing: GS hand-authors 14 BT/BB assets
+on a controller whose vendor never intended a project-side tree, which is precisely the collision
+§1 and §2 describe. Second, the note above — that none of this appears in the 40 ACF packs — now has
+an explanation rather than just being an absence: the vendor documents no BT wiring because the
+vendor authors no BTs.
+
 ---
 
 ## 1 — `RunBehaviorTree` allocates a SECOND BehaviorTreeComponent

@@ -2,13 +2,13 @@
 id: 410
 title: Conform GS rigs to ACF Manny bone standard in Blender
 agent: claude-rig-conform
-status: review
+status: done
 claimed: 2026-09-10T17:15Z
 build: none
 waiting_on:
 evaluated: 2026-09-10T17:21:45Z
-observed:
-scenario:
+observed: 2026-09-10T23:07:13Z | Conformed goblin (48 bones) and human (75 bones) rigs each reported a single root and passed the ACF bone gate
+scenario: Blender headless conform, bone list read back from the exported FBX
 files: 
   - none-investigation-only
 ---

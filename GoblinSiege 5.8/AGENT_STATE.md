@@ -165,14 +165,30 @@ next agent rediscovers it.
   it (`InitializeComponent` walks the owner's subobjects). `bAutoInit = false` keeps ACF's initialiser
   off - no `UACFCharacterDataAsset` is authored, and with it on every character gets zero health.
   `AscentSaveSystem` and `CharacterController` are now LINKED in `Build.cs` (deriving is not linking).
-  - **`UGSCharacterMovementComponent` exists to disarm ACF's locomotion state machine.** ACF's
-    movement component owns `MaxWalkSpeed` and rewrites it from `LocomotionStates`
-    (Idle 0 / Walk 250 / Jog 500 / Sprint 650, `DefaultState = EJog`) on every band transition, which
-    makes sprint STRUCTURALLY IMPOSSIBLE - the Sprint band needs velocity above 505 while the cap is
-    500. Our subclass empties the bands in `BeginPlay` and **restores the authored `MaxWalkSpeed`
-    afterwards**; that restore is load-bearing, because with no bands ACF's
-    `Internal_ApplyLocomotionState` resolves to `0.0f` and every character stands still. **Deleting
-    this class is part of Phase 2b** (ruling 27).
+  - **`UGSCharacterMovementComponent` disarms ACF's locomotion state machine - FOR THE PLAYER ONLY,
+    and it is OPT-OUT per Blueprint.** ACF's movement component owns `MaxWalkSpeed` and rewrites it
+    from `LocomotionStates` (Idle 0 / Walk 250 / Jog 500 / Sprint 650, `DefaultState = EJog`) on
+    every band transition, which makes sprint STRUCTURALLY IMPOSSIBLE for a character that sprints by
+    writing `MaxWalkSpeed` - the Sprint band needs velocity above 505 while the cap is 500.
+    - **SUPERSEDED 2026-08-27 (#334), and this paragraph went on saying otherwise until 2026-09-10.**
+      The disarm is `bDisarmLocomotionStates`, default TRUE, and AI Blueprints CLEAR it:
+      `BP_CastleGuard01` runs with its bands ARMED and authored to its clips' real ground speeds
+      (`EWalk` 280.1, `EJog` 606.3). There is no global disarm. Read
+      `Source/GoblinSiege/Characters/GSCharacterMovementComponent.h` - it is the authority, not this
+      entry.
+    - **Also corrected:** the old claim that the `MaxWalkSpeed` restore is load-bearing "because with
+      no bands `Internal_ApplyLocomotionState` resolves to 0.0f" is FALSE. When
+      `GetCharacterMaxSpeedByState` misses it only logs *"Locomotion State inexistent"* and writes
+      nothing (`ACFCharacterMovementComponent.cpp:684-691`). The restore is a no-op that stays
+      because it pins the invariant.
+    - **This stale entry cost real work.** #414 proposed "re-arm the locomotion states" from the
+      summary line above without reading the header that supersedes it, and was abandoned with no
+      code changed; before that, commit `b0d5794` shipped "locomotion is silent because
+      `GSCharacterMovementComponent` disarms ACF's state machine" to Michael as an answer, withdrawn
+      six hours later by `205f713`. **A summary line in this file is a pointer to the source, never
+      the source.**
+
+    **Deleting this class is part of Phase 2b** (ruling 27).
   - **ACF's AI machinery is now awake.** `AACFAIController::OnPossess` used to early-return on our
     pawns because they failed `Cast<AACFCharacter>`; they pass now, so its blackboard init runs and it
     reaches the tree check - hence six `should be assigned with a behavior Tree` warnings.
@@ -335,6 +351,90 @@ next agent rediscovers it.
     against knights - wants more goblins or fewer knights before it reads as a battle.
 
 ## DECISIONS
+
+### CORRECTIONS, 2026-09-10 (#415) — five claims I asserted this session are FALSE. Read this before any rig work.
+
+Three adversarial audits (process, skinning, claims) went over a day of rig work. The corrections
+below are the durable part. **Every one of them came from the same move: a single measurement, read
+as conclusive, with no control.**
+
+1. **"ACF movesets are NOT data-only children; the sequences are baked into AnimGraph nodes."
+   FALSE.** `ACF_UnarmedMoveset.uasset` has **zero** `AnimGraphNode_*` strings and 68 AnimSequence +
+   2 BlendSpace dependencies; `ACF_BaseMoveset.uasset` has 15 node types and none of those deps. The
+   clips live in **overridden defaults on the parent's inherited `FAnimNode_*` structs** - visible in
+   the AnimBP editor's asset-override panel, invisible to a Python CDO dump. **The instrument that
+   lied:** `dir(CDO)` / `get_editor_property` returns the identical 6 multicast delegates for
+   `ACF_UnarmedMoveset_C` AND for `ACF_BaseMoveset_C`. Never conclude "no properties" from a CDO dump
+   on an AnimBP. ACF's own `ACF_HorseMoveset_ABP` and `ACF_WyvernGroundMoveset` are data-only
+   children of `ACF_QuadrupedBaseMoveset` on `Proxy-Horse1_Skeleton` and
+   `Irval_the_Wyvern_Skeleton` - the shipped proof that a moveset child can live on any skeleton.
+   **Cost of this one claim: 95 dead retargeted assets, the rip-by-duplicating pivot, the IK-layer
+   theory, and a full rig rebuild.** It is written as fact in ticket #413 and committed at `5b94b7b`.
+
+2. **"A phantom `Hips` bone is why ACF's AnimBP silently refused to attach." OVER-GENERALISED.** The
+   mechanism is real: `SkeletalMeshComponent.cpp:957` gates anim-instance creation on
+   `IsCompatibleMesh(Mesh, /*bDoParentChainCheck*/ false)`, and `Skeleton.cpp:648-707` is a bone-NAME
+   test **with an ancestor fallback** (`:679-701`) - so a stray leaf bone is harmless, and only
+   **bone 0 with no parent** is fatal. But it never fired on our shipping asset, because the AnimBP's
+   `target_skeleton` was repointed to the mesh's own skeleton, which makes the test trivially true.
+   It fired in exactly one experiment: pointing Erika at FullSample's `ACF_Humanoid_ABP`, which
+   targets `ACF_UE5Manny`. **One experiment is not a root cause.**
+
+3. **"The bow is held wrong because our skeleton has no `UpperBodyMask`." FALSE, three links over.**
+   `BP_Item_ErikaBow.Moveset` is the tag **`Moveset`**, not `Moveset.Bow`, so `ACF_MMBowOverlay` is
+   never linked at all. Also: `ACF_MMBaseOverlay` DOES name a mask (`UpperBody`); `Moveset.Bow`
+   routes through the MM family, not an `ACF_BaseOverlay` child; and a missing mask makes an overlay
+   contribute **nothing**, not a full-body blend - `AnimationRuntime.cpp:2468-2503` zero-initialises
+   every weight and `continue`s. The real cross-skeleton hazard is mask **index remapping**
+   (`:2488-2491`), which uses raw indices from the authoring skeleton when no remapping is valid.
+
+4. **"Setting `ik_layer` to None disables the IK layer." FALSE.**
+   `AnimNode_LinkedAnimLayer.cpp:52-55` routes a null class into `InitializeSelfLayer` (`:81`), which
+   binds the layer to the owning AnimBP's own stub and links it. The layer still runs. To remove a
+   layer you remove the node.
+
+5. **"The characters are ~3.4 m tall." PARTLY FALSE - and it was the exception that mattered.**
+   Manny 180.5 uu; Guards 349.7 / 360.6; Knight 340.8; Peasant 340.4; goblins 240.0; **Erika 299.2**.
+   I generalised from four characters to the fifth, which was the subject of the whole effort.
+
+**Also retracted:** "three unweighted vertices caused the animation spikes." The real mechanism is
+commit `692d748`'s - ~1,092 hip vertices left partially weighted after Blender deleted the `Hips`
+vertex group. Unreal pins zero-influence verts to root and logs *"Missing influence on vert N"*
+(`MeshUtilities.cpp:4043`); that warning appears **zero** times in `MyProject.log`.
+
+### THE PRACTICES THAT CAME OUT OF IT, 2026-09-10 — Michael approved all five
+
+Every deformation defect in the #409-#415 chain was found by **Michael looking at the screen**. The
+agent's own instruments found **zero**. The pipeline validated *properties of the artifact* - bone
+names present, weights sum to 1, single root, bounds identical - and those stay correct while a rig
+is broken, because they are all reference-pose measurements and every defect expressed itself only
+under animation.
+
+1. **RENDER AND LOOK BEFORE HANDING ANYTHING OVER.** Headless Blender renders of the rig animating,
+   and editor captures in Unreal, inspected by the agent. Nothing reaches Michael unlooked-at. This
+   is the one that removes him as the test harness.
+2. **CONTROL PAIRS ON EVERY INSTRUMENT.** No measurement enters an argument until it has passed a
+   known-GOOD input and FAILED a known-BAD one, with both readings reported beside the real one.
+   Instruments known to lie, each caught only after it had been believed: `dir(CDO)` on an AnimBP
+   (identical for graph-ful and graph-less assets); hand-span / T-pose proxies (returned 237.9 uu in
+   every state); `get_socket_transform` and `get_bone_transform` as pose readouts (constant for
+   characters that visibly animate); AnimGraph node counts (0 on a known-good asset);
+   `SkeletonService.get_bone_transform` (succeeds on any name); any asset read taken while PIE runs.
+3. **VENDOR-FIRST.** Before writing anything that works around a framework limitation, find the
+   shipped asset that already does the thing. If none exists, report that rather than build. The
+   disproof of correction 1 was two directories from where the agent was working.
+4. **TWO DEFECTS FROM ONE CAUSE = STOP AND RE-PLAN.** A circuit breaker on the approach, not just on
+   repeated calls. Commit `1f96013`'s own message says *"this is the fourth distinct defect from the
+   same root cause"* - and then added a fourth patch instead of concluding the approach was unsound.
+5. **NO GUESSING.** After the first approach fails, research the next one BEFORE touching anything.
+   Rip-by-duplicating, the IK-layer theory and the rig rebuild were all guesses.
+
+**And a queue failure to own:** five `observed` stamps were written in **13 seconds**, hours after
+their tickets closed, with text that was tool output ("passed the ACF bone gate", "reported a single
+root") - and #411's `observed` timestamp is **earlier than its own `evaluated`**. The gate that
+exists to stop exactly this session was defeated by pasting tool output into `-What`. Mechanical
+enforcement is going into `gsqueue.ps1`.
+
 
 ### CORRECTION, 2026-09-10 — WE DO HAVE ROOT MOTION. THE FLAG IS OFF, THAT IS ALL.
 

@@ -2,13 +2,13 @@
 id: 412
 title: First ACF AnimBP: ACF_Template_ABP child on the conformed human skeleton
 agent: claude-acf-animbp
-status: review
+status: done
 claimed: 2026-09-10T18:27Z
 build: none
 waiting_on:
 evaluated: 2026-09-10T18:29:26Z
-observed: 2026-09-10T18:29:27Z | Ran PIE and read the live anim instance off Erika: she is running ABP_GS_Human_ACF_C, it tests True as an ACFAnimInstance, and ACF is computing her state from the character - speed 250, normalized speed 0.385, direction 0, is_moving true, is_in_air false. Both GS AnimBPs returned False for that test before today
-scenario: Live PIE on L_Tutorial_Island with BP_ErikaArcher repointed at the conformed SK_Human_Manny mesh and the new ACF template AnimBP
+observed: 2026-09-10T23:07:24Z | Erika ran in PIE on the ACF AnimBP and reported isACFAnimInstance True, though with no moveset assigned she stayed in T-pose
+scenario: PIE raid on L_Tutorial_Island, Michael watching
 files: 
   - none-content-only
 ---

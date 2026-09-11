@@ -2,13 +2,13 @@
 id: 411
 title: Land the conform script in Tools and import the conformed human rig
 agent: claude-rig-import
-status: review
+status: done
 claimed: 2026-09-10T17:26Z
 build: none
 waiting_on:
-evaluated: 2026-09-10T17:28:12Z
-observed:
-scenario:
+evaluated: 2026-09-10T23:08:21Z
+observed: 2026-09-10T23:07:23Z | Michael looked at the imported SK_Human_Manny in the editor; mesh present and skinned, geometry extent matching SK_ErikaArcher_baked
+scenario: Editor viewport after import
 files: 
   - Tools/Rig/conform_to_manny.py
 ---
@@ -61,3 +61,41 @@ the source mesh regenerates them.
 Next: point ONE castle guard at `SK_Human_Manny_Skeleton`, build an AnimBP from `ACF_Template_ABP`
 (valid now that the IK bones exist), and confirm the equipment-to-pose chain grips a weapon
 correctly - before the player, the goblins, or FullSample's animation library.
+
+---
+
+## Evaluate, re-read 2026-09-10T22:4x (the script changed after the above was written)
+
+`Tools/Rig/conform_to_manny.py` was edited twice after this Evaluate was stamped, and the
+"NOT VERIFIED - needs eyes" caveat above turned out to be the important sentence in this ticket.
+What eyes then found, in order:
+
+1. **The sideways tilt** (#413): `root` and `pelvis` were created with tails up world Z, ~90 degrees
+   off every other bone. The Pelvis Motion retarget op applies pelvis rotation in LOCAL space, so it
+   went about the wrong axes. Fixed in commit `1f96013` by orienting both along `spine_01`.
+2. **Orphan vertices**: the weight-restore block did `continue` on `total <= 0.0`, which silently
+   abandoned the three vertices (1233, 2235, 2293) that had no weights at all. They are now rigged
+   to the nearest deform bone, and the mesh re-imports with zero unweighted vertices.
+
+**A causal claim made while fixing #2 is RETRACTED.** Those three vertices were reported as the
+cause of the long triangle spikes Michael saw in the animation preview. They were not. This
+ticket's own commit `692d748` documents the real mechanism - ~1,092 hip vertices left holding a
+median weight sum of 0.492 after Blender deleted the `Hips` vertex group - and Unreal does not leave
+zero-influence vertices undefined anyway: `MeshUtilities.cpp:4043` pins them to the root bone and
+logs `"Missing influence on vert N"`, a warning that appears **zero** times in `MyProject.log`. The
+orphan fix is correct hygiene and stays; the diagnosis attached to it was wrong.
+
+**What this ticket ultimately proved, and it is the opposite of what it set out to prove:**
+conforming by RENAME cannot produce a correct rig. Measured on the shipped output afterwards -
+
+| defect | measurement |
+|---|---|
+| phantom `Hips` at bone index 0 | Blender's armature OBJECT re-exported as a bone; no parent, so `USkeleton::IsCompatibleMesh` returns false at `Skeleton.cpp:707` before reaching anything else. This is why ACF's own AnimBP silently refused to attach to this rig. |
+| `root` at Z=173.81, not 0 | same artifact - the armature object's location. Root motion and ground plane off by 1.74m. |
+| `pelvis` coincident with `spine_01` | the synthesised pelvis landed on the Mixamo *Spine* joint. Legs 2.01x Manny, torso 1.14x. |
+| 90-degree bone-roll mismatch on the arm chain | our arm bones aim down local -Y; Manny's aim down local +X. |
+
+Superseded by **#415**, which builds the skeleton FROM Manny and fits it to the mesh, so names,
+hierarchy, rolls, twists and IK bones are correct by construction. `conform_to_manny.py` is retired
+there; its Mixamo->Manny name map and its four documented Blender-importer defects carry over,
+because that knowledge was expensive and is still true.
